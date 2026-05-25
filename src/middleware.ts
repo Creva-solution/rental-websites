@@ -29,7 +29,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Define excluded main landing page hostnames/subdomains
-  const systemSubdomains = ['www', 'admin', 'rentalwebsites', 'rentalwebsite', 'rentalweb'];
+  const systemSubdomains = ['www', 'admin', 'rentalwebsites', 'rentalwebsite', 'rentalweb', 'rweb'];
 
   // Rewrite to the storefront if there's a valid shop subdomain
   if (subdomain && !systemSubdomains.includes(subdomain.toLowerCase())) {
