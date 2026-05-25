@@ -97,7 +97,7 @@ export default function ProductsPage() {
     if (cropTarget === 'new') {
       setNewProduct(prev => ({ ...prev, image_url: croppedDataUrl }));
     } else if (cropTarget === 'edit') {
-      setEditingProduct(prev => ({ ...prev, image_url: croppedDataUrl }));
+      setEditingProduct((prev: any) => prev ? { ...prev, image_url: croppedDataUrl } : null);
     }
     
     setCropImageSrc(null);

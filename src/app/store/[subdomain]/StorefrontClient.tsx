@@ -221,7 +221,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
     return products && products.length > 0 ? products : SAMPLE_PRODUCTS;
   }, [products]);
 
-  const [cart, setCart] = useState<{product: any, quantity: number}[]>([]);
+  const [cart, setCart] = useState<{product: any, quantity: number, size?: string, color?: string}[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   
   // Modals & Sidebars States
@@ -1555,7 +1555,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                       COLOR: <span className="text-gray-950 font-black tracking-normal ml-1">{selectedColor.toUpperCase()}</span>
                     </span>
                     <div className="flex gap-3 items-center">
-                      {productColors.map((color) => {
+                      {productColors.map((color: string) => {
                         const hex = getColorHex(color);
                         const isSelected = selectedColor.trim().toLowerCase() === color.trim().toLowerCase();
                         return (
@@ -1590,7 +1590,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   <div className="space-y-2">
                     <span className="text-[10px] font-bold text-gray-400 tracking-wider uppercase block">Select Size</span>
                     <div className="flex gap-2 flex-wrap">
-                      {productSizes.map((size) => (
+                      {productSizes.map((size: string) => (
                         <button
                           key={size}
                           onClick={() => setSelectedSize(size)}
