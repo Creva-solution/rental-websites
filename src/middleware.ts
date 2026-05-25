@@ -28,8 +28,11 @@ export function middleware(request: NextRequest) {
     subdomain = hostname.split('.crevasolution.in')[0];
   }
 
-  // Rewrite to the storefront if there's a valid subdomain
-  if (subdomain && subdomain !== 'www' && subdomain !== 'admin') {
+  // Define excluded main landing page hostnames/subdomains
+  const systemSubdomains = ['www', 'admin', 'rentalwebsites', 'rentalwebsite'];
+
+  // Rewrite to the storefront if there's a valid shop subdomain
+  if (subdomain && !systemSubdomains.includes(subdomain.toLowerCase())) {
     url.pathname = `/store/${subdomain}${url.pathname}`;
     return NextResponse.rewrite(url);
   }
