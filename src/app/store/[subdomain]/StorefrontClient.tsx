@@ -790,7 +790,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
           
           {/* Left: Logo & Store Name */}
-          <Link href={`/store/${store.subdomain}`} className="flex items-center gap-3 group flex-shrink-0">
+          <Link href="/" className="flex items-center gap-3 group flex-shrink-0">
             {store.logo_url ? (
               <img 
                 src={store.logo_url} 

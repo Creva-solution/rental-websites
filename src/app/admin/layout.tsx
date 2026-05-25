@@ -14,6 +14,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [loading, setLoading] = useState(true);
   const [store, setStore] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
+  const [storeUrl, setStoreUrl] = useState<string>('');
+
+  useEffect(() => {
+    if (!store) return;
+    const hostname = window.location.hostname;
+    const protocol = window.location.protocol;
+    const port = window.location.port ? `:${window.location.port}` : '';
+    
+    let url = '';
+    if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
+      url = `${protocol}//${store.subdomain}.localhost${port}`;
+    } else {
+      url = `${protocol}//${store.subdomain}.crevasolution.in`;
+    }
+    setStoreUrl(url);
+  }, [store]);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -102,9 +118,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {pathname === '/admin' ? 'Dashboard Overview' : pathname.replace('/admin/', '')}
           </h1>
           <div className="flex items-center gap-4">
-            <Link href={`/store/${store.subdomain}`} target="_blank" className="text-sm flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 font-medium transition-colors">
+            <a href={storeUrl} target="_blank" rel="noopener noreferrer" className="text-sm flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 font-medium transition-colors">
               <ExternalLink className="w-4 h-4" /> View Store
-            </Link>
+            </a>
             <button onClick={handleLogout} className="text-sm bg-muted px-4 py-2 rounded-md hover:bg-muted/80 font-medium transition-colors">
               Log out
             </button>
