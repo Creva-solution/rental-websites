@@ -1,12 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
 import { ShoppingCart, Menu, Search, Star } from 'lucide-react';
 import Link from 'next/link';
-
-// Initialize a server-side Supabase client for data fetching
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from '@/lib/supabase';
 
 export const revalidate = 0; // Disable caching for preview
 
