@@ -64,7 +64,21 @@ export default function BusinessSetupWizard() {
 
       if (storeError) throw storeError;
 
-      // 3. Success! Redirect to dashboard
+      // 3. Register the subdomain alias with Vercel automatically (runs securely on server-side)
+      try {
+        await fetch('/api/domains/add', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ subdomain }),
+        });
+      } catch (domainErr) {
+        console.error('Failed to register subdomain automatically on Vercel:', domainErr);
+        // Continue transition since store record creation succeeded
+      }
+
+      // 4. Success! Redirect to dashboard
       router.push('/admin');
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred');
