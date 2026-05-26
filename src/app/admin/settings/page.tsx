@@ -560,12 +560,12 @@ export default function SettingsPage() {
                           <label className="text-[10px] font-bold uppercase text-muted-foreground">Value (Points to)</label>
                           <div className="flex gap-1">
                             <div className="h-9 flex-1 flex items-center px-3 bg-primary/10 border border-primary/20 rounded font-mono text-xs font-bold text-primary overflow-x-auto whitespace-nowrap">
-                              crevasolution.in
+                              cname.vercel-dns.com
                             </div>
                             <button 
                               onClick={() => {
-                                navigator.clipboard.writeText("crevasolution.in");
-                                alert('Copied Value "crevasolution.in" to clipboard!');
+                                navigator.clipboard.writeText("cname.vercel-dns.com");
+                                alert('Copied Value "cname.vercel-dns.com" to clipboard!');
                               }}
                               className="px-2 bg-secondary border border-border rounded text-[10px] font-medium hover:bg-secondary/80 transition-colors"
                             >
