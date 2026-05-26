@@ -243,15 +243,21 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   const [showToast, setShowToast] = useState<{productName: string, quantity: number} | null>(null);
   const [showAdPopup, setShowAdPopup] = useState(false);
 
-  // Automatically trigger the Flash Advertisement Pop-up Modal on load
+  // Automatically trigger the Flash Advertisement Pop-up Modal on load EXACTLY ONCE per session
   useEffect(() => {
     if (flashAd && flashAd.enabled) {
-      const timer = setTimeout(() => {
-        setShowAdPopup(true);
-      }, 1000);
-      return () => clearTimeout(timer);
+      if (typeof window !== 'undefined') {
+        const hasShownAd = sessionStorage.getItem(`shown_flash_ad_${store.id}`);
+        if (!hasShownAd) {
+          const timer = setTimeout(() => {
+            setShowAdPopup(true);
+            sessionStorage.setItem(`shown_flash_ad_${store.id}`, 'true');
+          }, 1000);
+          return () => clearTimeout(timer);
+        }
+      }
     }
-  }, [flashAd]);
+  }, [flashAd, store.id]);
 
   // Dynamically update favicon in the browser tab based on the uploaded store logo
   useEffect(() => {
