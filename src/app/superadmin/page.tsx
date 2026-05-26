@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { 
   Building2, Globe, ShieldAlert, ShieldCheck, Play, Pause, 
   Search, RefreshCw, Copy, Check, Database, HelpCircle,
-  Infinity, Calendar, Clock, Zap, Plus, FileText, X, Printer, Send
+  Infinity, Calendar, Clock, Zap, Plus, FileText, X, Printer, Send, Upload
 } from 'lucide-react';
 
 export default function SuperAdminDashboard() {
@@ -48,6 +48,25 @@ export default function SuperAdminDashboard() {
     localStorage.setItem('saas_brand_logo', brandLogo);
     setActionStatus('Brand settings saved locally!');
     setTimeout(() => setActionStatus(null), 2000);
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 800 * 1024) {
+        alert("⚠️ Logo image size is too large! Please choose a file under 800KB.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setBrandLogo(event.target.result as string);
+          setActionStatus("Logo file uploaded and loaded!");
+          setTimeout(() => setActionStatus(null), 2000);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // SQL code for setting up custom columns in Supabase
@@ -1035,14 +1054,34 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
               </div>
 
               <div>
-                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Branding Logo Link / URL</label>
-                <input 
-                  type="text"
-                  value={brandLogo}
-                  onChange={(e) => setBrandLogo(e.target.value)}
-                  placeholder="e.g. https://..."
-                  className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2.5 text-sm text-white mt-1 transition-all font-mono"
-                />
+                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block mb-1">Branding Logo</label>
+                <div className="flex flex-col gap-2.5">
+                  <label 
+                    htmlFor="global-logo-upload"
+                    className="flex items-center justify-center gap-2 py-3 rounded-lg border border-dashed border-gray-800 hover:border-blue-500 bg-gray-950 hover:bg-gray-950/70 cursor-pointer text-xs font-semibold text-gray-400 hover:text-white transition-all text-center"
+                  >
+                    <Upload className="w-4 h-4 text-blue-500" />
+                    <span>Click to Upload Logo Image File</span>
+                  </label>
+                  <input 
+                    type="file"
+                    accept="image/*"
+                    id="global-logo-upload"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                  />
+
+                  <div className="relative">
+                    <span className="text-[9px] text-gray-500 uppercase font-sans tracking-wide block mb-1">Or paste logo image link URL:</span>
+                    <input 
+                      type="text"
+                      value={brandLogo}
+                      onChange={(e) => setBrandLogo(e.target.value)}
+                      placeholder="e.g. https://..."
+                      className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-xs text-white transition-all font-mono"
+                    />
+                  </div>
+                </div>
               </div>
 
               {brandLogo && (
