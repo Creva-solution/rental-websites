@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
   Building2, Globe, ShieldAlert, ShieldCheck, Play, Pause, 
@@ -28,12 +28,113 @@ export default function SuperAdminDashboard() {
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [isBrandingOpen, setIsBrandingOpen] = useState<boolean>(false);
 
+  // States for Image Cropping tool
+  const [rawImage, setRawImage] = useState<string | null>(null);
+  const [cropZoom, setCropZoom] = useState<number>(1);
+  const [cropX, setCropX] = useState<number>(0);
+  const [cropY, setCropY] = useState<number>(0);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
   useEffect(() => {
     const savedBrand = localStorage.getItem('saas_brand_name');
     const savedLogo = localStorage.getItem('saas_brand_logo');
     if (savedBrand) setBrandName(savedBrand);
     if (savedLogo) setBrandLogo(savedLogo);
   }, []);
+
+  // HTML5 Canvas cropping renderer
+  useEffect(() => {
+    if (!rawImage || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const img = new Image();
+    img.src = rawImage;
+    img.onload = () => {
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw dark indicator background
+      ctx.fillStyle = "#090d16"; 
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const radius = canvas.width / 2;
+
+      ctx.save();
+      // Circular clipping path for perfect 1:1 circular crop preview
+      ctx.beginPath();
+      ctx.arc(radius, radius, radius, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+
+      // Calculate sizes maintaining aspect ratio
+      const aspectRatio = img.width / img.height;
+      let drawWidth = canvas.width * cropZoom;
+      let drawHeight = canvas.height * cropZoom;
+
+      if (aspectRatio > 1) {
+        // Wide image
+        drawWidth = canvas.height * aspectRatio * cropZoom;
+      } else {
+        // Tall image
+        drawHeight = (canvas.width / aspectRatio) * cropZoom;
+      }
+      
+      const dx = (canvas.width - drawWidth) / 2 + cropX;
+      const dy = (canvas.height - drawHeight) / 2 + cropY;
+
+      ctx.drawImage(img, dx, dy, drawWidth, drawHeight);
+      ctx.restore();
+
+      // Premium glowing indicator outline
+      ctx.strokeStyle = "#3b82f6";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(radius, radius, radius - 2, 0, Math.PI * 2);
+      ctx.stroke();
+    };
+  }, [rawImage, cropZoom, cropX, cropY]);
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - cropX, y: e.clientY - cropY });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDragging) return;
+    setCropX(e.clientX - dragStart.x);
+    setCropY(e.clientY - dragStart.y);
+  };
+
+  const handleMouseUpOrLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    setIsDragging(true);
+    const touch = e.touches[0];
+    setDragStart({ x: touch.clientX - cropX, y: touch.clientY - cropY });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDragging) return;
+    const touch = e.touches[0];
+    setCropX(touch.clientX - dragStart.x);
+    setCropY(touch.clientY - dragStart.y);
+  };
+
+  const handleApplyCrop = () => {
+    if (!canvasRef.current) return;
+    // Extract base64 high-quality cropped PNG
+    const croppedUrl = canvasRef.current.toDataURL('image/png');
+    setBrandLogo(croppedUrl);
+    setRawImage(null); // Close crop panel modal
+    setActionStatus("Logo cropped successfully!");
+    setTimeout(() => setActionStatus(null), 2000);
+  };
 
   const handleOpenBilling = (store: any) => {
     setSelectedStore(store);
@@ -60,8 +161,11 @@ export default function SuperAdminDashboard() {
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
-          setBrandLogo(event.target.result as string);
-          setActionStatus("Logo file uploaded and loaded!");
+          setRawImage(event.target.result as string);
+          setCropZoom(1);
+          setCropX(0);
+          setCropY(0);
+          setActionStatus("Logo loaded. Please adjust crop!");
           setTimeout(() => setActionStatus(null), 2000);
         }
       };
@@ -1121,6 +1225,120 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                 Save Branding Default Settings
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dynamic Logo Image Cropper Sub-Modal */}
+      {rawImage && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-6 shadow-2xl text-left animate-none">
+            
+            <div className="flex items-center justify-between border-b border-gray-850 pb-4">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Upload className="w-5 h-5 text-blue-400" />
+                  Crop & Adjust SaaS Logo
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">Reposition and scale your logo to fit perfectly</p>
+              </div>
+              <button 
+                onClick={() => setRawImage(null)}
+                className="p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Canvas Crop Area */}
+            <div className="flex flex-col items-center justify-center gap-3">
+              <div className="relative bg-gray-950 p-6 rounded-2xl border border-gray-850 shadow-inner flex items-center justify-center">
+                <canvas 
+                  ref={canvasRef} 
+                  width={220} 
+                  height={220}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUpOrLeave}
+                  onMouseLeave={handleMouseUpOrLeave}
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleMouseUpOrLeave}
+                  className="cursor-move rounded-full shadow-lg border border-gray-800"
+                />
+              </div>
+              <p className="text-[10px] text-gray-400 font-sans text-center">
+                👉 <strong>Drag directly</strong> inside the circle above to reposition your logo
+              </p>
+            </div>
+
+            {/* Sliders Controls */}
+            <div className="space-y-4 bg-gray-950/50 p-4 rounded-xl border border-gray-850">
+              {/* Zoom Slider */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-wide">
+                  <span>Zoom / Scale</span>
+                  <span className="font-mono text-blue-400">{cropZoom.toFixed(1)}x</span>
+                </div>
+                <input 
+                  type="range"
+                  min="0.5"
+                  max="3"
+                  step="0.05"
+                  value={cropZoom}
+                  onChange={(e) => setCropZoom(parseFloat(e.target.value))}
+                  className="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                />
+              </div>
+
+              {/* Advanced Fine-Tuning offsets */}
+              <div className="grid grid-cols-2 gap-4 pt-1">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Horizontal Offset (X)</label>
+                  <input 
+                    type="range"
+                    min="-150"
+                    max="150"
+                    step="1"
+                    value={cropX}
+                    onChange={(e) => setCropX(parseInt(e.target.value))}
+                    className="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Vertical Offset (Y)</label>
+                  <input 
+                    type="range"
+                    min="-150"
+                    max="150"
+                    step="1"
+                    value={cropY}
+                    onChange={(e) => setCropY(parseInt(e.target.value))}
+                    className="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="flex items-center gap-3 justify-end pt-4 border-t border-gray-850">
+              <button
+                type="button"
+                onClick={() => setRawImage(null)}
+                className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs font-semibold text-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleApplyCrop}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-750 text-xs font-semibold text-white transition-colors shadow-md flex items-center gap-1.5"
+              >
+                <Check className="w-3.5 h-3.5" />
+                Apply Circular Crop
+              </button>
+            </div>
+
           </div>
         </div>
       )}
