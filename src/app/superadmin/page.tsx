@@ -407,6 +407,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
     if (activeFilter === 'all') return true;
     if (activeFilter === 'paused') return store.is_paused === true;
     if (activeFilter === 'custom_domain') return store.custom_domain_enabled !== false;
+    if (activeFilter === 'subdomain') return store.custom_domain_enabled === false;
     
     const expiryDate = store.subscription_expires_at ? new Date(store.subscription_expires_at) : null;
     const isExpired = expiryDate ? expiryDate < new Date() : false;
@@ -436,6 +437,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
   const totalStoresCount = stores.length;
   const pausedStoresCount = stores.filter(s => s.is_paused === true).length;
   const customDomainStoresCount = stores.filter(s => s.custom_domain_enabled !== false).length;
+  const subdomainStoresCount = stores.filter(s => s.custom_domain_enabled === false).length;
   const lifetimeStoresCount = stores.filter(s => s.subscription_expires_at === null).length;
   
   const expiredStoresCount = stores.filter(s => {
@@ -552,6 +554,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
             { id: 'all', name: 'All Shops', count: totalStoresCount },
             { id: 'paused', name: 'Paused', count: pausedStoresCount },
             { id: 'custom_domain', name: 'Custom Domain', count: customDomainStoresCount },
+            { id: 'subdomain', name: 'Subdomain', count: subdomainStoresCount },
             { id: '1month', name: '1 Month active', count: oneMonthCount },
             { id: '3months', name: '3 Months active', count: threeMonthsCount },
             { id: '6months', name: '6 Months active', count: sixMonthsCount },
