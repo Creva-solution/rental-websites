@@ -241,6 +241,17 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [showToast, setShowToast] = useState<{productName: string, quantity: number} | null>(null);
+  const [showAdPopup, setShowAdPopup] = useState(false);
+
+  // Automatically trigger the Flash Advertisement Pop-up Modal on load
+  useEffect(() => {
+    if (flashAd && flashAd.enabled) {
+      const timer = setTimeout(() => {
+        setShowAdPopup(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [flashAd]);
 
   // Dynamically update favicon in the browser tab based on the uploaded store logo
   useEffect(() => {
@@ -1855,47 +1866,82 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         </div>
       )}
 
-      {/* Luxury Storefront Flash Advertisement Banner */}
-      {flashAd && flashAd.enabled && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-gray-950 text-white p-8 md:p-16 min-h-[380px] flex flex-col justify-center group border border-white/5">
-            {/* Background Image with elegant overlay */}
-            <div 
-              className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-overlay transition-transform duration-700 group-hover:scale-105" 
-              style={{ backgroundImage: `url(${flashAd.image})` }} 
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-950/80 to-transparent" />
+      {/* Premium Luxury Storefront Flash Advertisement Pop-up Modal */}
+      {flashAd && flashAd.enabled && showAdPopup && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="relative w-full max-w-md bg-gray-950 text-white rounded-3xl overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] border border-white/10 flex flex-col items-center p-8 md:p-10 animate-in zoom-in-95 duration-350 ease-out text-center">
             
-            {/* Content Container */}
-            <div className="relative z-10 space-y-6 max-w-2xl">
-              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase bg-gradient-to-r from-purple-500 via-rose-500 to-pink-500 text-white shadow-lg animate-pulse">
-                🔥 EXCLUSIVE LIMITED OFFER
-              </span>
+            {/* Elegant Close Icon Button */}
+            <button 
+              onClick={() => setShowAdPopup(false)}
+              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-all duration-250 border border-white/5 z-20 group"
+              aria-label="Dismiss Advertisement"
+            >
+              <X className="w-4 h-4 transition-transform group-hover:rotate-90 duration-300" />
+            </button>
+
+            {/* Glowing Accent Ambient Lights */}
+            <div className="absolute -left-10 -top-10 w-48 h-48 rounded-full bg-purple-600/20 blur-[60px] pointer-events-none" />
+            <div className="absolute -right-10 -bottom-10 w-48 h-48 rounded-full bg-rose-600/20 blur-[60px] pointer-events-none" />
+
+            {/* Image Section inside Modal */}
+            {flashAd.image && (
+              <div className="relative w-full h-52 rounded-2xl overflow-hidden mb-6 border border-white/5 shadow-inner group">
+                <img 
+                  src={flashAd.image} 
+                  alt={flashAd.title} 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/20 to-transparent" />
+                
+                {/* Floating promo badge */}
+                <div className="absolute bottom-4 left-4">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase bg-gradient-to-r from-purple-500 via-rose-500 to-pink-500 text-white shadow-lg">
+                    🔥 SPECIAL OFFER
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Content Section */}
+            <div className="space-y-4 relative z-10 w-full">
+              {!flashAd.image && (
+                <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase bg-gradient-to-r from-purple-500 via-rose-500 to-pink-500 text-white shadow-lg animate-pulse mb-2">
+                  🔥 EXCLUSIVE LIMITED OFFER
+                </span>
+              )}
               
-              <h2 className="text-3xl md:text-5xl font-black uppercase font-luxury-sans tracking-tight leading-none bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-100 to-gray-400">
+              <h3 className="text-2xl md:text-3xl font-black uppercase font-luxury-sans tracking-tight leading-none bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-100 to-gray-400">
                 {flashAd.title}
-              </h2>
+              </h3>
               
-              <p className="text-sm md:text-base text-gray-300 font-light leading-relaxed max-w-xl">
+              <p className="text-xs text-gray-300 font-light leading-relaxed px-2">
                 {flashAd.subtitle}
               </p>
               
-              <div className="pt-4">
+              <div className="pt-4 flex flex-col sm:flex-row gap-3 w-full">
+                {/* CTA Action button */}
                 <a 
                   href={flashAd.link || '#catalog'} 
-                  className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-xs font-black uppercase tracking-widest bg-white text-gray-950 hover:bg-gray-100 transition-all transform hover:-translate-y-0.5 hover:shadow-[0_15px_30px_rgba(255,255,255,0.15)] shadow-lg"
+                  onClick={() => setShowAdPopup(false)}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-xs font-black uppercase tracking-widest bg-white text-gray-950 hover:bg-gray-100 transition-all transform hover:-translate-y-0.5 hover:shadow-[0_15px_30px_rgba(255,255,255,0.15)] shadow-lg"
                 >
-                  {flashAd.cta || 'Shop The Offer'}
+                  {flashAd.cta || 'Claim Offer'}
                   <ArrowRight className="w-3.5 h-3.5 text-gray-950" />
                 </a>
+
+                {/* Dismiss text button */}
+                <button
+                  onClick={() => setShowAdPopup(false)}
+                  className="px-6 py-3.5 rounded-full text-xs font-bold uppercase tracking-widest border border-white/10 hover:bg-white/5 transition-all text-gray-400 hover:text-white"
+                >
+                  No Thanks
+                </button>
               </div>
             </div>
             
-            {/* Ambient luxury accent light */}
-            <div className="absolute right-0 top-0 w-80 h-80 rounded-full bg-purple-600/10 blur-[120px] pointer-events-none" />
-            <div className="absolute left-1/3 bottom-0 w-60 h-60 rounded-full bg-rose-600/10 blur-[100px] pointer-events-none" />
           </div>
-        </section>
+        </div>
       )}
 
       {/* Trust Benefits Section placed directly above the Footer */}
