@@ -8,6 +8,7 @@ export const revalidate = 0; // Disable caching for preview
 
 import StorefrontClient from './StorefrontClient';
 import StorePaused from '@/components/store/StorePaused';
+import StoreExpired from '@/components/store/StoreExpired';
 
 export async function generateMetadata({ params }: { params: { subdomain: string } }) {
   const { data: store } = await supabase
@@ -40,6 +41,11 @@ export default async function StorefrontPage({ params }: { params: { subdomain: 
   // Check if storefront is paused by super admin
   if (store.is_paused === true) {
     return <StorePaused storeName={store.store_name} />;
+  }
+
+  // Check if subscription has expired
+  if (store.subscription_expires_at && new Date(store.subscription_expires_at) < new Date()) {
+    return <StoreExpired storeName={store.store_name} planExpiresAt={store.subscription_expires_at} />;
   }
 
   const { data: products } = await supabase

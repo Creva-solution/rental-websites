@@ -4,9 +4,10 @@ import { PauseCircle } from 'lucide-react';
 
 interface StorePausedProps {
   storeName: string;
+  isExpired?: boolean;
 }
 
-export default function StorePaused({ storeName }: StorePausedProps) {
+export default function StorePaused({ storeName, isExpired = false }: StorePausedProps) {
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-6 text-center">
       {/* Background radial glow */}
@@ -28,12 +29,14 @@ export default function StorePaused({ storeName }: StorePausedProps) {
         
         {/* Status Badge */}
         <span className="mt-3 px-3 py-1 bg-red-500/10 border border-red-500/25 rounded-full text-xs font-bold text-red-400 uppercase tracking-widest animate-pulse">
-          Temporarily Paused
+          {isExpired ? 'Subscription Expired' : 'Temporarily Paused'}
         </span>
 
         {/* Friendly explanation */}
         <p className="mt-6 text-gray-400 text-sm leading-relaxed">
-          The owner of this store has temporarily suspended this storefront. We are sorry for the inconvenience, please check back again in a bit!
+          {isExpired 
+            ? "This store's subscription plan has expired. If you are the store owner, please log in and renew your subscription plan to reactivate your storefront."
+            : "The owner of this store has temporarily suspended this storefront. We are sorry for the inconvenience, please check back again in a bit!"}
         </p>
 
         {/* Bottom border / Powered logo */}

@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import StorefrontClient from '../../[subdomain]/StorefrontClient';
 import StorePaused from '@/components/store/StorePaused';
+import StoreExpired from '@/components/store/StoreExpired';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0; // Dynamic server-side rendering for storefront
@@ -57,6 +58,11 @@ export default async function CustomDomainStorefrontPage({ params }: { params: {
   // Check if storefront is paused by super admin
   if (store.is_paused === true) {
     return <StorePaused storeName={store.store_name} />;
+  }
+
+  // Check if subscription has expired
+  if (store.subscription_expires_at && new Date(store.subscription_expires_at) < new Date()) {
+    return <StoreExpired storeName={store.store_name} planExpiresAt={store.subscription_expires_at} />;
   }
 
   const { data: products } = await supabase

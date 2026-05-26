@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
   Building2, Globe, ShieldAlert, ShieldCheck, Play, Pause, 
-  Search, RefreshCw, Copy, Check, Database, HelpCircle 
+  Search, RefreshCw, Copy, Check, Database, HelpCircle,
+  Infinity, Calendar, Clock, Zap, Plus
 } from 'lucide-react';
 
 export default function SuperAdminDashboard() {
@@ -17,7 +18,8 @@ export default function SuperAdminDashboard() {
   // SQL code for setting up custom columns in Supabase
   const sqlCommand = `-- Run this in your Supabase SQL Editor to add the new management columns:
 ALTER TABLE stores ADD COLUMN IF NOT EXISTS is_paused BOOLEAN DEFAULT FALSE;
-ALTER TABLE stores ADD COLUMN IF NOT EXISTS custom_domain_enabled BOOLEAN DEFAULT TRUE;`;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS custom_domain_enabled BOOLEAN DEFAULT TRUE;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WITH TIME ZONE;`;
 
   const fetchStores = async () => {
     setLoading(true);
@@ -88,6 +90,66 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS custom_domain_enabled BOOLEAN DEFAUL
       setTimeout(() => setActionStatus(null), 3000);
     } catch (err: any) {
       alert(`Error updating domain permission: ${err.message}`);
+      setActionStatus(null);
+    }
+  };
+
+  const handleExtendSubscription = async (storeId: string, days: number | null) => {
+    setActionStatus(`Extending subscription...`);
+    try {
+      const store = stores.find(s => s.id === storeId);
+      if (!store) return;
+
+      let baseDate = new Date();
+      
+      if (days === null) {
+        // Set to Lifetime
+        const { error } = await supabase
+          .from('stores')
+          .update({ subscription_expires_at: null })
+          .eq('id', storeId);
+
+        if (error) {
+          if (error.message.includes('column') && error.message.includes('does not exist')) {
+            alert('⚠️ subscription_expires_at column missing! Run the updated SQL query first.');
+            return;
+          }
+          throw error;
+        }
+
+        setStores(stores.map(s => s.id === storeId ? { ...s, subscription_expires_at: null } : s));
+        setActionStatus(`Subscription set to Lifetime!`);
+        setTimeout(() => setActionStatus(null), 3000);
+        return;
+      }
+
+      // If store has an active subscription in the future, extend from that expiry date
+      if (store.subscription_expires_at) {
+        const currentExpiry = new Date(store.subscription_expires_at);
+        if (currentExpiry > new Date()) {
+          baseDate = currentExpiry;
+        }
+      }
+
+      const newExpiry = new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000);
+      const { error } = await supabase
+        .from('stores')
+        .update({ subscription_expires_at: newExpiry.toISOString() })
+        .eq('id', storeId);
+
+      if (error) {
+        if (error.message.includes('column') && error.message.includes('does not exist')) {
+          alert('⚠️ subscription_expires_at column missing! Run the updated SQL query first.');
+          return;
+        }
+        throw error;
+      }
+
+      setStores(stores.map(s => s.id === storeId ? { ...s, subscription_expires_at: newExpiry.toISOString() } : s));
+      setActionStatus(`Subscription extended successfully!`);
+      setTimeout(() => setActionStatus(null), 3000);
+    } catch (err: any) {
+      alert(`Error updating subscription: ${err.message}`);
       setActionStatus(null);
     }
   };
@@ -246,6 +308,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS custom_domain_enabled BOOLEAN DEFAUL
                     <th className="px-6 py-4">Shop details</th>
                     <th className="px-6 py-4">Subdomain / Domain</th>
                     <th className="px-6 py-4 text-center">Custom Domain Permission</th>
+                    <th className="px-6 py-4 text-center">Subscription Plan</th>
                     <th className="px-6 py-4 text-center">Storefront Status</th>
                   </tr>
                 </thead>
@@ -253,6 +316,12 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS custom_domain_enabled BOOLEAN DEFAUL
                   {filteredStores.map((store) => {
                     const domainAllowed = store.custom_domain_enabled !== false;
                     const isPaused = store.is_paused === true;
+                    
+                    const expiryDate = store.subscription_expires_at ? new Date(store.subscription_expires_at) : null;
+                    const isExpired = expiryDate ? expiryDate < new Date() : false;
+                    const daysRemaining = expiryDate 
+                      ? Math.ceil((expiryDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+                      : null;
 
                     return (
                       <tr key={store.id} className="hover:bg-gray-700/20 transition-colors">
@@ -306,6 +375,70 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS custom_domain_enabled BOOLEAN DEFAUL
                                 </>
                               )}
                             </button>
+                          </div>
+                        </td>
+
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col items-center gap-2">
+                            {/* Subscription Status Display */}
+                            {expiryDate === null ? (
+                              <div className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                                <Infinity className="w-3.5 h-3.5" />
+                                Lifetime Plan
+                              </div>
+                            ) : isExpired ? (
+                              <div className="flex flex-col items-center">
+                                <div className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20 animate-pulse">
+                                  <Clock className="w-3.5 h-3.5" />
+                                  Expired
+                                </div>
+                                <span className="text-[10px] text-gray-500 mt-1 font-mono">
+                                  End: {expiryDate.toLocaleDateString()}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center">
+                                <div className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                  <Calendar className="w-3.5 h-3.5" />
+                                  {daysRemaining} days left
+                                </div>
+                                <span className="text-[10px] text-gray-400 mt-1 font-mono">
+                                  Ends: {expiryDate.toLocaleDateString()}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Quick Extend Buttons */}
+                            <div className="flex flex-wrap items-center justify-center gap-1.5 mt-1 border-t border-gray-700/60 pt-2 w-full max-w-[200px]">
+                              <button
+                                onClick={() => handleExtendSubscription(store.id, 30)}
+                                title="Add 1 Month"
+                                className="px-1.5 py-0.5 rounded bg-gray-900 hover:bg-gray-700 text-[10px] font-semibold text-gray-300 border border-gray-700 transition-colors"
+                              >
+                                +30d
+                              </button>
+                              <button
+                                onClick={() => handleExtendSubscription(store.id, 90)}
+                                title="Add 3 Months"
+                                className="px-1.5 py-0.5 rounded bg-gray-900 hover:bg-gray-700 text-[10px] font-semibold text-gray-300 border border-gray-700 transition-colors"
+                              >
+                                +90d
+                              </button>
+                              <button
+                                onClick={() => handleExtendSubscription(store.id, 365)}
+                                title="Add 1 Year"
+                                className="px-1.5 py-0.5 rounded bg-gray-900 hover:bg-gray-700 text-[10px] font-semibold text-gray-300 border border-gray-700 transition-colors"
+                              >
+                                +365d
+                              </button>
+                              <button
+                                onClick={() => handleExtendSubscription(store.id, null)}
+                                title="Set to Lifetime"
+                                className="px-1.5 py-0.5 rounded bg-yellow-500/10 hover:bg-yellow-500/20 text-[10px] font-bold text-yellow-400 border border-yellow-500/20 transition-colors"
+                              >
+                                Lifetime
+                              </button>
+                            </div>
                           </div>
                         </td>
 
