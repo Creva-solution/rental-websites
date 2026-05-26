@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 export const revalidate = 0; // Disable caching for preview
 
 import StorefrontClient from './StorefrontClient';
+import StorePaused from '@/components/store/StorePaused';
 
 export async function generateMetadata({ params }: { params: { subdomain: string } }) {
   const { data: store } = await supabase
@@ -33,6 +34,11 @@ export default async function StorefrontPage({ params }: { params: { subdomain: 
 
   if (error || !store) {
     notFound();
+  }
+
+  // Check if storefront is paused by super admin
+  if (store.is_paused === true) {
+    return <StorePaused storeName={store.store_name} />;
   }
 
   const { data: products } = await supabase

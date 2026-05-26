@@ -38,6 +38,25 @@ export default async function CustomDomainStorefrontPage({ params }: { params: {
     notFound();
   }
 
+  // Enforce custom domain permission
+  if (store.custom_domain_enabled === false) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-6 text-center">
+        <div className="max-w-md w-full bg-gray-900 border border-gray-800 rounded-2xl p-8 shadow-xl">
+          <h1 className="text-xl font-bold text-white">Domain Access Blocked</h1>
+          <p className="text-sm text-gray-400 mt-2">
+            Custom domains are restricted on this shop's subscription plan. Please contact the administrator to reactivate.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if storefront is paused by super admin
+  if (store.is_paused === true) {
+    return <StorePaused storeName={store.store_name} />;
+  }
+
   const { data: products } = await supabase
     .from('products')
     .select('*')
