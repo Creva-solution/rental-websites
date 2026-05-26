@@ -1,7 +1,9 @@
 import { notFound } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import StorefrontClient from '../../[subdomain]/StorefrontClient';
+import StorePaused from '@/components/store/StorePaused';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 0; // Dynamic server-side rendering for storefront
 
 export async function generateMetadata({ params }: { params: { domain: string } }) {

@@ -3,6 +3,7 @@ import { ShoppingCart, Menu, Search, Star } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 0; // Disable caching for preview
 
 import StorefrontClient from './StorefrontClient';
