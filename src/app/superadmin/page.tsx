@@ -22,7 +22,7 @@ export default function SuperAdminDashboard() {
   const [brandName, setBrandName] = useState<string>('StoreBuilder');
   const [brandLogo, setBrandLogo] = useState<string>('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80');
   const [invoiceNumber, setInvoiceNumber] = useState<string>('');
-  const [modalTab, setModalTab] = useState<'billing' | 'profile'>('billing');
+  const [modalTab, setModalTab] = useState<'billing' | 'profile' | 'contract'>('billing');
   
   // Advanced filters and branding dashboard states
   const [activeFilter, setActiveFilter] = useState<string>('all');
@@ -1105,7 +1105,19 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                   }`}
                 >
                   <Building2 className="w-3.5 h-3.5" />
-                  SHOP PROFILE PROFILE
+                  SHOP PROFILE
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalTab('contract')}
+                  className={`pb-2.5 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 ${
+                    modalTab === 'contract'
+                      ? 'border-blue-500 text-blue-400 font-extrabold'
+                      : 'border-transparent text-gray-500 hover:text-gray-400'
+                  }`}
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  MERCHANT CONTRACT
                 </button>
               </div>
 
@@ -1173,6 +1185,83 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                       </div>
                     </div>
                   </div>
+                </div>
+              ) : modalTab === 'contract' ? (
+                <div className="space-y-6">
+                  {(() => {
+                    let contract = null;
+                    try {
+                      if (selectedStore.description && selectedStore.description.trim().startsWith('{')) {
+                        contract = JSON.parse(selectedStore.description);
+                      }
+                    } catch (e) {}
+
+                    if (!contract || !contract.contractSigned) {
+                      return (
+                        <div className="bg-gray-950 p-6 rounded-xl border border-gray-850 text-center space-y-3">
+                          <ShieldAlert className="w-12 h-12 text-yellow-500 mx-auto" />
+                          <h4 className="text-sm font-bold text-white uppercase tracking-wider">No Signed Agreement Found</h4>
+                          <p className="text-xs text-gray-400 max-w-sm mx-auto leading-relaxed">
+                            This store is either a legacy storefront or registered before the digital contract onboarding was enforced.
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    const planLabel = contract.selectedPlan === '30' ? '1 Month (₹499)' :
+                                      contract.selectedPlan === '365' ? '1 Year (₹3,999)' : 'Lifetime Subscription (₹9,999)';
+
+                    return (
+                      <div className="space-y-6 text-left">
+                        {/* Legal Status Header */}
+                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-center gap-3">
+                          <ShieldCheck className="w-6 h-6 text-emerald-400" />
+                          <div>
+                            <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest block">CONTRACT STATUS</span>
+                            <span className="text-xs font-bold text-white">Digitally Signed & Verified successfully</span>
+                          </div>
+                        </div>
+
+                        {/* Metadata grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-950 p-4 rounded-xl border border-gray-850">
+                          <div>
+                            <span className="text-[9px] text-gray-500 uppercase block font-semibold">Selected Onboarding Plan</span>
+                            <span className="text-xs font-black text-indigo-400 mt-1 block">{planLabel}</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-gray-500 uppercase block font-semibold font-sans">Signature Timestamp</span>
+                            <span className="text-xs font-bold text-gray-300 mt-1 block font-mono">
+                              {new Date(contract.contractSignedAt).toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Signature Pad display */}
+                        <div className="bg-gray-950 p-4 rounded-xl border border-gray-850 space-y-3">
+                          <span className="text-[9px] text-gray-500 uppercase block font-semibold font-sans">Merchant Digital Signature</span>
+                          {contract.contractSignature ? (
+                            <div className="bg-white border border-gray-800 rounded-lg p-3 inline-block">
+                              <img 
+                                src={contract.contractSignature} 
+                                alt="Merchant drawn signature" 
+                                className="max-h-[80px] object-contain invert"
+                              />
+                            </div>
+                          ) : (
+                            <span className="text-xs text-red-400 block font-bold">Signature image data is missing or empty!</span>
+                          )}
+                        </div>
+
+                        {/* Terms copy block */}
+                        <div className="bg-gray-950 p-4 rounded-xl border border-gray-850 space-y-2">
+                          <span className="text-[9px] text-gray-500 uppercase block font-semibold">Agreement Content Summary</span>
+                          <p className="text-[11px] text-gray-400 leading-relaxed text-justify">
+                            Merchant signed: "The Creva Platform grants the signing Merchant the right to operate an e-commerce storefront utilizing Creva's software architecture. Merchant agrees to sell only products that comply with local guidelines. Selling illegal, counterfeit, or prohibited materials will result in immediate shop termination without any refunds."
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               ) : (
                 <div className="space-y-6">

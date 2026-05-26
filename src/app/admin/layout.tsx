@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  LayoutDashboard, Package, ShoppingCart, Settings, Palette, ExternalLink, Loader2, AlertCircle 
+  LayoutDashboard, Package, ShoppingCart, Settings, Palette, ExternalLink, Loader2, AlertCircle, CreditCard
 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -95,6 +95,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
           <Link href="/admin/settings" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/settings' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
             <Settings className="w-[18px] h-[18px]" /> Settings
+          </Link>
+          <Link href="/admin/subscription" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/subscription' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <CreditCard className="w-[18px] h-[18px]" /> Subscription
           </Link>
         </nav>
         <div className="p-4 border-t border-border">
