@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { 
   Building2, Globe, ShieldAlert, ShieldCheck, Play, Pause, 
   Search, RefreshCw, Copy, Check, Database, HelpCircle,
-  Infinity, Calendar, Clock, Zap, Plus
+  Infinity, Calendar, Clock, Zap, Plus, FileText, X, Printer, Send
 } from 'lucide-react';
 
 export default function SuperAdminDashboard() {
@@ -14,6 +14,35 @@ export default function SuperAdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedSql, setCopiedSql] = useState(false);
   const [actionStatus, setActionStatus] = useState<string | null>(null);
+
+  // States for Invoicing and Brand settings
+  const [selectedStore, setSelectedStore] = useState<any | null>(null);
+  const [billPlan, setBillPlan] = useState<string>('90');
+  const [billPrice, setBillPrice] = useState<string>('1299');
+  const [brandName, setBrandName] = useState<string>('StoreBuilder');
+  const [brandLogo, setBrandLogo] = useState<string>('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80');
+  const [invoiceNumber, setInvoiceNumber] = useState<string>('');
+
+  useEffect(() => {
+    const savedBrand = localStorage.getItem('saas_brand_name');
+    const savedLogo = localStorage.getItem('saas_brand_logo');
+    if (savedBrand) setBrandName(savedBrand);
+    if (savedLogo) setBrandLogo(savedLogo);
+  }, []);
+
+  const handleOpenBilling = (store: any) => {
+    setSelectedStore(store);
+    setInvoiceNumber(`INV-${Math.floor(100000 + Math.random() * 900000)}`);
+    setBillPlan('90');
+    setBillPrice('1299');
+  };
+
+  const handleSaveBrandSettings = () => {
+    localStorage.setItem('saas_brand_name', brandName);
+    localStorage.setItem('saas_brand_logo', brandLogo);
+    setActionStatus('Brand settings saved locally!');
+    setTimeout(() => setActionStatus(null), 2000);
+  };
 
   // SQL code for setting up custom columns in Supabase
   const sqlCommand = `-- Run this in your Supabase SQL Editor to add the new management columns:
@@ -508,10 +537,10 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                         </td>
 
                         <td className="px-6 py-4 text-center">
-                          <div className="flex justify-center">
+                          <div className="flex flex-col items-center justify-center gap-2">
                             <button
                               onClick={() => handleTogglePause(store.id, isPaused)}
-                              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold border transition-all shadow-sm ${
+                              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold border transition-all shadow-sm w-full max-w-[120px] justify-center ${
                                 isPaused 
                                   ? 'bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20' 
                                   : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
@@ -529,6 +558,14 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                                 </>
                               )}
                             </button>
+
+                            <button
+                              onClick={() => handleOpenBilling(store)}
+                              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 transition-all shadow-sm w-full max-w-[120px] justify-center"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                              INVOICE
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -540,6 +577,299 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
           )}
         </div>
       </div>
+
+      {/* Invoice & Shop Details Modal */}
+      {selectedStore && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 overflow-y-auto backdrop-blur-sm">
+          {/* Custom style for absolute print control */}
+          <style dangerouslySetInnerHTML={{__html: `
+            @media print {
+              body * {
+                display: none !important;
+              }
+              #invoice-print-area, #invoice-print-area * {
+                display: block !important;
+                visibility: visible !important;
+              }
+              #invoice-print-area {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                background: white !important;
+                color: black !important;
+                padding: 30px !important;
+                box-shadow: none !important;
+                border: none !important;
+              }
+            }
+          `}} />
+
+          <div className="relative w-full max-w-4xl bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh] md:max-h-none text-left">
+            
+            {/* Left Panel: Customize details */}
+            <div className="flex-1 p-6 sm:p-8 overflow-y-auto border-b md:border-b-0 md:border-r border-gray-800 space-y-6">
+              <div className="flex items-center justify-between border-b border-gray-800 pb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-blue-400" />
+                    Billing & Shop Details
+                  </h2>
+                  <p className="text-xs text-gray-400 mt-0.5">Generate receipts and notify store owners via WhatsApp</p>
+                </div>
+                <button 
+                  onClick={() => setSelectedStore(null)}
+                  className="p-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Owner Details */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Store Owner Details</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-semibold text-gray-500 uppercase">Store Name</label>
+                    <div className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white font-medium mt-1">
+                      {selectedStore.store_name}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold text-gray-500 uppercase">Subdomain Alias</label>
+                    <div className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-blue-400 font-mono mt-1">
+                      {selectedStore.subdomain}.crevasolution.in
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold text-gray-500 uppercase">WhatsApp / Contact Phone</label>
+                    <input 
+                      type="text"
+                      value={selectedStore.contact_phone || ''}
+                      onChange={(e) => {
+                        setSelectedStore({ ...selectedStore, contact_phone: e.target.value });
+                      }}
+                      placeholder="e.g. 9876543210"
+                      className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white mt-1 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold text-gray-500 uppercase">Contact Email</label>
+                    <input 
+                      type="email"
+                      value={selectedStore.contact_email || ''}
+                      onChange={(e) => {
+                        setSelectedStore({ ...selectedStore, contact_email: e.target.value });
+                      }}
+                      placeholder="owner@email.com"
+                      className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white mt-1 transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Invoice Customizer */}
+              <div className="space-y-4 border-t border-gray-850 pt-6">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">SaaS Invoice Customizer</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-semibold text-gray-500 uppercase">Branding / SaaS name</label>
+                    <input 
+                      type="text"
+                      value={brandName}
+                      onChange={(e) => setBrandName(e.target.value)}
+                      className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white mt-1 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold text-gray-500 uppercase">Logo Link / URL</label>
+                    <input 
+                      type="text"
+                      value={brandLogo}
+                      onChange={(e) => setBrandLogo(e.target.value)}
+                      className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white mt-1 transition-all"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={handleSaveBrandSettings}
+                  className="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs font-semibold text-gray-300 border border-gray-750 transition-colors"
+                >
+                  Save Brand settings
+                </button>
+              </div>
+
+              {/* Plan & Price details */}
+              <div className="space-y-4 border-t border-gray-850 pt-6">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Select Renewal Plan & Price</h3>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { days: '30', name: '1 Month', price: '499' },
+                    { days: '90', name: '3 Months', price: '1299' },
+                    { days: '180', name: '6 Months', price: '2299' },
+                    { days: '365', name: '1 Year', price: '3999' }
+                  ].map((plan) => (
+                    <button
+                      key={plan.days}
+                      onClick={() => {
+                        setBillPlan(plan.days);
+                        setBillPrice(plan.price);
+                      }}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${
+                        billPlan === plan.days
+                          ? 'bg-blue-500/20 text-blue-400 border-blue-500'
+                          : 'bg-gray-950 border-gray-800 text-gray-400 hover:bg-gray-900'
+                      }`}
+                    >
+                      {plan.name}
+                    </button>
+                  ))}
+                </div>
+                
+                <div>
+                  <label className="text-[10px] font-semibold text-gray-500 uppercase">Billing Price (₹)</label>
+                  <input 
+                    type="number"
+                    value={billPrice}
+                    onChange={(e) => setBillPrice(e.target.value)}
+                    className="w-full max-w-[200px] bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white mt-1 transition-all font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Right Panel: Invoice Preview */}
+            <div className="w-full md:w-[360px] bg-gray-950 p-6 sm:p-8 flex flex-col items-center justify-between gap-6 overflow-y-auto">
+              <div className="w-full">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 text-center">Receipt Invoice Preview</h3>
+                
+                {/* Printable Invoice Container */}
+                <div 
+                  id="invoice-print-area"
+                  className="bg-white text-gray-900 border border-gray-200 rounded-xl p-5 shadow-xl font-mono text-xs flex flex-col gap-4 w-full"
+                >
+                  {/* Logo header */}
+                  <div className="flex items-start justify-between border-b border-gray-200 pb-3">
+                    <div className="flex items-center gap-2">
+                      {brandLogo && (
+                        <img 
+                          src={brandLogo} 
+                          alt="Logo" 
+                          className="w-8 h-8 rounded-full border border-gray-250 object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <div>
+                        <span className="font-extrabold text-sm tracking-tight">{brandName}</span>
+                        <p className="text-[8px] text-gray-500 font-sans mt-0.5">Creva Platform billing</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-black text-[10px] text-blue-600 block">TAX INVOICE</span>
+                      <span className="text-[9px] text-gray-500 block mt-0.5">{invoiceNumber}</span>
+                    </div>
+                  </div>
+
+                  {/* Bill to metadata */}
+                  <div className="flex flex-col gap-1 text-[10px] border-b border-gray-150 pb-3">
+                    <span className="text-gray-400 uppercase font-sans font-bold text-[8px]">Bill To:</span>
+                    <span className="font-bold text-gray-800">{selectedStore.store_name}</span>
+                    {selectedStore.contact_phone && (
+                      <span className="text-gray-600">Ph: {selectedStore.contact_phone}</span>
+                    )}
+                    {selectedStore.contact_email && (
+                      <span className="text-gray-600">Email: {selectedStore.contact_email}</span>
+                    )}
+                    <span className="text-gray-500 font-sans text-[8px] mt-1">Date: {new Date().toLocaleDateString('en-IN')}</span>
+                  </div>
+
+                  {/* Items list */}
+                  <div className="flex flex-col gap-2 border-b border-gray-200 pb-3">
+                    <div className="flex justify-between font-bold text-[9px] text-gray-400 uppercase font-sans">
+                      <span>Description</span>
+                      <span>Total</span>
+                    </div>
+                    <div className="flex justify-between gap-4 text-gray-850">
+                      <div className="min-w-0">
+                        <span className="font-semibold block truncate">SaaS Storefront Subscription</span>
+                        <span className="text-[9px] text-gray-500 block mt-0.5 font-sans">
+                          Validity: {billPlan} Days ({billPlan === '30' ? '1 Mo' : billPlan === '90' ? '3 Mo' : billPlan === '180' ? '6 Mo' : '1 Yr'})
+                        </span>
+                      </div>
+                      <span className="font-bold shrink-0">₹{billPrice}.00</span>
+                    </div>
+                  </div>
+
+                  {/* Total summary */}
+                  <div className="flex flex-col gap-1.5 align-end self-end text-right w-full max-w-[150px]">
+                    <div className="flex justify-between text-gray-500 font-sans text-[10px]">
+                      <span>Subtotal:</span>
+                      <span className="font-bold text-gray-800">₹{billPrice}.00</span>
+                    </div>
+                    <div className="flex justify-between font-black text-gray-900 border-t border-gray-200 pt-1.5 text-xs">
+                      <span>Total:</span>
+                      <span>₹{billPrice}.00</span>
+                    </div>
+                  </div>
+
+                  {/* Expiry / Footer section */}
+                  <div className="border-t border-gray-200 pt-3 text-center flex flex-col gap-2">
+                    <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 rounded px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider inline-block self-center">
+                      PAID & ACTIVE ✅
+                    </div>
+                    
+                    <div className="text-[9px] text-gray-500 leading-relaxed font-sans mt-1">
+                      <span>Your storefront is active from </span>
+                      <strong className="text-gray-800 font-mono">{new Date().toLocaleDateString('en-IN')}</strong>
+                      <span> to </span>
+                      <strong className="text-gray-800 font-mono">
+                        {new Date(new Date().getTime() + parseInt(billPlan) * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN')}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="w-full space-y-2 mt-auto">
+                <button
+                  onClick={() => {
+                    const planName = billPlan === '30' ? '1 Month (30 Days)' :
+                                     billPlan === '90' ? '3 Months (90 Days)' :
+                                     billPlan === '180' ? '6 Months (180 Days)' : '1 Year (365 Days)';
+                    const startDate = new Date().toLocaleDateString('en-IN');
+                    const endDate = new Date(new Date().getTime() + parseInt(billPlan) * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN');
+                    
+                    const text = `*INVOICE FROM ${brandName.toUpperCase()}* 🚀\n-----------------------------------\n*Store Name:* ${selectedStore.store_name}\n*Subdomain:* ${selectedStore.subdomain}.crevasolution.in\n*Invoice No:* ${invoiceNumber}\n*Date:* ${startDate}\n\n*Subscription Details:*\n-----------------------------------\n*Plan Duration:* ${planName}\n*Validity Period:* ${startDate} to ${endDate}\n*Amount Paid:* ₹${billPrice}\n*Status:* PAID & ACTIVE ✅\n\nThank you for choosing *${brandName}* to power your online shop! Your online storefront has been recharged and is fully active. 🌟`;
+                    
+                    let phone = selectedStore.contact_phone || '';
+                    phone = phone.replace(/\D/g, '');
+                    if (phone.length === 10) {
+                      phone = '91' + phone;
+                    }
+                    
+                    window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`, '_blank');
+                  }}
+                  className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-xl text-xs font-bold transition-all shadow-md"
+                >
+                  <Send className="w-4 h-4" />
+                  Send via WhatsApp
+                </button>
+
+                <button
+                  onClick={() => window.print()}
+                  className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 text-white py-2.5 rounded-xl text-xs font-bold border border-gray-700 transition-all"
+                >
+                  <Printer className="w-4 h-4 text-blue-400" />
+                  Print / Save as PDF
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
