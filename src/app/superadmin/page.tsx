@@ -94,15 +94,17 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
     }
   };
 
-  const handleExtendSubscription = async (storeId: string, days: number | null) => {
-    setActionStatus(`Extending subscription...`);
+  const handleExtendSubscription = async (
+    storeId: string, 
+    type: 'days' | 'ms' | 'lifetime', 
+    amount: number | null
+  ) => {
+    setActionStatus(`Updating subscription...`);
     try {
       const store = stores.find(s => s.id === storeId);
       if (!store) return;
 
-      let baseDate = new Date();
-      
-      if (days === null) {
+      if (type === 'lifetime') {
         // Set to Lifetime
         const { error } = await supabase
           .from('stores')
@@ -123,15 +125,23 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
         return;
       }
 
-      // If store has an active subscription in the future, extend from that expiry date
-      if (store.subscription_expires_at) {
-        const currentExpiry = new Date(store.subscription_expires_at);
-        if (currentExpiry > new Date()) {
-          baseDate = currentExpiry;
+      let baseDate = new Date();
+      let newExpiry: Date;
+
+      if (type === 'days') {
+        // If store has an active subscription in the future, extend from that expiry date
+        if (store.subscription_expires_at) {
+          const currentExpiry = new Date(store.subscription_expires_at);
+          if (currentExpiry > new Date()) {
+            baseDate = currentExpiry;
+          }
         }
+        newExpiry = new Date(baseDate.getTime() + (amount || 0) * 24 * 60 * 60 * 1000);
+      } else {
+        // For custom milliseconds (trial period), start immediately from NOW
+        newExpiry = new Date(new Date().getTime() + (amount || 0));
       }
 
-      const newExpiry = new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000);
       const { error } = await supabase
         .from('stores')
         .update({ subscription_expires_at: newExpiry.toISOString() })
@@ -146,7 +156,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
       }
 
       setStores(stores.map(s => s.id === storeId ? { ...s, subscription_expires_at: newExpiry.toISOString() } : s));
-      setActionStatus(`Subscription extended successfully!`);
+      setActionStatus(type === 'ms' ? `Trial activated successfully!` : `Subscription extended successfully!`);
       setTimeout(() => setActionStatus(null), 3000);
     } catch (err: any) {
       alert(`Error updating subscription: ${err.message}`);
@@ -393,50 +403,105 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                                   Expired
                                 </div>
                                 <span className="text-[10px] text-gray-500 mt-1 font-mono">
-                                  End: {expiryDate.toLocaleDateString()}
+                                  End: {expiryDate.toLocaleDateString()} {expiryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               </div>
                             ) : (
                               <div className="flex flex-col items-center">
                                 <div className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
                                   <Calendar className="w-3.5 h-3.5" />
-                                  {daysRemaining} days left
+                                  {(() => {
+                                    const diffMs = expiryDate.getTime() - new Date().getTime();
+                                    if (diffMs < 60 * 1000) return 'Less than 1 min left';
+                                    if (diffMs < 60 * 60 * 1000) {
+                                      const mins = Math.ceil(diffMs / (60 * 1000));
+                                      return `${mins} min left`;
+                                    }
+                                    if (diffMs < 24 * 60 * 60 * 1000) {
+                                      const hrs = Math.ceil(diffMs / (60 * 60 * 1000));
+                                      return `${hrs} hr left`;
+                                    }
+                                    const days = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+                                    return `${days} days left`;
+                                  })()}
                                 </div>
                                 <span className="text-[10px] text-gray-400 mt-1 font-mono">
-                                  Ends: {expiryDate.toLocaleDateString()}
+                                  Ends: {expiryDate.toLocaleDateString()} {expiryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               </div>
                             )}
 
                             {/* Quick Extend Buttons */}
-                            <div className="flex flex-wrap items-center justify-center gap-1.5 mt-1 border-t border-gray-700/60 pt-2 w-full max-w-[200px]">
+                            <div className="flex flex-wrap items-center justify-center gap-1.5 mt-1 border-t border-gray-700/60 pt-2 w-full max-w-[210px]">
                               <button
-                                onClick={() => handleExtendSubscription(store.id, 30)}
-                                title="Add 1 Month"
-                                className="px-1.5 py-0.5 rounded bg-gray-900 hover:bg-gray-700 text-[10px] font-semibold text-gray-300 border border-gray-700 transition-colors"
+                                onClick={() => handleExtendSubscription(store.id, 'days', 30)}
+                                title="Add 30 Days (1 Month)"
+                                className="px-1 py-0.5 rounded bg-gray-900 hover:bg-gray-700 text-[10px] font-semibold text-gray-300 border border-gray-700 transition-colors"
                               >
                                 +30d
                               </button>
                               <button
-                                onClick={() => handleExtendSubscription(store.id, 90)}
-                                title="Add 3 Months"
-                                className="px-1.5 py-0.5 rounded bg-gray-900 hover:bg-gray-700 text-[10px] font-semibold text-gray-300 border border-gray-700 transition-colors"
+                                onClick={() => handleExtendSubscription(store.id, 'days', 90)}
+                                title="Add 90 Days (3 Months)"
+                                className="px-1 py-0.5 rounded bg-gray-900 hover:bg-gray-700 text-[10px] font-semibold text-gray-300 border border-gray-700 transition-colors"
                               >
                                 +90d
                               </button>
                               <button
-                                onClick={() => handleExtendSubscription(store.id, 365)}
-                                title="Add 1 Year"
-                                className="px-1.5 py-0.5 rounded bg-gray-900 hover:bg-gray-700 text-[10px] font-semibold text-gray-300 border border-gray-700 transition-colors"
+                                onClick={() => handleExtendSubscription(store.id, 'days', 180)}
+                                title="Add 6 Months"
+                                className="px-1 py-0.5 rounded bg-gray-900 hover:bg-gray-700 text-[10px] font-semibold text-gray-300 border border-gray-700 transition-colors"
+                              >
+                                +6 Mo
+                              </button>
+                              <button
+                                onClick={() => handleExtendSubscription(store.id, 'days', 365)}
+                                title="Add 365 Days (1 Year)"
+                                className="px-1 py-0.5 rounded bg-gray-900 hover:bg-gray-700 text-[10px] font-semibold text-gray-300 border border-gray-700 transition-colors"
                               >
                                 +365d
                               </button>
                               <button
-                                onClick={() => handleExtendSubscription(store.id, null)}
+                                onClick={() => handleExtendSubscription(store.id, 'lifetime', null)}
                                 title="Set to Lifetime"
-                                className="px-1.5 py-0.5 rounded bg-yellow-500/10 hover:bg-yellow-500/20 text-[10px] font-bold text-yellow-400 border border-yellow-500/20 transition-colors"
+                                className="px-1 py-0.5 rounded bg-yellow-500/10 hover:bg-yellow-500/20 text-[10px] font-bold text-yellow-400 border border-yellow-500/20 transition-colors"
                               >
                                 Lifetime
+                              </button>
+                            </div>
+
+                            {/* Custom Trial Setup */}
+                            <div className="flex items-center gap-1 mt-2 border-t border-gray-700/40 pt-2 w-full max-w-[210px]">
+                              <input
+                                type="number"
+                                min="1"
+                                defaultValue="5"
+                                id={`trial-val-${store.id}`}
+                                className="w-10 bg-gray-900 border border-gray-700 rounded px-1 py-0.5 text-center text-xs text-white focus:outline-none"
+                              />
+                              <select
+                                id={`trial-unit-${store.id}`}
+                                className="bg-gray-900 border border-gray-700 rounded px-1 py-0.5 text-[9px] text-gray-300 focus:outline-none"
+                              >
+                                <option value="min">Min</option>
+                                <option value="hr">Hour</option>
+                                <option value="day">Day</option>
+                              </select>
+                              <button
+                                onClick={() => {
+                                  const valEl = document.getElementById(`trial-val-${store.id}`) as HTMLInputElement;
+                                  const unitEl = document.getElementById(`trial-unit-${store.id}`) as HTMLSelectElement;
+                                  if (!valEl || !unitEl) return;
+                                  const val = parseInt(valEl.value) || 1;
+                                  const unit = unitEl.value;
+                                  let ms = val * 60 * 1000;
+                                  if (unit === 'hr') ms = val * 60 * 60 * 1000;
+                                  if (unit === 'day') ms = val * 24 * 60 * 60 * 1000;
+                                  handleExtendSubscription(store.id, 'ms', ms);
+                                }}
+                                className="px-2 py-0.5 rounded bg-blue-500 hover:bg-blue-600 text-[10px] font-bold text-white transition-colors flex-1"
+                              >
+                                Set Trial
                               </button>
                             </div>
                           </div>
