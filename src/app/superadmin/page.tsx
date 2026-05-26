@@ -22,6 +22,11 @@ export default function SuperAdminDashboard() {
   const [brandName, setBrandName] = useState<string>('StoreBuilder');
   const [brandLogo, setBrandLogo] = useState<string>('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80');
   const [invoiceNumber, setInvoiceNumber] = useState<string>('');
+  const [modalTab, setModalTab] = useState<'billing' | 'profile'>('billing');
+  
+  // Advanced filters and branding dashboard states
+  const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [isBrandingOpen, setIsBrandingOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const savedBrand = localStorage.getItem('saas_brand_name');
@@ -35,6 +40,7 @@ export default function SuperAdminDashboard() {
     setInvoiceNumber(`INV-${Math.floor(100000 + Math.random() * 900000)}`);
     setBillPlan('90');
     setBillPrice('1299');
+    setModalTab('billing');
   };
 
   const handleSaveBrandSettings = () => {
@@ -199,16 +205,68 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
     setTimeout(() => setCopiedSql(false), 2000);
   };
 
-  const filteredStores = stores.filter(store => 
-    store.store_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    store.subdomain?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (store.custom_domain && store.custom_domain.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredStores = stores.filter(store => {
+    // 1. First apply search query filter
+    const matchesSearch = store.store_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         store.subdomain?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (store.contact_phone && store.contact_phone.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                         (store.contact_email && store.contact_email.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    if (!matchesSearch) return false;
 
+    // 2. Apply advanced category tab filters
+    if (activeFilter === 'all') return true;
+    if (activeFilter === 'paused') return store.is_paused === true;
+    if (activeFilter === 'custom_domain') return store.custom_domain_enabled !== false;
+    
+    const expiryDate = store.subscription_expires_at ? new Date(store.subscription_expires_at) : null;
+    const isExpired = expiryDate ? expiryDate < new Date() : false;
+    
+    if (activeFilter === 'lifetime') return expiryDate === null;
+    if (activeFilter === 'expired') return expiryDate !== null && isExpired;
+
+    // Active plan range groupings in days remaining
+    if (expiryDate && !isExpired) {
+      const diffDays = Math.ceil((expiryDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+      if (activeFilter === '1month') return diffDays > 0 && diffDays <= 30;
+      if (activeFilter === '3months') return diffDays > 30 && diffDays <= 90;
+      if (activeFilter === '6months') return diffDays > 90 && diffDays <= 180;
+      if (activeFilter === '1year') return diffDays > 180 && diffDays <= 365;
+    }
+
+    return false;
+  });
+
+  // Dynamic statistics calculations
   const totalStores = stores.length;
   const pausedStores = stores.filter(s => s.is_paused === true).length;
   const activeStores = totalStores - pausedStores;
-  const customDomainStores = stores.filter(s => s.custom_domain).length;
+  const customDomainStores = stores.filter(s => s.custom_domain_enabled !== false).length;
+
+  // Real-time tab indicators counts
+  const totalStoresCount = stores.length;
+  const pausedStoresCount = stores.filter(s => s.is_paused === true).length;
+  const customDomainStoresCount = stores.filter(s => s.custom_domain_enabled !== false).length;
+  const lifetimeStoresCount = stores.filter(s => s.subscription_expires_at === null).length;
+  
+  const expiredStoresCount = stores.filter(s => {
+    const expiry = s.subscription_expires_at ? new Date(s.subscription_expires_at) : null;
+    return expiry !== null && expiry < new Date();
+  }).length;
+
+  const getActivePlanCount = (minDays: number, maxDays: number) => {
+    return stores.filter(s => {
+      const expiry = s.subscription_expires_at ? new Date(s.subscription_expires_at) : null;
+      if (!expiry || expiry < new Date()) return false;
+      const diffDays = Math.ceil((expiry.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+      return diffDays > minDays && diffDays <= maxDays;
+    }).length;
+  };
+
+  const oneMonthCount = getActivePlanCount(0, 30);
+  const threeMonthsCount = getActivePlanCount(30, 90);
+  const sixMonthsCount = getActivePlanCount(90, 180);
+  const oneYearCount = getActivePlanCount(180, 365);
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 font-sans p-6 sm:p-8">
@@ -234,44 +292,6 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
       </div>
 
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* SQL Setup Required Alert Box */}
-        <div className="bg-gradient-to-r from-indigo-950 to-purple-950 border border-indigo-500/30 rounded-xl p-5 shadow-lg">
-          <div className="flex items-start gap-4">
-            <div className="p-3 bg-indigo-500/10 rounded-lg text-indigo-400">
-              <Database className="w-6 h-6" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-4">
-                <h3 className="text-lg font-semibold text-indigo-300 flex items-center gap-2">
-                  Supabase Database Setup Required
-                  <span className="text-xs font-normal text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full">First Time Setup</span>
-                </h3>
-                <button 
-                  onClick={copySql}
-                  className="flex items-center gap-1.5 text-xs bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-medium transition-all"
-                >
-                  {copiedSql ? (
-                    <>
-                      <Check className="w-3.5 h-3.5" />
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      Copy SQL
-                    </>
-                  )}
-                </button>
-              </div>
-              <p className="text-gray-300 text-xs mt-1 leading-relaxed">
-                Before toggling pause or domain options, copy this SQL and run it in your **Supabase SQL Editor** to add new columns to your table. If columns already exist, you can skip this!
-              </p>
-              <pre className="mt-3 bg-black/40 border border-black/50 text-[10px] sm:text-xs text-indigo-200 font-mono p-3 rounded-lg overflow-x-auto">
-                {sqlCommand}
-              </pre>
-            </div>
-          </div>
-        </div>
 
         {/* Stats Section */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -314,17 +334,61 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input 
               type="text"
-              placeholder="Search by store name, subdomain, custom domain..."
+              placeholder="Search by store name, subdomain, contact..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-gray-900 border border-gray-700/80 rounded-lg pl-10 pr-4 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-all"
             />
           </div>
-          {actionStatus && (
-            <div className="text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-500/10 text-blue-400 animate-pulse border border-blue-500/20">
-              {actionStatus}
-            </div>
-          )}
+          
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+            {actionStatus && (
+              <div className="text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-500/10 text-blue-400 animate-pulse border border-blue-500/20 mr-2">
+                {actionStatus}
+              </div>
+            )}
+            <button 
+              onClick={() => setIsBrandingOpen(true)}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-md flex-shrink-0"
+            >
+              <Zap className="w-4 h-4" />
+              Billing Settings
+            </button>
+          </div>
+        </div>
+
+        {/* Scrolling Filter Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
+          {[
+            { id: 'all', name: 'All Shops', count: totalStoresCount },
+            { id: 'paused', name: 'Paused', count: pausedStoresCount },
+            { id: 'custom_domain', name: 'Custom Domain', count: customDomainStoresCount },
+            { id: '1month', name: '1 Month active', count: oneMonthCount },
+            { id: '3months', name: '3 Months active', count: threeMonthsCount },
+            { id: '6months', name: '6 Months active', count: sixMonthsCount },
+            { id: '1year', name: '1 Year active', count: oneYearCount },
+            { id: 'lifetime', name: 'Lifetime Plan', count: lifetimeStoresCount },
+            { id: 'expired', name: 'Expired Plan', count: expiredStoresCount }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveFilter(tab.id)}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all shrink-0 ${
+                activeFilter === tab.id
+                  ? 'bg-blue-600 border-blue-500 text-white shadow-md scale-102'
+                  : 'bg-gray-800/40 border-gray-750 text-gray-400 hover:bg-gray-800'
+              }`}
+            >
+              <span>{tab.name}</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                activeFilter === tab.id 
+                  ? 'bg-white/20 text-white' 
+                  : 'bg-gray-750 text-gray-400'
+              }`}>
+                {tab.count}
+              </span>
+            </button>
+          ))}
         </div>
 
         {/* Table list of stores */}
@@ -613,9 +677,9 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                 <div>
                   <h2 className="text-xl font-bold text-white flex items-center gap-2">
                     <FileText className="w-5 h-5 text-blue-400" />
-                    Billing & Shop Details
+                    Billing & Shop Profile
                   </h2>
-                  <p className="text-xs text-gray-400 mt-0.5">Generate receipts and notify store owners via WhatsApp</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Manage store records and generate subscription receipts</p>
                 </div>
                 <button 
                   onClick={() => setSelectedStore(null)}
@@ -625,117 +689,184 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                 </button>
               </div>
 
-              {/* Owner Details */}
-              <div className="space-y-4">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Store Owner Details</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-semibold text-gray-500 uppercase">Store Name</label>
-                    <div className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white font-medium mt-1">
-                      {selectedStore.store_name}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-semibold text-gray-500 uppercase">Subdomain Alias</label>
-                    <div className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-blue-400 font-mono mt-1">
-                      {selectedStore.subdomain}.crevasolution.in
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-semibold text-gray-500 uppercase">WhatsApp / Contact Phone</label>
-                    <input 
-                      type="text"
-                      value={selectedStore.contact_phone || ''}
-                      onChange={(e) => {
-                        setSelectedStore({ ...selectedStore, contact_phone: e.target.value });
-                      }}
-                      placeholder="e.g. 9876543210"
-                      className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white mt-1 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-semibold text-gray-500 uppercase">Contact Email</label>
-                    <input 
-                      type="email"
-                      value={selectedStore.contact_email || ''}
-                      onChange={(e) => {
-                        setSelectedStore({ ...selectedStore, contact_email: e.target.value });
-                      }}
-                      placeholder="owner@email.com"
-                      className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white mt-1 transition-all"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Invoice Customizer */}
-              <div className="space-y-4 border-t border-gray-850 pt-6">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">SaaS Invoice Customizer</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-semibold text-gray-500 uppercase">Branding / SaaS name</label>
-                    <input 
-                      type="text"
-                      value={brandName}
-                      onChange={(e) => setBrandName(e.target.value)}
-                      className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white mt-1 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-semibold text-gray-500 uppercase">Logo Link / URL</label>
-                    <input 
-                      type="text"
-                      value={brandLogo}
-                      onChange={(e) => setBrandLogo(e.target.value)}
-                      className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white mt-1 transition-all"
-                    />
-                  </div>
-                </div>
+              {/* Advanced Tab Switchers */}
+              <div className="flex border-b border-gray-850 gap-4">
                 <button
-                  onClick={handleSaveBrandSettings}
-                  className="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs font-semibold text-gray-300 border border-gray-750 transition-colors"
+                  type="button"
+                  onClick={() => setModalTab('billing')}
+                  className={`pb-2.5 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 ${
+                    modalTab === 'billing'
+                      ? 'border-blue-500 text-blue-400 font-extrabold'
+                      : 'border-transparent text-gray-500 hover:text-gray-400'
+                  }`}
                 >
-                  Save Brand settings
+                  <FileText className="w-3.5 h-3.5" />
+                  INVOICE GENERATOR
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalTab('profile')}
+                  className={`pb-2.5 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 ${
+                    modalTab === 'profile'
+                      ? 'border-blue-500 text-blue-400 font-extrabold'
+                      : 'border-transparent text-gray-500 hover:text-gray-400'
+                  }`}
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                  SHOP PROFILE PROFILE
                 </button>
               </div>
 
-              {/* Plan & Price details */}
-              <div className="space-y-4 border-t border-gray-850 pt-6">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Select Renewal Plan & Price</h3>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { days: '30', name: '1 Month', price: '499' },
-                    { days: '90', name: '3 Months', price: '1299' },
-                    { days: '180', name: '6 Months', price: '2299' },
-                    { days: '365', name: '1 Year', price: '3999' }
-                  ].map((plan) => (
-                    <button
-                      key={plan.days}
-                      onClick={() => {
-                        setBillPlan(plan.days);
-                        setBillPrice(plan.price);
-                      }}
-                      className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${
-                        billPlan === plan.days
-                          ? 'bg-blue-500/20 text-blue-400 border-blue-500'
-                          : 'bg-gray-950 border-gray-800 text-gray-400 hover:bg-gray-900'
-                      }`}
-                    >
-                      {plan.name}
-                    </button>
-                  ))}
+              {modalTab === 'profile' ? (
+                <div className="space-y-6">
+                  {/* General Branding & Identity */}
+                  <div>
+                    <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2.5">Shop Identity</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="bg-gray-950 p-4 rounded-xl border border-gray-850">
+                        <span className="text-[9px] text-gray-500 uppercase block font-semibold">Store Category</span>
+                        <span className="text-sm font-bold text-white mt-1 block">{selectedStore.business_category || 'General Store'}</span>
+                      </div>
+                      <div className="bg-gray-950 p-4 rounded-xl border border-gray-850 flex items-center justify-between">
+                        <div>
+                          <span className="text-[9px] text-gray-500 uppercase block font-semibold">Theme Primary Color</span>
+                          <span className="text-sm font-mono font-bold text-white mt-1 block">{selectedStore.primary_color || '#3B82F6'}</span>
+                        </div>
+                        <div 
+                          className="w-8 h-8 rounded-full border border-gray-800 shadow-inner"
+                          style={{ backgroundColor: selectedStore.primary_color || '#3B82F6' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Settings and Currency */}
+                  <div>
+                    <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2.5">Platform & Currency Settings</h3>
+                    <div className="bg-gray-950 p-4 rounded-xl border border-gray-850 space-y-4">
+                      <div>
+                        <span className="text-[9px] text-gray-500 uppercase block font-semibold font-sans">Active Currency Symbol</span>
+                        <span className="text-sm font-bold text-white mt-1 block">{selectedStore.currency || 'INR (₹)'}</span>
+                      </div>
+                      {selectedStore.description && (
+                        <div className="border-t border-gray-850 pt-3">
+                          <span className="text-[9px] text-gray-500 uppercase block font-semibold">Store Description / Tagline</span>
+                          <p className="text-xs text-gray-300 mt-1 leading-relaxed">{selectedStore.description}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Created timelines */}
+                  <div>
+                    <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2.5">Timeline & Status</h3>
+                    <div className="bg-gray-950 p-4 rounded-xl border border-gray-850 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-[9px] text-gray-500 uppercase block font-semibold">Date Registered</span>
+                        <span className="text-xs font-bold text-gray-300 mt-1 block">
+                          {selectedStore.created_at ? new Date(selectedStore.created_at).toLocaleString('en-IN', {
+                            day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                          }) : 'N/A'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] text-gray-500 uppercase block font-semibold">Custom Domain Access</span>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold mt-1 ${
+                          selectedStore.custom_domain_enabled !== false 
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                            : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                        }`}>
+                          {selectedStore.custom_domain_enabled !== false ? 'ALLOWED' : 'REVOKED'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                
-                <div>
-                  <label className="text-[10px] font-semibold text-gray-500 uppercase">Billing Price (₹)</label>
-                  <input 
-                    type="number"
-                    value={billPrice}
-                    onChange={(e) => setBillPrice(e.target.value)}
-                    className="w-full max-w-[200px] bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white mt-1 transition-all font-mono"
-                  />
+              ) : (
+                <div className="space-y-6">
+                  {/* Owner Details */}
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Store Owner Details</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] font-semibold text-gray-500 uppercase">Store Name</label>
+                        <div className="bg-gray-950 border border-gray-850 rounded-lg px-3 py-2 text-sm text-white font-medium mt-1">
+                          {selectedStore.store_name}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-semibold text-gray-500 uppercase">Subdomain Alias</label>
+                        <div className="bg-gray-950 border border-gray-850 rounded-lg px-3 py-2 text-sm text-blue-400 font-mono mt-1">
+                          {selectedStore.subdomain}.crevasolution.in
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-semibold text-gray-500 uppercase">WhatsApp / Contact Phone</label>
+                        <input 
+                          type="text"
+                          value={selectedStore.contact_phone || ''}
+                          onChange={(e) => {
+                            setSelectedStore({ ...selectedStore, contact_phone: e.target.value });
+                          }}
+                          placeholder="e.g. 9876543210"
+                          className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white mt-1 transition-all animate-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-semibold text-gray-500 uppercase">Contact Email</label>
+                        <input 
+                          type="email"
+                          value={selectedStore.contact_email || ''}
+                          onChange={(e) => {
+                            setSelectedStore({ ...selectedStore, contact_email: e.target.value });
+                          }}
+                          placeholder="owner@email.com"
+                          className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white mt-1 transition-all"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Plan & Price details */}
+                  <div className="space-y-4 border-t border-gray-850 pt-6">
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Select Renewal Plan & Price</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { days: '30', name: '1 Month', price: '499' },
+                        { days: '90', name: '3 Months', price: '1299' },
+                        { days: '180', name: '6 Months', price: '2299' },
+                        { days: '365', name: '1 Year', price: '3999' }
+                      ].map((plan) => (
+                        <button
+                          type="button"
+                          key={plan.days}
+                          onClick={() => {
+                            setBillPlan(plan.days);
+                            setBillPrice(plan.price);
+                          }}
+                          className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${
+                            billPlan === plan.days
+                              ? 'bg-blue-500/20 text-blue-400 border-blue-500'
+                              : 'bg-gray-950 border-gray-800 text-gray-400 hover:bg-gray-900'
+                          }`}
+                        >
+                          {plan.name}
+                        </button>
+                      ))}
+                    </div>
+                    
+                    <div>
+                      <label className="text-[10px] font-semibold text-gray-500 uppercase">Billing Price (₹)</label>
+                      <input 
+                        type="number"
+                        value={billPrice}
+                        onChange={(e) => setBillPrice(e.target.value)}
+                        className="w-full max-w-[200px] bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white mt-1 transition-all font-mono"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Right Panel: Invoice Preview */}
@@ -866,6 +997,90 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                   Print / Save as PDF
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global SaaS Billing Settings Modal */}
+      {isBrandingOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-hidden text-left p-6 space-y-6">
+            <div className="flex items-center justify-between border-b border-gray-850 pb-4">
+              <div>
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Zap className="text-blue-400 w-5 h-5" />
+                  SaaS Invoice Settings
+                </h2>
+                <p className="text-xs text-gray-400 mt-0.5">Customize default brand styling for payment receipts</p>
+              </div>
+              <button 
+                onClick={() => setIsBrandingOpen(false)}
+                className="p-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Branding / SaaS Name</label>
+                <input 
+                  type="text"
+                  value={brandName}
+                  onChange={(e) => setBrandName(e.target.value)}
+                  placeholder="e.g. Creva Solutions"
+                  className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2.5 text-sm text-white mt-1 transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Branding Logo Link / URL</label>
+                <input 
+                  type="text"
+                  value={brandLogo}
+                  onChange={(e) => setBrandLogo(e.target.value)}
+                  placeholder="e.g. https://..."
+                  className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2.5 text-sm text-white mt-1 transition-all font-mono"
+                />
+              </div>
+
+              {brandLogo && (
+                <div className="bg-gray-950 p-3 rounded-lg border border-gray-850 flex items-center gap-3">
+                  <img 
+                    src={brandLogo} 
+                    alt="Preview" 
+                    className="w-10 h-10 rounded-full object-cover border border-gray-800"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-white block">{brandName}</span>
+                    <span className="text-[10px] text-gray-500 block">Default branding live preview</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3 pt-4 border-t border-gray-850 justify-end">
+              <button
+                type="button"
+                onClick={() => setIsBrandingOpen(false)}
+                className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs font-semibold text-gray-300 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleSaveBrandSettings();
+                  setIsBrandingOpen(false);
+                }}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-xs font-semibold text-white transition-colors shadow-md"
+              >
+                Save Branding Default Settings
+              </button>
             </div>
           </div>
         </div>
