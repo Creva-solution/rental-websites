@@ -20,7 +20,8 @@ export function middleware(request: NextRequest) {
     !hostname.endsWith('crevasolution.in');
 
   if (isCustomDomain) {
-    url.pathname = `/store/_custom/${hostname}${url.pathname}`;
+    const safeDomain = hostname.replace(/\./g, '_dot_');
+    url.pathname = `/store/custom/${safeDomain}${url.pathname}`;
     return NextResponse.rewrite(url);
   }
 
