@@ -16,6 +16,7 @@ export default function BusinessSetupWizard() {
   const [selectedPlan, setSelectedPlan] = useState<'30' | '365' | 'lifetime'>('30');
   const [signature, setSignature] = useState<string | null>(null);
   const [isDrawingSig, setIsDrawingSig] = useState(false);
+  const [isSignatureConfirmed, setIsSignatureConfirmed] = useState(false);
   const sigCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const [formData, setFormData] = useState({
@@ -31,10 +32,30 @@ export default function BusinessSetupWizard() {
     authPassword: '',
   });
 
+  // Canvas digital signature pad logic - Init once on step 5 mount
+  useEffect(() => {
+    if (step === 5) {
+      const timer = setTimeout(() => {
+        const canvas = sigCanvasRef.current;
+        if (canvas) {
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            // Set pure white background for crisp, high-contrast, professional look when printed/downloaded
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          }
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [step]);
+
   const nextStep = () => {
-    if (step === 5 && !signature) {
-      alert("⚠️ Please digitally sign the SaaS agreement inside the signature box to continue!");
-      return;
+    if (step === 5) {
+      if (!signature || !isSignatureConfirmed) {
+        alert("⚠️ Please digitally sign the SaaS agreement and click 'Confirm & Lock Signature' below the canvas to proceed!");
+        return;
+      }
     }
     setStep((s) => Math.min(s + 1, 6));
   };
@@ -43,18 +64,6 @@ export default function BusinessSetupWizard() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // Canvas digital signature pad logic
-  const initCanvas = (canvas: HTMLCanvasElement | null) => {
-    if (canvas) {
-      sigCanvasRef.current = canvas;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.fillStyle = '#f8fafc';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-    }
   };
 
   const startDrawingSig = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -95,9 +104,17 @@ export default function BusinessSetupWizard() {
 
   const stopDrawingSig = () => {
     setIsDrawingSig(false);
+  };
+
+  const confirmSig = () => {
     const canvas = sigCanvasRef.current;
     if (canvas) {
-      setSignature(canvas.toDataURL());
+      const dataUrl = canvas.toDataURL();
+      setSignature(dataUrl);
+      setIsSignatureConfirmed(true);
+      alert("✅ Digital signature captured and locked successfully!");
+    } else {
+      alert("⚠️ Error capturing signature. Please try drawing again.");
     }
   };
 
@@ -107,11 +124,12 @@ export default function BusinessSetupWizard() {
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#f8fafc';
+        ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
     }
     setSignature(null);
+    setIsSignatureConfirmed(false);
   };
 
   const handlePrintContract = () => {
@@ -578,7 +596,7 @@ export default function BusinessSetupWizard() {
 
                 <div className="relative border border-input rounded-xl overflow-hidden shadow-sm">
                   <canvas
-                    ref={initCanvas}
+                    ref={sigCanvasRef}
                     width={500}
                     height={120}
                     onMouseDown={startDrawingSig}
@@ -588,7 +606,7 @@ export default function BusinessSetupWizard() {
                     onTouchStart={startDrawingSig}
                     onTouchMove={drawSig}
                     onTouchEnd={stopDrawingSig}
-                    className="w-full h-[120px] bg-slate-50 cursor-crosshair touch-none"
+                    className="w-full h-[120px] bg-white cursor-crosshair touch-none"
                   />
                   
                   <div className="absolute right-3 bottom-3 flex gap-2">
@@ -599,10 +617,28 @@ export default function BusinessSetupWizard() {
                     >
                       Clear Pad
                     </button>
+                    <button
+                      type="button"
+                      onClick={confirmSig}
+                      className={`${
+                        isSignatureConfirmed 
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
+                          : 'bg-primary hover:bg-primary/90 text-primary-foreground'
+                      } text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors shadow-sm flex items-center gap-1`}
+                    >
+                      {isSignatureConfirmed ? (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          Signature Locked
+                        </>
+                      ) : (
+                        'Confirm & Lock Signature'
+                      )}
+                    </button>
                   </div>
                 </div>
                 <p className="text-[10px] text-muted-foreground text-center">
-                  👉 Use your finger (on mobile) or mouse drag to sign in the light gray box above.
+                  👉 Use your finger (on mobile) or mouse drag to sign in the box above, then click <strong>Confirm & Lock Signature</strong>.
                 </p>
               </div>
             </motion.div>
