@@ -44,7 +44,7 @@ export default function SuperAdminDashboard() {
     if (savedLogo) setBrandLogo(savedLogo);
   }, []);
 
-  // HTML5 Canvas cropping renderer
+  // HTML5 Canvas cropping renderer (renders full view background + highlighted circle crop overlay)
   useEffect(() => {
     if (!rawImage || !canvasRef.current) return;
     const canvas = canvasRef.current;
@@ -58,17 +58,11 @@ export default function SuperAdminDashboard() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Draw dark indicator background
-      ctx.fillStyle = "#090d16"; 
+      ctx.fillStyle = "#0c101b"; 
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      const radius = canvas.width / 2;
-
-      ctx.save();
-      // Circular clipping path for perfect 1:1 circular crop preview
-      ctx.beginPath();
-      ctx.arc(radius, radius, radius, 0, Math.PI * 2);
-      ctx.closePath();
-      ctx.clip();
+      const center = canvas.width / 2;
+      const cropRadius = center * 0.75; // 75% of the radius is the cropping circular frame
 
       // Calculate sizes maintaining aspect ratio
       const aspectRatio = img.width / img.height;
@@ -76,25 +70,55 @@ export default function SuperAdminDashboard() {
       let drawHeight = canvas.height * cropZoom;
 
       if (aspectRatio > 1) {
-        // Wide image
         drawWidth = canvas.height * aspectRatio * cropZoom;
       } else {
-        // Tall image
         drawHeight = (canvas.width / aspectRatio) * cropZoom;
       }
       
       const dx = (canvas.width - drawWidth) / 2 + cropX;
       const dy = (canvas.height - drawHeight) / 2 + cropY;
 
+      // 1. Draw entire logo normally but with transparent dimmed background opacity
+      ctx.globalAlpha = 0.25;
+      ctx.drawImage(img, dx, dy, drawWidth, drawHeight);
+      ctx.globalAlpha = 1.0; // Reset opacity
+
+      // 2. Clip the central frame so we draw the 100% visible active crop inside
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(center, center, cropRadius, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+
+      // Draw the highlighted crop area
       ctx.drawImage(img, dx, dy, drawWidth, drawHeight);
       ctx.restore();
 
-      // Premium glowing indicator outline
+      // 3. Draw a glowing circular boundary line
       ctx.strokeStyle = "#3b82f6";
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.arc(radius, radius, radius - 2, 0, Math.PI * 2);
+      ctx.arc(center, center, cropRadius, 0, Math.PI * 2);
       ctx.stroke();
+
+      // 4. Draw a subtle dashed grid/crosshair inside the crop area
+      ctx.strokeStyle = "rgba(59, 130, 246, 0.4)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      
+      // Horizontal crosshair line
+      ctx.beginPath();
+      ctx.moveTo(center - cropRadius, center);
+      ctx.lineTo(center + cropRadius, center);
+      ctx.stroke();
+
+      // Vertical crosshair line
+      ctx.beginPath();
+      ctx.moveTo(center, center - cropRadius);
+      ctx.lineTo(center, center + cropRadius);
+      ctx.stroke();
+
+      ctx.setLineDash([]); // Reset dashed lines
     };
   }, [rawImage, cropZoom, cropX, cropY]);
 
@@ -127,13 +151,55 @@ export default function SuperAdminDashboard() {
   };
 
   const handleApplyCrop = () => {
-    if (!canvasRef.current) return;
-    // Extract base64 high-quality cropped PNG
-    const croppedUrl = canvasRef.current.toDataURL('image/png');
-    setBrandLogo(croppedUrl);
-    setRawImage(null); // Close crop panel modal
-    setActionStatus("Logo cropped successfully!");
-    setTimeout(() => setActionStatus(null), 2000);
+    if (!canvasRef.current || !rawImage) return;
+
+    // Create a high-quality temporary offscreen canvas to capture ONLY the clipped circle region
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = 200;
+    exportCanvas.height = 200;
+    const exportCtx = exportCanvas.getContext('2d');
+    if (!exportCtx) return;
+
+    const img = new Image();
+    img.src = rawImage;
+    img.onload = () => {
+      // Circular crop clip on the export canvas
+      const radius = 100;
+      exportCtx.beginPath();
+      exportCtx.arc(radius, radius, radius, 0, Math.PI * 2);
+      exportCtx.closePath();
+      exportCtx.clip();
+
+      // Map dynamic offsets from interactive 220px canvas to 200px square frame
+      // Interactive canvas crop circle radius is 75% of half-width (110 * 0.75 = 82.5px)
+      const interactiveRadius = 220 / 2;
+      const interactiveCropRadius = interactiveRadius * 0.75;
+      const scale = 100 / interactiveCropRadius;
+
+      const aspectRatio = img.width / img.height;
+      let drawWidth = 220 * cropZoom;
+      let drawHeight = 220 * cropZoom;
+
+      if (aspectRatio > 1) {
+        drawWidth = 220 * aspectRatio * cropZoom;
+      } else {
+        drawHeight = (220 / aspectRatio) * cropZoom;
+      }
+
+      const exportDrawWidth = drawWidth * scale;
+      const exportDrawHeight = drawHeight * scale;
+      
+      const dx = (200 - exportDrawWidth) / 2 + (cropX * scale);
+      const dy = (200 - exportDrawHeight) / 2 + (cropY * scale);
+
+      exportCtx.drawImage(img, dx, dy, exportDrawWidth, exportDrawHeight);
+
+      const croppedUrl = exportCanvas.toDataURL('image/png');
+      setBrandLogo(croppedUrl);
+      setRawImage(null); // Close crop panel modal
+      setActionStatus("Logo cropped successfully!");
+      setTimeout(() => setActionStatus(null), 2000);
+    };
   };
 
   const handleOpenBilling = (store: any) => {
