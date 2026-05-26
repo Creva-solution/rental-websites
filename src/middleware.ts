@@ -14,6 +14,16 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Check if accessing via an external custom domain (e.g., punith.in)
+  const isCustomDomain = 
+    !hostname.includes('localhost') && 
+    !hostname.endsWith('crevasolution.in');
+
+  if (isCustomDomain) {
+    url.pathname = `/store/_custom/${hostname}${url.pathname}`;
+    return NextResponse.rewrite(url);
+  }
+
   // Detect subdomain
   let subdomain = '';
   

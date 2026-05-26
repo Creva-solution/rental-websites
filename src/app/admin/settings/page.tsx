@@ -19,8 +19,11 @@ export default function SettingsPage() {
     address: '', // Mock field for now
     primary_color: '#3B82F6',
     subdomain: '',
-    custom_domain: '', // Mock field for now
+    custom_domain: '',
   });
+
+  const [verifyingDomain, setVerifyingDomain] = useState(false);
+  const [dnsStatus, setDnsStatus] = useState<any>(null);
 
   useEffect(() => {
     fetchStore();
@@ -57,7 +60,7 @@ export default function SettingsPage() {
         address: '', // Currently not in DB schema
         primary_color: storeData.primary_color || '#3B82F6',
         subdomain: storeData.subdomain || '',
-        custom_domain: '', // Currently not in DB schema
+        custom_domain: storeData.custom_domain || '',
       });
     }
     setLoading(false);
@@ -91,6 +94,7 @@ export default function SettingsPage() {
           contact_email: formData.contact_email,
           contact_phone: formData.contact_phone,
           primary_color: formData.primary_color,
+          custom_domain: formData.custom_domain ? formData.custom_domain.toLowerCase().trim() : null,
         })
         .eq('id', store.id);
 
@@ -103,6 +107,59 @@ export default function SettingsPage() {
       setMessage('Error saving settings: ' + err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleVerifyCustomDomain = async () => {
+    if (!formData.custom_domain) {
+      alert("Please enter a custom domain name.");
+      return;
+    }
+
+    setVerifyingDomain(true);
+    setMessage('');
+    setDnsStatus(null);
+    try {
+      const cleanDomain = formData.custom_domain
+        .replace(/https?:\/\//, '')
+        .replace(/\/$/, '')
+        .trim()
+        .toLowerCase();
+      
+      const res = await fetch('/api/domains/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ customDomain: cleanDomain }),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result.error || 'Failed to register domain with Vercel');
+      }
+
+      // Save custom domain in Supabase stores table
+      const { error: dbErr } = await supabase
+        .from('stores')
+        .update({ custom_domain: cleanDomain })
+        .eq('id', store.id);
+
+      if (dbErr) throw dbErr;
+
+      setDnsStatus({
+        domain: cleanDomain,
+        typeA: '76.76.21.21',
+        typeCNAME: 'cname.vercel-dns.com',
+      });
+
+      setMessage('Custom domain registered successfully! Please point your DNS records to Vercel. 🚀');
+    } catch (err: any) {
+      console.error(err);
+      setMessage('Error connecting custom domain: ' + err.message);
+    } finally {
+      setVerifyingDomain(false);
     }
   };
 
@@ -205,25 +262,70 @@ export default function SettingsPage() {
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-foreground">Custom Domain</label>
-                  <p className="text-sm text-muted-foreground">Connect your own domain (e.g., mystore.com) to your storefront.</p>
+                  <p className="text-sm text-muted-foreground">Connect your own custom domain (e.g., punith.in) to your storefront.</p>
                 </div>
-                <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full font-semibold border border-primary/20">Pro Feature</span>
+                <span className="bg-green-100 text-green-800 text-xs px-2.5 py-1 rounded-full font-semibold border border-green-200">Active</span>
               </div>
               <div className="mt-3 flex gap-3">
                 <input 
                   type="text" 
-                  placeholder="www.yourdomain.com"
+                  placeholder="e.g. punith.in"
                   value={formData.custom_domain}
                   onChange={e => setFormData({...formData, custom_domain: e.target.value})}
                   className="flex-1 max-w-sm h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none"
                 />
                 <button 
-                  onClick={() => alert("Domain verification is only available in the Pro Plan.")}
-                  className="px-4 py-2 bg-secondary text-secondary-foreground border border-input rounded-md font-medium hover:bg-secondary/80 transition-colors"
+                  onClick={handleVerifyCustomDomain}
+                  disabled={verifyingDomain}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/95 transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
+                  {verifyingDomain && <Loader2 className="w-4 h-4 animate-spin" />}
                   Verify & Connect
                 </button>
               </div>
+
+              {/* DNS Instructions Block */}
+              {(dnsStatus || formData.custom_domain) && (
+                <div className="mt-6 p-5 bg-card border border-border/60 rounded-xl space-y-4 shadow-sm animate-in fade-in slide-in-from-top-2">
+                  <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                    DNS Setup Instructions
+                  </h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    To finalize connecting your custom domain, log in to your domain registrar (e.g., GoDaddy, Namecheap) and create the following DNS records:
+                  </p>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left border border-border/40 rounded-lg">
+                      <thead className="bg-muted/50 text-muted-foreground uppercase border-b border-border/40">
+                        <tr>
+                          <th className="px-4 py-2 font-medium">Type</th>
+                          <th className="px-4 py-2 font-medium">Name (Host)</th>
+                          <th className="px-4 py-2 font-medium">Value (Points to)</th>
+                          <th className="px-4 py-2 font-medium">TTL</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/40 font-mono">
+                        <tr>
+                          <td className="px-4 py-2 text-foreground font-bold">A</td>
+                          <td className="px-4 py-2">@</td>
+                          <td className="px-4 py-2">76.76.21.21</td>
+                          <td className="px-4 py-2 text-muted-foreground">Default</td>
+                        </tr>
+                        <tr>
+                          <td className="px-4 py-2 text-foreground font-bold">CNAME</td>
+                          <td className="px-4 py-2">www</td>
+                          <td className="px-4 py-2">cname.vercel-dns.com</td>
+                          <td className="px-4 py-2 text-muted-foreground">Default</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    ⚠️ Note: DNS changes can take up to 24 hours to propagate globally, but Vercel usually verifies them within minutes.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

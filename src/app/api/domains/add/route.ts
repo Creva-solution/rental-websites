@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { subdomain } = await request.json();
+    const { subdomain, customDomain } = await request.json();
 
-    if (!subdomain) {
-      return NextResponse.json({ error: 'Subdomain is required' }, { status: 400 });
+    if (!subdomain && !customDomain) {
+      return NextResponse.json({ error: 'Subdomain or customDomain is required' }, { status: 400 });
     }
 
     const token = process.env.VERCEL_AUTH_TOKEN;
@@ -21,7 +21,10 @@ export async function POST(request: Request) {
       });
     }
 
-    const domainName = `${subdomain.toLowerCase()}.crevasolution.in`;
+    // Determine target domain name
+    const domainName = customDomain 
+      ? customDomain.toLowerCase().trim() 
+      : `${subdomain.toLowerCase()}.crevasolution.in`;
 
     // Construct Vercel API URL (append teamId if it exists)
     let url = `https://api.vercel.com/v9/projects/${projectId}/domains`;
