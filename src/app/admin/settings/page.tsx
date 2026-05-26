@@ -443,107 +443,109 @@ export default function SettingsPage() {
                   {verifyingDomain && <Loader2 className="w-4 h-4 animate-spin" />}
                   Verify & Connect
                 </button>
-              </div>
-
-              {/* DNS Instructions Block */}
-              {(dnsStatus || formData.custom_domain) && (
-                <div className="mt-6 p-6 bg-card border border-border/80 rounded-xl space-y-6 shadow-md animate-in fade-in slide-in-from-top-3">
-                  <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                    <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
-                      <span className={`w-3 h-3 rounded-full ${domainStatus?.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></span>
-                      DNS Connecting Guide (for Shop Owner)
-                    </h4>
-                    <span className="text-[10px] bg-amber-500/10 text-amber-600 border border-amber-500/20 px-2 py-0.5 rounded font-bold uppercase">
-                      Required Action
-                    </span>
-                  </div>
-                  
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    To make your shop active under <strong className="text-foreground">{formData.custom_domain || 'your domain'}</strong>, follow these exact steps on your domain provider:
-                  </p>
-
-                  {/* Step-by-Step Registrar Tab View */}
-                  <div className="bg-muted/10 border border-border/50 rounded-xl p-5 space-y-4">
-                    <div className="flex items-center gap-2 border-b border-border/40 pb-2">
-                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">1</span>
-                      <h5 className="font-bold text-xs">Log in to GoDaddy / Namecheap (Where you bought the domain)</h5>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 border-b border-border/40 pb-2 pt-1">
-                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">2</span>
-                      <h5 className="font-bold text-xs">Go to "DNS Settings" (or "Manage DNS")</h5>
-                    </div>
-
-                    <div className="space-y-3 pt-1">
-                      <div className="flex items-center gap-2">
-                        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">3</span>
-                        <h5 className="font-bold text-xs">Add a new record exactly as shown below:</h5>
-                      </div>
-
-                      {/* GoDaddy Mock DNS Input Form (Super Visual) */}
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-card border border-border p-4 rounded-lg shadow-sm">
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold uppercase text-muted-foreground">Record Type</label>
-                          <div className="h-9 flex items-center px-3 bg-muted/50 border border-border rounded font-mono text-xs font-bold">
-                            {formData.custom_domain && formData.custom_domain.split('.').length > 2 ? 'CNAME' : 'A'}
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold uppercase text-muted-foreground">Name (Host)</label>
-                          <div className="flex gap-1">
-                            <div className="h-9 flex-1 flex items-center px-3 bg-primary/10 border border-primary/20 rounded font-mono text-xs font-bold text-primary">
-                              {formData.custom_domain && formData.custom_domain.split('.').length > 2 
-                                ? formData.custom_domain.split('.')[0] 
-                                : '@'}
-                            </div>
-                            <button 
-                              onClick={() => {
-                                const host = formData.custom_domain && formData.custom_domain.split('.').length > 2 
-                                  ? formData.custom_domain.split('.')[0] 
-                                  : '@';
-                                navigator.clipboard.writeText(host);
-                                alert(`Copied Host "${host}" to clipboard!`);
-                              }}
-                              className="px-2 bg-secondary border border-border rounded text-[10px] font-medium hover:bg-secondary/80"
-                            >
-                              Copy
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="space-y-1 md:col-span-2">
-                          <label className="text-[10px] font-bold uppercase text-muted-foreground">Value (Points to)</label>
-                          <div className="flex gap-1">
-                            <div className="h-9 flex-1 flex items-center px-3 bg-primary/10 border border-primary/20 rounded font-mono text-xs font-bold text-primary overflow-x-auto whitespace-nowrap">
-                              {formData.custom_domain && formData.custom_domain.split('.').length > 2 
-                                ? 'cname.vercel-dns.com' 
-                                : '76.76.21.21'}
-                            </div>
-                            <button 
-                              onClick={() => {
-                                const val = formData.custom_domain && formData.custom_domain.split('.').length > 2 
-                                  ? 'cname.vercel-dns.com' 
-                                  : '76.76.21.21';
-                                navigator.clipboard.writeText(val);
-                                alert(`Copied Value "${val}" to clipboard!`);
-                              }}
-                              className="px-2 bg-secondary border border-border rounded text-[10px] font-medium hover:bg-secondary/80"
-                            >
-                              Copy
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+              </div>              {/* DNS Instructions Block (Always visible & premium!) */}
+              <div className="mt-6 p-6 bg-card border border-border/80 rounded-xl space-y-6 shadow-md">
+                <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-5 h-5 text-primary animate-pulse" />
+                    <div>
+                      <h4 className="font-bold text-sm text-foreground uppercase tracking-wider">
+                        Storefront DNS Configuration Settings
+                      </h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Configure these records on your domain registrar (GoDaddy, Namecheap, etc.) to link your custom domain.
+                      </p>
                     </div>
                   </div>
-
-                  <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    💡 <strong>How does it work?</strong> Once added, your custom domain registrar points the name to our server. 
-                    DNS changes take between 2 to 5 minutes to activate. Click the circular 🔄 button in the top right of this section to refresh and see it connect!
-                  </p>
+                  <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded font-bold uppercase">
+                    Required Action
+                  </span>
                 </div>
-              )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* A Record Card */}
+                  <div className="bg-muted/25 border border-border rounded-xl p-4 space-y-3 relative overflow-hidden text-left">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-primary tracking-wider">DNS RECORD #1: A RECORD</span>
+                      <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[9px] font-bold">REQUIRED</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Point the primary root domain (naked domain) to the platform server IP.
+                    </p>
+                    <div className="grid grid-cols-3 gap-2 bg-background p-2.5 rounded-lg border text-xs font-mono">
+                      <div>
+                        <span className="text-[9px] text-muted-foreground block uppercase font-bold tracking-wide">Type</span>
+                        <span className="font-bold block mt-0.5">A</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] text-muted-foreground block uppercase font-bold tracking-wide">Host</span>
+                        <span className="font-bold block mt-0.5">@</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] text-muted-foreground block uppercase font-bold tracking-wide">Value (IP)</span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-emerald-500 font-bold select-all">76.76.21.21</span>
+                          <button 
+                            onClick={() => {
+                              navigator.clipboard.writeText("76.76.21.21");
+                              alert("IP Address 76.76.21.21 copied to clipboard!");
+                            }}
+                            className="text-muted-foreground hover:text-foreground transition-colors"
+                            title="Copy IP"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CNAME Record Card */}
+                  <div className="bg-muted/25 border border-border rounded-xl p-4 space-y-3 relative overflow-hidden text-left">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-primary tracking-wider">DNS RECORD #2: CNAME</span>
+                      <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[9px] font-bold">RECOMMENDED</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Point the WWW subdomain variation so it resolves seamlessly.
+                    </p>
+                    <div className="grid grid-cols-3 gap-2 bg-background p-2.5 rounded-lg border text-xs font-mono">
+                      <div>
+                        <span className="text-[9px] text-muted-foreground block uppercase font-bold tracking-wide">Type</span>
+                        <span className="font-bold block mt-0.5">CNAME</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] text-muted-foreground block uppercase font-bold tracking-wide">Host</span>
+                        <span className="font-bold block mt-0.5">www</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] text-muted-foreground block uppercase font-bold tracking-wide">Value (Target)</span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-primary font-bold select-all">crevasolution.in</span>
+                          <button 
+                            onClick={() => {
+                              navigator.clipboard.writeText("crevasolution.in");
+                              alert("Domain crevasolution.in copied to clipboard!");
+                            }}
+                            className="text-muted-foreground hover:text-foreground transition-colors"
+                            title="Copy target"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-muted/40 p-4 rounded-xl text-[11px] text-muted-foreground border leading-relaxed text-left">
+                  💡 <strong>Note on propagation:</strong> DNS propagation can take from 2 minutes to 24 hours depending on your registrar. Once configured correctly, Vercel will automatically obtain SSL certificates and active domain routing.
+                </div>
+              </div>
             </div>
           </div>
         </div>
