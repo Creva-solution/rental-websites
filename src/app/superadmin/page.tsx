@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { 
   Building2, Globe, ShieldAlert, ShieldCheck, Play, Pause, 
   Search, RefreshCw, Copy, Check, Database, HelpCircle,
-  Infinity, Calendar, Clock, Zap, Plus, FileText, X, Printer, Send, Upload, Trash2
+  Infinity, Calendar, Clock, Zap, Plus, FileText, X, Printer, Send, Upload, Trash2, Edit3
 } from 'lucide-react';
 
 export default function SuperAdminDashboard() {
@@ -37,12 +37,109 @@ export default function SuperAdminDashboard() {
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  // 4 Licensing Officers States & Drawing states
+  const [officers, setOfficers] = useState<any[]>([
+    { id: 1, name: 'Kavin Kumar', title: 'Senior Licensing Officer', signature: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="150" height="50" viewBox="0 0 150 50"><text x="10" y="35" font-family="Brush Script MT, cursive, sans-serif" font-size="28" fill="%230f172a">Kavin Kumar</text></svg>' },
+    { id: 2, name: 'Abhishek Sharma', title: 'Executive Officer - Creva', signature: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="150" height="50" viewBox="0 0 150 50"><text x="10" y="35" font-family="Brush Script MT, cursive, sans-serif" font-size="28" fill="%230f172a">Abhishek S.</text></svg>' },
+    { id: 3, name: 'Preethi Rajan', title: 'Licensing Director', signature: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="150" height="50" viewBox="0 0 150 50"><text x="10" y="35" font-family="Brush Script MT, cursive, sans-serif" font-size="28" fill="%230f172a">Preethi R.</text></svg>' },
+    { id: 4, name: 'Sanjay Sen', title: 'Registrar of Merchants', signature: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="150" height="50" viewBox="0 0 150 50"><text x="10" y="35" font-family="Brush Script MT, cursive, sans-serif" font-size="28" fill="%230f172a">Sanjay Sen</text></svg>' }
+  ]);
+  const [isDrawingOfficerSig, setIsDrawingOfficerSig] = useState<boolean>(false);
+  const [drawingOfficerIndex, setDrawingOfficerIndex] = useState<number | null>(null);
+  const [isDrawingOff, setIsDrawingOff] = useState<boolean>(false);
+  const officerCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
   useEffect(() => {
     const savedBrand = localStorage.getItem('saas_brand_name');
     const savedLogo = localStorage.getItem('saas_brand_logo');
+    const savedOfficers = localStorage.getItem('saas_licensing_officers');
     if (savedBrand) setBrandName(savedBrand);
     if (savedLogo) setBrandLogo(savedLogo);
+    if (savedOfficers) {
+      try {
+        setOfficers(JSON.parse(savedOfficers));
+      } catch (e) {}
+    }
   }, []);
+
+  // Initialize white background on officer signature canvas when it mounts
+  useEffect(() => {
+    if (isDrawingOfficerSig && officerCanvasRef.current) {
+      const timer = setTimeout(() => {
+        const canvas = officerCanvasRef.current;
+        if (canvas) {
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          }
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isDrawingOfficerSig]);
+
+  const startDrawingOfficer = (e: any) => {
+    setIsDrawingOff(true);
+    const canvas = officerCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.beginPath();
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#0f172a'; // Deep slate dark ink for solid premium print
+
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    ctx.moveTo(clientX - rect.left, clientY - rect.top);
+  };
+
+  const drawOfficer = (e: any) => {
+    if (!isDrawingOff) return;
+    const canvas = officerCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    ctx.lineTo(clientX - rect.left, clientY - rect.top);
+    ctx.stroke();
+  };
+
+  const stopDrawingOfficer = () => {
+    setIsDrawingOff(false);
+  };
+
+  const clearOfficerCanvas = () => {
+    const canvas = officerCanvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+  };
+
+  const saveOfficerCanvas = () => {
+    const canvas = officerCanvasRef.current;
+    if (canvas && drawingOfficerIndex !== null) {
+      const signatureDataUrl = canvas.toDataURL();
+      const updated = [...officers];
+      updated[drawingOfficerIndex].signature = signatureDataUrl;
+      setOfficers(updated);
+      setIsDrawingOfficerSig(false);
+      setDrawingOfficerIndex(null);
+      setActionStatus("Officer signature captured!");
+      setTimeout(() => setActionStatus(null), 2000);
+    }
+  };
 
   // HTML5 Canvas cropping renderer (renders full view background + highlighted circle crop overlay)
   useEffect(() => {
@@ -213,8 +310,123 @@ export default function SuperAdminDashboard() {
   const handleSaveBrandSettings = () => {
     localStorage.setItem('saas_brand_name', brandName);
     localStorage.setItem('saas_brand_logo', brandLogo);
+    localStorage.setItem('saas_licensing_officers', JSON.stringify(officers));
     setActionStatus('Brand settings saved locally!');
     setTimeout(() => setActionStatus(null), 2000);
+  };
+
+  const handlePrintContractForStore = (storeData: any, contractData: any) => {
+    if (!contractData || typeof window === 'undefined') return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const planLabel = contractData.selectedPlan === '30' ? '1 Month (30 Days)' :
+                      contractData.selectedPlan === '365' ? '1 Year (365 Days)' : 'Lifetime Subscription';
+
+    const assignedOfficer = contractData.assignedOfficer;
+    const logoUrl = localStorage.getItem('saas_brand_logo') || '';
+    const logoHtml = logoUrl 
+      ? `<img src="${logoUrl}" style="max-height: 55px; max-width: 180px; display: block; margin: 0 auto 15px auto;" />`
+      : `<svg width="50" height="50" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; margin: 0 auto 15px auto;">
+           <circle cx="50" cy="50" r="45" stroke="#1e3a8a" stroke-width="3" fill="#f8fafc"/>
+           <path d="M50 20 L75 40 L65 75 L35 75 L25 40 Z" fill="#1e3a8a"/>
+           <text x="50" y="58" font-family="'Georgia', serif" font-weight="bold" font-size="24" fill="#ffffff" text-anchor="middle">C</text>
+         </svg>`;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Creva SaaS Storefront Agreement - ${storeData.store_name}</title>
+          <style>
+            body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; }
+            .header { border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; text-align: center; }
+            .title { font-size: 22px; font-weight: 850; text-transform: uppercase; letter-spacing: 0.5px; color: #0f172a; margin-top: 5px; }
+            .subtitle { font-size: 13px; color: #64748b; margin-top: 3px; }
+            .section { margin-bottom: 25px; }
+            .section-title { font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 10px; border-left: 4px solid #3b82f6; padding-left: 10px; text-transform: uppercase; }
+            .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            .meta-table td { padding: 9px; border: 1px solid #e2e8f0; font-size: 13px; }
+            .meta-table td.label { font-weight: bold; background-color: #f8fafc; width: 30%; }
+            .terms { background: #f8fafc; border: 1px solid #e2e8f0; padding: 18px; border-radius: 8px; font-size: 11px; max-height: 250px; overflow-y: auto; text-align: justify; }
+            .signature-area { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 50px; }
+            .sig-box { border-bottom: 1px solid #000; width: 45%; text-align: center; padding-bottom: 10px; }
+            .sig-img { max-height: 60px; max-width: 100%; display: block; margin: 0 auto 5px auto; }
+            .badge { display: inline-block; padding: 4px 10px; background: #e0f2fe; color: #0369a1; font-weight: bold; font-size: 11px; border-radius: 9999px; text-transform: uppercase; }
+            @media print { .no-print { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            ${logoHtml}
+            <div class="title">Creva SaaS Storefront Agreement</div>
+            <div class="subtitle">Official Digital Merchant & Licensing Contract</div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Merchant & Storefront Details</div>
+            <table class="meta-table">
+              <tr>
+                <td class="label">Merchant Name</td>
+                <td>${storeData.store_name}</td>
+              </tr>
+              <tr>
+                <td class="label">Primary Subdomain</td>
+                <td>${storeData.subdomain}.crevasolution.in</td>
+              </tr>
+              <tr>
+                <td class="label">Contact Email</td>
+                <td>${storeData.contact_email || 'N/A'}</td>
+              </tr>
+              <tr>
+                <td class="label">Contact Phone</td>
+                <td>${storeData.contact_phone || 'N/A'}</td>
+              </tr>
+              <tr>
+                <td class="label">Subscription Tier</td>
+                <td><span class="badge">${planLabel}</span></td>
+              </tr>
+              <tr>
+                <td class="label">Date Signed</td>
+                <td>${contractData.contractSignedAt ? new Date(contractData.contractSignedAt).toLocaleDateString('en-IN') : 'N/A'}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Terms & Conditions of Service</div>
+            <div class="terms">
+              <p><strong>1. PROVISIONS OF SERVICE:</strong> The Creva E-Commerce SaaS platform grants the undersigned Merchant the license to operate an automated retail storefront website using our cloud architecture. Custom domain mappings are active permissions subject to the subscription plan level.</p>
+              <p><strong>2. PLAN RENEWALS & INQUIRY SYSTEM:</strong> The Merchant understands that platform billing utilizes an inquiry activation system. Upon plan expiration, storefront access may be suspended unless renewed by contacting the support sales team directly.</p>
+              <p><strong>3. ACCEPTABLE USAGE & LEGAL LIMITS:</strong> The Merchant agrees to list only legally compliant goods. Sales of prohibited, illegal, counterfeited, or unauthorized products will lead to instant termination of this license without refund.</p>
+              <p><strong>4. SECURITY & DATA PRIVACY:</strong> The platform will protect merchant database assets, catalog listings, and custom styling. The platform is not responsible for off-site customer disputes.</p>
+            </div>
+          </div>
+
+          <div class="signature-area">
+            <div class="sig-box">
+              <div style="font-size: 10px; color: #64748b; margin-bottom: 5px;">${assignedOfficer?.title || 'Creva Licensing Officer'}</div>
+              ${assignedOfficer?.signature 
+                ? `<img class="sig-img" src="${assignedOfficer.signature}" alt="${assignedOfficer.name}" />` 
+                : `<div style="font-family: 'Courier New', monospace; font-weight: bold; font-size: 13px; margin-bottom: 12px; letter-spacing: 1px;">CREVA OFFICIAL STAMP</div>`
+              }
+              <div style="font-size: 11px; font-weight: bold; border-top: 1px solid #cbd5e1; padding-top: 5px;">${assignedOfficer?.name || 'Authorized Signature'}</div>
+            </div>
+            <div class="sig-box">
+              <div style="font-size: 10px; color: #64748b; margin-bottom: 5px;">Signed Digitally by Merchant</div>
+              ${contractData.contractSignature ? `<img class="sig-img" src="${contractData.contractSignature}" alt="Merchant Signature" />` : '<div style="height: 70px;">[MISSING SIGNATURE]</div>'}
+              <div style="font-size: 11px; font-weight: bold; border-top: 1px solid #cbd5e1; padding-top: 5px;">Merchant Signature</div>
+            </div>
+          </div>
+
+          <div style="text-align: center; margin-top: 40px;" class="no-print">
+            <button onclick="window.print()" style="padding: 10px 20px; font-size: 14px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+              🖨️ Print or Save as PDF
+            </button>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1123,12 +1335,21 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                     return (
                       <div className="space-y-6 text-left">
                         {/* Legal Status Header */}
-                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-center gap-3">
-                          <ShieldCheck className="w-6 h-6 text-emerald-400" />
-                          <div>
-                            <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest block">CONTRACT STATUS</span>
-                            <span className="text-xs font-bold text-white">Digitally Signed & Verified successfully</span>
+                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <ShieldCheck className="w-6 h-6 text-emerald-400" />
+                            <div>
+                              <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest block">CONTRACT STATUS</span>
+                              <span className="text-xs font-bold text-white">Digitally Signed & Verified successfully</span>
+                            </div>
                           </div>
+                          <button
+                            onClick={() => handlePrintContractForStore(selectedStore, contract)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black px-3.5 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5"
+                          >
+                            <Printer className="w-3.5 h-3.5" />
+                            Print Contract
+                          </button>
                         </div>
 
                         {/* Metadata grid */}
@@ -1145,20 +1366,50 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                           </div>
                         </div>
 
-                        {/* Signature Pad display */}
-                        <div className="bg-gray-950 p-4 rounded-xl border border-gray-850 space-y-3">
-                          <span className="text-[9px] text-gray-500 uppercase block font-semibold font-sans">Merchant Digital Signature</span>
-                          {contract.contractSignature ? (
-                            <div className="bg-white border border-gray-800 rounded-lg p-3 inline-block">
-                              <img 
-                                src={contract.contractSignature} 
-                                alt="Merchant drawn signature" 
-                                className="max-h-[80px] object-contain invert"
-                              />
-                            </div>
-                          ) : (
-                            <span className="text-xs text-red-400 block font-bold">Signature image data is missing or empty!</span>
-                          )}
+                        {/* Double Signature box */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {/* Signature Pad display */}
+                          <div className="bg-gray-950 p-4 rounded-xl border border-gray-850 space-y-3">
+                            <span className="text-[9px] text-gray-500 uppercase block font-semibold font-sans">Merchant Digital Signature</span>
+                            {contract.contractSignature ? (
+                              <div className="bg-white border border-gray-800 rounded-lg p-2.5 inline-block">
+                                <img 
+                                  src={contract.contractSignature} 
+                                  alt="Merchant drawn signature" 
+                                  className="max-h-[50px] object-contain invert"
+                                />
+                              </div>
+                            ) : (
+                              <span className="text-xs text-red-400 block font-bold">Signature image data is missing!</span>
+                            )}
+                          </div>
+
+                          {/* Assigned Officer Signature Display */}
+                          <div className="bg-gray-950 p-4 rounded-xl border border-gray-850 space-y-3">
+                            <span className="text-[9px] text-gray-500 uppercase block font-semibold font-sans">Assigned Licensing Officer</span>
+                            {contract.assignedOfficer ? (
+                              <div className="flex items-center gap-3">
+                                {contract.assignedOfficer.signature && (
+                                  <div className="bg-white border border-gray-800 rounded-lg p-2 inline-block">
+                                    <img 
+                                      src={contract.assignedOfficer.signature} 
+                                      alt="Officer signature stamp" 
+                                      className="max-h-[40px] object-contain"
+                                    />
+                                  </div>
+                                )}
+                                <div>
+                                  <span className="text-xs font-bold text-white block">{contract.assignedOfficer.name}</span>
+                                  <span className="text-[9px] text-gray-500 block">{contract.assignedOfficer.title}</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <div className="font-mono text-[10px] font-black text-gray-500 border border-gray-850 rounded px-2 py-1 bg-gray-900 uppercase">CREVA OFFICIAL STAMP</div>
+                                <span className="text-[9px] text-gray-500 block">Default authorized signee</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         {/* Terms copy block */}
@@ -1395,14 +1646,14 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
       {/* Global SaaS Billing Settings Modal */}
       {isBrandingOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-hidden text-left p-6 space-y-6">
+          <div className="w-full max-w-lg bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-hidden text-left p-6 space-y-6">
             <div className="flex items-center justify-between border-b border-gray-850 pb-4">
               <div>
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
                   <Zap className="text-blue-400 w-5 h-5" />
-                  SaaS Invoice Settings
+                  SaaS Brand & Contract Settings
                 </h2>
-                <p className="text-xs text-gray-400 mt-0.5">Customize default brand styling for payment receipts</p>
+                <p className="text-xs text-gray-400 mt-0.5">Customize storefront logo and manage licensing officers</p>
               </div>
               <button 
                 onClick={() => setIsBrandingOpen(false)}
@@ -1412,7 +1663,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-[480px] overflow-y-auto pr-1">
               <div>
                 <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Branding / SaaS Name</label>
                 <input 
@@ -1420,12 +1671,12 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                   value={brandName}
                   onChange={(e) => setBrandName(e.target.value)}
                   placeholder="e.g. Creva Solutions"
-                  className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2.5 text-sm text-white mt-1 transition-all"
+                  className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white mt-1 transition-all"
                 />
               </div>
 
               <div>
-                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block mb-1">Branding Logo</label>
+                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block mb-1">Agreement Top Logo</label>
                 <div className="flex flex-col gap-2.5">
                   <label 
                     htmlFor="global-logo-upload"
@@ -1471,6 +1722,97 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                   </div>
                 </div>
               )}
+
+              {/* Creva Licensing Officers Segment */}
+              <div className="border-t border-gray-850 pt-5 space-y-4">
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <ShieldCheck className="text-emerald-400 w-4 h-4" />
+                    Creva Licensing Officers & Signatures
+                  </h3>
+                  <p className="text-[10px] text-gray-500 mt-0.5">Manage 4 authorized officers' signatures. 1 random signature will print on each new storefront agreement.</p>
+                </div>
+
+                <div className="space-y-4">
+                  {officers.map((officer, index) => (
+                    <div key={officer.id} className="bg-gray-950 p-4 rounded-xl border border-gray-850 space-y-3 text-left">
+                      <div className="flex items-center justify-between border-b border-gray-850 pb-2">
+                        <span className="text-[10px] font-black text-blue-400">CREVA OFFICER #{officer.id}</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[9px] font-semibold text-gray-500 uppercase">Officer Name</label>
+                          <input 
+                            type="text"
+                            value={officer.name}
+                            onChange={(e) => {
+                              const updated = [...officers];
+                              updated[index].name = e.target.value;
+                              setOfficers(updated);
+                            }}
+                            placeholder="e.g. Kavin Kumar"
+                            className="w-full bg-gray-900 border border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-xs text-white mt-1 transition-all"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] font-semibold text-gray-500 uppercase">Official Title</label>
+                          <input 
+                            type="text"
+                            value={officer.title}
+                            onChange={(e) => {
+                              const updated = [...officers];
+                              updated[index].title = e.target.value;
+                              setOfficers(updated);
+                            }}
+                            placeholder="e.g. Senior Licensing Officer"
+                            className="w-full bg-gray-900 border border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-xs text-white mt-1 transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-semibold text-gray-500 uppercase block">Signature Stamp</label>
+                        <div className="flex items-center gap-2">
+                          <input 
+                            type="text"
+                            value={officer.signature}
+                            onChange={(e) => {
+                              const updated = [...officers];
+                              updated[index].signature = e.target.value;
+                              setOfficers(updated);
+                            }}
+                            placeholder="Base64 or image URL..."
+                            className="flex-1 bg-gray-900 border border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[10px] text-gray-300 font-mono transition-all"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDrawingOfficerIndex(index);
+                              setIsDrawingOfficerSig(true);
+                            }}
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shrink-0"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            Draw
+                          </button>
+                        </div>
+
+                        {officer.signature && (
+                          <div className="mt-2 flex items-center gap-3 bg-gray-900 p-2 rounded-lg border border-gray-850 inline-flex">
+                            <img 
+                              src={officer.signature} 
+                              alt="Signature preview" 
+                              className="max-h-[30px] object-contain"
+                            />
+                            <span className="text-[9px] text-gray-500">Live preview stamp</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center gap-3 pt-4 border-t border-gray-850 justify-end">
@@ -1489,8 +1831,69 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                 }}
                 className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-xs font-semibold text-white transition-colors shadow-md"
               >
-                Save Branding Default Settings
+                Save Settings
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Officer Signature Drawing Popup Modal */}
+      {isDrawingOfficerSig && drawingOfficerIndex !== null && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-hidden text-left p-6 space-y-6">
+            <div className="flex items-center justify-between border-b border-gray-850 pb-4">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Edit3 className="text-blue-400 w-5 h-5" />
+                  Draw Signature for {officers[drawingOfficerIndex]?.name || `Officer #${drawingOfficerIndex + 1}`}
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">Use your mouse or fingertip to sign in the white box</p>
+              </div>
+              <button 
+                onClick={() => {
+                  setIsDrawingOfficerSig(false);
+                  setDrawingOfficerIndex(null);
+                }}
+                className="p-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="relative border border-gray-800 bg-white rounded-xl overflow-hidden shadow-inner">
+                <canvas
+                  ref={officerCanvasRef}
+                  width={380}
+                  height={150}
+                  onMouseDown={startDrawingOfficer}
+                  onMouseMove={drawOfficer}
+                  onMouseUp={stopDrawingOfficer}
+                  onMouseLeave={stopDrawingOfficer}
+                  onTouchStart={startDrawingOfficer}
+                  onTouchMove={drawOfficer}
+                  onTouchEnd={stopDrawingOfficer}
+                  className="w-full cursor-crosshair h-[150px] bg-white block touch-none animate-none"
+                />
+                
+                <div className="absolute right-3 bottom-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={clearOfficerCanvas}
+                    className="bg-gray-900 hover:bg-gray-800 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg border border-gray-700 transition-colors shadow-sm"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    type="button"
+                    onClick={saveOfficerCanvas}
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+                  >
+                    Confirm & Lock
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

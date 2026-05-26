@@ -75,6 +75,16 @@ export default function SubscriptionPage() {
     const planLabel = contract.selectedPlan === '30' ? '1 Month (30 Days)' :
                       contract.selectedPlan === '365' ? '1 Year (365 Days)' : 'Lifetime Subscription';
 
+    const assignedOfficer = contract.assignedOfficer;
+    const logoUrl = localStorage.getItem('saas_brand_logo') || '';
+    const logoHtml = logoUrl 
+      ? `<img src="${logoUrl}" style="max-height: 55px; max-width: 180px; display: block; margin: 0 auto 15px auto;" />`
+      : `<svg width="50" height="50" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; margin: 0 auto 15px auto;">
+           <circle cx="50" cy="50" r="45" stroke="#1e3a8a" stroke-width="3" fill="#f8fafc"/>
+           <path d="M50 20 L75 40 L65 75 L35 75 L25 40 Z" fill="#1e3a8a"/>
+           <text x="50" y="58" font-family="'Georgia', serif" font-weight="bold" font-size="24" fill="#ffffff" text-anchor="middle">C</text>
+         </svg>`;
+
     printWindow.document.write(`
       <html>
         <head>
@@ -82,23 +92,24 @@ export default function SubscriptionPage() {
           <style>
             body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; }
             .header { border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; text-align: center; }
-            .title { font-size: 24px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #0f172a; }
-            .subtitle { font-size: 14px; color: #64748b; margin-top: 5px; }
+            .title { font-size: 22px; font-weight: 850; text-transform: uppercase; letter-spacing: 0.5px; color: #0f172a; margin-top: 5px; }
+            .subtitle { font-size: 13px; color: #64748b; margin-top: 3px; }
             .section { margin-bottom: 25px; }
-            .section-title { font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 10px; border-left: 4px solid #3b82f6; padding-left: 10px; text-transform: uppercase; }
+            .section-title { font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 10px; border-left: 4px solid #3b82f6; padding-left: 10px; text-transform: uppercase; }
             .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            .meta-table td { padding: 10px; border: 1px solid #e2e8f0; font-size: 14px; }
+            .meta-table td { padding: 9px; border: 1px solid #e2e8f0; font-size: 13px; }
             .meta-table td.label { font-weight: bold; background-color: #f8fafc; width: 30%; }
-            .terms { background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; font-size: 12px; max-height: 300px; overflow-y: auto; text-align: justify; }
+            .terms { background: #f8fafc; border: 1px solid #e2e8f0; padding: 18px; border-radius: 8px; font-size: 11px; max-height: 250px; overflow-y: auto; text-align: justify; }
             .signature-area { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 50px; }
             .sig-box { border-bottom: 1px solid #000; width: 45%; text-align: center; padding-bottom: 10px; }
-            .sig-img { max-height: 70px; display: block; margin: 0 auto 5px auto; }
+            .sig-img { max-height: 60px; max-width: 100%; display: block; margin: 0 auto 5px auto; }
             .badge { display: inline-block; padding: 4px 10px; background: #e0f2fe; color: #0369a1; font-weight: bold; font-size: 11px; border-radius: 9999px; text-transform: uppercase; }
             @media print { .no-print { display: none; } }
           </style>
         </head>
         <body>
           <div class="header">
+            ${logoHtml}
             <div class="title">Creva SaaS Storefront Agreement</div>
             <div class="subtitle">Official Digital Merchant & Licensing Contract</div>
           </div>
@@ -145,14 +156,17 @@ export default function SubscriptionPage() {
 
           <div class="signature-area">
             <div class="sig-box">
-              <div style="font-size: 11px; color: #64748b; margin-bottom: 5px;">Creva Licensing Officer</div>
-              <div style="font-family: 'Courier New', monospace; font-weight: bold; font-size: 14px; margin-bottom: 12px; letter-spacing: 1px;">CREVA OFFICIAL STAMP</div>
-              <div style="font-size: 12px; font-weight: bold; border-top: 1px solid #cbd5e1; padding-top: 5px;">Authorized Signature</div>
+              <div style="font-size: 10px; color: #64748b; margin-bottom: 5px;">${assignedOfficer?.title || 'Creva Licensing Officer'}</div>
+              ${assignedOfficer?.signature 
+                ? `<img class="sig-img" src="${assignedOfficer.signature}" alt="${assignedOfficer.name}" />` 
+                : `<div style="font-family: 'Courier New', monospace; font-weight: bold; font-size: 13px; margin-bottom: 12px; letter-spacing: 1px;">CREVA OFFICIAL STAMP</div>`
+              }
+              <div style="font-size: 11px; font-weight: bold; border-top: 1px solid #cbd5e1; padding-top: 5px;">${assignedOfficer?.name || 'Authorized Signature'}</div>
             </div>
             <div class="sig-box">
-              <div style="font-size: 11px; color: #64748b; margin-bottom: 5px;">Signed Digitally by Merchant</div>
+              <div style="font-size: 10px; color: #64748b; margin-bottom: 5px;">Signed Digitally by Merchant</div>
               ${contract.contractSignature ? `<img class="sig-img" src="${contract.contractSignature}" alt="Merchant Signature" />` : '<div style="height: 70px;">[MISSING SIGNATURE]</div>'}
-              <div style="font-size: 12px; font-weight: bold; border-top: 1px solid #cbd5e1; padding-top: 5px;">Merchant Signature</div>
+              <div style="font-size: 11px; font-weight: bold; border-top: 1px solid #cbd5e1; padding-top: 5px;">Merchant Signature</div>
             </div>
           </div>
 
