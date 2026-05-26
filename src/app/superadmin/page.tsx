@@ -620,6 +620,97 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
           </div>
         </div>
 
+        {/* DNS Configuration Instructions (A Records & CNAME) */}
+        <div className="bg-gray-800 border border-gray-700/60 rounded-xl p-6 shadow-sm space-y-4">
+          <div className="flex items-center gap-2 border-b border-gray-700/60 pb-3">
+            <Globe className="w-5 h-5 text-indigo-400 animate-pulse" />
+            <div>
+              <h3 className="font-bold text-white text-sm uppercase tracking-wider">
+                Storefront DNS Configuration Settings (A Records)
+              </h3>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Provide these records to your clients who want to link their own custom domain to their storefront website.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* A Record Card */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3 relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-indigo-400 tracking-wider">DNS RECORD #1: A RECORD</span>
+                <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 text-[9px] font-bold">REQUIRED</span>
+              </div>
+              <p className="text-[11px] text-gray-400 font-light leading-relaxed">
+                Point the primary root domain (naked domain) to the platform server IP.
+              </p>
+              <div className="grid grid-cols-3 gap-2 bg-gray-950 p-2.5 rounded-lg border border-gray-850 text-xs font-mono">
+                <div>
+                  <span className="text-[9px] text-gray-500 block uppercase font-bold tracking-wide">Type</span>
+                  <span className="text-white font-bold">A</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-gray-500 block uppercase font-bold tracking-wide">Host</span>
+                  <span className="text-white font-bold">@</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-gray-500 block uppercase font-bold tracking-wide">Value (IP)</span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-emerald-400 font-bold select-all">76.76.21.21</span>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText("76.76.21.21");
+                        alert("IP Address 76.76.21.21 copied to clipboard!");
+                      }}
+                      className="text-gray-500 hover:text-white transition-colors"
+                      title="Copy IP"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* CNAME Record Card */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3 relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-indigo-400 tracking-wider">DNS RECORD #2: CNAME</span>
+                <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 text-[9px] font-bold">RECOMMENDED</span>
+              </div>
+              <p className="text-[11px] text-gray-400 font-light leading-relaxed">
+                Point the WWW subdomain variation so it resolves seamlessly.
+              </p>
+              <div className="grid grid-cols-3 gap-2 bg-gray-950 p-2.5 rounded-lg border border-gray-850 text-xs font-mono">
+                <div>
+                  <span className="text-[9px] text-gray-500 block uppercase font-bold tracking-wide">Type</span>
+                  <span className="text-white font-bold">CNAME</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-gray-500 block uppercase font-bold tracking-wide">Host</span>
+                  <span className="text-white font-bold">www</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-gray-500 block uppercase font-bold tracking-wide">Value (Target)</span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-indigo-400 font-bold select-all">crevasolution.in</span>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText("crevasolution.in");
+                        alert("Domain crevasolution.in copied to clipboard!");
+                      }}
+                      className="text-gray-500 hover:text-white transition-colors"
+                      title="Copy target"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Controls and Search Bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-800 p-4 rounded-xl border border-gray-700/60">
           <div className="relative w-full sm:max-w-md">
