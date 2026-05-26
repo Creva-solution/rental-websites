@@ -375,7 +375,7 @@ export default function SettingsPage() {
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-foreground">Custom Domain</label>
-                  <p className="text-sm text-muted-foreground">Connect your own custom domain (e.g., punith.orepaltes.in) to your storefront.</p>
+                  <p className="text-sm text-muted-foreground">Connect your own custom domain (e.g., yourshopname.com or yourshopname.in) to your storefront.</p>
                 </div>
                 
                 {/* Live Status Badge */}
@@ -430,7 +430,7 @@ export default function SettingsPage() {
               <div className="mt-3 flex gap-3">
                 <input 
                   type="text" 
-                  placeholder="e.g. punith.orepaltes.in"
+                  placeholder="e.g. yourshopname.com"
                   value={formData.custom_domain}
                   onChange={e => setFormData({...formData, custom_domain: e.target.value})}
                   className="flex-1 max-w-sm h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none"
