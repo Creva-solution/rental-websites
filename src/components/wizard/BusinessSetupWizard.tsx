@@ -232,12 +232,14 @@ export default function BusinessSetupWizard() {
           </div>
 
           <div class="section">
-            <div class="section-title">Terms & Conditions of Service</div>
+            <div class="section-title">Terms &amp; Conditions of Service</div>
             <div class="terms">
-              <p><strong>1. PROVISIONS OF SERVICE:</strong> The Creva E-Commerce SaaS platform grants the undersigned Merchant the license to operate an automated retail storefront website using our cloud architecture. Custom domain mappings are active permissions subject to the subscription plan level.</p>
-              <p><strong>2. PLAN RENEWALS & INQUIRY SYSTEM:</strong> The Merchant understands that platform billing utilizes an inquiry activation system. Upon plan expiration, storefront access may be suspended unless renewed by contacting the support sales team directly.</p>
-              <p><strong>3. ACCEPTABLE USAGE & LEGAL LIMITS:</strong> The Merchant agrees to list only legally compliant goods. Sales of prohibited, illegal, counterfeited, or unauthorized products will lead to instant termination of this license without refund.</p>
-              <p><strong>4. SECURITY & DATA PRIVACY:</strong> The platform will protect merchant database assets, catalog listings, and custom styling. The platform is not responsible for off-site customer disputes.</p>
+              ${(localStorage.getItem('saas_agreement_template') || '1. PROVISIONS OF SERVICE: The Creva E-Commerce SaaS platform grants the undersigned Merchant the license to operate an automated retail storefront website using our cloud architecture.\n2. PLAN RENEWALS: The Merchant understands that platform billing utilizes an inquiry activation system.')
+                .split('\n')
+                .filter((line: string) => line.trim())
+                .map((para: string) => `<p>${para.trim()}</p>`)
+                .join('')
+              }
             </div>
           </div>
 

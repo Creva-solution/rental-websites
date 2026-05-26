@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { 
   Building2, Globe, ShieldAlert, ShieldCheck, Play, Pause, 
   Search, RefreshCw, Copy, Check, Database, HelpCircle,
-  Infinity, Calendar, Clock, Zap, Plus, FileText, X, Printer, Send, Upload, Trash2, Edit3
+  Infinity, Calendar, Clock, Zap, Plus, FileText, X, Printer, Send, Upload, Trash2
 } from 'lucide-react';
 
 export default function SuperAdminDashboard() {
@@ -37,108 +37,56 @@ export default function SuperAdminDashboard() {
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // 4 Licensing Officers States & Drawing states
+  // 4 Licensing Officers States
   const [officers, setOfficers] = useState<any[]>([
-    { id: 1, name: 'Kavin Kumar', title: 'Senior Licensing Officer', signature: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="150" height="50" viewBox="0 0 150 50"><text x="10" y="35" font-family="Brush Script MT, cursive, sans-serif" font-size="28" fill="%230f172a">Kavin Kumar</text></svg>' },
-    { id: 2, name: 'Abhishek Sharma', title: 'Executive Officer - Creva', signature: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="150" height="50" viewBox="0 0 150 50"><text x="10" y="35" font-family="Brush Script MT, cursive, sans-serif" font-size="28" fill="%230f172a">Abhishek S.</text></svg>' },
-    { id: 3, name: 'Preethi Rajan', title: 'Licensing Director', signature: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="150" height="50" viewBox="0 0 150 50"><text x="10" y="35" font-family="Brush Script MT, cursive, sans-serif" font-size="28" fill="%230f172a">Preethi R.</text></svg>' },
-    { id: 4, name: 'Sanjay Sen', title: 'Registrar of Merchants', signature: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="150" height="50" viewBox="0 0 150 50"><text x="10" y="35" font-family="Brush Script MT, cursive, sans-serif" font-size="28" fill="%230f172a">Sanjay Sen</text></svg>' }
+    { id: 1, name: 'Kavin Kumar', title: 'Senior Licensing Officer', signature: '' },
+    { id: 2, name: 'Abhishek Sharma', title: 'Executive Officer - Creva', signature: '' },
+    { id: 3, name: 'Preethi Rajan', title: 'Licensing Director', signature: '' },
+    { id: 4, name: 'Sanjay Sen', title: 'Registrar of Merchants', signature: '' }
   ]);
-  const [isDrawingOfficerSig, setIsDrawingOfficerSig] = useState<boolean>(false);
-  const [drawingOfficerIndex, setDrawingOfficerIndex] = useState<number | null>(null);
-  const [isDrawingOff, setIsDrawingOff] = useState<boolean>(false);
-  const officerCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Agreement Template state
+  const defaultTemplate = `1. PROVISIONS OF SERVICE: The Creva E-Commerce SaaS platform grants the undersigned Merchant the license to operate an automated retail storefront website using our cloud architecture. Custom domain mappings are active permissions subject to the subscription plan level.
+
+2. PLAN RENEWALS & INQUIRY SYSTEM: The Merchant understands that platform billing utilizes an inquiry activation system. Upon plan expiration, storefront access may be suspended unless renewed by contacting the support sales team directly.
+
+3. ACCEPTABLE USAGE & LEGAL LIMITS: The Merchant agrees to list only legally compliant goods. Sales of prohibited, illegal, counterfeited, or unauthorized products will lead to instant termination of this license without refund.
+
+4. SECURITY & DATA PRIVACY: The platform will protect merchant database assets, catalog listings, and custom styling. The platform is not responsible for off-site customer disputes.`;
+  const [agreementTemplate, setAgreementTemplate] = useState<string>(defaultTemplate);
 
   useEffect(() => {
     const savedBrand = localStorage.getItem('saas_brand_name');
     const savedLogo = localStorage.getItem('saas_brand_logo');
     const savedOfficers = localStorage.getItem('saas_licensing_officers');
+    const savedTemplate = localStorage.getItem('saas_agreement_template');
     if (savedBrand) setBrandName(savedBrand);
     if (savedLogo) setBrandLogo(savedLogo);
     if (savedOfficers) {
-      try {
-        setOfficers(JSON.parse(savedOfficers));
-      } catch (e) {}
+      try { setOfficers(JSON.parse(savedOfficers)); } catch (e) {}
     }
+    if (savedTemplate) setAgreementTemplate(savedTemplate);
   }, []);
 
-  // Initialize white background on officer signature canvas when it mounts
-  useEffect(() => {
-    if (isDrawingOfficerSig && officerCanvasRef.current) {
-      const timer = setTimeout(() => {
-        const canvas = officerCanvasRef.current;
-        if (canvas) {
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-          }
-        }
-      }, 100);
-      return () => clearTimeout(timer);
+  // Handle officer stamp image upload
+  const handleOfficerStampUpload = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 1.5 * 1024 * 1024) {
+      alert('⚠️ Stamp image too large. Please upload under 1.5MB.');
+      return;
     }
-  }, [isDrawingOfficerSig]);
-
-  const startDrawingOfficer = (e: any) => {
-    setIsDrawingOff(true);
-    const canvas = officerCanvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.beginPath();
-    ctx.lineWidth = 3;
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = '#0f172a'; // Deep slate dark ink for solid premium print
-
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    ctx.moveTo(clientX - rect.left, clientY - rect.top);
-  };
-
-  const drawOfficer = (e: any) => {
-    if (!isDrawingOff) return;
-    const canvas = officerCanvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    ctx.lineTo(clientX - rect.left, clientY - rect.top);
-    ctx.stroke();
-  };
-
-  const stopDrawingOfficer = () => {
-    setIsDrawingOff(false);
-  };
-
-  const clearOfficerCanvas = () => {
-    const canvas = officerCanvasRef.current;
-    if (canvas) {
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (ev.target?.result) {
+        const updated = [...officers];
+        updated[index].signature = ev.target.result as string;
+        setOfficers(updated);
+        setActionStatus('Stamp uploaded for ' + updated[index].name + '!');
+        setTimeout(() => setActionStatus(null), 2500);
       }
-    }
-  };
-
-  const saveOfficerCanvas = () => {
-    const canvas = officerCanvasRef.current;
-    if (canvas && drawingOfficerIndex !== null) {
-      const signatureDataUrl = canvas.toDataURL();
-      const updated = [...officers];
-      updated[drawingOfficerIndex].signature = signatureDataUrl;
-      setOfficers(updated);
-      setIsDrawingOfficerSig(false);
-      setDrawingOfficerIndex(null);
-      setActionStatus("Officer signature captured!");
-      setTimeout(() => setActionStatus(null), 2000);
-    }
+    };
+    reader.readAsDataURL(file);
   };
 
   // HTML5 Canvas cropping renderer (renders full view background + highlighted circle crop overlay)
@@ -311,6 +259,7 @@ export default function SuperAdminDashboard() {
     localStorage.setItem('saas_brand_name', brandName);
     localStorage.setItem('saas_brand_logo', brandLogo);
     localStorage.setItem('saas_licensing_officers', JSON.stringify(officers));
+    localStorage.setItem('saas_agreement_template', agreementTemplate);
     setActionStatus('Brand settings saved locally!');
     setTimeout(() => setActionStatus(null), 2000);
   };
@@ -393,12 +342,13 @@ export default function SuperAdminDashboard() {
           </div>
 
           <div class="section">
-            <div class="section-title">Terms & Conditions of Service</div>
+            <div class="section-title">Terms &amp; Conditions of Service</div>
             <div class="terms">
-              <p><strong>1. PROVISIONS OF SERVICE:</strong> The Creva E-Commerce SaaS platform grants the undersigned Merchant the license to operate an automated retail storefront website using our cloud architecture. Custom domain mappings are active permissions subject to the subscription plan level.</p>
-              <p><strong>2. PLAN RENEWALS & INQUIRY SYSTEM:</strong> The Merchant understands that platform billing utilizes an inquiry activation system. Upon plan expiration, storefront access may be suspended unless renewed by contacting the support sales team directly.</p>
-              <p><strong>3. ACCEPTABLE USAGE & LEGAL LIMITS:</strong> The Merchant agrees to list only legally compliant goods. Sales of prohibited, illegal, counterfeited, or unauthorized products will lead to instant termination of this license without refund.</p>
-              <p><strong>4. SECURITY & DATA PRIVACY:</strong> The platform will protect merchant database assets, catalog listings, and custom styling. The platform is not responsible for off-site customer disputes.</p>
+              ${(localStorage.getItem('saas_agreement_template') || defaultTemplate)
+                .split('\n')
+                .filter((line: string) => line.trim())
+                .map((para: string) => `<p>${para.trim().replace(/&/g, '&amp;')}</p>`)
+                .join('\n')}
             </div>
           </div>
 
@@ -1728,90 +1678,139 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                 <div>
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     <ShieldCheck className="text-emerald-400 w-4 h-4" />
-                    Creva Licensing Officers & Signatures
+                    Creva Licensing Officers
                   </h3>
-                  <p className="text-[10px] text-gray-500 mt-0.5">Manage 4 authorized officers' signatures. 1 random signature will print on each new storefront agreement.</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">Upload signature stamp images for each officer. One is randomly chosen per new agreement.</p>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {officers.map((officer, index) => (
-                    <div key={officer.id} className="bg-gray-950 p-4 rounded-xl border border-gray-850 space-y-3 text-left">
-                      <div className="flex items-center justify-between border-b border-gray-850 pb-2">
-                        <span className="text-[10px] font-black text-blue-400">CREVA OFFICER #{officer.id}</span>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-[9px] font-semibold text-gray-500 uppercase">Officer Name</label>
-                          <input 
-                            type="text"
-                            value={officer.name}
-                            onChange={(e) => {
-                              const updated = [...officers];
-                              updated[index].name = e.target.value;
-                              setOfficers(updated);
-                            }}
-                            placeholder="e.g. Kavin Kumar"
-                            className="w-full bg-gray-900 border border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-xs text-white mt-1 transition-all"
-                          />
+                    <div key={officer.id} className="bg-gray-950 border border-gray-800 rounded-xl overflow-hidden">
+                      {/* Officer Header Row */}
+                      <div className="flex items-center gap-3 px-4 pt-3 pb-2 border-b border-gray-800">
+                        <div className="w-7 h-7 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0">
+                          <span className="text-[10px] font-black text-blue-400">#{officer.id}</span>
                         </div>
-                        <div>
-                          <label className="text-[9px] font-semibold text-gray-500 uppercase">Official Title</label>
-                          <input 
-                            type="text"
-                            value={officer.title}
-                            onChange={(e) => {
-                              const updated = [...officers];
-                              updated[index].title = e.target.value;
-                              setOfficers(updated);
-                            }}
-                            placeholder="e.g. Senior Licensing Officer"
-                            className="w-full bg-gray-900 border border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-xs text-white mt-1 transition-all"
-                          />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-white truncate">{officer.name || `Officer #${officer.id}`}</p>
+                          <p className="text-[9px] text-gray-500 truncate">{officer.title || 'No title set'}</p>
                         </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-[9px] font-semibold text-gray-500 uppercase block">Signature Stamp</label>
-                        <div className="flex items-center gap-2">
-                          <input 
-                            type="text"
-                            value={officer.signature}
-                            onChange={(e) => {
-                              const updated = [...officers];
-                              updated[index].signature = e.target.value;
-                              setOfficers(updated);
-                            }}
-                            placeholder="Base64 or image URL..."
-                            className="flex-1 bg-gray-900 border border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[10px] text-gray-300 font-mono transition-all"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDrawingOfficerIndex(index);
-                              setIsDrawingOfficerSig(true);
-                            }}
-                            className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shrink-0"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                            Draw
-                          </button>
-                        </div>
-
                         {officer.signature && (
-                          <div className="mt-2 flex items-center gap-3 bg-gray-900 p-2 rounded-lg border border-gray-850 inline-flex">
-                            <img 
-                              src={officer.signature} 
-                              alt="Signature preview" 
-                              className="max-h-[30px] object-contain"
-                            />
-                            <span className="text-[9px] text-gray-500">Live preview stamp</span>
+                          <div className="bg-white rounded p-1 border border-gray-700 shrink-0">
+                            <img src={officer.signature} alt="stamp" className="h-6 w-auto object-contain" />
                           </div>
                         )}
+                      </div>
+
+                      {/* Editable Fields */}
+                      <div className="p-3 space-y-2.5">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Full Name</label>
+                            <input
+                              type="text"
+                              value={officer.name}
+                              onChange={(e) => {
+                                const updated = [...officers];
+                                updated[index].name = e.target.value;
+                                setOfficers(updated);
+                              }}
+                              placeholder="Officer full name"
+                              className="w-full bg-gray-900 border border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-xs text-white transition-all placeholder:text-gray-600"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Role / Title</label>
+                            <input
+                              type="text"
+                              value={officer.title}
+                              onChange={(e) => {
+                                const updated = [...officers];
+                                updated[index].title = e.target.value;
+                                setOfficers(updated);
+                              }}
+                              placeholder="e.g. Licensing Director"
+                              className="w-full bg-gray-900 border border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-xs text-white transition-all placeholder:text-gray-600"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Stamp Upload */}
+                        <div>
+                          <label className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Signature / Stamp Image</label>
+                          <label
+                            htmlFor={`officer-stamp-${index}`}
+                            className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-dashed border-gray-700 hover:border-blue-500 bg-gray-900 cursor-pointer transition-all group"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Upload className="w-3.5 h-3.5 text-blue-400 group-hover:text-blue-300" />
+                              <span className="text-[10px] font-semibold text-gray-400 group-hover:text-white transition-colors">
+                                {officer.signature ? 'Replace stamp image' : 'Upload signature stamp (PNG/JPG)'}
+                              </span>
+                            </div>
+                            {officer.signature && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  const updated = [...officers];
+                                  updated[index].signature = '';
+                                  setOfficers(updated);
+                                }}
+                                className="text-red-400 hover:text-red-300 transition-colors"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </label>
+                          <input
+                            type="file"
+                            id={`officer-stamp-${index}`}
+                            accept="image/png,image/jpeg,image/webp"
+                            onChange={(e) => handleOfficerStampUpload(e, index)}
+                            className="hidden"
+                          />
+                          {officer.signature && (
+                            <div className="mt-2 bg-white rounded-lg p-2 border border-gray-700 inline-flex items-center gap-2">
+                              <img src={officer.signature} alt="Stamp preview" className="max-h-8 max-w-[120px] object-contain" />
+                              <span className="text-[9px] text-gray-400">Stamp preview</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
+              </div>
+
+              {/* Agreement Template Editor */}
+              <div className="border-t border-gray-850 pt-5 space-y-3">
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <FileText className="text-amber-400 w-4 h-4" />
+                    Agreement Template
+                  </h3>
+                  <p className="text-[10px] text-gray-500 mt-0.5">Customize the terms & conditions printed in every merchant contract.</p>
+                </div>
+                <textarea
+                  value={agreementTemplate}
+                  onChange={(e) => setAgreementTemplate(e.target.value)}
+                  rows={8}
+                  placeholder="Enter agreement terms & conditions..."
+                  className="w-full bg-gray-950 border border-gray-800 focus:border-amber-500/50 focus:outline-none rounded-xl px-3 py-3 text-xs text-gray-300 leading-relaxed resize-y transition-all font-mono placeholder:text-gray-600"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAgreementTemplate(defaultTemplate);
+                    setActionStatus('Template reset to default!');
+                    setTimeout(() => setActionStatus(null), 2000);
+                  }}
+                  className="text-[10px] text-gray-500 hover:text-amber-400 transition-colors underline underline-offset-2"
+                >
+                  Reset to default template
+                </button>
               </div>
             </div>
 
@@ -1838,66 +1837,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
         </div>
       )}
 
-      {/* Officer Signature Drawing Popup Modal */}
-      {isDrawingOfficerSig && drawingOfficerIndex !== null && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-hidden text-left p-6 space-y-6">
-            <div className="flex items-center justify-between border-b border-gray-850 pb-4">
-              <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Edit3 className="text-blue-400 w-5 h-5" />
-                  Draw Signature for {officers[drawingOfficerIndex]?.name || `Officer #${drawingOfficerIndex + 1}`}
-                </h3>
-                <p className="text-xs text-gray-400 mt-0.5">Use your mouse or fingertip to sign in the white box</p>
-              </div>
-              <button 
-                onClick={() => {
-                  setIsDrawingOfficerSig(false);
-                  setDrawingOfficerIndex(null);
-                }}
-                className="p-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="relative border border-gray-800 bg-white rounded-xl overflow-hidden shadow-inner">
-                <canvas
-                  ref={officerCanvasRef}
-                  width={380}
-                  height={150}
-                  onMouseDown={startDrawingOfficer}
-                  onMouseMove={drawOfficer}
-                  onMouseUp={stopDrawingOfficer}
-                  onMouseLeave={stopDrawingOfficer}
-                  onTouchStart={startDrawingOfficer}
-                  onTouchMove={drawOfficer}
-                  onTouchEnd={stopDrawingOfficer}
-                  className="w-full cursor-crosshair h-[150px] bg-white block touch-none animate-none"
-                />
-                
-                <div className="absolute right-3 bottom-3 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={clearOfficerCanvas}
-                    className="bg-gray-900 hover:bg-gray-800 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg border border-gray-700 transition-colors shadow-sm"
-                  >
-                    Clear
-                  </button>
-                  <button
-                    type="button"
-                    onClick={saveOfficerCanvas}
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors shadow-sm"
-                  >
-                    Confirm & Lock
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Drawing popup removed - now using stamp upload */}
 
       {/* Dynamic Logo Image Cropper Sub-Modal */}
       {rawImage && (
