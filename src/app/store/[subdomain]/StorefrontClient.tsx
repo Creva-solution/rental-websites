@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { 
   ShoppingCart, Menu, Search, X, Loader2, User, ChevronLeft, ChevronRight, 
   Truck, Shield, RefreshCw, ArrowRight, Heart, Star, Check, Eye, ArrowUpDown, 
-  Sparkles, Package, ShoppingBag, EyeOff, Clock
+  Sparkles, Package, ShoppingBag, EyeOff, Clock, Instagram, Facebook, Twitter, Youtube, Linkedin
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -184,6 +184,8 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   let parsedDesc = store.description || '';
   let customBanners = [];
   let announcementText = `✨ EXCLUSIVE SPRING SALE: FREE SHIPPING ON ALL ORDERS OVER ${currencySymbol}500 ✨`;
+  let socialLinks = { instagram: '', facebook: '', twitter: '', youtube: '', linkedin: '' };
+  let flashAd: any = null;
   try {
     if (store.description && store.description.startsWith('{')) {
       const data = JSON.parse(store.description);
@@ -191,6 +193,16 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       customBanners = data.banners || [];
       if (data.announcement) {
         announcementText = data.announcement;
+      }
+      socialLinks = {
+        instagram: data.instagram || '',
+        facebook: data.facebook || '',
+        twitter: data.twitter || '',
+        youtube: data.youtube || '',
+        linkedin: data.linkedin || ''
+      };
+      if (data.flashAd) {
+        flashAd = data.flashAd;
       }
     }
   } catch (e) {
@@ -446,6 +458,9 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   const [sortBy, setSortBy] = useState('Featured');
   const [isCategoriesDropdownOpen, setIsCategoriesDropdownOpen] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchOverlayOpen, setIsSearchOverlayOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
 
   // Checkout Form State
   const [isCheckout, setIsCheckout] = useState(false);
@@ -471,14 +486,15 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
   // Automatic Banner Slideshow Carousel loop
   useEffect(() => {
+    if (carouselSlides.length === 0) return;
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % banners.length);
+      setCurrentSlide((prev) => (prev + 1) % carouselSlides.length);
     }, 6000);
     return () => clearInterval(timer);
-  }, []);
+  }, [carouselSlides.length]);
 
-  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % banners.length);
-  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length);
+  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % carouselSlides.length);
+  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + carouselSlides.length) % carouselSlides.length);
 
   // Dynamic lists
   const categoriesList = useMemo(() => {
@@ -786,104 +802,60 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       </div>
 
       {/* Dynamic Sticky Header Navigation */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40 transition-all shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-40 transition-all shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between relative gap-4">
           
-          {/* Left: Logo & Store Name */}
-          <Link href="/" className="flex items-center gap-3 group flex-shrink-0">
-            {store.logo_url ? (
-              <img 
-                src={store.logo_url} 
-                alt={store.store_name} 
-                className="w-10 h-10 rounded-full object-cover border border-purple-200 shadow-sm transition-transform group-hover:scale-105"
-              />
-            ) : (
-              <div 
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg bg-gradient-to-tr from-purple-600 to-rose-500 shadow-sm transition-transform group-hover:scale-105"
-              >
-                {store.store_name?.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <h1 className="text-lg md:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-rose-600 tracking-tighter uppercase font-luxury-sans">
-              {store.store_name}
-            </h1>
-          </Link>
-          
-          {/* Center: Search Bar with search icon */}
-          <div className="hidden md:flex items-center flex-1 max-w-md relative">
-            <input 
-              type="text" 
-              placeholder="Search premium products..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-11 pl-11 pr-4 bg-gray-50 border border-gray-200 outline-none text-xs focus:border-purple-600 focus:bg-white transition-all rounded-full shadow-inner"
-            />
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
+          {/* Left Side: Hamburger Menu Button */}
+          <button 
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-2 -ml-2 text-gray-700 hover:text-purple-600 transition-colors flex items-center justify-center"
+            aria-label="Open navigation menu"
+          >
+            <Menu className="w-6 h-6 stroke-[2]" />
+          </button>
+
+          {/* Center: Perfectly Centered brand Logo / shop title */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center z-10">
+            <Link href="/" className="flex items-center gap-2.5 group">
+              {store.logo_url ? (
+                <img 
+                  src={store.logo_url} 
+                  alt={store.store_name} 
+                  className="h-10 sm:h-12 w-auto max-w-[150px] object-contain transition-transform group-hover:scale-105"
+                />
+              ) : (
+                <div 
+                  className="h-9 w-9 sm:h-11 sm:w-11 rounded-full flex items-center justify-center text-white font-black text-sm sm:text-base bg-gradient-to-tr from-purple-600 to-rose-500 shadow-sm transition-transform group-hover:scale-105"
+                >
+                  {store.store_name?.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <span className="hidden xs:inline font-extrabold text-sm sm:text-base md:text-lg tracking-tight uppercase bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-rose-600 font-luxury-sans">
+                {store.store_name}
+              </span>
+            </Link>
           </div>
 
-          {/* Right: Actions Menu */}
-          <div className="flex items-center justify-end gap-1.5 md:gap-3 flex-shrink-0">
-            
-            {/* Desktop Quick Nav Links */}
-            <nav className="hidden lg:flex items-center gap-6 text-[11px] font-bold text-gray-400 tracking-widest uppercase mr-4">
-              <a href="#" className="hover:text-purple-600 transition-colors">Home</a>
-              <a href="#catalog" className="hover:text-purple-600 transition-colors">Shop</a>
-              
-              {/* Category Dropdown */}
-              <div className="relative">
-                <button 
-                  onClick={() => setIsCategoriesDropdownOpen(!isCategoriesDropdownOpen)}
-                  className="hover:text-purple-600 transition-colors flex items-center gap-1.5 uppercase font-bold tracking-widest text-[11px]"
-                >
-                  Categories <span className="text-[8px]">▼</span>
-                </button>
-                {isCategoriesDropdownOpen && (
-                  <div className="absolute top-8 left-0 bg-white border border-gray-100 shadow-xl py-2 min-w-[160px] animate-in fade-in duration-200">
-                    {categoriesList.map(cat => (
-                      <button
-                        key={cat}
-                        onClick={() => {
-                          setSelectedCategory(cat);
-                          setIsCategoriesDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-4 py-2 text-xs text-gray-600 hover:bg-purple-50 hover:text-purple-700 font-semibold"
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              
-              <button 
-                onClick={() => { setIsTrackOpen(true); setIsCartOpen(false); }}
-                className="hover:text-purple-600 transition-colors uppercase font-bold tracking-widest"
-              >
-                Track Order
-              </button>
-            </nav>
-
+          {/* Right Side: Quick Action Icons */}
+          <div className="flex items-center justify-end gap-1 sm:gap-2.5">
+            {/* Expanded Search Toggle Icon */}
             <button 
-              onClick={() => { setIsTrackOpen(true); setIsCartOpen(false); }}
-              className="text-[10px] md:text-xs font-black uppercase tracking-[0.15em] px-4 py-2.5 border-2 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white transition-all duration-300 shadow-sm"
+              onClick={() => setIsSearchOverlayOpen(!isSearchOverlayOpen)}
+              className={`p-2 text-gray-700 hover:text-purple-600 transition-colors rounded-full ${isSearchOverlayOpen ? 'bg-gray-100 text-purple-600' : ''}`}
+              title="Search products"
             >
-              Track Order
+              <Search className="w-5 h-5 stroke-[2]" />
             </button>
-            
+
             {/* Wishlist Icon Button */}
             <button 
               onClick={() => setIsWishlistOpen(true)}
-              className="p-2 text-gray-900 hover:bg-gray-50 rounded-full transition-colors relative"
+              className="p-2 text-gray-700 hover:text-purple-600 rounded-full transition-colors relative"
               title="View Wishlist"
             >
               <Heart className="w-5 h-5 text-rose-500" />
               {favorites.length > 0 && (
-                <span className="absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white rounded-full text-[9px] font-black flex items-center justify-center border border-white">
+                <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-rose-500 text-white rounded-full text-[8px] font-black flex items-center justify-center border border-white">
                   {favorites.length}
                 </span>
               )}
@@ -891,134 +863,203 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
             {/* Shopping Cart Button */}
             <button 
-              className="p-2.5 text-gray-900 relative flex items-center gap-2 hover:bg-gray-50 rounded-full transition-colors" 
+              className="p-2 text-gray-900 hover:text-purple-600 rounded-full transition-colors relative" 
               onClick={() => setIsCartOpen(true)}
+              title="View shopping cart"
             >
               <ShoppingCart className="w-5 h-5 text-purple-700" />
               {cartItemCount > 0 && (
                 <span 
-                  className="absolute top-1 right-1 w-5 h-5 rounded-full text-[9px] text-white flex items-center justify-center font-black bg-rose-500 border-2 border-white shadow-md animate-bounce"
+                  className="absolute top-1 right-1 w-4 h-4 rounded-full text-[8px] text-white flex items-center justify-center font-black bg-rose-500 shadow-md animate-bounce"
                 >
                   {cartItemCount}
                 </span>
               )}
             </button>
           </div>
+
         </div>
 
-        {/* Mobile Search input */}
-        <div className="md:hidden px-4 pb-4.5">
-          <div className="relative">
-            <input 
-              type="text" 
-              placeholder="Search products..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-10 pl-10 pr-4 bg-gray-50 border border-gray-200 outline-none text-xs focus:border-purple-600 rounded-full"
-            />
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        {/* Premium Sliding Search Bar Overlay */}
+        {isSearchOverlayOpen && (
+          <div className="bg-gray-50 border-t border-b border-gray-100 px-4 py-3.5 animate-in slide-in-from-top duration-300">
+            <div className="max-w-3xl mx-auto relative">
+              <input 
+                type="text" 
+                placeholder="Search products..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-11 pl-11 pr-10 bg-white border border-gray-200 rounded-full text-xs outline-none focus:border-purple-600 shadow-sm"
+                autoFocus
+              />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400" />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </header>
 
-      {/* Hero Carousel Section */}
-      <section className="relative h-[65vh] md:h-[85vh] w-full overflow-hidden bg-gray-950">
+      {/* Slide-out Left Navigation Drawer Menu */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 flex">
+          {/* Transparent Dark overlay */}
+          <div 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
+          />
+          {/* Main Drawer block */}
+          <div className="relative w-80 max-w-xs bg-white h-full shadow-2xl flex flex-col p-6 animate-in slide-in-from-left duration-300 z-10">
+            <div className="flex items-center justify-between pb-5 border-b border-gray-100">
+              <span className="font-extrabold text-gray-950 tracking-tight text-base uppercase font-luxury-sans">
+                {store.store_name}
+              </span>
+              <button 
+                onClick={() => setIsMobileMenuOpen(false)} 
+                className="p-2 text-gray-500 hover:text-gray-900 rounded-full hover:bg-gray-50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <nav className="flex flex-col gap-6 mt-8 font-bold text-gray-700 tracking-wider text-xs uppercase flex-1">
+              <a 
+                href="#" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  setIsAboutOpen(true);
+                  setIsMobileMenuOpen(false);
+                }}
+                className="hover:text-purple-600 transition-colors pb-3 border-b border-gray-50"
+              >
+                About Us
+              </a>
+              <a 
+                href="#catalog" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="hover:text-purple-600 transition-colors pb-3 border-b border-gray-50"
+              >
+                Shop Catalog
+              </a>
+              
+              <div className="space-y-3">
+                <div className="text-[10px] text-gray-400 font-black tracking-widest">PRODUCT CATEGORIES</div>
+                <div className="flex flex-col gap-2.5 pl-2 max-h-[30vh] overflow-y-auto scrollbar-thin">
+                  {categoriesList.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => {
+                        setSelectedCategory(cat);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`text-left text-xs py-1 hover:text-purple-600 transition-colors uppercase font-bold ${selectedCategory === cat ? 'text-purple-600' : 'text-gray-500'}`}
+                    >
+                      {cat === 'All' ? 'All Filters' : cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <button 
+                onClick={() => { setIsTrackOpen(true); setIsMobileMenuOpen(false); }}
+                className="flex items-center gap-2 text-left py-3 border-t border-gray-100 text-purple-600 hover:text-purple-700 font-extrabold mt-auto uppercase tracking-widest text-[10px]"
+              >
+                Track Your Order →
+              </button>
+            </nav>
+          </div>
+        </div>
+      )}
+
+      {/* Hero Carousel Section with Custom Aspect Ratio (Responsive Banner Sizes) */}
+      <section className="relative h-[200px] xs:h-[240px] sm:h-[340px] md:h-[460px] lg:h-[550px] w-full overflow-hidden bg-gray-900">
         {carouselSlides.map((banner, index) => (
           <div 
             key={banner.id || index}
-            className={`absolute inset-0 transition-all duration-[1200ms] ease-in-out ${index === currentSlide ? 'opacity-100 z-10 scale-100' : 'opacity-0 z-0 scale-105'}`}
+            className={`absolute inset-0 transition-all duration-[1000ms] ease-in-out ${index === currentSlide ? 'opacity-100 z-10 scale-100' : 'opacity-0 z-0 scale-105'}`}
           >
-            <div className="absolute inset-0 bg-gradient-to-t from-gray-950/80 via-gray-950/20 to-gray-950/40 z-10"></div>
+            {/* Elegant horizontal vignette gradient shadows */}
+            <div className="absolute inset-0 bg-gradient-to-t from-gray-950/65 via-gray-950/15 to-gray-950/20 z-10"></div>
             <img 
               src={banner.image} 
               alt={banner.title} 
               className="w-full h-full object-cover"
             />
             
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-4 max-w-4xl mx-auto space-y-6">
-              {banner.isPromo ? (
-                <span className="text-white text-[10px] md:text-xs font-black uppercase tracking-[0.4em] bg-red-600/80 px-4 py-1.5 rounded-full border border-red-500/50 backdrop-blur-sm shadow-lg animate-pulse flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: '3s' }} /> SPECIAL SCHEDULED OFFER
+            {/* Adapting Text Overlays matching requested centered luxury mockup */}
+            {(banner.title || banner.subtitle) && (
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-4 max-w-4xl mx-auto space-y-4 sm:space-y-6 md:space-y-8 animate-in fade-in zoom-in-95 duration-700">
+                {/* Purple gradient top pill badge */}
+                <span className="inline-flex items-center gap-2 px-5 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-purple-800/90 to-purple-600/90 backdrop-blur-sm border border-purple-400/30 text-white text-[8px] sm:text-[10px] md:text-xs font-black uppercase tracking-[0.25em] rounded-full shadow-lg">
+                  ✨ {banner.isPromo ? "LIMITED FLASH OFFER" : "PREMIUM SHAPES AND COLOR SWATCHES"}
                 </span>
-              ) : (
-                <span className="text-white text-[10px] md:text-xs font-black uppercase tracking-[0.4em] bg-purple-600/35 px-4 py-1.5 rounded-full border border-purple-500/30 backdrop-blur-sm shadow-inner">
-                  ✨ PREMIUM SHAPES AND COLOR SWATCHES
-                </span>
-              )}
-              
-              {banner.isPromo ? (
-                <h2 className="text-3xl md:text-7xl font-extrabold text-white tracking-tight leading-none bg-clip-text text-transparent bg-gradient-to-r from-yellow-300 via-amber-400 to-red-500">
+
+                {/* Main bold white title */}
+                <h2 className="text-2xl sm:text-4xl md:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-none drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)] uppercase font-luxury-sans">
                   {banner.title}
                 </h2>
-              ) : (
-                <h2 className="text-3xl md:text-7xl font-extrabold text-white tracking-tight leading-none bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-purple-200">
-                  {banner.title}
-                </h2>
-              )}
-              
-              <p className="text-xs md:text-base text-gray-200/90 max-w-xl leading-relaxed tracking-wider">
-                {banner.subtitle}
-              </p>
-              
-              <div className="flex gap-4 pt-4">
-                {banner.isPromo ? (
-                  <button 
-                    onClick={() => setSelectedProduct(banner.product)}
-                    className="px-8 py-4 bg-gradient-to-r from-red-600 to-amber-500 text-white text-xs font-black uppercase tracking-[0.25em] hover:opacity-90 active:scale-95 transition-all shadow-lg rounded-full animate-pulse"
-                  >
-                    {banner.cta}
-                  </button>
-                ) : (
-                  <a 
-                    href="#catalog"
-                    className="px-8 py-4 bg-gradient-to-r from-purple-600 to-rose-500 text-white text-xs font-black uppercase tracking-[0.25em] hover:opacity-90 transition-all shadow-lg rounded-full"
-                  >
-                    {banner.cta || 'SHOP NOW'}
-                  </a>
-                )}
+
+                {/* Subtitle/description paragraph */}
+                <p className="text-[10px] sm:text-xs md:text-sm lg:text-base text-white/95 max-w-2xl leading-relaxed tracking-wider drop-shadow-[0_2px_6px_rgba(0,0,0,0.4)] font-medium">
+                  {banner.subtitle}
+                </p>
+
+                {/* Large Blue Pill Button */}
+                <div className="pt-2 md:pt-4">
+                  {banner.isPromo ? (
+                    <button 
+                      onClick={() => setSelectedProduct(banner.product)}
+                      className="px-8 py-3.5 sm:px-12 sm:py-4.5 bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-95 text-[9px] sm:text-[11px] font-black uppercase tracking-[0.25em] text-white shadow-xl rounded-full transition-all duration-200"
+                    >
+                      {banner.cta || 'CLAIM OFFER'}
+                    </button>
+                  ) : (
+                    <a 
+                      href="#catalog"
+                      className="inline-block px-8 py-3.5 sm:px-12 sm:py-4.5 bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-95 text-[9px] sm:text-[11px] font-black uppercase tracking-[0.25em] text-white shadow-xl rounded-full transition-all duration-200 text-center"
+                    >
+                      {banner.cta || 'SHOP COLLECTION'}
+                    </a>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         ))}
 
-        {/* Indicators */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-2.5">
+        {/* Circular Left/Right Navigation Arrows matching the screenshot */}
+        <button 
+          onClick={prevSlide}
+          className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-25 w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/25 hover:bg-black/45 backdrop-blur-sm flex items-center justify-center text-white transition-all shadow-md active:scale-90"
+          aria-label="Previous Slide"
+        >
+          <ChevronLeft className="w-4.5 h-4.5 sm:w-6 sm:h-6 stroke-[2.5]" />
+        </button>
+        
+        <button 
+          onClick={nextSlide}
+          className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-25 w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/25 hover:bg-black/45 backdrop-blur-sm flex items-center justify-center text-white transition-all shadow-md active:scale-90"
+          aria-label="Next Slide"
+        >
+          <ChevronRight className="w-4.5 h-4.5 sm:w-6 sm:h-6 stroke-[2.5]" />
+        </button>
+
+        {/* Circle Dot Indicators */}
+        <div className="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-2">
           {carouselSlides.map((_, idx) => (
             <button 
               key={idx}
               onClick={() => setCurrentSlide(idx)}
-              className={`h-2 rounded-full transition-all duration-500 ${idx === currentSlide ? 'bg-purple-500 w-8 shadow-md' : 'bg-white/40 w-2'}`}
+              className={`h-1.5 sm:h-2 rounded-full transition-all duration-500 ${idx === currentSlide ? 'bg-purple-500 w-6 sm:w-8 shadow-md' : 'bg-white/40 w-1.5 sm:w-2'}`}
+              aria-label={`Slide ${idx + 1}`}
             />
           ))}
-        </div>
-      </section>
-
-      {/* Trust Benefits */}
-      <section className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-gray-100 text-center">
-            <div className="flex items-center justify-center gap-4 px-4 py-4 md:py-0">
-              <Truck className="w-8 h-8 text-purple-600 stroke-[1.25]" />
-              <div className="text-left">
-                <h4 className="font-bold text-gray-950 text-xs tracking-wider uppercase">Free Global Shipping</h4>
-                <p className="text-[11px] text-gray-400 mt-0.5">Complimentary shipping on orders over {currencySymbol}500</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-center gap-4 px-4 py-4 md:py-0">
-              <Shield className="w-8 h-8 text-purple-600 stroke-[1.25]" />
-              <div className="text-left">
-                <h4 className="font-bold text-gray-950 text-xs tracking-wider uppercase">End-to-End Secure</h4>
-                <p className="text-[11px] text-gray-400 mt-0.5">Shop safely and checkout via encrypted WhatsApp</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-center gap-4 px-4 py-4 md:py-0">
-              <RefreshCw className="w-8 h-8 text-purple-600 stroke-[1.25]" />
-              <div className="text-left">
-                <h4 className="font-bold text-gray-950 text-xs tracking-wider uppercase">Hassle-Free Returns</h4>
-                <p className="text-[11px] text-gray-400 mt-0.5">Complimentary 30-day return policy for peace of mind</p>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -1029,11 +1070,8 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 pb-6 border-b border-gray-100">
           <div>
             <h3 className="text-2xl md:text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-rose-600 tracking-tight font-luxury-sans">
-              Discover Our Collection
+              Explore Our Products
             </h3>
-            <p className="text-xs text-gray-400 uppercase tracking-widest mt-1 font-semibold">
-              Find handcrafted excellence in a high-end luxury interface.
-            </p>
           </div>
 
           {/* Filtering Categories & Sorting controls */}
@@ -1817,6 +1855,78 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         </div>
       )}
 
+      {/* Luxury Storefront Flash Advertisement Banner */}
+      {flashAd && flashAd.enabled && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-gray-950 text-white p-8 md:p-16 min-h-[380px] flex flex-col justify-center group border border-white/5">
+            {/* Background Image with elegant overlay */}
+            <div 
+              className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-overlay transition-transform duration-700 group-hover:scale-105" 
+              style={{ backgroundImage: `url(${flashAd.image})` }} 
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-950/80 to-transparent" />
+            
+            {/* Content Container */}
+            <div className="relative z-10 space-y-6 max-w-2xl">
+              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase bg-gradient-to-r from-purple-500 via-rose-500 to-pink-500 text-white shadow-lg animate-pulse">
+                🔥 EXCLUSIVE LIMITED OFFER
+              </span>
+              
+              <h2 className="text-3xl md:text-5xl font-black uppercase font-luxury-sans tracking-tight leading-none bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-100 to-gray-400">
+                {flashAd.title}
+              </h2>
+              
+              <p className="text-sm md:text-base text-gray-300 font-light leading-relaxed max-w-xl">
+                {flashAd.subtitle}
+              </p>
+              
+              <div className="pt-4">
+                <a 
+                  href={flashAd.link || '#catalog'} 
+                  className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-xs font-black uppercase tracking-widest bg-white text-gray-950 hover:bg-gray-100 transition-all transform hover:-translate-y-0.5 hover:shadow-[0_15px_30px_rgba(255,255,255,0.15)] shadow-lg"
+                >
+                  {flashAd.cta || 'Shop The Offer'}
+                  <ArrowRight className="w-3.5 h-3.5 text-gray-950" />
+                </a>
+              </div>
+            </div>
+            
+            {/* Ambient luxury accent light */}
+            <div className="absolute right-0 top-0 w-80 h-80 rounded-full bg-purple-600/10 blur-[120px] pointer-events-none" />
+            <div className="absolute left-1/3 bottom-0 w-60 h-60 rounded-full bg-rose-600/10 blur-[100px] pointer-events-none" />
+          </div>
+        </section>
+      )}
+
+      {/* Trust Benefits Section placed directly above the Footer */}
+      <section className="bg-white border-t border-b border-gray-100 py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-gray-100 text-center">
+            <div className="flex items-center justify-center gap-4 px-4 py-4 md:py-0">
+              <Truck className="w-8 h-8 text-purple-600 stroke-[1.25] flex-shrink-0" />
+              <div className="text-left">
+                <h4 className="font-bold text-gray-950 text-xs tracking-wider uppercase">Free Global Shipping</h4>
+                <p className="text-[11px] text-gray-400 mt-0.5">Complimentary shipping on orders over {currencySymbol}500</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-center gap-4 px-4 py-4 md:py-0">
+              <Shield className="w-8 h-8 text-purple-600 stroke-[1.25] flex-shrink-0" />
+              <div className="text-left">
+                <h4 className="font-bold text-gray-950 text-xs tracking-wider uppercase">End-to-End Secure</h4>
+                <p className="text-[11px] text-gray-400 mt-0.5">Shop safely and checkout via encrypted WhatsApp</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-center gap-4 px-4 py-4 md:py-0">
+              <RefreshCw className="w-8 h-8 text-purple-600 stroke-[1.25] flex-shrink-0" />
+              <div className="text-left">
+                <h4 className="font-bold text-gray-950 text-xs tracking-wider uppercase">Hassle-Free Returns</h4>
+                <p className="text-[11px] text-gray-400 mt-0.5">Complimentary 30-day return policy for peace of mind</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Elegant Footer Area */}
       <footer id="contact" className="bg-gray-950 text-white border-t border-white/5 py-20 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1827,6 +1937,37 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               <p className="text-xs text-gray-400 leading-relaxed font-light">
                 {parsedDesc || 'Experience the future of premium retail. Hand-curated elements created for a timeless, beautiful lifestyle.'}
               </p>
+              
+              {/* Dynamic Social Media Links */}
+              {(socialLinks.instagram || socialLinks.facebook || socialLinks.twitter || socialLinks.youtube || socialLinks.linkedin) && (
+                <div className="flex flex-wrap items-center gap-2.5 pt-2">
+                  {socialLinks.instagram && (
+                    <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-all duration-200 border border-white/5" aria-label="Instagram">
+                      <Instagram className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                  {socialLinks.facebook && (
+                    <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-all duration-200 border border-white/5" aria-label="Facebook">
+                      <Facebook className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                  {socialLinks.twitter && (
+                    <a href={socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-all duration-200 border border-white/5" aria-label="Twitter">
+                      <Twitter className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                  {socialLinks.youtube && (
+                    <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-all duration-200 border border-white/5" aria-label="YouTube">
+                      <Youtube className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                  {socialLinks.linkedin && (
+                    <a href={socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-all duration-200 border border-white/5" aria-label="LinkedIn">
+                      <Linkedin className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="space-y-4">
@@ -1835,7 +1976,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 <li><a href="#" className="hover:text-white transition-colors">Home</a></li>
                 <li><a href="#catalog" className="hover:text-white transition-colors">Catalog Collection</a></li>
                 <li><button onClick={() => { setIsTrackOpen(true); setIsCartOpen(false); }} className="hover:text-white transition-colors">Order Tracking</button></li>
-                <li><a href="#catalog" className="hover:text-white transition-colors">Featured Deals</a></li>
+                <li><button onClick={() => setIsAboutOpen(true)} className="hover:text-white text-left transition-colors">About Business</button></li>
               </ul>
             </div>
 
@@ -1901,6 +2042,85 @@ export default function StorefrontClient({ store, products }: { store: any, prod
             >
               <X className="w-4 h-4 stroke-[2]" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Premium Glassmorphic About Business Modal */}
+      {isAboutOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white border border-gray-100 max-w-lg w-full shadow-2xl rounded-3xl relative overflow-hidden p-8 animate-in zoom-in-95 duration-300">
+            {/* Top Right Close Button */}
+            <button 
+              onClick={() => setIsAboutOpen(false)} 
+              className="absolute top-5 right-5 p-2 bg-gray-50 hover:bg-gray-100 text-gray-500 hover:text-gray-900 rounded-full transition-all"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Logo / Badge section */}
+            <div className="flex flex-col items-center text-center space-y-4 pb-6 border-b border-gray-100">
+              {store.logo_url ? (
+                <img 
+                  src={store.logo_url} 
+                  alt={store.store_name} 
+                  className="w-16 h-16 rounded-full object-cover border-2 border-purple-200 shadow-md"
+                />
+              ) : (
+                <div 
+                  className="w-16 h-16 rounded-full flex items-center justify-center text-white font-black text-xl bg-gradient-to-tr from-purple-600 to-rose-500 shadow-md"
+                >
+                  {store.store_name?.charAt(0).toUpperCase()}
+                </div>
+              )}
+              
+              <div>
+                <span className="text-[9px] font-black text-purple-600 tracking-[0.25em] uppercase bg-purple-50 px-3 py-1 rounded-full border border-purple-100">
+                  VERIFIED CREVA MERCHANT
+                </span>
+                <h3 className="text-xl font-black text-gray-900 tracking-tight uppercase mt-2 font-luxury-sans">
+                  {store.store_name}
+                </h3>
+              </div>
+            </div>
+
+            {/* Story / About description */}
+            <div className="py-6 space-y-4">
+              <h4 className="text-[10px] font-black text-gray-400 tracking-widest uppercase">
+                Our Story & Purpose
+              </h4>
+              <p className="text-xs text-gray-600 leading-relaxed font-medium">
+                {parsedDesc || 'Experience the future of premium retail. Hand-curated items created for a timeless, beautiful lifestyle.'}
+              </p>
+            </div>
+
+            {/* Verification & Support Outlets */}
+            <div className="bg-gray-50 rounded-2xl p-5 space-y-3.5 border border-gray-100">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-400 font-bold uppercase tracking-wider text-[9px]">Business Type</span>
+                <span className="font-extrabold text-gray-900 uppercase tracking-widest text-[9px]">{store.business_category || 'Retail Outlet'}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-400 font-bold uppercase tracking-wider text-[9px]">Helpline Support</span>
+                <span className="font-extrabold text-purple-700 text-xs">{store.contact_phone || 'WhatsApp Live Support'}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-400 font-bold uppercase tracking-wider text-[9px]">Domain Service</span>
+                <span className="font-mono text-[9px] text-gray-600 bg-white border border-gray-200 px-2 py-0.5 rounded">
+                  {store.custom_domain || `${store.subdomain}.crevasolution.in`}
+                </span>
+              </div>
+            </div>
+
+            {/* Bottom fulfillment tags */}
+            <div className="pt-6 flex justify-center gap-3">
+              <button 
+                onClick={() => setIsAboutOpen(false)}
+                className="w-full py-3.5 bg-gradient-to-r from-purple-700 to-rose-500 text-white font-black uppercase tracking-[0.2em] text-[10px] rounded-full hover:opacity-90 active:scale-95 shadow-md transition-all text-center"
+              >
+                Start Shopping
+              </button>
+            </div>
           </div>
         </div>
       )}

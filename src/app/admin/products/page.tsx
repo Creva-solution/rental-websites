@@ -186,10 +186,88 @@ export default function ProductsPage() {
     setLoading(false);
   };
 
+  const uploadBase64ToStorage = async (base64Data: string) => {
+    if (!base64Data || !base64Data.startsWith('data:image/')) return base64Data;
+    try {
+      const parts = base64Data.split(';base64,');
+      const contentType = parts[0].split(':')[1];
+      const raw = window.atob(parts[1]);
+      const rawLength = raw.length;
+      const uInt8Array = new Uint8Array(rawLength);
+      for (let i = 0; i < rawLength; ++i) {
+        uInt8Array[i] = raw.charCodeAt(i);
+      }
+      const blob = new Blob([uInt8Array], { type: contentType });
+      
+      const fileExt = contentType.split('/')[1] || 'jpeg';
+      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      const filePath = `product-images/${fileName}`;
+      
+      const { data, error } = await supabase.storage
+        .from('products')
+        .upload(filePath, blob, {
+          contentType: contentType,
+          cacheControl: '3600',
+          upsert: false
+        });
+        
+      if (error) {
+        const { data: dataAlt, error: errorAlt } = await supabase.storage
+          .from('assets')
+          .upload(filePath, blob, {
+            contentType: contentType,
+            cacheControl: '3600',
+            upsert: false
+          });
+        if (errorAlt) throw errorAlt;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('assets')
+          .getPublicUrl(filePath);
+        return publicUrl;
+      }
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('products')
+        .getPublicUrl(filePath);
+      return publicUrl;
+    } catch (err) {
+      console.error("Base64 upload error:", err);
+      return base64Data;
+    }
+  };
+
+  const deleteImageFromStorage = async (imageUrl: string) => {
+    if (!imageUrl || !imageUrl.includes('/storage/v1/object/public/')) return;
+    try {
+      const parts = imageUrl.split('/storage/v1/object/public/');
+      if (parts.length < 2) return;
+      const pathParts = parts[1].split('/');
+      const bucket = pathParts[0];
+      const filePath = pathParts.slice(1).join('/');
+      
+      if (bucket && filePath) {
+        const { error } = await supabase.storage.from(bucket).remove([filePath]);
+        if (error) {
+          console.error("Failed to delete image from storage:", error);
+        } else {
+          console.log(`Successfully deleted ${filePath} from bucket ${bucket}`);
+        }
+      }
+    } catch (e) {
+      console.error("Error in deleteImageFromStorage:", e);
+    }
+  };
+
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
+      let finalImageUrl = newProduct.image_url;
+      if (finalImageUrl && finalImageUrl.startsWith('data:image/')) {
+        finalImageUrl = await uploadBase64ToStorage(finalImageUrl);
+      }
+
       const customSizes = newProduct.sizes ? newProduct.sizes.split(',').map(s => s.trim()).filter(Boolean) : [];
       const customColors = newProduct.colors ? newProduct.colors.split(',').map(s => s.trim()).filter(Boolean) : [];
       const descData = {
@@ -197,7 +275,7 @@ export default function ProductsPage() {
         category: newProduct.category || 'Fashion',
         sizes: customSizes,
         colors: customColors,
-        image_url: newProduct.image_url
+        image_url: finalImageUrl
       };
 
       const { error } = await supabase.from('products').insert([{
@@ -229,6 +307,19 @@ export default function ProductsPage() {
     if (!editingProduct) return;
     setSaving(true);
     try {
+      let finalImageUrl = editingProduct.image_url;
+      if (finalImageUrl && finalImageUrl.startsWith('data:image/')) {
+        finalImageUrl = await uploadBase64ToStorage(finalImageUrl);
+      }
+
+      const originalProduct = products.find(p => p.id === editingProduct.id);
+      const oldImageUrl = originalProduct ? getProductImage(originalProduct) : '';
+
+      // Auto-delete old image from S3 storage if updated
+      if (oldImageUrl && oldImageUrl !== finalImageUrl) {
+        await deleteImageFromStorage(oldImageUrl);
+      }
+
       const customSizes = editingProduct.sizes ? editingProduct.sizes.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
       const customColors = editingProduct.colors ? editingProduct.colors.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
       
@@ -237,7 +328,7 @@ export default function ProductsPage() {
         category: editingProduct.category || 'Fashion',
         sizes: customSizes,
         colors: customColors,
-        image_url: editingProduct.image_url
+        image_url: finalImageUrl
       };
 
       if (editingProduct.is_promo) {
@@ -278,9 +369,18 @@ export default function ProductsPage() {
     if (!confirm('Are you sure you want to delete this product?')) return;
     
     try {
+      const targetProduct = products.find(p => p.id === id);
+      const imageUrl = targetProduct ? getProductImage(targetProduct) : '';
+
       const { error } = await supabase.from('products').delete().eq('id', id);
       if (error) throw error;
+
       setProducts(products.filter(p => p.id !== id));
+
+      // Auto-delete from storage
+      if (imageUrl) {
+        await deleteImageFromStorage(imageUrl);
+      }
     } catch (err) {
       console.error(err);
       alert("Failed to delete product");

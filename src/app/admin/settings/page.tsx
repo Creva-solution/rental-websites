@@ -20,6 +20,11 @@ export default function SettingsPage() {
     primary_color: '#3B82F6',
     subdomain: '',
     custom_domain: '',
+    facebook: '',
+    instagram: '',
+    twitter: '',
+    youtube: '',
+    linkedin: '',
   });
 
   const [verifyingDomain, setVerifyingDomain] = useState(false);
@@ -61,10 +66,21 @@ export default function SettingsPage() {
       setStore(storeData);
       
       let descText = storeData.description || '';
+      let facebookUrl = '';
+      let instagramUrl = '';
+      let twitterUrl = '';
+      let youtubeUrl = '';
+      let linkedinUrl = '';
+
       try {
         if (storeData.description && storeData.description.startsWith('{')) {
           const parsed = JSON.parse(storeData.description);
           descText = parsed.description || '';
+          facebookUrl = parsed.facebook || '';
+          instagramUrl = parsed.instagram || '';
+          twitterUrl = parsed.twitter || '';
+          youtubeUrl = parsed.youtube || '';
+          linkedinUrl = parsed.linkedin || '';
         }
       } catch (e) {
         console.error("Failed to parse description JSON:", e);
@@ -79,6 +95,11 @@ export default function SettingsPage() {
         primary_color: storeData.primary_color || '#3B82F6',
         subdomain: storeData.subdomain || '',
         custom_domain: storeData.custom_domain || '',
+        facebook: facebookUrl,
+        instagram: instagramUrl,
+        twitter: twitterUrl,
+        youtube: youtubeUrl,
+        linkedin: linkedinUrl,
       });
 
       if (storeData.custom_domain) {
@@ -101,6 +122,11 @@ export default function SettingsPage() {
         const merged = {
           ...existingData,
           description: formData.description,
+          facebook: formData.facebook,
+          instagram: formData.instagram,
+          twitter: formData.twitter,
+          youtube: formData.youtube,
+          linkedin: formData.linkedin,
         };
         finalDescription = JSON.stringify(merged);
       } catch (e) {
@@ -258,6 +284,69 @@ export default function SettingsPage() {
                   className="w-full h-10 pl-9 pr-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none"
                 />
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Social Media Settings */}
+        <div className="p-6 border-b border-border space-y-6">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <svg className="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+            </svg>
+            Social Media Profiles
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1">Connect your brand's social media platforms to showcase interactive links in your storefront footer.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Instagram URL</label>
+              <input 
+                type="url" 
+                placeholder="https://instagram.com/yourbrand"
+                value={formData.instagram} 
+                onChange={e => setFormData({...formData, instagram: e.target.value})}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Facebook URL</label>
+              <input 
+                type="url" 
+                placeholder="https://facebook.com/yourbrand"
+                value={formData.facebook} 
+                onChange={e => setFormData({...formData, facebook: e.target.value})}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Twitter / X URL</label>
+              <input 
+                type="url" 
+                placeholder="https://x.com/yourbrand"
+                value={formData.twitter} 
+                onChange={e => setFormData({...formData, twitter: e.target.value})}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">YouTube URL</label>
+              <input 
+                type="url" 
+                placeholder="https://youtube.com/@yourbrand"
+                value={formData.youtube} 
+                onChange={e => setFormData({...formData, youtube: e.target.value})}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none text-sm"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium">LinkedIn URL</label>
+              <input 
+                type="url" 
+                placeholder="https://linkedin.com/company/yourbrand"
+                value={formData.linkedin} 
+                onChange={e => setFormData({...formData, linkedin: e.target.value})}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none text-sm"
+              />
             </div>
           </div>
         </div>

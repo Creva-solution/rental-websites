@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { 
   Building2, Globe, ShieldAlert, ShieldCheck, Play, Pause, 
   Search, RefreshCw, Copy, Check, Database, HelpCircle,
-  Infinity, Calendar, Clock, Zap, Plus, FileText, X, Printer, Send, Upload
+  Infinity, Calendar, Clock, Zap, Plus, FileText, X, Printer, Send, Upload, Trash2
 } from 'lucide-react';
 
 export default function SuperAdminDashboard() {
@@ -384,6 +384,107 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
       setTimeout(() => setActionStatus(null), 3000);
     } catch (err: any) {
       alert(`Error updating subscription: ${err.message}`);
+      setActionStatus(null);
+    }
+  };
+
+  const handleDeleteStore = async (storeId: string, storeName: string) => {
+    const confirmText1 = `⚠️ WARNING: Are you absolutely sure you want to delete the store "${storeName}"?\n\nThis will completely delete the store and all of its associated database records!`;
+    if (!confirm(confirmText1)) return;
+
+    const confirmText2 = `🚨 FINAL CONFIRMATION: Type the store name "${storeName}" to permanently delete it:`;
+    const doubleConfirm = prompt(confirmText2);
+    if (doubleConfirm !== storeName) {
+      alert("Store deletion cancelled. The store name did not match.");
+      return;
+    }
+
+    setActionStatus(`Deleting store and cleaning up all associated records...`);
+    try {
+      // 1. Fetch all products to clean up their images in storage
+      const { data: productsData, error: prodFetchError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('store_id', storeId);
+
+      if (!prodFetchError && productsData) {
+        setActionStatus(`Deleting product images from S3 storage...`);
+        for (const product of productsData) {
+          let imageUrl = '';
+          try {
+            if (product.description && product.description.startsWith('{')) {
+              const parsed = JSON.parse(product.description);
+              imageUrl = parsed.image_url || '';
+            } else {
+              imageUrl = product.image_url || '';
+            }
+          } catch (e) {}
+
+          if (imageUrl && imageUrl.includes('/storage/v1/object/public/')) {
+            try {
+              const parts = imageUrl.split('/storage/v1/object/public/');
+              if (parts.length >= 2) {
+                const pathParts = parts[1].split('/');
+                const bucket = pathParts[0];
+                const filePath = pathParts.slice(1).join('/');
+                if (bucket && filePath) {
+                  await supabase.storage.from(bucket).remove([filePath]);
+                }
+              }
+            } catch (e) {
+              console.error("Failed to delete image for product:", product.id, e);
+            }
+          }
+        }
+      }
+
+      // 2. Fetch all orders to delete their order items
+      setActionStatus(`Deleting order history and sales records...`);
+      const { data: ordersData } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('store_id', storeId);
+
+      if (ordersData && ordersData.length > 0) {
+        const orderIds = ordersData.map(o => o.id);
+        
+        // Delete order items
+        await supabase
+          .from('order_items')
+          .delete()
+          .in('order_id', orderIds);
+      }
+
+      // 3. Delete orders
+      await supabase
+        .from('orders')
+        .delete()
+        .eq('store_id', storeId);
+
+      // 4. Delete products
+      setActionStatus(`Deleting product catalog...`);
+      await supabase
+        .from('products')
+        .delete()
+        .eq('store_id', storeId);
+
+      // 5. Delete the store itself
+      setActionStatus(`Removing store from database...`);
+      const { error: storeDeleteError } = await supabase
+        .from('stores')
+        .delete()
+        .eq('id', storeId);
+
+      if (storeDeleteError) throw storeDeleteError;
+
+      // Update state
+      setStores(stores.filter(s => s.id !== storeId));
+      setActionStatus(`Store "${storeName}" successfully deleted!`);
+      setTimeout(() => setActionStatus(null), 3000);
+      alert(`🎉 Success: Store "${storeName}" and all associated data have been permanently deleted.`);
+    } catch (err: any) {
+      console.error(err);
+      alert(`Failed to delete store: ${err.message}`);
       setActionStatus(null);
     }
   };
@@ -821,6 +922,14 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                             >
                               <FileText className="w-3.5 h-3.5" />
                               INVOICE
+                            </button>
+
+                            <button
+                              onClick={() => handleDeleteStore(store.id, store.store_name)}
+                              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold bg-red-600/10 hover:bg-red-600/20 text-red-500 border border-red-500/30 transition-all shadow-sm w-full max-w-[120px] justify-center"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              DELETE SHOP
                             </button>
                           </div>
                         </td>

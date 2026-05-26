@@ -20,10 +20,18 @@ export default function AppearancePage() {
   const [banners, setBanners] = useState<any[]>([]);
   const [announcement, setAnnouncement] = useState('');
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [flashAd, setFlashAd] = useState({
+    enabled: false,
+    image: 'https://images.unsplash.com/photo-1540959733332-eab4deceeaf7?auto=format&fit=crop&q=80&w=1200',
+    title: 'Limited Flash Deals',
+    subtitle: 'Get up to 60% off on all premium handcrafted items. Order now!',
+    cta: 'Claim Offer',
+    link: '#catalog'
+  });
 
   // Drag and Crop Modal State
   const [cropModalOpen, setCropModalOpen] = useState(false);
-  const [cropType, setCropType] = useState<'logo' | 'banner'>('logo');
+  const [cropType, setCropType] = useState<'logo' | 'banner' | 'flashAd'>('logo');
   const [cropBannerIndex, setCropBannerIndex] = useState<number | null>(null);
   const [zoom, setZoom] = useState(1.0);
   const [offsetX, setOffsetX] = useState(0);
@@ -103,12 +111,24 @@ export default function AppearancePage() {
       let descText = storeData.description || '';
       let bannerList = [];
       let announcementMsg = '';
+      let parsedFlashAd = {
+        enabled: false,
+        image: 'https://images.unsplash.com/photo-1540959733332-eab4deceeaf7?auto=format&fit=crop&q=80&w=1200',
+        title: 'Limited Flash Deals',
+        subtitle: 'Get up to 60% off on all premium handcrafted items. Order now!',
+        cta: 'Claim Offer',
+        link: '#catalog'
+      };
+
       try {
         if (storeData.description && storeData.description.startsWith('{')) {
           const data = JSON.parse(storeData.description);
           descText = data.description || '';
           bannerList = data.banners || [];
           announcementMsg = data.announcement || '';
+          if (data.flashAd) {
+            parsedFlashAd = { ...parsedFlashAd, ...data.flashAd };
+          }
         }
       } catch (e) {
         console.error("Failed to parse store metadata description:", e);
@@ -116,6 +136,7 @@ export default function AppearancePage() {
       setDescription(descText);
       setBanners(bannerList);
       setAnnouncement(announcementMsg);
+      setFlashAd(parsedFlashAd);
     }
     setLoading(false);
   };
@@ -160,7 +181,7 @@ export default function AppearancePage() {
   };
 
   // Trigger Visual Drag & Crop Modal for Logo & Banners
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'banner', bannerIndex: number | null = null) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'banner' | 'flashAd', bannerIndex: number | null = null) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -224,6 +245,8 @@ export default function AppearancePage() {
       const newB = [...banners];
       newB[cropBannerIndex].image = finalWebP;
       setBanners(newB);
+    } else if (cropType === 'flashAd') {
+      setFlashAd(prev => ({ ...prev, image: finalWebP }));
     }
 
     // Reset and close
@@ -238,7 +261,8 @@ export default function AppearancePage() {
     const compiledDescription = JSON.stringify({
       description: description,
       banners: banners,
-      announcement: announcement
+      announcement: announcement,
+      flashAd: flashAd
     });
 
     try {
@@ -557,6 +581,126 @@ export default function AppearancePage() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Flash Advertisement Settings */}
+      <div className="bg-card text-card-foreground rounded-xl border border-border shadow-sm overflow-hidden p-6 space-y-6">
+        <div className="flex justify-between items-center border-b border-border pb-4">
+          <div className="space-y-1">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <SlidersHorizontal className="w-5 h-5 text-primary" /> Storefront Flash Advertisement
+            </h3>
+            <p className="text-xs text-muted-foreground">Highlight special sales or announcements with a high-fidelity visual promotion card.</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer select-none">
+            <input 
+              type="checkbox" 
+              checked={flashAd.enabled}
+              onChange={e => setFlashAd(prev => ({ ...prev, enabled: e.target.checked }))}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            <span className="ml-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">{flashAd.enabled ? 'Enabled' : 'Disabled'}</span>
+          </label>
+        </div>
+
+        {flashAd.enabled && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-200">
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex justify-between items-center">
+                  <span>Advertisement Banner Image</span>
+                  <span className="text-[10px] text-primary capitalize font-bold">WebP Crop Active</span>
+                </label>
+                <div className="flex gap-2 mt-1">
+                  <input 
+                    type="text" 
+                    value={flashAd.image}
+                    onChange={e => setFlashAd(prev => ({ ...prev, image: e.target.value }))}
+                    className="flex-1 h-10 px-3 rounded border border-input bg-background text-sm"
+                    placeholder="Paste image link or upload"
+                  />
+                  <label className="h-10 px-3 border border-input rounded flex items-center justify-center bg-background hover:bg-muted cursor-pointer transition-colors text-xs font-semibold gap-1 flex-shrink-0 shadow-sm">
+                    <Upload className="w-3.5 h-3.5" /> Upload File
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={(e) => handleFileChange(e, 'flashAd')}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Advertisement Title</label>
+                <input 
+                  type="text" 
+                  value={flashAd.title}
+                  onChange={e => setFlashAd(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full h-10 px-3 mt-1 rounded border border-input bg-background text-sm font-semibold"
+                  placeholder="e.g. Exclusive Weekend Flash Sale"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Subtitle / Description</label>
+                <textarea 
+                  value={flashAd.subtitle}
+                  onChange={e => setFlashAd(prev => ({ ...prev, subtitle: e.target.value }))}
+                  className="w-full p-3 mt-1 rounded border border-input bg-background text-sm min-h-[80px]"
+                  placeholder="e.g. Save 60% on all orders above ₹999. Use checkout code FLASH60."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">CTA Label</label>
+                  <input 
+                    type="text" 
+                    value={flashAd.cta}
+                    onChange={e => setFlashAd(prev => ({ ...prev, cta: e.target.value }))}
+                    className="w-full h-10 px-3 mt-1 rounded border border-input bg-background text-sm"
+                    placeholder="e.g. Claim Offer"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">CTA Action Link</label>
+                  <input 
+                    type="text" 
+                    value={flashAd.link}
+                    onChange={e => setFlashAd(prev => ({ ...prev, link: e.target.value }))}
+                    className="w-full h-10 px-3 mt-1 rounded border border-input bg-background text-sm"
+                    placeholder="e.g. #catalog or URL"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Premium Live Visual Preview */}
+            <div className="flex flex-col justify-center">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-2">Live Storefront Preview</label>
+              <div className="border border-border rounded-2xl overflow-hidden shadow-md bg-gray-950 text-white p-6 relative min-h-[220px] flex flex-col justify-between group">
+                <div className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-overlay transition-transform duration-500 group-hover:scale-105" style={{ backgroundImage: `url(${flashAd.image})` }} />
+                <div className="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-950/70 to-transparent" />
+                <div className="relative z-10 space-y-4 max-w-[85%] my-auto">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-sm">
+                    🔥 Special Promotion
+                  </span>
+                  <h4 className="text-xl font-black uppercase font-luxury-sans tracking-tight leading-none bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-200">
+                    {flashAd.title || 'Limited Time Deals'}
+                  </h4>
+                  <p className="text-xs text-gray-400 font-light leading-relaxed line-clamp-3">
+                    {flashAd.subtitle || 'Get premium hand-tailored pieces at exclusive discount pricing. Limited availability.'}
+                  </p>
+                  <button className="px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-white text-gray-950 hover:bg-gray-100 transition-all transform hover:-translate-y-0.5 shadow-lg w-fit">
+                    {flashAd.cta || 'Shop Offer'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Footer Actions */}
