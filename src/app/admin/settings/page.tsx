@@ -24,10 +24,28 @@ export default function SettingsPage() {
 
   const [verifyingDomain, setVerifyingDomain] = useState(false);
   const [dnsStatus, setDnsStatus] = useState<any>(null);
+  const [domainStatus, setDomainStatus] = useState<any>(null);
+  const [checkingStatus, setCheckingStatus] = useState(false);
 
   useEffect(() => {
     fetchStore();
   }, []);
+
+  const checkDomainStatus = async (domainName: string) => {
+    if (!domainName) return;
+    setCheckingStatus(true);
+    try {
+      const res = await fetch(`/api/domains/status?domain=${encodeURIComponent(domainName)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setDomainStatus(data);
+      }
+    } catch (err) {
+      console.error('Failed to check domain status:', err);
+    } finally {
+      setCheckingStatus(false);
+    }
+  };
 
   const fetchStore = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -62,6 +80,10 @@ export default function SettingsPage() {
         subdomain: storeData.subdomain || '',
         custom_domain: storeData.custom_domain || '',
       });
+
+      if (storeData.custom_domain) {
+        checkDomainStatus(storeData.custom_domain);
+      }
     }
     setLoading(false);
   };
@@ -153,6 +175,8 @@ export default function SettingsPage() {
         typeA: '76.76.21.21',
         typeCNAME: 'cname.vercel-dns.com',
       });
+
+      await checkDomainStatus(cleanDomain);
 
       setMessage('Custom domain registered successfully! Please point your DNS records to Vercel. 🚀');
     } catch (err: any) {
@@ -262,14 +286,62 @@ export default function SettingsPage() {
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-foreground">Custom Domain</label>
-                  <p className="text-sm text-muted-foreground">Connect your own custom domain (e.g., punith.in) to your storefront.</p>
+                  <p className="text-sm text-muted-foreground">Connect your own custom domain (e.g., punith.orepaltes.in) to your storefront.</p>
                 </div>
-                <span className="bg-green-100 text-green-800 text-xs px-2.5 py-1 rounded-full font-semibold border border-green-200">Active</span>
+                
+                {/* Live Status Badge */}
+                {formData.custom_domain && domainStatus && (
+                  <div className="flex items-center gap-2">
+                    {checkingStatus && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
+                    
+                    {domainStatus.status === 'active' && (
+                      <span className="bg-emerald-100 text-emerald-800 text-xs px-3 py-1 rounded-full font-bold border border-emerald-200 flex items-center gap-1.5 shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        Active & SSL Secure
+                      </span>
+                    )}
+                    {domainStatus.status === 'ssl_verifying' && (
+                      <span className="bg-cyan-100 text-cyan-800 text-xs px-3 py-1 rounded-full font-bold border border-cyan-200 flex items-center gap-1.5 shadow-sm animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-ping"></span>
+                        Generating SSL Certificate
+                      </span>
+                    )}
+                    {domainStatus.status === 'verifying' && (
+                      <span className="bg-amber-100 text-amber-800 text-xs px-3 py-1 rounded-full font-bold border border-amber-200 flex items-center gap-1.5 shadow-sm animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                        Verifying DNS Records
+                      </span>
+                    )}
+                    {domainStatus.status === 'not_configured' && (
+                      <span className="bg-rose-100 text-rose-800 text-xs px-3 py-1 rounded-full font-bold border border-rose-200 flex items-center gap-1.5 shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                        DNS Action Required
+                      </span>
+                    )}
+                    {domainStatus.status === 'not_found' && (
+                      <span className="bg-slate-100 text-slate-800 text-xs px-3 py-1 rounded-full font-bold border border-slate-200">
+                        Pending Connection
+                      </span>
+                    )}
+                    
+                    <button 
+                      onClick={() => checkDomainStatus(formData.custom_domain)}
+                      disabled={checkingStatus}
+                      className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-all"
+                      title="Refresh status"
+                    >
+                      <svg className={`w-4 h-4 ${checkingStatus ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M21 20v-5h-.581m0 0a8.003 8.003 0 01-15.357-2" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
               </div>
+              
               <div className="mt-3 flex gap-3">
                 <input 
                   type="text" 
-                  placeholder="e.g. punith.in"
+                  placeholder="e.g. punith.orepaltes.in"
                   value={formData.custom_domain}
                   onChange={e => setFormData({...formData, custom_domain: e.target.value})}
                   className="flex-1 max-w-sm h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none"
@@ -286,43 +358,100 @@ export default function SettingsPage() {
 
               {/* DNS Instructions Block */}
               {(dnsStatus || formData.custom_domain) && (
-                <div className="mt-6 p-5 bg-card border border-border/60 rounded-xl space-y-4 shadow-sm animate-in fade-in slide-in-from-top-2">
-                  <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
-                    DNS Setup Instructions
-                  </h4>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    To finalize connecting your custom domain, log in to your domain registrar (e.g., GoDaddy, Namecheap) and create the following DNS records:
-                  </p>
-                  
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs text-left border border-border/40 rounded-lg">
-                      <thead className="bg-muted/50 text-muted-foreground uppercase border-b border-border/40">
-                        <tr>
-                          <th className="px-4 py-2 font-medium">Type</th>
-                          <th className="px-4 py-2 font-medium">Name (Host)</th>
-                          <th className="px-4 py-2 font-medium">Value (Points to)</th>
-                          <th className="px-4 py-2 font-medium">TTL</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border/40 font-mono">
-                        <tr>
-                          <td className="px-4 py-2 text-foreground font-bold">A</td>
-                          <td className="px-4 py-2">@</td>
-                          <td className="px-4 py-2">76.76.21.21</td>
-                          <td className="px-4 py-2 text-muted-foreground">Default</td>
-                        </tr>
-                        <tr>
-                          <td className="px-4 py-2 text-foreground font-bold">CNAME</td>
-                          <td className="px-4 py-2">www</td>
-                          <td className="px-4 py-2">cname.vercel-dns.com</td>
-                          <td className="px-4 py-2 text-muted-foreground">Default</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                <div className="mt-6 p-6 bg-card border border-border/80 rounded-xl space-y-6 shadow-md animate-in fade-in slide-in-from-top-3">
+                  <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                    <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
+                      <span className={`w-3 h-3 rounded-full ${domainStatus?.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></span>
+                      DNS Connecting Guide (for Shop Owner)
+                    </h4>
+                    <span className="text-[10px] bg-amber-500/10 text-amber-600 border border-amber-500/20 px-2 py-0.5 rounded font-bold uppercase">
+                      Required Action
+                    </span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    ⚠️ Note: DNS changes can take up to 24 hours to propagate globally, but Vercel usually verifies them within minutes.
+                  
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    To make your shop active under <strong className="text-foreground">{formData.custom_domain || 'your domain'}</strong>, follow these exact steps on your domain provider:
+                  </p>
+
+                  {/* Step-by-Step Registrar Tab View */}
+                  <div className="bg-muted/10 border border-border/50 rounded-xl p-5 space-y-4">
+                    <div className="flex items-center gap-2 border-b border-border/40 pb-2">
+                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">1</span>
+                      <h5 className="font-bold text-xs">Log in to GoDaddy / Namecheap (Where you bought the domain)</h5>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 border-b border-border/40 pb-2 pt-1">
+                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">2</span>
+                      <h5 className="font-bold text-xs">Go to "DNS Settings" (or "Manage DNS")</h5>
+                    </div>
+
+                    <div className="space-y-3 pt-1">
+                      <div className="flex items-center gap-2">
+                        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">3</span>
+                        <h5 className="font-bold text-xs">Add a new record exactly as shown below:</h5>
+                      </div>
+
+                      {/* GoDaddy Mock DNS Input Form (Super Visual) */}
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-card border border-border p-4 rounded-lg shadow-sm">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground">Record Type</label>
+                          <div className="h-9 flex items-center px-3 bg-muted/50 border border-border rounded font-mono text-xs font-bold">
+                            {formData.custom_domain && formData.custom_domain.split('.').length > 2 ? 'CNAME' : 'A'}
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground">Name (Host)</label>
+                          <div className="flex gap-1">
+                            <div className="h-9 flex-1 flex items-center px-3 bg-primary/10 border border-primary/20 rounded font-mono text-xs font-bold text-primary">
+                              {formData.custom_domain && formData.custom_domain.split('.').length > 2 
+                                ? formData.custom_domain.split('.')[0] 
+                                : '@'}
+                            </div>
+                            <button 
+                              onClick={() => {
+                                const host = formData.custom_domain && formData.custom_domain.split('.').length > 2 
+                                  ? formData.custom_domain.split('.')[0] 
+                                  : '@';
+                                navigator.clipboard.writeText(host);
+                                alert(`Copied Host "${host}" to clipboard!`);
+                              }}
+                              className="px-2 bg-secondary border border-border rounded text-[10px] font-medium hover:bg-secondary/80"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1 md:col-span-2">
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground">Value (Points to)</label>
+                          <div className="flex gap-1">
+                            <div className="h-9 flex-1 flex items-center px-3 bg-primary/10 border border-primary/20 rounded font-mono text-xs font-bold text-primary overflow-x-auto whitespace-nowrap">
+                              {formData.custom_domain && formData.custom_domain.split('.').length > 2 
+                                ? 'cname.vercel-dns.com' 
+                                : '76.76.21.21'}
+                            </div>
+                            <button 
+                              onClick={() => {
+                                const val = formData.custom_domain && formData.custom_domain.split('.').length > 2 
+                                  ? 'cname.vercel-dns.com' 
+                                  : '76.76.21.21';
+                                navigator.clipboard.writeText(val);
+                                alert(`Copied Value "${val}" to clipboard!`);
+                              }}
+                              className="px-2 bg-secondary border border-border rounded text-[10px] font-medium hover:bg-secondary/80"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    💡 <strong>How does it work?</strong> Once added, your custom domain registrar points the name to our server. 
+                    DNS changes take between 2 to 5 minutes to activate. Click the circular 🔄 button in the top right of this section to refresh and see it connect!
                   </p>
                 </div>
               )}
