@@ -460,82 +460,118 @@ export default function SettingsPage() {
                   <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded font-bold uppercase">
                     Required Action
                   </span>
-                </div>
+                </div>                {/* Step-by-Step Registrar Tab View */}
+                <div className="bg-muted/10 border border-border/50 rounded-xl p-5 space-y-4 text-left">
+                  <div className="flex items-center gap-2 border-b border-border/40 pb-2">
+                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">1</span>
+                    <h5 className="font-bold text-xs">Log in to GoDaddy / Namecheap (Where you bought the domain)</h5>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 border-b border-border/40 pb-2 pt-1">
+                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">2</span>
+                    <h5 className="font-bold text-xs">Go to "DNS Settings" (or "Manage DNS")</h5>
+                  </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* A Record Card */}
-                  <div className="bg-muted/25 border border-border rounded-xl p-4 space-y-3 relative overflow-hidden text-left">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-primary tracking-wider">DNS RECORD #1: A RECORD</span>
-                      <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[9px] font-bold">REQUIRED</span>
+                  <div className="space-y-4 pt-1">
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">3</span>
+                      <h5 className="font-bold text-xs">Add these new records exactly as shown below:</h5>
                     </div>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Point the primary root domain (naked domain) to the platform server IP.
-                    </p>
-                    <div className="grid grid-cols-3 gap-2 bg-background p-2.5 rounded-lg border text-xs font-mono">
-                      <div>
-                        <span className="text-[9px] text-muted-foreground block uppercase font-bold tracking-wide">Type</span>
-                        <span className="font-bold block mt-0.5">A</span>
-                      </div>
-                      <div>
-                        <span className="text-[9px] text-muted-foreground block uppercase font-bold tracking-wide">Host</span>
-                        <span className="font-bold block mt-0.5">@</span>
-                      </div>
-                      <div>
-                        <span className="text-[9px] text-muted-foreground block uppercase font-bold tracking-wide">Value (IP)</span>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-emerald-500 font-bold select-all">76.76.21.21</span>
-                          <button 
-                            onClick={() => {
-                              navigator.clipboard.writeText("76.76.21.21");
-                              alert("IP Address 76.76.21.21 copied to clipboard!");
-                            }}
-                            className="text-muted-foreground hover:text-foreground transition-colors"
-                            title="Copy IP"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                            </svg>
-                          </button>
+
+                    {/* Record #1 (A Record) */}
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-primary tracking-wider block uppercase">Record #1: Root Domain (A Record)</span>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-card border border-border p-4 rounded-lg shadow-sm">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground">Record Type</label>
+                          <div className="h-9 flex items-center px-3 bg-muted/50 border border-border rounded font-mono text-xs font-bold">
+                            A
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground">Name (Host)</label>
+                          <div className="flex gap-1">
+                            <div className="h-9 flex-1 flex items-center px-3 bg-primary/10 border border-primary/20 rounded font-mono text-xs font-bold text-primary">
+                              @
+                            </div>
+                            <button 
+                              onClick={() => {
+                                navigator.clipboard.writeText("@");
+                                alert('Copied Host "@" to clipboard!');
+                              }}
+                              className="px-2 bg-secondary border border-border rounded text-[10px] font-medium hover:bg-secondary/80 transition-colors"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1 md:col-span-2">
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground">Value (Points to)</label>
+                          <div className="flex gap-1">
+                            <div className="h-9 flex-1 flex items-center px-3 bg-primary/10 border border-primary/20 rounded font-mono text-xs font-bold text-primary overflow-x-auto whitespace-nowrap">
+                              76.76.21.21
+                            </div>
+                            <button 
+                              onClick={() => {
+                                navigator.clipboard.writeText("76.76.21.21");
+                                alert('Copied Value "76.76.21.21" to clipboard!');
+                              }}
+                              className="px-2 bg-secondary border border-border rounded text-[10px] font-medium hover:bg-secondary/80 transition-colors"
+                            >
+                              Copy
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* CNAME Record Card */}
-                  <div className="bg-muted/25 border border-border rounded-xl p-4 space-y-3 relative overflow-hidden text-left">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-primary tracking-wider">DNS RECORD #2: CNAME</span>
-                      <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[9px] font-bold">RECOMMENDED</span>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Point the WWW subdomain variation so it resolves seamlessly.
-                    </p>
-                    <div className="grid grid-cols-3 gap-2 bg-background p-2.5 rounded-lg border text-xs font-mono">
-                      <div>
-                        <span className="text-[9px] text-muted-foreground block uppercase font-bold tracking-wide">Type</span>
-                        <span className="font-bold block mt-0.5">CNAME</span>
-                      </div>
-                      <div>
-                        <span className="text-[9px] text-muted-foreground block uppercase font-bold tracking-wide">Host</span>
-                        <span className="font-bold block mt-0.5">www</span>
-                      </div>
-                      <div>
-                        <span className="text-[9px] text-muted-foreground block uppercase font-bold tracking-wide">Value (Target)</span>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-primary font-bold select-all">crevasolution.in</span>
-                          <button 
-                            onClick={() => {
-                              navigator.clipboard.writeText("crevasolution.in");
-                              alert("Domain crevasolution.in copied to clipboard!");
-                            }}
-                            className="text-muted-foreground hover:text-foreground transition-colors"
-                            title="Copy target"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                            </svg>
-                          </button>
+                    {/* Record #2 (CNAME Record) */}
+                    <div className="space-y-1 pt-2">
+                      <span className="text-[10px] font-bold text-primary tracking-wider block uppercase">Record #2: WWW Subdomain (CNAME Record)</span>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-card border border-border p-4 rounded-lg shadow-sm">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground">Record Type</label>
+                          <div className="h-9 flex items-center px-3 bg-muted/50 border border-border rounded font-mono text-xs font-bold">
+                            CNAME
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground">Name (Host)</label>
+                          <div className="flex gap-1">
+                            <div className="h-9 flex-1 flex items-center px-3 bg-primary/10 border border-primary/20 rounded font-mono text-xs font-bold text-primary">
+                              www
+                            </div>
+                            <button 
+                              onClick={() => {
+                                navigator.clipboard.writeText("www");
+                                alert('Copied Host "www" to clipboard!');
+                              }}
+                              className="px-2 bg-secondary border border-border rounded text-[10px] font-medium hover:bg-secondary/80 transition-colors"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1 md:col-span-2">
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground">Value (Points to)</label>
+                          <div className="flex gap-1">
+                            <div className="h-9 flex-1 flex items-center px-3 bg-primary/10 border border-primary/20 rounded font-mono text-xs font-bold text-primary overflow-x-auto whitespace-nowrap">
+                              crevasolution.in
+                            </div>
+                            <button 
+                              onClick={() => {
+                                navigator.clipboard.writeText("crevasolution.in");
+                                alert('Copied Value "crevasolution.in" to clipboard!');
+                              }}
+                              className="px-2 bg-secondary border border-border rounded text-[10px] font-medium hover:bg-secondary/80 transition-colors"
+                            >
+                              Copy
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
