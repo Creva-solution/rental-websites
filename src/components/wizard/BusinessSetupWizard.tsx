@@ -280,10 +280,6 @@ export default function BusinessSetupWizard() {
   };
 
   const handleSimulateUpiApp = (appName: 'gpay' | 'phonepe' | 'paytm' | 'bhim') => {
-    setSelectedUpiApp(appName);
-    setIsUpiSimulating(true);
-    setUpiSimulationStep(1);
-
     // 1. Generate real UPI deep link!
     const upiId = globalSettings?.platformUpi || 'creva@ybl';
     const planAmount = selectedPlan === '30' ? '499' : selectedPlan === '365' ? '3999' : '9999';
@@ -295,17 +291,10 @@ export default function BusinessSetupWizard() {
       const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
       if (isMobile) {
         window.location.href = upiIntent;
+      } else {
+        alert(`📲 Mobile Device Required:\nTo pay directly via ${appName === 'gpay' ? 'Mobile Payment' : appName === 'paytm' ? 'Paytm' : 'BHIM'}, please scan the QR Code on the left or open this page on your mobile device!`);
       }
     }
-
-    // Step 1: Connecting securely...
-    setTimeout(() => {
-      setUpiSimulationStep(2); // Step 2: Transferring amount...
-      
-      setTimeout(() => {
-        setUpiSimulationStep(3); // Step 3: Payment successful!
-      }, 2500);
-    }, 1500);
   };
 
   const handlePrintContract = () => {
@@ -1071,80 +1060,7 @@ export default function BusinessSetupWizard() {
                 )}
               </AnimatePresence>
 
-              {/* UPI Simulator Modal */}
-              <AnimatePresence>
-                {isUpiSimulating && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-                    <motion.div
-                      initial={{ scale: 0.95, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0.95, opacity: 0 }}
-                      className="bg-card border border-border rounded-2xl w-full max-w-sm p-6 text-center space-y-6 shadow-2xl relative"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setIsUpiSimulating(false)}
-                        className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
 
-                      {upiSimulationStep === 1 && (
-                        <div className="space-y-4 py-8">
-                          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
-                          <div className="space-y-1">
-                            <h4 className="font-bold text-sm text-foreground">Secure Redirection</h4>
-                            <p className="text-xs text-muted-foreground">
-                              Connecting to {selectedUpiApp === 'gpay' ? 'Google Pay' : selectedUpiApp === 'phonepe' ? 'PhonePe' : selectedUpiApp === 'paytm' ? 'Paytm' : 'BHIM'} app on your device...
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {upiSimulationStep === 2 && (
-                        <div className="space-y-4 py-8">
-                          <div className="w-16 h-16 rounded-full border-4 border-t-primary border-r-primary border-b-muted border-l-muted animate-spin mx-auto" />
-                          <div className="space-y-1">
-                            <h4 className="font-bold text-sm text-foreground">Awaiting Authentication</h4>
-                            <p className="text-xs text-muted-foreground">
-                              Confirming payment of <strong className="text-primary font-mono">{selectedPlan === '30' ? '₹499' : selectedPlan === '365' ? '₹3,999' : '₹9,999'}</strong> to Creva Solutions. Enter your UPI PIN...
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {upiSimulationStep === 3 && (
-                        <div className="space-y-4 py-4 animate-in zoom-in-95 duration-200">
-                          <div className="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
-                            <Check className="w-8 h-8" />
-                          </div>
-                          <div className="space-y-2">
-                            <h4 className="font-extrabold text-base text-emerald-600">Transaction Successful!</h4>
-                            <div className="bg-muted/40 rounded-xl p-3 border border-border text-left font-mono text-[10px] space-y-1 text-muted-foreground">
-                              <div><span className="font-sans font-bold text-foreground">Payee:</span> Creva SaaS Platform</div>
-                              <div><span className="font-sans font-bold text-foreground">Amount:</span> {selectedPlan === '30' ? '₹499.00' : selectedPlan === '365' ? '₹3,999.00' : '₹9,999.00'}</div>
-                              <div><span className="font-sans font-bold text-foreground">Txn ID:</span> CRV{Math.floor(100000 + Math.random() * 900000)}</div>
-                              <div><span className="font-sans font-bold text-foreground">Status:</span> APPROVED / SETTLED</div>
-                            </div>
-                          </div>
-
-                          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-3 text-[10px] leading-relaxed text-left">
-                            <strong>📸 Action Required:</strong> Take a screenshot of this success card or your phone's payment notification, then click the button below to upload it!
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => setIsUpiSimulating(false)}
-                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2 rounded-lg transition-colors shadow-sm mt-2"
-                          >
-                            I Have Taken Screenshot 👍
-                          </button>
-                        </div>
-                      )}
-                    </motion.div>
-                  </div>
-                )}
-              </AnimatePresence>
             </motion.div>
           )}
 
