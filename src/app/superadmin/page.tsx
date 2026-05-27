@@ -22,6 +22,10 @@ export default function SuperAdminDashboard() {
   const [brandName, setBrandName] = useState<string>('StoreBuilder');
   const [brandLogo, setBrandLogo] = useState<string>('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80');
   const [platformUpi, setPlatformUpi] = useState<string>('creva@ybl');
+  const [plan30Price, setPlan30Price] = useState<string>('499');
+  const [plan365Price, setPlan365Price] = useState<string>('3999');
+  const [planLifetimePrice, setPlanLifetimePrice] = useState<string>('9999');
+  const [customDomainUnlockPrice, setCustomDomainUnlockPrice] = useState<string>('1499');
   const [invoiceNumber, setInvoiceNumber] = useState<string>('');
   const [modalTab, setModalTab] = useState<'billing' | 'profile' | 'contract' | 'payment'>('billing');
   
@@ -61,12 +65,21 @@ export default function SuperAdminDashboard() {
     const savedLogo = localStorage.getItem('saas_brand_logo');
     const savedOfficers = localStorage.getItem('saas_licensing_officers');
     const savedTemplate = localStorage.getItem('saas_agreement_template');
+    const savedPlan30 = localStorage.getItem('saas_plan_30_price');
+    const savedPlan365 = localStorage.getItem('saas_plan_365_price');
+    const savedPlanLifetime = localStorage.getItem('saas_plan_lifetime_price');
+    const savedCustomDomainUnlock = localStorage.getItem('saas_custom_domain_unlock_price');
+
     if (savedBrand) setBrandName(savedBrand);
     if (savedLogo) setBrandLogo(savedLogo);
     if (savedOfficers) {
       try { setOfficers(JSON.parse(savedOfficers)); } catch (e) {}
     }
     if (savedTemplate) setAgreementTemplate(savedTemplate);
+    if (savedPlan30) setPlan30Price(savedPlan30);
+    if (savedPlan365) setPlan365Price(savedPlan365);
+    if (savedPlanLifetime) setPlanLifetimePrice(savedPlanLifetime);
+    if (savedCustomDomainUnlock) setCustomDomainUnlockPrice(savedCustomDomainUnlock);
   }, []);
 
   // Handle officer stamp image upload
@@ -264,13 +277,21 @@ export default function SuperAdminDashboard() {
       localStorage.setItem('saas_licensing_officers', JSON.stringify(officers));
       localStorage.setItem('saas_agreement_template', agreementTemplate);
       localStorage.setItem('saas_platform_upi', platformUpi);
+      localStorage.setItem('saas_plan_30_price', plan30Price);
+      localStorage.setItem('saas_plan_365_price', plan365Price);
+      localStorage.setItem('saas_plan_lifetime_price', planLifetimePrice);
+      localStorage.setItem('saas_custom_domain_unlock_price', customDomainUnlockPrice);
 
       const settingsData = {
         brandName,
         brandLogo,
         officers,
         agreementTemplate,
-        platformUpi
+        platformUpi,
+        plan30Price,
+        plan365Price,
+        planLifetimePrice,
+        customDomainUnlockPrice
       };
 
       // Check if global settings row exists
@@ -493,6 +514,22 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
             setPlatformUpi(parsed.platformUpi);
             localStorage.setItem('saas_platform_upi', parsed.platformUpi);
           }
+          if (parsed.plan30Price) {
+            setPlan30Price(parsed.plan30Price);
+            localStorage.setItem('saas_plan_30_price', parsed.plan30Price);
+          }
+          if (parsed.plan365Price) {
+            setPlan365Price(parsed.plan365Price);
+            localStorage.setItem('saas_plan_365_price', parsed.plan365Price);
+          }
+          if (parsed.planLifetimePrice) {
+            setPlanLifetimePrice(parsed.planLifetimePrice);
+            localStorage.setItem('saas_plan_lifetime_price', parsed.planLifetimePrice);
+          }
+          if (parsed.customDomainUnlockPrice) {
+            setCustomDomainUnlockPrice(parsed.customDomainUnlockPrice);
+            localStorage.setItem('saas_custom_domain_unlock_price', parsed.customDomainUnlockPrice);
+          }
         } catch (e) {
           console.error("Failed to parse global settings from DB:", e);
         }
@@ -648,6 +685,96 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
     } catch (err: any) {
       console.error(err);
       alert(`⚠️ Failed to reject payment: ${err.message}`);
+      setActionStatus(null);
+    }
+  };
+
+  const handleVerifyDomainPayment = async () => {
+    if (!selectedStore) return;
+    let contract = null;
+    try {
+      contract = JSON.parse(selectedStore.description);
+    } catch (e) {}
+    if (!contract) return;
+
+    setActionStatus("Verifying domain payment...");
+    try {
+      const updatedContract = {
+        ...contract,
+        domainPaymentStatus: 'verified'
+      };
+
+      const { error: updateError } = await supabase
+        .from('stores')
+        .update({
+          description: JSON.stringify(updatedContract),
+          custom_domain_enabled: true // Unlock custom domain permission!
+        })
+        .eq('id', selectedStore.id);
+
+      if (updateError) throw updateError;
+
+      // Update state
+      const updatedStore = {
+        ...selectedStore,
+        description: JSON.stringify(updatedContract),
+        custom_domain_enabled: true
+      };
+      setSelectedStore(updatedStore);
+      setStores(stores.map(s => s.id === selectedStore.id ? updatedStore : s));
+
+      setActionStatus("Domain unlocked successfully!");
+      setTimeout(() => setActionStatus(null), 2500);
+      alert("🎉 Success: Custom Domain payment verified & features successfully unlocked!");
+    } catch (err: any) {
+      console.error(err);
+      alert(`⚠️ Failed to verify domain payment: ${err.message}`);
+      setActionStatus(null);
+    }
+  };
+
+  const handleRejectDomainPayment = async () => {
+    if (!selectedStore) return;
+    let contract = null;
+    try {
+      contract = JSON.parse(selectedStore.description);
+    } catch (e) {}
+    if (!contract) return;
+
+    if (!confirm("🚨 Are you sure you want to REJECT this merchant's Custom Domain payment verification?")) return;
+
+    setActionStatus("Rejecting domain payment...");
+    try {
+      const updatedContract = {
+        ...contract,
+        domainPaymentStatus: 'rejected'
+      };
+
+      const { error: updateError } = await supabase
+        .from('stores')
+        .update({
+          description: JSON.stringify(updatedContract),
+          custom_domain_enabled: false
+        })
+        .eq('id', selectedStore.id);
+
+      if (updateError) throw updateError;
+
+      // Update state
+      const updatedStore = {
+        ...selectedStore,
+        description: JSON.stringify(updatedContract),
+        custom_domain_enabled: false
+      };
+      setSelectedStore(updatedStore);
+      setStores(stores.map(s => s.id === selectedStore.id ? updatedStore : s));
+
+      setActionStatus("Domain payment rejected!");
+      setTimeout(() => setActionStatus(null), 2500);
+      alert("✅ Merchant's custom domain payment has been rejected successfully.");
+    } catch (err: any) {
+      console.error(err);
+      alert(`⚠️ Failed to reject domain payment: ${err.message}`);
       setActionStatus(null);
     }
   };
@@ -1653,111 +1780,231 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
 
                     return (
                       <div className="space-y-6">
-                        {/* Status Alert */}
-                        <div className={`border rounded-xl p-4 flex items-center justify-between ${
-                          isVerified
-                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                            : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                        }`}>
-                          <div className="flex items-center gap-3">
-                            {isVerified ? (
-                              <ShieldCheck className="w-6 h-6" />
-                            ) : (
-                              <ShieldAlert className="w-6 h-6 animate-pulse" />
+                        {/* 1. Subscription Onboarding Payment Section */}
+                        <div className="border border-gray-800 p-4 rounded-xl bg-gray-950/20 space-y-4">
+                          <h4 className="text-xs font-black text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <Zap className="w-3.5 h-3.5" />
+                            1. Platform Subscription Payment
+                          </h4>
+
+                          <div className={`border rounded-xl p-4 flex items-center justify-between ${
+                            isVerified
+                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                              : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                          }`}>
+                            <div className="flex items-center gap-3">
+                              {isVerified ? (
+                                <ShieldCheck className="w-6 h-6" />
+                              ) : (
+                                <ShieldAlert className="w-6 h-6 animate-pulse" />
+                              )}
+                              <div>
+                                <span className="text-[10px] font-black uppercase tracking-widest block">PAYMENT VERIFICATION</span>
+                                <span className="text-xs font-bold text-white">
+                                  {isVerified ? 'Payment Verified & Storefront Active' : 'Pending Verification Review'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {!isVerified && (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={handleRejectPayment}
+                                  className="bg-red-650 hover:bg-red-750 text-white text-[11px] font-black px-3.5 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 border border-red-800/30"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                  Reject Payment
+                                </button>
+                                <button
+                                  onClick={handleVerifyPayment}
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black px-3.5 py-2 rounded-xl transition-all shadow-md flex items-center gap-1"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  Verify & Approve
+                                </button>
+                              </div>
                             )}
+                          </div>
+
+                          {/* Payment summary grid */}
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gray-950 p-4 rounded-xl border border-gray-850">
                             <div>
-                              <span className="text-[10px] font-black uppercase tracking-widest block">PAYMENT VERIFICATION</span>
-                              <span className="text-xs font-bold text-white">
-                                {isVerified ? 'Payment Verified & Storefront Active' : 'Pending Verification Review'}
+                              <span className="text-[9px] text-gray-500 uppercase block font-semibold">Subscribed Plan</span>
+                              <span className="text-xs font-black text-indigo-400 mt-1 block">
+                                {contract.selectedPlan === '30' ? '1 Month' :
+                                 contract.selectedPlan === '365' ? '1 Year' : 'Lifetime'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-[9px] text-gray-500 uppercase block font-semibold font-sans">Payment Mode</span>
+                              <span className="text-xs font-bold text-gray-300 mt-1 block font-mono">UPI Transfer</span>
+                            </div>
+                            <div>
+                              <span className="text-[9px] text-gray-500 uppercase block font-semibold">Verify Status</span>
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold mt-1 ${
+                                isVerified
+                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                              }`}>
+                                {contract.paymentStatus?.toUpperCase() || 'PENDING'}
                               </span>
                             </div>
                           </div>
 
-                          {!isVerified && (
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={handleRejectPayment}
-                                className="bg-red-650 hover:bg-red-750 text-white text-[11px] font-black px-3.5 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 border border-red-800/30"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                                Reject Payment
-                              </button>
-                              <button
-                                onClick={handleVerifyPayment}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black px-3.5 py-2 rounded-xl transition-all shadow-md flex items-center gap-1"
-                              >
-                                <Check className="w-3.5 h-3.5" />
-                                Verify & Approve
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Payment summary grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gray-950 p-4 rounded-xl border border-gray-850">
-                          <div>
-                            <span className="text-[9px] text-gray-500 uppercase block font-semibold">Subscribed Plan</span>
-                            <span className="text-xs font-black text-indigo-400 mt-1 block">
-                              {contract.selectedPlan === '30' ? '1 Month (₹499)' :
-                               contract.selectedPlan === '365' ? '1 Year (₹3,999)' : 'Lifetime (₹9,999)'}
+                          {/* Payment Screenshot Display */}
+                          <div className="bg-gray-950 p-6 rounded-xl border border-gray-850 text-center space-y-4">
+                            <span className="text-[9px] text-gray-500 uppercase block font-semibold tracking-wider text-left">
+                              Transaction Screenshot Uploaded
                             </span>
-                          </div>
-                          <div>
-                            <span className="text-[9px] text-gray-500 uppercase block font-semibold font-sans">Payment Mode</span>
-                            <span className="text-xs font-bold text-gray-300 mt-1 block font-mono">UPI Transfer</span>
-                          </div>
-                          <div>
-                            <span className="text-[9px] text-gray-500 uppercase block font-semibold">Verify Status</span>
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold mt-1 ${
-                              isVerified
-                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                            }`}>
-                              {contract.paymentStatus?.toUpperCase() || 'PENDING'}
-                            </span>
-                          </div>
-                        </div>
 
-                        {/* Payment Screenshot Display */}
-                        <div className="bg-gray-950 p-6 rounded-xl border border-gray-850 text-center space-y-4">
-                          <span className="text-[9px] text-gray-500 uppercase block font-semibold tracking-wider text-left">
-                            Transaction Screenshot Uploaded
-                          </span>
-
-                          {hasScreenshot ? (
-                            <div className="space-y-4">
-                              <div className="relative group max-w-sm mx-auto border border-gray-800 rounded-xl overflow-hidden shadow-2xl bg-gray-900">
-                                <img
-                                  src={contract.paymentScreenshotUrl}
-                                  alt="Merchant Payment Screenshot"
-                                  className="w-full h-auto max-h-[300px] object-contain mx-auto"
-                                />
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                  <a
-                                    href={contract.paymentScreenshotUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-all shadow-md"
-                                  >
-                                    View Fullsize 🌐
-                                  </a>
+                            {hasScreenshot ? (
+                              <div className="space-y-4">
+                                <div className="relative group max-w-sm mx-auto border border-gray-800 rounded-xl overflow-hidden shadow-2xl bg-gray-900">
+                                  <img
+                                    src={contract.paymentScreenshotUrl}
+                                    alt="Merchant Payment Screenshot"
+                                    className="w-full h-auto max-h-[300px] object-contain mx-auto"
+                                  />
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                    <a
+                                      href={contract.paymentScreenshotUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-all shadow-md"
+                                    >
+                                      View Fullsize 🌐
+                                    </a>
+                                  </div>
                                 </div>
-                              </div>
 
-                              <button
-                                onClick={handleDeleteScreenshot}
-                                className="bg-red-600 hover:bg-red-700 text-white text-[11px] font-black px-4 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 mx-auto border border-red-800/35"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                Delete Screenshot (S3 Storage)
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="py-8 flex flex-col items-center justify-center text-gray-400 gap-2">
-                              <ShieldAlert className="w-10 h-10 text-gray-650" />
-                              <p className="text-xs font-bold text-gray-500">No payment screenshot attached to this storefront.</p>
-                            </div>
-                          )}
+                                <button
+                                  onClick={handleDeleteScreenshot}
+                                  className="bg-red-600 hover:bg-red-700 text-white text-[11px] font-black px-4 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 mx-auto border border-red-800/35"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  Delete Screenshot (S3 Storage)
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="py-8 flex flex-col items-center justify-center text-gray-400 gap-2">
+                                <ShieldAlert className="w-10 h-10 text-gray-650" />
+                                <p className="text-xs font-bold text-gray-500">No payment screenshot attached to this storefront.</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 2. Custom Domain Unlock Verification Section */}
+                        <div className="border border-gray-800 p-4 rounded-xl bg-gray-950/20 space-y-4">
+                          <h4 className="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <Globe className="w-3.5 h-3.5 animate-pulse" />
+                            2. Custom Domain Unlock Verification
+                          </h4>
+
+                          {(() => {
+                            const domainStatus = contract.domainPaymentStatus || 'none';
+                            const domainScreenshot = contract.domainPaymentScreenshotUrl;
+                            const customDomainName = selectedStore.custom_domain || '';
+
+                            if (domainStatus === 'none' && !domainScreenshot) {
+                              return (
+                                <p className="text-xs text-gray-500 italic">Merchant has not requested or uploaded proof for unlocking custom domains yet.</p>
+                              );
+                            }
+
+                            const isDomainVerified = domainStatus === 'verified';
+
+                            return (
+                              <div className="space-y-4">
+                                <div className={`border rounded-xl p-4 flex items-center justify-between ${
+                                  isDomainVerified
+                                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                    : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                                }`}>
+                                  <div className="flex items-center gap-3">
+                                    {isDomainVerified ? (
+                                      <ShieldCheck className="w-6 h-6" />
+                                    ) : (
+                                      <ShieldAlert className="w-6 h-6 animate-pulse" />
+                                    )}
+                                    <div>
+                                      <span className="text-[10px] font-black uppercase tracking-widest block">DOMAIN UNLOCK STATUS</span>
+                                      <span className="text-xs font-bold text-white">
+                                        {isDomainVerified ? 'Unlocked & Active' : 'Pending Domain Verification'}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {!isDomainVerified && (
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        onClick={handleRejectDomainPayment}
+                                        className="bg-red-650 hover:bg-red-750 text-white text-[11px] font-black px-3.5 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 border border-red-800/30"
+                                      >
+                                        <X className="w-3.5 h-3.5" />
+                                        Reject
+                                      </button>
+                                      <button
+                                        onClick={handleVerifyDomainPayment}
+                                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black px-3.5 py-2 rounded-xl transition-all shadow-md flex items-center gap-1"
+                                      >
+                                        <Check className="w-3.5 h-3.5" />
+                                        Approve & Unlock
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-950 p-4 rounded-xl border border-gray-850">
+                                  <div>
+                                    <span className="text-[9px] text-gray-500 uppercase block font-semibold">Desired Custom Domain</span>
+                                    <span className="text-xs font-black text-indigo-400 mt-1 block font-mono">
+                                      {customDomainName || 'No domain linked yet'}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="text-[9px] text-gray-500 uppercase block font-semibold">Status Code</span>
+                                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold mt-1 ${
+                                      isDomainVerified
+                                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                        : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                    }`}>
+                                      {domainStatus.toUpperCase()}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {domainScreenshot ? (
+                                  <div className="bg-gray-950 p-4 rounded-xl border border-gray-850 text-center space-y-3">
+                                    <span className="text-[9px] text-gray-500 uppercase block font-semibold tracking-wider text-left">
+                                      Domain Payment Proof Screenshot
+                                    </span>
+                                    <div className="relative group max-w-sm mx-auto border border-gray-800 rounded-xl overflow-hidden shadow-2xl bg-gray-900">
+                                      <img
+                                        src={domainScreenshot}
+                                        alt="Custom Domain Payment Proof"
+                                        className="w-full h-auto max-h-[250px] object-contain mx-auto"
+                                      />
+                                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <a
+                                          href={domainScreenshot}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-all shadow-md"
+                                        >
+                                          View Fullsize 🌐
+                                        </a>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="bg-gray-950 p-4 rounded-xl border border-gray-850 text-center text-xs text-gray-500 italic">
+                                    No screenshot proof uploaded for domain purchase.
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     );
@@ -2024,6 +2271,76 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                   placeholder="e.g. creva@ybl"
                   className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white mt-1 transition-all font-mono"
                 />
+              </div>
+
+              {/* Package Plan Prices Setting Section */}
+              <div className="border border-gray-800 p-4 rounded-xl bg-gray-950/40 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Database className="w-4 h-4 text-indigo-400" />
+                  <span className="text-xs font-bold text-gray-200">📦 Subscription Package Prices (₹)</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-[9px] font-bold text-gray-500 uppercase">1 Month Plan</label>
+                    <div className="flex items-center mt-1">
+                      <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-md text-gray-500 font-mono text-xs">₹</span>
+                      <input 
+                        type="number"
+                        value={plan30Price}
+                        onChange={(e) => setPlan30Price(e.target.value)}
+                        placeholder="499"
+                        className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-bold text-gray-500 uppercase">1 Year Plan</label>
+                    <div className="flex items-center mt-1">
+                      <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-md text-gray-500 font-mono text-xs">₹</span>
+                      <input 
+                        type="number"
+                        value={plan365Price}
+                        onChange={(e) => setPlan365Price(e.target.value)}
+                        placeholder="3999"
+                        className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-bold text-gray-500 uppercase">Lifetime Plan</label>
+                    <div className="flex items-center mt-1">
+                      <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-md text-gray-500 font-mono text-xs">₹</span>
+                      <input 
+                        type="number"
+                        value={planLifetimePrice}
+                        onChange={(e) => setPlanLifetimePrice(e.target.value)}
+                        placeholder="9999"
+                        className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Custom Domain Settings Section */}
+              <div className="border border-gray-800 p-4 rounded-xl bg-gray-950/40 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-emerald-400" />
+                  <span className="text-xs font-bold text-gray-200">🔒 Custom Domain Unlock Price (₹)</span>
+                </div>
+                <div>
+                  <label className="text-[9px] font-bold text-gray-500 uppercase">One-Time Domain Unlock Fee</label>
+                  <div className="flex items-center mt-1 max-w-[200px]">
+                    <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-md text-gray-500 font-mono text-xs">₹</span>
+                    <input 
+                      type="number"
+                      value={customDomainUnlockPrice}
+                      onChange={(e) => setCustomDomainUnlockPrice(e.target.value)}
+                      placeholder="1499"
+                      className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-emerald-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div>

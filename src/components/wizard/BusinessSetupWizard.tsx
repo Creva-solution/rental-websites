@@ -729,9 +729,9 @@ export default function BusinessSetupWizard() {
               {/* Sub Plans Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[
-                  { id: '30', name: '1 Month Plan', price: '₹499', desc: 'Best for trial storefronts' },
-                  { id: '365', name: '1 Year Plan', price: '₹3,999', desc: 'Most popular for small shops' },
-                  { id: 'lifetime', name: 'Lifetime Plan', price: '₹9,999', desc: 'Ultimate professional pack' }
+                  { id: '30', name: '1 Month Plan', price: `₹${globalSettings?.plan30Price || '499'}`, desc: 'Best for trial storefronts' },
+                  { id: '365', name: '1 Year Plan', price: `₹${Number(globalSettings?.plan365Price || 3999).toLocaleString()}`, desc: 'Most popular for small shops' },
+                  { id: 'lifetime', name: 'Lifetime Plan', price: `₹${Number(globalSettings?.planLifetimePrice || 9999).toLocaleString()}`, desc: 'Ultimate professional pack' }
                 ].map((plan) => (
                   <button
                     key={plan.id}
@@ -913,7 +913,11 @@ export default function BusinessSetupWizard() {
                         <div className="flex flex-col items-center gap-3 shrink-0">
                           {(() => {
                             const upiId = globalSettings?.platformUpi || 'creva@ybl';
-                            const planAmount = selectedPlan === '30' ? '499' : selectedPlan === '365' ? '3999' : '9999';
+                            const planAmount = selectedPlan === '30' 
+                              ? (globalSettings?.plan30Price || '499') 
+                              : selectedPlan === '365' 
+                                ? (globalSettings?.plan365Price || '3999') 
+                                : (globalSettings?.planLifetimePrice || '9999');
                             const merchantName = globalSettings?.brandName || 'StoreBuilder';
                             const upiIntent = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${planAmount}&cu=INR`;
                             const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiIntent)}&margin=10`;
@@ -944,7 +948,7 @@ export default function BusinessSetupWizard() {
                           <ol className="text-xs text-muted-foreground list-decimal pl-4 space-y-1.5 leading-relaxed text-left">
                             <li>Open Google Pay, PhonePe, Paytm, or any banking App on your mobile.</li>
                             <li>Scan the QR code displayed on the left or send to VPA ID: <strong className="text-primary font-mono select-all bg-muted/60 px-1.5 py-0.5 rounded border border-border">{globalSettings?.platformUpi || 'creva@ybl'}</strong></li>
-                            <li>Pay the designated plan amount (<strong className="text-primary font-mono">{selectedPlan === '30' ? '₹499' : selectedPlan === '365' ? '₹3,999' : '₹9,999'}</strong>).</li>
+                            <li>Pay the designated plan amount (<strong className="text-primary font-mono">{selectedPlan === '30' ? `₹${globalSettings?.plan30Price || '499'}` : selectedPlan === '365' ? `₹${Number(globalSettings?.plan365Price || 3999).toLocaleString()}` : `₹${Number(globalSettings?.planLifetimePrice || 9999).toLocaleString()}`}</strong>).</li>
                             <li>Take a clear screenshot of the transaction success page.</li>
                             <li>Upload the screenshot in the dropzone below to proceed.</li>
                           </ol>
