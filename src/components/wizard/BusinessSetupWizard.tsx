@@ -155,8 +155,12 @@ export default function BusinessSetupWizard() {
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     
+    // Scale coordinates accurately to internal canvas dimension mapping
+    const x = ((clientX - rect.left) / rect.width) * canvas.width;
+    const y = ((clientY - rect.top) / rect.height) * canvas.height;
+    
     ctx.beginPath();
-    ctx.moveTo(clientX - rect.left, clientY - rect.top);
+    ctx.moveTo(x, y);
   };
 
   const drawSig = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -171,7 +175,11 @@ export default function BusinessSetupWizard() {
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
 
-    ctx.lineTo(clientX - rect.left, clientY - rect.top);
+    // Scale coordinates accurately to internal canvas dimension mapping
+    const x = ((clientX - rect.left) / rect.width) * canvas.width;
+    const y = ((clientY - rect.top) / rect.height) * canvas.height;
+
+    ctx.lineTo(x, y);
     ctx.stroke();
   };
 
@@ -490,24 +498,34 @@ export default function BusinessSetupWizard() {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto p-6 md:p-8 bg-card text-card-foreground rounded-2xl shadow-xl border border-border/50 backdrop-blur-sm">
+    <div className="w-full max-w-3xl mx-auto p-4 sm:p-6 md:p-8 bg-card text-card-foreground rounded-xl sm:rounded-2xl shadow-xl border border-border/50 backdrop-blur-sm">
       {/* Progress Bar */}
       <div className="mb-8 relative">
         <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
           <motion.div 
             className="h-full bg-primary"
             initial={{ width: '0%' }}
-            animate={{ width: `${((step - 1) / 3) * 100}%` }}
+            animate={{ width: `${((step - 1) / 5) * 100}%` }}
             transition={{ duration: 0.3 }}
           />
         </div>
-        <div className="flex justify-between mt-4 text-[10px] md:text-xs font-medium text-muted-foreground">
+        <div className="hidden md:flex justify-between mt-4 text-[10px] md:text-xs font-medium text-muted-foreground">
           <span className={step >= 1 ? "text-primary font-bold" : ""}>1. Business</span>
           <span className={step >= 2 ? "text-primary font-bold" : ""}>2. Branding</span>
           <span className={step >= 3 ? "text-primary font-bold" : ""}>3. Contact</span>
           <span className={step >= 4 ? "text-primary font-bold" : ""}>4. Preferences</span>
           <span className={step >= 5 ? "text-primary font-bold" : ""}>5. Plan & Contract</span>
           <span className={step >= 6 ? "text-primary font-bold" : ""}>6. Account</span>
+        </div>
+        <div className="flex md:hidden justify-between mt-3 text-[11px] font-black text-muted-foreground">
+          <span>STEP {step} OF 6</span>
+          <span className="text-primary uppercase tracking-wider font-extrabold">
+            {step === 1 ? "Business Info" :
+             step === 2 ? "Branding Design" :
+             step === 3 ? "Contact Details" :
+             step === 4 ? "Store Preferences" :
+             step === 5 ? "Plan & Contract" : "Account Setup"}
+          </span>
         </div>
       </div>
 
