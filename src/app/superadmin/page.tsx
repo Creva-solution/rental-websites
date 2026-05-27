@@ -255,13 +255,61 @@ export default function SuperAdminDashboard() {
     setModalTab('billing');
   };
 
-  const handleSaveBrandSettings = () => {
-    localStorage.setItem('saas_brand_name', brandName);
-    localStorage.setItem('saas_brand_logo', brandLogo);
-    localStorage.setItem('saas_licensing_officers', JSON.stringify(officers));
-    localStorage.setItem('saas_agreement_template', agreementTemplate);
-    setActionStatus('Brand settings saved locally!');
-    setTimeout(() => setActionStatus(null), 2000);
+  const handleSaveBrandSettings = async () => {
+    setActionStatus('Saving settings to cloud...');
+    try {
+      localStorage.setItem('saas_brand_name', brandName);
+      localStorage.setItem('saas_brand_logo', brandLogo);
+      localStorage.setItem('saas_licensing_officers', JSON.stringify(officers));
+      localStorage.setItem('saas_agreement_template', agreementTemplate);
+
+      const settingsData = {
+        brandName,
+        brandLogo,
+        officers,
+        agreementTemplate
+      };
+
+      // Check if global settings row exists
+      const { data: existingRow } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('subdomain', '__creva_saas_global_settings__')
+        .maybeSingle();
+
+      if (existingRow) {
+        const { error } = await supabase
+          .from('stores')
+          .update({
+            store_name: 'Creva SaaS Settings',
+            description: JSON.stringify(settingsData)
+          })
+          .eq('subdomain', '__creva_saas_global_settings__');
+        if (error) throw error;
+      } else {
+        const { data: authData } = await supabase.auth.getUser();
+        const { error } = await supabase
+          .from('stores')
+          .insert([{
+            owner_id: authData?.user?.id || null,
+            store_name: 'Creva SaaS Settings',
+            subdomain: '__creva_saas_global_settings__',
+            business_category: 'SaaS Config',
+            description: JSON.stringify(settingsData),
+            primary_color: '#3B82F6',
+            currency: 'INR',
+            custom_domain_enabled: false
+          }]);
+        if (error) throw error;
+      }
+
+      setActionStatus('Settings saved to database!');
+      setTimeout(() => setActionStatus(null), 2500);
+    } catch (err: any) {
+      console.error("Error syncing brand settings:", err);
+      alert(`⚠️ Cloud sync failed: ${err.message}. Saved locally as fallback.`);
+      setActionStatus(null);
+    }
   };
 
   const handlePrintContractForStore = (storeData: any, contractData: any) => {
@@ -416,7 +464,34 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setStores(data || []);
+
+      const allRows = data || [];
+      const globalSettingsRow = allRows.find(s => s.subdomain === '__creva_saas_global_settings__');
+      if (globalSettingsRow && globalSettingsRow.description) {
+        try {
+          const parsed = JSON.parse(globalSettingsRow.description);
+          if (parsed.brandName) {
+            setBrandName(parsed.brandName);
+            localStorage.setItem('saas_brand_name', parsed.brandName);
+          }
+          if (parsed.brandLogo) {
+            setBrandLogo(parsed.brandLogo);
+            localStorage.setItem('saas_brand_logo', parsed.brandLogo);
+          }
+          if (parsed.officers) {
+            setOfficers(parsed.officers);
+            localStorage.setItem('saas_licensing_officers', JSON.stringify(parsed.officers));
+          }
+          if (parsed.agreementTemplate) {
+            setAgreementTemplate(parsed.agreementTemplate);
+            localStorage.setItem('saas_agreement_template', parsed.agreementTemplate);
+          }
+        } catch (e) {
+          console.error("Failed to parse global settings from DB:", e);
+        }
+      }
+
+      setStores(allRows.filter(s => s.subdomain !== '__creva_saas_global_settings__'));
     } catch (err: any) {
       console.error('Error loading stores:', err.message);
     } finally {

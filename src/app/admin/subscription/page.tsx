@@ -15,19 +15,43 @@ export default function SubscriptionPage() {
   }, []);
 
   const fetchStore = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    
-    const { data: storeData } = await supabase
-      .from('stores')
-      .select('*')
-      .eq('owner_id', user.id)
-      .single();
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
       
-    if (storeData) {
-      setStore(storeData);
+      const { data: storeData } = await supabase
+        .from('stores')
+        .select('*')
+        .eq('owner_id', user.id)
+        .single();
+        
+      if (storeData) {
+        setStore(storeData);
+      }
+
+      // Sync global settings from Supabase
+      const { data: globalSettingsRow } = await supabase
+        .from('stores')
+        .select('description')
+        .eq('subdomain', '__creva_saas_global_settings__')
+        .maybeSingle();
+
+      if (globalSettingsRow && globalSettingsRow.description) {
+        try {
+          const parsed = JSON.parse(globalSettingsRow.description);
+          if (parsed.brandName) localStorage.setItem('saas_brand_name', parsed.brandName);
+          if (parsed.brandLogo) localStorage.setItem('saas_brand_logo', parsed.brandLogo);
+          if (parsed.officers) localStorage.setItem('saas_licensing_officers', JSON.stringify(parsed.officers));
+          if (parsed.agreementTemplate) localStorage.setItem('saas_agreement_template', parsed.agreementTemplate);
+        } catch (e) {
+          console.error("Failed to parse global settings in subscription page:", e);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   if (loading) {

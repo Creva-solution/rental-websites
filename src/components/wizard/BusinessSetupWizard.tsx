@@ -33,6 +33,35 @@ export default function BusinessSetupWizard() {
     authPassword: '',
   });
 
+  const [globalSettings, setGlobalSettings] = useState<any>(null);
+
+  // Fetch SaaS settings on mount
+  useEffect(() => {
+    const loadGlobalSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('stores')
+          .select('description')
+          .eq('subdomain', '__creva_saas_global_settings__')
+          .maybeSingle();
+
+        if (data && data.description) {
+          const parsed = JSON.parse(data.description);
+          setGlobalSettings(parsed);
+
+          // Seed local storage with these global settings so print/agreement windows can access them
+          if (parsed.brandName) localStorage.setItem('saas_brand_name', parsed.brandName);
+          if (parsed.brandLogo) localStorage.setItem('saas_brand_logo', parsed.brandLogo);
+          if (parsed.officers) localStorage.setItem('saas_licensing_officers', JSON.stringify(parsed.officers));
+          if (parsed.agreementTemplate) localStorage.setItem('saas_agreement_template', parsed.agreementTemplate);
+        }
+      } catch (err) {
+        console.error("Failed to load global SaaS settings from DB:", err);
+      }
+    };
+    loadGlobalSettings();
+  }, []);
+
   // Randomly assign one of 4 licensing officers when step 5 is active
   useEffect(() => {
     if (step === 5 && !assignedOfficer) {
@@ -42,7 +71,10 @@ export default function BusinessSetupWizard() {
         { id: 3, name: 'Preethi Rajan', title: 'Licensing Director', signature: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="150" height="50" viewBox="0 0 150 50"><text x="10" y="35" font-family="Brush Script MT, cursive, sans-serif" font-size="28" fill="%230f172a">Preethi R.</text></svg>' },
         { id: 4, name: 'Sanjay Sen', title: 'Registrar of Merchants', signature: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="150" height="50" viewBox="0 0 150 50"><text x="10" y="35" font-family="Brush Script MT, cursive, sans-serif" font-size="28" fill="%230f172a">Sanjay Sen</text></svg>' }
       ];
-      if (typeof window !== 'undefined') {
+
+      if (globalSettings?.officers && globalSettings.officers.length > 0) {
+        officersList = globalSettings.officers;
+      } else if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('saas_licensing_officers');
         if (saved) {
           try {
@@ -50,10 +82,15 @@ export default function BusinessSetupWizard() {
           } catch (e) {}
         }
       }
-      const random = officersList[Math.floor(Math.random() * officersList.length)];
+
+      // Filter to only select officers who have a custom stamp/signature uploaded
+      const officersWithStamp = officersList.filter(o => o.signature && o.signature.trim().length > 0);
+      const finalSelectionList = officersWithStamp.length > 0 ? officersWithStamp : officersList;
+
+      const random = finalSelectionList[Math.floor(Math.random() * finalSelectionList.length)];
       setAssignedOfficer(random);
     }
-  }, [step, assignedOfficer]);
+  }, [step, assignedOfficer, globalSettings]);
 
   // Canvas digital signature pad logic - Init once on step 5 mount
   useEffect(() => {
