@@ -15,21 +15,21 @@ export default function Home() {
         <Link className="flex items-center justify-center" href="#">
           <span className="font-bold text-2xl tracking-tighter text-primary">StoreBuilder</span>
         </Link>
-        <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
-          <Link className="text-sm font-medium hover:text-primary transition-colors" href="#features">
+        <nav className="ml-auto flex gap-2.5 sm:gap-6 items-center">
+          <Link className="hidden md:inline-block text-sm font-medium hover:text-primary transition-colors" href="#features">
             Features
           </Link>
-          <Link className="text-sm font-medium hover:text-primary transition-colors" href="#templates">
+          <Link className="hidden md:inline-block text-sm font-medium hover:text-primary transition-colors" href="#templates">
             Templates
           </Link>
-          <Link className="text-sm font-medium hover:text-primary transition-colors" href="#pricing">
+          <Link className="hidden md:inline-block text-sm font-medium hover:text-primary transition-colors" href="#pricing">
             Pricing
           </Link>
-          <Link className="text-sm font-medium hover:text-primary transition-colors" href="/login">
+          <Link className="text-sm font-medium hover:text-primary transition-colors px-2" href="/login">
             Login
           </Link>
           <Link
-            className="text-sm font-medium bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2 rounded-md transition-colors"
+            className="text-xs sm:text-sm font-medium bg-primary text-primary-foreground shadow hover:bg-primary/90 h-8 sm:h-9 px-3 sm:px-4 flex items-center rounded-md transition-colors"
             href="/register"
           >
             Start Free Trial
@@ -41,38 +41,38 @@ export default function Home() {
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center space-y-8 text-center">
               <div className="space-y-4 max-w-3xl">
-                <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl/none bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-500 dark:from-white dark:to-gray-500">
+                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl/none bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-500 dark:from-white dark:to-gray-500">
                   Build Your Online Store in 10 Minutes
                 </h1>
-                <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                <p className="mx-auto max-w-[700px] text-muted-foreground text-sm sm:text-base md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                   No coding required. Launch your beautiful e-commerce website, manage products, and accept payments instantly. Perfect for artisans, boutique owners, and small businesses.
                 </p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto px-4 sm:px-0">
                 <Link
-                  className="inline-flex h-12 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground shadow-lg hover:bg-primary/90 hover:scale-105 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+                  className="inline-flex h-11 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground shadow-lg hover:bg-primary/90 hover:scale-105 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                   href="/register"
                 >
                   Start Free Trial →
                 </Link>
                 <Link
-                  className="inline-flex h-12 items-center justify-center rounded-md border border-input bg-background px-8 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground hover:scale-105 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+                  className="inline-flex h-11 items-center justify-center rounded-md border border-input bg-background px-8 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground hover:scale-105 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                   href="#templates"
                 >
                   View Templates
                 </Link>
               </div>
-              <div className="pt-8 flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
+              <div className="pt-4 flex flex-wrap justify-center gap-4 sm:gap-6 text-xs sm:text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-success"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-success"><polyline points="20 6 9 17 4 12"></polyline></svg>
                   No coding required
                 </div>
                 <div className="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-success"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-success"><polyline points="20 6 9 17 4 12"></polyline></svg>
                   14-day free trial
                 </div>
                 <div className="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-success"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-success"><polyline points="20 6 9 17 4 12"></polyline></svg>
                   Custom domain support
                 </div>
               </div>
@@ -85,13 +85,13 @@ export default function Home() {
            <div className="container px-4 md:px-6">
              <div className="flex flex-col items-center justify-center space-y-4 text-center">
                <div className="space-y-2">
-                 <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Stunning Pre-built Templates</h2>
-                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                 <h2 className="text-2xl sm:text-3xl font-bold tracking-tighter md:text-4xl">Stunning Pre-built Templates</h2>
+                 <p className="max-w-[900px] text-muted-foreground text-xs sm:text-sm md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                    Choose from our professionally designed templates that look great on any device.
                  </p>
                </div>
              </div>
-             <div className="mx-auto grid max-w-5xl items-center gap-6 py-12 lg:grid-cols-3 lg:gap-12">
+             <div className="mx-auto grid max-w-5xl items-center gap-6 py-12 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 lg:gap-12">
                 {[
                   { name: 'Minimal Elegance', desc: 'Clean, modern design for premium products', path: '/templates/minimal/index.html', image: '/images/minimal.png' },
                   { name: 'Artisan Craft', desc: 'Warm, handmade aesthetic', path: '/templates/artisan/index.html', image: '/images/artisan.png' },

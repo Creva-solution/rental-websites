@@ -372,7 +372,7 @@ export default function SettingsPage() {
             </div>
             
             <div className="pt-4 border-t border-border/50">
-              <div className="flex items-start justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-foreground">Custom Domain</label>
                   <p className="text-sm text-muted-foreground">Connect your own custom domain (e.g., yourshopname.com or yourshopname.in) to your storefront.</p>
@@ -380,7 +380,7 @@ export default function SettingsPage() {
                 
                 {/* Live Status Badge */}
                 {formData.custom_domain && domainStatus && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
                     {checkingStatus && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
                     
                     {domainStatus.status === 'active' && (
@@ -427,18 +427,18 @@ export default function SettingsPage() {
                 )}
               </div>
               
-              <div className="mt-3 flex gap-3">
+              <div className="mt-4 flex flex-col sm:flex-row gap-3">
                 <input 
                   type="text" 
                   placeholder="e.g. yourshopname.com"
                   value={formData.custom_domain}
                   onChange={e => setFormData({...formData, custom_domain: e.target.value})}
-                  className="flex-1 max-w-sm h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none"
+                  className="w-full sm:flex-1 sm:max-w-sm h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none"
                 />
                 <button 
                   onClick={handleVerifyCustomDomain}
                   disabled={verifyingDomain}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/95 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="w-full sm:w-auto px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/95 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {verifyingDomain && <Loader2 className="w-4 h-4 animate-spin" />}
                   Verify & Connect
