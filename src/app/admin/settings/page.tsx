@@ -715,39 +715,39 @@ export default function SettingsPage() {
                 // LOCKED STATE - RENDER PREMIUM UPI VERIFICATION FLOW
                 return (
                   <div className="space-y-6">
-                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-                      <div className="absolute top-0 right-0 p-4 opacity-5">
-                        <Globe className="w-48 h-48 text-white" />
+                    <div className="bg-gradient-to-br from-amber-50/80 via-amber-50/30 to-orange-50/10 border border-amber-200 rounded-2xl p-6 shadow-md relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                        <Globe className="w-48 h-48 text-amber-600" />
                       </div>
 
-                      <div className="flex items-center gap-3 border-b border-slate-800 pb-4 mb-6">
-                        <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20 text-amber-500 animate-pulse">
+                      <div className="flex items-center gap-3 border-b border-amber-200 pb-4 mb-6">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20 text-amber-600 animate-pulse">
                           <Globe className="w-5 h-5" />
                         </div>
-                        <div>
-                          <h4 className="font-extrabold text-white text-base flex items-center gap-2">
+                        <div className="text-left">
+                          <h4 className="font-extrabold text-amber-900 text-base flex items-center gap-2">
                             Unlock Custom Domain Premium Feature 🚀
-                            <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-500 text-slate-950 rounded-full font-mono">Premium</span>
+                            <span className="text-[10px] font-bold px-2.5 py-0.5 bg-amber-500 text-amber-950 rounded-full font-mono">Premium Upgrade</span>
                           </h4>
-                          <p className="text-xs text-slate-400 mt-0.5">Link a custom domain (e.g. <strong>yourname.com</strong>) with automated premium SSL routing.</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">Link your own custom domain (e.g. <strong>yourname.com</strong>) with automated premium SSL routing.</p>
                         </div>
                       </div>
 
                       {domainStatus === 'pending' && (
-                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-3 text-xs leading-relaxed text-amber-300 mb-6">
-                          <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 text-xs leading-relaxed text-amber-800 mb-6 text-left shadow-sm">
+                          <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0" />
                           <div>
-                            <strong className="block mb-0.5 text-white font-extrabold">Domain Upgrade Request Pending Approval</strong>
-                            We have received your custom domain unlock request for <strong className="font-mono text-white select-all bg-amber-500/20 px-1 py-0.5 rounded border border-amber-500/25">{store?.custom_domain || 'N/A'}</strong>. Our operations team is verifying the payment screenshot manually. The feature will unlock within a few hours. Thank you!
+                            <strong className="block mb-0.5 text-amber-950 font-extrabold">Domain Upgrade Request Pending Approval</strong>
+                            We have received your custom domain unlock request for <strong className="font-mono text-amber-950 select-all bg-amber-500/10 px-1 py-0.5 rounded border border-amber-500/20">{store?.custom_domain || 'N/A'}</strong>. Our operations team is verifying the payment screenshot manually. The feature will unlock within a few hours. Thank you!
                           </div>
                         </div>
                       )}
 
                       {domainStatus === 'rejected' && (
-                        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex gap-3 text-xs leading-relaxed text-red-300 mb-6">
-                          <ShieldAlert className="w-5 h-5 text-red-400 shrink-0" />
+                        <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex gap-3 text-xs leading-relaxed text-rose-800 mb-6 text-left shadow-sm">
+                          <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0" />
                           <div>
-                            <strong className="block mb-0.5 text-white font-extrabold">Upgrade Proof Rejected</strong>
+                            <strong className="block mb-0.5 text-rose-950 font-extrabold">Upgrade Proof Rejected</strong>
                             The previous screenshot proof for custom domain upgrade was rejected by admin. Please review payment guidelines, verify the transaction amount (₹{unlockPrice}), and submit a genuine success confirmation below.
                           </div>
                         </div>
@@ -757,33 +757,33 @@ export default function SettingsPage() {
                         <div className="space-y-6 text-left">
                           {/* Domain Name Input */}
                           <div className="space-y-2">
-                            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide">Enter Desired Custom Domain *</label>
+                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">Enter Desired Custom Domain *</label>
                             <div className="flex gap-2 max-w-md">
                               <input 
                                 type="text"
                                 value={customDomainNameInput}
                                 onChange={(e) => setCustomDomainNameInput(e.target.value)}
                                 placeholder="e.g. yourbrand.com"
-                                className="flex-1 h-10 px-3 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-amber-500 font-mono"
+                                className="flex-1 h-10 px-3 bg-background border border-input rounded-lg text-sm text-foreground focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 font-mono shadow-sm"
                               />
                             </div>
-                            <span className="text-[10px] text-slate-400 block mt-1">Please enter the exact custom domain name you wish to secure.</span>
+                            <span className="text-[10px] text-muted-foreground block mt-1">Please enter the exact custom domain name you wish to secure.</span>
                           </div>
 
                           {/* Pricing details and Payment Options */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="border border-slate-800 bg-slate-950/60 p-4 rounded-xl space-y-4">
+                            <div className="border border-amber-200/60 bg-amber-50/20 p-4 rounded-xl space-y-4 shadow-sm">
                               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">One-Time Activation Fee</span>
-                              <span className="text-3xl font-black text-white block">₹{Number(unlockPrice).toLocaleString()}</span>
-                              <span className="text-[10px] text-slate-400 block leading-relaxed">Unlock lifetime domain configuration permission. No recurring fees or setup costs.</span>
+                              <span className="text-3xl font-black text-slate-900 block">₹{Number(unlockPrice).toLocaleString()}</span>
+                              <span className="text-[10px] text-slate-600 block leading-relaxed">Unlock lifetime domain configuration permission. No recurring fees or setup costs.</span>
 
                               <div className="flex gap-2">
                                 <button 
                                   onClick={() => setPaymentMethod('qr')}
                                   className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${
                                     paymentMethod === 'qr'
-                                      ? 'bg-amber-500 border-amber-600 text-slate-950 font-black'
-                                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                                      ? 'bg-amber-500 border-amber-600 text-slate-950 font-black shadow-sm'
+                                      : 'bg-secondary border border-border text-muted-foreground hover:text-foreground hover:bg-secondary/85'
                                   }`}
                                 >
                                   Show Payment QR
@@ -792,8 +792,8 @@ export default function SettingsPage() {
                                   onClick={() => setPaymentMethod('app')}
                                   className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${
                                     paymentMethod === 'app'
-                                      ? 'bg-amber-500 border-amber-600 text-slate-950 font-black'
-                                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                                      ? 'bg-amber-500 border-amber-600 text-slate-950 font-black shadow-sm'
+                                      : 'bg-secondary border border-border text-muted-foreground hover:text-foreground hover:bg-secondary/85'
                                   }`}
                                 >
                                   Pay via Apps
@@ -803,7 +803,7 @@ export default function SettingsPage() {
 
                             {/* QR Code and Instructions */}
                             {paymentMethod === 'qr' && (
-                              <div className="border border-slate-800 bg-slate-950/60 p-4 rounded-xl flex items-center gap-4">
+                              <div className="border border-amber-200/60 bg-amber-50/20 p-4 rounded-xl flex items-center gap-4 shadow-sm">
                                 {(() => {
                                   const upiId = globalSettings?.platformUpi || 'creva@ybl';
                                   const merchantName = globalSettings?.brandName || 'Creva SaaS';
@@ -812,7 +812,7 @@ export default function SettingsPage() {
 
                                   return (
                                     <>
-                                      <div className="bg-white p-2 rounded-lg border border-slate-800 shrink-0">
+                                      <div className="bg-white p-2 rounded-lg border border-amber-200/40 shrink-0 shadow-sm">
                                         <img 
                                           src={qrUrl} 
                                           alt="UPI Payment QR Code" 
@@ -821,8 +821,8 @@ export default function SettingsPage() {
                                       </div>
                                       <div className="space-y-1 min-w-0">
                                         <span className="text-[9px] uppercase font-black text-slate-500 block text-left">UPI VPA ID</span>
-                                        <span className="block font-black font-mono text-[11px] text-amber-500 bg-slate-900 px-2 py-0.5 rounded border border-slate-800 select-all truncate">{upiId}</span>
-                                        <span className="text-[10px] text-slate-400 block mt-1 leading-relaxed text-left">Scan QR code using Google Pay, PhonePe, or Paytm on your mobile.</span>
+                                        <span className="block font-black font-mono text-[11px] text-amber-900 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-200 select-all truncate">{upiId}</span>
+                                        <span className="text-[10px] text-slate-600 block mt-1 leading-relaxed text-left">Scan QR code using Google Pay, PhonePe, or Paytm on your mobile.</span>
                                       </div>
                                     </>
                                   );
@@ -831,17 +831,17 @@ export default function SettingsPage() {
                             )}
 
                             {paymentMethod === 'app' && (
-                              <div className="border border-slate-800 bg-slate-950/60 p-4 rounded-xl flex flex-col justify-center gap-2">
+                              <div className="border border-amber-200/60 bg-amber-50/20 p-4 rounded-xl flex flex-col justify-center gap-2 shadow-sm">
                                 <button
                                   type="button"
                                   onClick={() => handleSimulateDomainUpi('GPay')}
-                                  className="w-full flex items-center justify-between p-3 rounded-lg border border-slate-800 hover:border-amber-500 bg-slate-900 text-left transition-all"
+                                  className="w-full flex items-center justify-between p-3 rounded-lg border border-amber-200 hover:border-amber-500 bg-white text-left transition-all shadow-sm group"
                                 >
                                   <div className="flex items-center gap-2">
-                                    <Smartphone className="w-4 h-4 text-amber-500" />
-                                    <span className="text-xs font-bold text-white">Instant Mobile Payment</span>
+                                    <Smartphone className="w-4 h-4 text-amber-600 group-hover:animate-bounce" />
+                                    <span className="text-xs font-bold text-slate-800">Instant Mobile Payment</span>
                                   </div>
-                                  <span className="text-[9px] font-black text-amber-500 uppercase">Pay directly</span>
+                                  <span className="text-[9px] font-black text-amber-600 uppercase">Pay directly</span>
                                 </button>
                                 <span className="text-[9px] text-slate-500 block text-center mt-1">Deep links will auto-trigger on eligible mobile platforms.</span>
                               </div>
@@ -849,10 +849,10 @@ export default function SettingsPage() {
                           </div>
 
                           {/* Upload Dropzone */}
-                          <div className="space-y-2 border-t border-slate-800 pt-4">
-                            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide text-left">Upload Payment Proof Screenshot *</label>
+                          <div className="space-y-2 border-t border-amber-200/80 pt-4">
+                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide text-left">Upload Payment Proof Screenshot *</label>
                             
-                            <div className="relative border border-dashed border-slate-700 bg-slate-950 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-amber-500 transition-colors">
+                            <div className="relative border border-dashed border-amber-300 bg-amber-50/10 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-amber-500 hover:bg-amber-50/30 transition-all shadow-inner">
                               <input
                                 type="file"
                                 accept="image/*"
@@ -862,13 +862,13 @@ export default function SettingsPage() {
                               />
                               {screenshotUploading ? (
                                 <div className="flex flex-col items-center gap-2">
-                                  <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
-                                  <p className="text-xs font-semibold text-white">Uploading payment receipt...</p>
+                                  <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+                                  <p className="text-xs font-semibold text-amber-950">Uploading payment receipt...</p>
                                 </div>
                               ) : (
                                 <>
-                                  <Upload className="w-6 h-6 text-amber-500 mb-2" />
-                                  <p className="text-xs font-medium text-slate-200">Click or Drag screenshot proof to upload & submit</p>
+                                  <Upload className="w-6 h-6 text-amber-600 mb-2" />
+                                  <p className="text-xs font-semibold text-slate-800">Click or Drag screenshot proof to upload & submit</p>
                                   <p className="text-[9px] text-slate-500 mt-0.5">PNG, JPG or JPEG receipt image files under 5MB</p>
                                 </>
                               )}

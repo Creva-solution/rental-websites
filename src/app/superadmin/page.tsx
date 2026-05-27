@@ -32,6 +32,7 @@ export default function SuperAdminDashboard() {
   // Advanced filters and branding dashboard states
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [isBrandingOpen, setIsBrandingOpen] = useState<boolean>(false);
+  const [activeSettingTab, setActiveSettingTab] = useState<'branding' | 'pricing' | 'officers' | 'agreement'>('branding');
 
   // States for Image Cropping tool
   const [rawImage, setRawImage] = useState<string | null>(null);
@@ -2233,310 +2234,403 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
       {/* Global SaaS Billing Settings Modal */}
       {isBrandingOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-hidden text-left p-6 space-y-6">
-            <div className="flex items-center justify-between border-b border-gray-850 pb-4">
+          <div className="w-full max-w-4xl bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-hidden text-left flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-gray-850 p-6">
               <div>
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
                   <Zap className="text-blue-400 w-5 h-5" />
-                  SaaS Brand & Contract Settings
+                  SaaS Platform Global Settings
                 </h2>
-                <p className="text-xs text-gray-400 mt-0.5">Customize storefront logo and manage licensing officers</p>
+                <p className="text-xs text-gray-400 mt-0.5">Configure platform branding, package pricing, custom domain upgrades, and legal terms.</p>
               </div>
               <button 
                 onClick={() => setIsBrandingOpen(false)}
-                className="p-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+                className="p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-4 max-h-[480px] overflow-y-auto pr-1">
-              <div>
-                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Branding / SaaS Name</label>
-                <input 
-                  type="text"
-                  value={brandName}
-                  onChange={(e) => setBrandName(e.target.value)}
-                  placeholder="e.g. Creva Solutions"
-                  className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white mt-1 transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Platform UPI VPA ID (For Registration QR)</label>
-                <input 
-                  type="text"
-                  value={platformUpi}
-                  onChange={(e) => setPlatformUpi(e.target.value)}
-                  placeholder="e.g. creva@ybl"
-                  className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white mt-1 transition-all font-mono"
-                />
-              </div>
-
-              {/* Package Plan Prices Setting Section */}
-              <div className="border border-gray-800 p-4 rounded-xl bg-gray-950/40 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Database className="w-4 h-4 text-indigo-400" />
-                  <span className="text-xs font-bold text-gray-200">📦 Subscription Package Prices (₹)</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="text-[9px] font-bold text-gray-500 uppercase">1 Month Plan</label>
-                    <div className="flex items-center mt-1">
-                      <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-md text-gray-500 font-mono text-xs">₹</span>
-                      <input 
-                        type="number"
-                        value={plan30Price}
-                        onChange={(e) => setPlan30Price(e.target.value)}
-                        placeholder="499"
-                        className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[9px] font-bold text-gray-500 uppercase">1 Year Plan</label>
-                    <div className="flex items-center mt-1">
-                      <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-md text-gray-500 font-mono text-xs">₹</span>
-                      <input 
-                        type="number"
-                        value={plan365Price}
-                        onChange={(e) => setPlan365Price(e.target.value)}
-                        placeholder="3999"
-                        className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[9px] font-bold text-gray-500 uppercase">Lifetime Plan</label>
-                    <div className="flex items-center mt-1">
-                      <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-md text-gray-500 font-mono text-xs">₹</span>
-                      <input 
-                        type="number"
-                        value={planLifetimePrice}
-                        onChange={(e) => setPlanLifetimePrice(e.target.value)}
-                        placeholder="9999"
-                        className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Custom Domain Settings Section */}
-              <div className="border border-gray-800 p-4 rounded-xl bg-gray-950/40 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-emerald-400" />
-                  <span className="text-xs font-bold text-gray-200">🔒 Custom Domain Unlock Price (₹)</span>
-                </div>
-                <div>
-                  <label className="text-[9px] font-bold text-gray-500 uppercase">One-Time Domain Unlock Fee</label>
-                  <div className="flex items-center mt-1 max-w-[200px]">
-                    <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-md text-gray-500 font-mono text-xs">₹</span>
-                    <input 
-                      type="number"
-                      value={customDomainUnlockPrice}
-                      onChange={(e) => setCustomDomainUnlockPrice(e.target.value)}
-                      placeholder="1499"
-                      className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-emerald-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block mb-1">Agreement Top Logo</label>
-                <div className="flex flex-col gap-2.5">
-                  <label 
-                    htmlFor="global-logo-upload"
-                    className="flex items-center justify-center gap-2 py-3 rounded-lg border border-dashed border-gray-800 hover:border-blue-500 bg-gray-950 hover:bg-gray-950/70 cursor-pointer text-xs font-semibold text-gray-400 hover:text-white transition-all text-center"
-                  >
-                    <Upload className="w-4 h-4 text-blue-500" />
-                    <span>Click to Upload Logo Image File</span>
-                  </label>
-                  <input 
-                    type="file"
-                    accept="image/*"
-                    id="global-logo-upload"
-                    onChange={handleLogoUpload}
-                    className="hidden"
-                  />
-
-                  <div className="relative">
-                    <span className="text-[9px] text-gray-500 uppercase font-sans tracking-wide block mb-1">Or paste logo image link URL:</span>
-                    <input 
-                      type="text"
-                      value={brandLogo}
-                      onChange={(e) => setBrandLogo(e.target.value)}
-                      placeholder="e.g. https://..."
-                      className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-xs text-white transition-all font-mono"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {brandLogo && (
-                <div className="bg-gray-950 p-3 rounded-lg border border-gray-850 flex items-center gap-3">
-                  <img 
-                    src={brandLogo} 
-                    alt="Preview" 
-                    className="w-10 h-10 rounded-full object-cover border border-gray-800"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = 'none';
-                    }}
-                  />
-                  <div>
-                    <span className="text-xs font-bold text-white block">{brandName}</span>
-                    <span className="text-[10px] text-gray-500 block">Default branding live preview</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Creva Licensing Officers Segment */}
-              <div className="border-t border-gray-850 pt-5 space-y-4">
-                <div>
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <ShieldCheck className="text-emerald-400 w-4 h-4" />
-                    Creva Licensing Officers
-                  </h3>
-                  <p className="text-[10px] text-gray-500 mt-0.5">Upload signature stamp images for each officer. One is randomly chosen per new agreement.</p>
-                </div>
-
-                <div className="space-y-3">
-                  {officers.map((officer, index) => (
-                    <div key={officer.id} className="bg-gray-950 border border-gray-800 rounded-xl overflow-hidden">
-                      {/* Officer Header Row */}
-                      <div className="flex items-center gap-3 px-4 pt-3 pb-2 border-b border-gray-800">
-                        <div className="w-7 h-7 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0">
-                          <span className="text-[10px] font-black text-blue-400">#{officer.id}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-white truncate">{officer.name || `Officer #${officer.id}`}</p>
-                          <p className="text-[9px] text-gray-500 truncate">{officer.title || 'No title set'}</p>
-                        </div>
-                        {officer.signature && (
-                          <div className="bg-white rounded p-1 border border-gray-700 shrink-0">
-                            <img src={officer.signature} alt="stamp" className="h-6 w-auto object-contain" />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Editable Fields */}
-                      <div className="p-3 space-y-2.5">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Full Name</label>
-                            <input
-                              type="text"
-                              value={officer.name}
-                              onChange={(e) => {
-                                const updated = [...officers];
-                                updated[index].name = e.target.value;
-                                setOfficers(updated);
-                              }}
-                              placeholder="Officer full name"
-                              className="w-full bg-gray-900 border border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-xs text-white transition-all placeholder:text-gray-600"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Role / Title</label>
-                            <input
-                              type="text"
-                              value={officer.title}
-                              onChange={(e) => {
-                                const updated = [...officers];
-                                updated[index].title = e.target.value;
-                                setOfficers(updated);
-                              }}
-                              placeholder="e.g. Licensing Director"
-                              className="w-full bg-gray-900 border border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-xs text-white transition-all placeholder:text-gray-600"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Stamp Upload */}
-                        <div>
-                          <label className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Signature / Stamp Image</label>
-                          <label
-                            htmlFor={`officer-stamp-${index}`}
-                            className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-dashed border-gray-700 hover:border-blue-500 bg-gray-900 cursor-pointer transition-all group"
-                          >
-                            <div className="flex items-center gap-2">
-                              <Upload className="w-3.5 h-3.5 text-blue-400 group-hover:text-blue-300" />
-                              <span className="text-[10px] font-semibold text-gray-400 group-hover:text-white transition-colors">
-                                {officer.signature ? 'Replace stamp image' : 'Upload signature stamp (PNG/JPG)'}
-                              </span>
-                            </div>
-                            {officer.signature && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  const updated = [...officers];
-                                  updated[index].signature = '';
-                                  setOfficers(updated);
-                                }}
-                                className="text-red-400 hover:text-red-300 transition-colors"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </label>
-                          <input
-                            type="file"
-                            id={`officer-stamp-${index}`}
-                            accept="image/png,image/jpeg,image/webp"
-                            onChange={(e) => handleOfficerStampUpload(e, index)}
-                            className="hidden"
-                          />
-                          {officer.signature && (
-                            <div className="mt-2 bg-white rounded-lg p-2 border border-gray-700 inline-flex items-center gap-2">
-                              <img src={officer.signature} alt="Stamp preview" className="max-h-8 max-w-[120px] object-contain" />
-                              <span className="text-[9px] text-gray-400">Stamp preview</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Agreement Template Editor */}
-              <div className="border-t border-gray-850 pt-5 space-y-3">
-                <div>
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <FileText className="text-amber-400 w-4 h-4" />
-                    Agreement Template
-                  </h3>
-                  <p className="text-[10px] text-gray-500 mt-0.5">Customize the terms & conditions printed in every merchant contract.</p>
-                </div>
-                <textarea
-                  value={agreementTemplate}
-                  onChange={(e) => setAgreementTemplate(e.target.value)}
-                  rows={8}
-                  placeholder="Enter agreement terms & conditions..."
-                  className="w-full bg-gray-950 border border-gray-800 focus:border-amber-500/50 focus:outline-none rounded-xl px-3 py-3 text-xs text-gray-300 leading-relaxed resize-y transition-all font-mono placeholder:text-gray-600"
-                />
+            {/* Main Content Area with Categorized Tabs */}
+            <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
+              
+              {/* Sidebar Navigation */}
+              <div className="w-full md:w-60 bg-gray-950/60 border-b md:border-b-0 md:border-r border-gray-850 p-4 flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible md:overflow-y-auto whitespace-nowrap md:whitespace-normal">
                 <button
                   type="button"
-                  onClick={() => {
-                    setAgreementTemplate(defaultTemplate);
-                    setActionStatus('Template reset to default!');
-                    setTimeout(() => setActionStatus(null), 2000);
-                  }}
-                  className="text-[10px] text-gray-500 hover:text-amber-400 transition-colors underline underline-offset-2"
+                  onClick={() => setActiveSettingTab('branding')}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-bold transition-all w-full text-left ${
+                    activeSettingTab === 'branding'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-850'
+                  }`}
                 >
-                  Reset to default template
+                  <Building2 className="w-4 h-4" />
+                  General Branding
                 </button>
+                
+                <button
+                  type="button"
+                  onClick={() => setActiveSettingTab('pricing')}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-bold transition-all w-full text-left ${
+                    activeSettingTab === 'pricing'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-850'
+                  }`}
+                >
+                  <Database className="w-4 h-4" />
+                  Pricing & UPI Payments
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveSettingTab('officers')}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-bold transition-all w-full text-left ${
+                    activeSettingTab === 'officers'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-850'
+                  }`}
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  Licensing Officers
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveSettingTab('agreement')}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-bold transition-all w-full text-left ${
+                    activeSettingTab === 'agreement'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-850'
+                  }`}
+                >
+                  <FileText className="w-4 h-4" />
+                  Legal Agreement Terms
+                </button>
+              </div>
+
+              {/* Tab Panels Content */}
+              <div className="flex-1 p-6 overflow-y-auto bg-gray-900 space-y-6">
+                
+                {/* 1. GENERAL BRANDING TAB */}
+                {activeSettingTab === 'branding' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-sm font-bold text-white">General Branding Settings</h3>
+                      <p className="text-xs text-gray-400 mt-0.5">Define your core brand identity and storefront settings.</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Branding / SaaS Name</label>
+                        <input 
+                          type="text"
+                          value={brandName}
+                          onChange={(e) => setBrandName(e.target.value)}
+                          placeholder="e.g. Creva Solutions"
+                          className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2.5 text-sm text-white transition-all"
+                        />
+                      </div>
+
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Agreement Top Logo</label>
+                        <div className="flex flex-col gap-3">
+                          <label 
+                            htmlFor="global-logo-upload"
+                            className="flex items-center justify-center gap-2 py-4 rounded-xl border border-dashed border-gray-800 hover:border-blue-500 bg-gray-950 hover:bg-gray-950/70 cursor-pointer text-xs font-bold text-gray-400 hover:text-white transition-all text-center"
+                          >
+                            <Upload className="w-4 h-4 text-blue-500" />
+                            <span>Click to Upload Logo Image File</span>
+                          </label>
+                          <input 
+                            type="file"
+                            accept="image/*"
+                            id="global-logo-upload"
+                            onChange={handleLogoUpload}
+                            className="hidden"
+                          />
+
+                          <div className="relative">
+                            <span className="text-[9px] text-gray-500 uppercase font-sans tracking-wide block mb-1">Or paste logo image link URL:</span>
+                            <input 
+                              type="text"
+                              value={brandLogo}
+                              onChange={(e) => setBrandLogo(e.target.value)}
+                              placeholder="e.g. https://..."
+                              className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-xs text-white transition-all font-mono"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {brandLogo && (
+                        <div className="bg-gray-950 p-4 rounded-xl border border-gray-850 flex items-center gap-3">
+                          <img 
+                            src={brandLogo} 
+                            alt="Preview" 
+                            className="w-12 h-12 rounded-full object-cover border border-gray-800"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                          <div>
+                            <span className="text-xs font-extrabold text-white block">{brandName}</span>
+                            <span className="text-[10px] text-gray-500 block">Default branding live preview</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. PRICING & UPI PAYMENTS TAB */}
+                {activeSettingTab === 'pricing' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-sm font-bold text-white">Pricing & UPI Payments Settings</h3>
+                      <p className="text-xs text-gray-400 mt-0.5">Manage transaction UPI endpoints, billing thresholds, and unlock charges.</p>
+                    </div>
+
+                    <div className="space-y-5">
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Platform UPI VPA ID (For Registration QR)</label>
+                        <input 
+                          type="text"
+                          value={platformUpi}
+                          onChange={(e) => setPlatformUpi(e.target.value)}
+                          placeholder="e.g. creva@ybl"
+                          className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2.5 text-sm text-white transition-all font-mono"
+                        />
+                      </div>
+
+                      {/* Package Plan Prices Setting Section */}
+                      <div className="border border-gray-800 p-5 rounded-xl bg-gray-950/40 space-y-4">
+                        <div className="flex items-center gap-2">
+                          <Database className="w-4 h-4 text-indigo-450" />
+                          <span className="text-xs font-bold text-gray-200">📦 Store Subscription Package Prices</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                            <label className="text-[9px] font-bold text-gray-400 uppercase">1 Month Plan</label>
+                            <div className="flex items-center mt-1">
+                              <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-md text-gray-500 font-mono text-xs">₹</span>
+                              <input 
+                                type="number"
+                                value={plan30Price}
+                                onChange={(e) => setPlan30Price(e.target.value)}
+                                placeholder="499"
+                                className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-bold text-gray-400 uppercase">1 Year Plan</label>
+                            <div className="flex items-center mt-1">
+                              <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-md text-gray-500 font-mono text-xs">₹</span>
+                              <input 
+                                type="number"
+                                value={plan365Price}
+                                onChange={(e) => setPlan365Price(e.target.value)}
+                                placeholder="3999"
+                                className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-bold text-gray-400 uppercase">Lifetime Plan</label>
+                            <div className="flex items-center mt-1">
+                              <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-md text-gray-500 font-mono text-xs">₹</span>
+                              <input 
+                                type="number"
+                                value={planLifetimePrice}
+                                onChange={(e) => setPlanLifetimePrice(e.target.value)}
+                                placeholder="9999"
+                                className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Custom Domain Settings Section */}
+                      <div className="border border-gray-800 p-5 rounded-xl bg-gray-950/40 space-y-4">
+                        <div className="flex items-center gap-2">
+                          <Globe className="w-4 h-4 text-emerald-450" />
+                          <span className="text-xs font-bold text-gray-200">🌐 Custom Domain Upgrade Cost</span>
+                        </div>
+                        <div>
+                          <label className="text-[9px] font-bold text-gray-400 uppercase">One-Time Domain Unlock Fee</label>
+                          <div className="flex items-center mt-1 max-w-[200px]">
+                            <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-md text-gray-500 font-mono text-xs">₹</span>
+                            <input 
+                              type="number"
+                              value={customDomainUnlockPrice}
+                              onChange={(e) => setCustomDomainUnlockPrice(e.target.value)}
+                              placeholder="1499"
+                              className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-emerald-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. LICENSING OFFICERS TAB */}
+                {activeSettingTab === 'officers' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-sm font-bold text-white">Licensing Officers Settings</h3>
+                      <p className="text-xs text-gray-400 mt-0.5">Upload signature stamp images for each officer. One is randomly chosen per new agreement.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4">
+                      {officers.map((officer, index) => (
+                        <div key={officer.id} className="bg-gray-950 border border-gray-850 rounded-xl overflow-hidden shadow-sm">
+                          {/* Officer Header Row */}
+                          <div className="flex items-center gap-3 px-4 py-3 bg-gray-950/90 border-b border-gray-850">
+                            <div className="w-7 h-7 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0">
+                              <span className="text-[10px] font-black text-blue-400">#{officer.id}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-bold text-white truncate">{officer.name || `Officer #${officer.id}`}</p>
+                              <p className="text-[9px] text-gray-400 truncate">{officer.title || 'No title set'}</p>
+                            </div>
+                            {officer.signature && (
+                              <div className="bg-white rounded p-1 border border-gray-700 shrink-0">
+                                <img src={officer.signature} alt="stamp" className="h-6 w-auto object-contain" />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Editable Fields */}
+                          <div className="p-4 space-y-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Full Name</label>
+                                <input
+                                  type="text"
+                                  value={officer.name}
+                                  onChange={(e) => {
+                                    const updated = [...officers];
+                                    updated[index].name = e.target.value;
+                                    setOfficers(updated);
+                                  }}
+                                  placeholder="Officer full name"
+                                  className="w-full bg-gray-900 border border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-xs text-white transition-all placeholder:text-gray-600"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Role / Title</label>
+                                <input
+                                  type="text"
+                                  value={officer.title}
+                                  onChange={(e) => {
+                                    const updated = [...officers];
+                                    updated[index].title = e.target.value;
+                                    setOfficers(updated);
+                                  }}
+                                  placeholder="e.g. Licensing Director"
+                                  className="w-full bg-gray-900 border border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-xs text-white transition-all placeholder:text-gray-600"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Stamp Upload */}
+                            <div>
+                              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Signature / Stamp Image</label>
+                              <label
+                                htmlFor={`officer-stamp-${index}`}
+                                className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-dashed border-gray-700 hover:border-blue-500 bg-gray-900 cursor-pointer transition-all group"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Upload className="w-3.5 h-3.5 text-blue-400 group-hover:text-blue-300" />
+                                  <span className="text-[10px] font-semibold text-gray-400 group-hover:text-white transition-colors">
+                                    {officer.signature ? 'Replace stamp image' : 'Upload signature stamp (PNG/JPG)'}
+                                  </span>
+                                </div>
+                                {officer.signature && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      const updated = [...officers];
+                                      updated[index].signature = '';
+                                      setOfficers(updated);
+                                    }}
+                                    className="text-red-400 hover:text-red-300 transition-colors"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </label>
+                              <input
+                                type="file"
+                                id={`officer-stamp-${index}`}
+                                accept="image/png,image/jpeg,image/webp"
+                                onChange={(e) => handleOfficerStampUpload(e, index)}
+                                className="hidden"
+                              />
+                              {officer.signature && (
+                                <div className="mt-2 bg-white rounded-lg p-2 border border-gray-700 inline-flex items-center gap-2">
+                                  <img src={officer.signature} alt="Stamp preview" className="max-h-8 max-w-[120px] object-contain" />
+                                  <span className="text-[9px] text-gray-550 font-bold">Stamp preview</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. LEGAL & AGREEMENT TAB */}
+                {activeSettingTab === 'agreement' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-sm font-bold text-white">Legal Agreement Terms Settings</h3>
+                      <p className="text-xs text-gray-400 mt-0.5">Customize the terms & conditions printed in every merchant contract agreement.</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <textarea
+                        value={agreementTemplate}
+                        onChange={(e) => setAgreementTemplate(e.target.value)}
+                        rows={12}
+                        placeholder="Enter agreement terms & conditions..."
+                        className="w-full bg-gray-950 border border-gray-800 focus:border-amber-500/50 focus:outline-none rounded-xl px-3.5 py-3 text-xs text-gray-300 leading-relaxed resize-y transition-all font-mono placeholder:text-gray-600"
+                      />
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-gray-500">HTML tags are not recommended. Standard layout styling will wrap your raw texts.</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAgreementTemplate(defaultTemplate);
+                            setActionStatus('Template reset to default!');
+                            setTimeout(() => setActionStatus(null), 2000);
+                          }}
+                          className="text-[10px] text-amber-550 hover:text-amber-400 font-bold transition-colors underline underline-offset-2"
+                        >
+                          Reset to default template
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="flex items-center gap-3 pt-4 border-t border-gray-850 justify-end">
+            {/* Modal Footer Actions */}
+            <div className="flex items-center gap-3 p-6 border-t border-gray-850 justify-end bg-gray-950/40">
               <button
                 type="button"
                 onClick={() => setIsBrandingOpen(false)}
-                className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs font-semibold text-gray-300 transition-colors"
+                className="px-5 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-xs font-bold text-gray-300 transition-colors"
               >
                 Close
               </button>
@@ -2546,11 +2640,12 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                   handleSaveBrandSettings();
                   setIsBrandingOpen(false);
                 }}
-                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-xs font-semibold text-white transition-colors shadow-md"
+                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white transition-colors shadow-md shadow-blue-600/10 flex items-center gap-1.5"
               >
                 Save Settings
               </button>
             </div>
+
           </div>
         </div>
       )}
