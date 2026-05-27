@@ -21,6 +21,7 @@ export default function SuperAdminDashboard() {
   const [billPrice, setBillPrice] = useState<string>('1299');
   const [brandName, setBrandName] = useState<string>('StoreBuilder');
   const [brandLogo, setBrandLogo] = useState<string>('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80');
+  const [platformUpi, setPlatformUpi] = useState<string>('creva@ybl');
   const [invoiceNumber, setInvoiceNumber] = useState<string>('');
   const [modalTab, setModalTab] = useState<'billing' | 'profile' | 'contract' | 'payment'>('billing');
   
@@ -262,12 +263,14 @@ export default function SuperAdminDashboard() {
       localStorage.setItem('saas_brand_logo', brandLogo);
       localStorage.setItem('saas_licensing_officers', JSON.stringify(officers));
       localStorage.setItem('saas_agreement_template', agreementTemplate);
+      localStorage.setItem('saas_platform_upi', platformUpi);
 
       const settingsData = {
         brandName,
         brandLogo,
         officers,
-        agreementTemplate
+        agreementTemplate,
+        platformUpi
       };
 
       // Check if global settings row exists
@@ -485,6 +488,10 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
           if (parsed.agreementTemplate) {
             setAgreementTemplate(parsed.agreementTemplate);
             localStorage.setItem('saas_agreement_template', parsed.agreementTemplate);
+          }
+          if (parsed.platformUpi) {
+            setPlatformUpi(parsed.platformUpi);
+            localStorage.setItem('saas_platform_upi', parsed.platformUpi);
           }
         } catch (e) {
           console.error("Failed to parse global settings from DB:", e);
@@ -2005,6 +2012,17 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                   onChange={(e) => setBrandName(e.target.value)}
                   placeholder="e.g. Creva Solutions"
                   className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white mt-1 transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Platform UPI VPA ID (For Registration QR)</label>
+                <input 
+                  type="text"
+                  value={platformUpi}
+                  onChange={(e) => setPlatformUpi(e.target.value)}
+                  placeholder="e.g. creva@ybl"
+                  className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white mt-1 transition-all font-mono"
                 />
               </div>
 

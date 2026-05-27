@@ -889,46 +889,54 @@ export default function BusinessSetupWizard() {
                     {/* QR Code Scan Area */}
                     {paymentMethod === 'qr' && (
                       <div className="p-6 bg-card border border-border rounded-2xl flex flex-col md:flex-row items-center gap-6 shadow-sm">
-                        <div className="bg-white p-3 rounded-xl border border-input shadow-inner shrink-0 relative group">
-                          {/* Beautiful simulated QR Code */}
-                          <svg width="150" height="150" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect width="100" height="100" fill="white"/>
-                            {/* Inner custom QR matrix */}
-                            <rect x="5" y="5" width="20" height="20" fill="#0f172a"/>
-                            <rect x="10" y="10" width="10" height="10" fill="white"/>
-                            <rect x="75" y="5" width="20" height="20" fill="#0f172a"/>
-                            <rect x="80" y="10" width="10" height="10" fill="white"/>
-                            <rect x="5" y="75" width="20" height="20" fill="#0f172a"/>
-                            <rect x="10" y="80" width="10" height="10" fill="white"/>
-                            {/* Scattered pattern dots representing actual QR data encoding */}
-                            <rect x="35" y="15" width="5" height="5" fill="#0f172a"/>
-                            <rect x="45" y="10" width="10" height="5" fill="#0f172a"/>
-                            <rect x="60" y="20" width="5" height="15" fill="#0f172a"/>
-                            <rect x="15" y="35" width="15" height="5" fill="#0f172a"/>
-                            <rect x="40" y="40" width="20" height="20" fill="#0f172a"/>
-                            <rect x="45" y="45" width="10" height="10" fill="white"/>
-                            <rect x="10" y="60" width="5" height="5" fill="#0f172a"/>
-                            <rect x="25" y="50" width="5" height="10" fill="#0f172a"/>
-                            <rect x="70" y="45" width="15" height="5" fill="#0f172a"/>
-                            <rect x="85" y="35" width="10" height="5" fill="#0f172a"/>
-                            <rect x="75" y="75" width="20" height="5" fill="#0f172a"/>
-                            <rect x="85" y="80" width="5" height="15" fill="#0f172a"/>
-                            <rect x="65" y="85" width="10" height="5" fill="#0f172a"/>
-                            <rect x="35" y="80" width="5" height="10" fill="#0f172a"/>
-                            {/* Creva small center logo inside QR for that insanely premium touch */}
-                            <rect x="45" y="45" width="10" height="10" fill="#2563eb" rx="2"/>
-                            <circle cx="50" cy="50" r="2" fill="white"/>
-                          </svg>
-                          <div className="absolute inset-0 bg-black/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center font-bold text-[10px] text-foreground select-none">
-                            ⚡ UPI SECURE
+                        <div className="flex flex-col items-center gap-3 shrink-0">
+                          <div className="bg-white p-3 rounded-xl border border-input shadow-inner relative group">
+                            {/* Beautiful simulated QR Code */}
+                            <svg width="150" height="150" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <rect width="100" height="100" fill="white"/>
+                              {/* Inner custom QR matrix */}
+                              <rect x="5" y="5" width="20" height="20" fill="#0f172a"/>
+                              <rect x="10" y="10" width="10" height="10" fill="white"/>
+                              <rect x="75" y="5" width="20" height="20" fill="#0f172a"/>
+                              <rect x="80" y="10" width="10" height="10" fill="white"/>
+                              <rect x="5" y="75" width="20" height="20" fill="#0f172a"/>
+                              <rect x="10" y="80" width="10" height="10" fill="white"/>
+                              {/* Scattered pattern dots representing actual QR data encoding */}
+                              <rect x="35" y="15" width="5" height="5" fill="#0f172a"/>
+                              <rect x="45" y="10" width="10" height="5" fill="#0f172a"/>
+                              <rect x="60" y="20" width="5" height="15" fill="#0f172a"/>
+                              <rect x="15" y="35" width="15" height="5" fill="#0f172a"/>
+                              <rect x="40" y="40" width="20" height="20" fill="#0f172a"/>
+                              <rect x="45" y="45" width="10" height="10" fill="white"/>
+                              <rect x="10" y="60" width="5" height="5" fill="#0f172a"/>
+                              <rect x="25" y="50" width="5" height="10" fill="#0f172a"/>
+                              <rect x="70" y="45" width="15" height="5" fill="#0f172a"/>
+                              <rect x="85" y="35" width="10" height="5" fill="#0f172a"/>
+                              <rect x="75" y="75" width="20" height="5" fill="#0f172a"/>
+                              <rect x="85" y="80" width="5" height="15" fill="#0f172a"/>
+                              <rect x="65" y="85" width="10" height="5" fill="#0f172a"/>
+                              <rect x="35" y="80" width="5" height="10" fill="#0f172a"/>
+                              {/* Creva small center logo inside QR for that insanely premium touch */}
+                              <rect x="45" y="45" width="10" height="10" fill="#2563eb" rx="2"/>
+                              <circle cx="50" cy="50" r="2" fill="white"/>
+                            </svg>
+                            <div className="absolute inset-0 bg-black/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center font-bold text-[10px] text-foreground select-none">
+                              ⚡ UPI SECURE
+                            </div>
+                          </div>
+                          <div className="text-center space-y-1">
+                            <span className="text-[9px] uppercase font-black text-muted-foreground tracking-widest block">Merchant VPA UPI ID</span>
+                            <span className="inline-block text-[11px] font-black font-mono bg-muted text-foreground border border-border px-3 py-1 rounded-xl shadow-sm select-all">
+                              {globalSettings?.platformUpi || 'creva@ybl'}
+                            </span>
                           </div>
                         </div>
-
+ 
                         <div className="space-y-2">
-                          <span className="text-xs font-bold text-foreground block">How to pay via QR Code:</span>
-                          <ol className="text-xs text-muted-foreground list-decimal pl-4 space-y-1.5 leading-relaxed">
+                          <span className="text-xs font-bold text-foreground block text-left">How to pay via QR Code:</span>
+                          <ol className="text-xs text-muted-foreground list-decimal pl-4 space-y-1.5 leading-relaxed text-left">
                             <li>Open Google Pay, PhonePe, Paytm, or any banking App on your mobile.</li>
-                            <li>Scan the QR code displayed on the left.</li>
+                            <li>Scan the QR code displayed on the left or send to VPA ID: <strong className="text-primary font-mono select-all bg-muted/60 px-1.5 py-0.5 rounded border border-border">{globalSettings?.platformUpi || 'creva@ybl'}</strong></li>
                             <li>Pay the designated plan amount (<strong className="text-primary font-mono">{selectedPlan === '30' ? '₹499' : selectedPlan === '365' ? '₹3,999' : '₹9,999'}</strong>).</li>
                             <li>Take a clear screenshot of the transaction success page.</li>
                             <li>Upload the screenshot in the dropzone below to proceed.</li>
