@@ -636,10 +636,10 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
 
       setActionStatus("Payment verified & Store activated!");
       setTimeout(() => setActionStatus(null), 2500);
-      alert("🎉 Success: Payment verified. The storefront has been marked active and unpaused!");
+      alert("Success: Payment verified. The storefront has been marked active and unpaused!");
     } catch (err: any) {
       console.error(err);
-      alert(`⚠️ Failed to verify payment: ${err.message}`);
+      alert(`Failed to verify payment: ${err.message}`);
       setActionStatus(null);
     }
   };
@@ -652,7 +652,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
     } catch (e) {}
     if (!contract) return;
 
-    if (!confirm("🚨 Are you sure you want to REJECT this merchant's payment verification?")) return;
+    if (!confirm("Are you sure you want to REJECT this merchant's payment verification?")) return;
 
     setActionStatus("Rejecting payment...");
     try {
@@ -682,10 +682,10 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
 
       setActionStatus("Payment rejected & storefront locked!");
       setTimeout(() => setActionStatus(null), 2500);
-      alert("✅ Merchant payment rejected successfully. Storefront is locked and merchant is notified via their dashboard.");
+      alert("Merchant payment rejected successfully. Storefront is locked and merchant is notified via their dashboard.");
     } catch (err: any) {
       console.error(err);
-      alert(`⚠️ Failed to reject payment: ${err.message}`);
+      alert(`Failed to reject payment: ${err.message}`);
       setActionStatus(null);
     }
   };
@@ -726,10 +726,10 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
 
       setActionStatus("Domain unlocked successfully!");
       setTimeout(() => setActionStatus(null), 2500);
-      alert("🎉 Success: Custom Domain payment verified & features successfully unlocked!");
+      alert("Success: Custom Domain payment verified & features successfully unlocked!");
     } catch (err: any) {
       console.error(err);
-      alert(`⚠️ Failed to verify domain payment: ${err.message}`);
+      alert(`Failed to verify domain payment: ${err.message}`);
       setActionStatus(null);
     }
   };
@@ -742,7 +742,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
     } catch (e) {}
     if (!contract) return;
 
-    if (!confirm("🚨 Are you sure you want to REJECT this merchant's Custom Domain payment verification?")) return;
+    if (!confirm("Are you sure you want to REJECT this merchant's Custom Domain payment verification?")) return;
 
     setActionStatus("Rejecting domain payment...");
     try {
@@ -772,10 +772,10 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
 
       setActionStatus("Domain payment rejected!");
       setTimeout(() => setActionStatus(null), 2500);
-      alert("✅ Merchant's custom domain payment has been rejected successfully.");
+      alert("Merchant's custom domain payment has been rejected successfully.");
     } catch (err: any) {
       console.error(err);
-      alert(`⚠️ Failed to reject domain payment: ${err.message}`);
+      alert(`Failed to reject domain payment: ${err.message}`);
       setActionStatus(null);
     }
   };
@@ -788,7 +788,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
     } catch (e) {}
     if (!contract || !contract.paymentScreenshotUrl) return;
 
-    if (!confirm("🚨 Are you sure you want to permanently delete this payment screenshot from cloud storage?")) return;
+    if (!confirm("Are you sure you want to permanently delete this payment screenshot from cloud storage?")) return;
 
     setActionStatus("Deleting screenshot...");
     try {
@@ -1035,7 +1035,22 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
     
     if (!matchesSearch) return false;
 
+    const contract = (() => {
+      if (!store.description || !store.description.trim().startsWith('{')) return {};
+      try {
+        return JSON.parse(store.description);
+      } catch (e) {
+        return {};
+      }
+    })();
+
     // 2. Apply advanced category tab filters
+    if (activeFilter === 'subscription_pending') {
+      return contract.paymentStatus === 'pending';
+    }
+    if (activeFilter === 'domain_pending') {
+      return contract.domainPaymentStatus === 'pending';
+    }
     if (activeFilter === 'all') return true;
     if (activeFilter === 'paused') return store.is_paused === true;
     if (activeFilter === 'custom_domain') return store.custom_domain_enabled !== false;
@@ -1071,6 +1086,20 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
   const customDomainStoresCount = stores.filter(s => s.custom_domain_enabled !== false).length;
   const subdomainStoresCount = stores.filter(s => s.custom_domain_enabled === false).length;
   const lifetimeStoresCount = stores.filter(s => s.subscription_expires_at === null).length;
+
+  const subscriptionPendingCount = stores.filter(s => {
+    if (!s.description || !s.description.trim().startsWith('{')) return false;
+    try {
+      return JSON.parse(s.description).paymentStatus === 'pending';
+    } catch (e) { return false; }
+  }).length;
+
+  const domainPendingCount = stores.filter(s => {
+    if (!s.description || !s.description.trim().startsWith('{')) return false;
+    try {
+      return JSON.parse(s.description).domainPaymentStatus === 'pending';
+    } catch (e) { return false; }
+  }).length;
   
   const expiredStoresCount = stores.filter(s => {
     const expiry = s.subscription_expires_at ? new Date(s.subscription_expires_at) : null;
@@ -1183,6 +1212,8 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
         {/* Scrolling Filter Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
           {[
+            { id: 'subscription_pending', name: 'Subscription Approvals', count: subscriptionPendingCount, isAlert: true, badgeColor: 'bg-rose-500 text-white animate-pulse' },
+            { id: 'domain_pending', name: 'Custom Domain Approvals', count: domainPendingCount, isAlert: true, badgeColor: 'bg-amber-500 text-slate-950 font-black animate-pulse' },
             { id: 'all', name: 'All Shops', count: totalStoresCount },
             { id: 'paused', name: 'Paused', count: pausedStoresCount },
             { id: 'custom_domain', name: 'Custom Domain', count: customDomainStoresCount },
@@ -1193,26 +1224,41 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
             { id: '1year', name: '1 Year active', count: oneYearCount },
             { id: 'lifetime', name: 'Lifetime Plan', count: lifetimeStoresCount },
             { id: 'expired', name: 'Expired Plan', count: expiredStoresCount }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveFilter(tab.id)}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all shrink-0 ${
-                activeFilter === tab.id
-                  ? 'bg-blue-600 border-blue-500 text-white shadow-md scale-102'
-                  : 'bg-gray-800/40 border-gray-750 text-gray-400 hover:bg-gray-800'
-              }`}
-            >
-              <span>{tab.name}</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
-                activeFilter === tab.id 
-                  ? 'bg-white/20 text-white' 
-                  : 'bg-gray-750 text-gray-400'
-              }`}>
-                {tab.count}
-              </span>
-            </button>
-          ))}
+          ].map((tab) => {
+            const hasAlertCount = tab.isAlert && tab.count > 0;
+            const isSelected = activeFilter === tab.id;
+            
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveFilter(tab.id)}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all shrink-0 ${
+                  isSelected
+                    ? tab.id === 'subscription_pending'
+                      ? 'bg-rose-600 border-rose-500 text-white shadow-md'
+                      : tab.id === 'domain_pending'
+                        ? 'bg-amber-500 border-amber-600 text-slate-950 shadow-md'
+                        : 'bg-blue-600 border-blue-500 text-white shadow-md scale-102'
+                    : hasAlertCount
+                      ? tab.id === 'subscription_pending'
+                        ? 'bg-rose-950/40 border-rose-900/50 text-rose-400 hover:bg-rose-900/10'
+                        : 'bg-amber-950/40 border-amber-900/50 text-amber-400 hover:bg-amber-900/10'
+                      : 'bg-gray-800/40 border-gray-750 text-gray-400 hover:bg-gray-800'
+                }`}
+              >
+                <span>{tab.name}</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                  isSelected
+                    ? 'bg-white/20 text-white'
+                    : hasAlertCount
+                      ? tab.badgeColor
+                      : 'bg-gray-750 text-gray-400'
+                }`}>
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Table list of stores */}

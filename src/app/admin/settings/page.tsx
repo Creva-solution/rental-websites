@@ -214,10 +214,10 @@ export default function SettingsPage() {
         custom_domain: customDomainNameInput.trim()
       }));
 
-      alert("🎉 Success: Custom Domain unlock payment proof uploaded successfully. Creva Super Admin has been notified for review!");
+      alert("Payment proof screenshot uploaded successfully. Our team will verify it and your custom domain feature will be unlocked within 24 hours.");
     } catch (err: any) {
       console.error(err);
-      alert(`⚠️ Upload failed: ${err.message}`);
+      alert(`Upload failed: ${err.message}`);
     } finally {
       setScreenshotUploading(false);
     }
@@ -726,7 +726,7 @@ export default function SettingsPage() {
                         </div>
                         <div className="text-left">
                           <h4 className="font-extrabold text-amber-900 text-base flex items-center gap-2">
-                            Unlock Custom Domain Premium Feature 🚀
+                            Unlock Custom Domain Premium Feature
                             <span className="text-[10px] font-bold px-2.5 py-0.5 bg-amber-500 text-amber-950 rounded-full font-mono">Premium Upgrade</span>
                           </h4>
                           <p className="text-xs text-muted-foreground mt-0.5">Link your own custom domain (e.g. <strong>yourname.com</strong>) with automated premium SSL routing.</p>
@@ -738,7 +738,7 @@ export default function SettingsPage() {
                           <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0" />
                           <div>
                             <strong className="block mb-0.5 text-amber-950 font-extrabold">Domain Upgrade Request Pending Approval</strong>
-                            We have received your custom domain unlock request for <strong className="font-mono text-amber-950 select-all bg-amber-500/10 px-1 py-0.5 rounded border border-amber-500/20">{store?.custom_domain || 'N/A'}</strong>. Our operations team is verifying the payment screenshot manually. The feature will unlock within a few hours. Thank you!
+                            Your payment proof screenshot has been submitted successfully. Our team will verify it and your custom domain feature will be unlocked within 24 hours.
                           </div>
                         </div>
                       )}
