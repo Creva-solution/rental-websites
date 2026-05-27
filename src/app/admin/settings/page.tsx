@@ -144,6 +144,46 @@ export default function SettingsPage() {
     }
 
     setScreenshotUploading(true);
+
+    const saveToDb = async (screenshotUrl: string) => {
+      // Save to description contract JSON
+      let existingDescription = {};
+      try {
+        if (store.description && store.description.startsWith('{')) {
+          existingDescription = JSON.parse(store.description);
+        }
+      } catch (e) {}
+
+      const updatedDescription = {
+        ...existingDescription,
+        domainPaymentScreenshotUrl: screenshotUrl,
+        domainPaymentStatus: 'pending'
+      };
+
+      const { error: dbError } = await supabase
+        .from('stores')
+        .update({
+          description: JSON.stringify(updatedDescription),
+          custom_domain: customDomainNameInput.trim() // Save the desired custom domain name as well!
+        })
+        .eq('id', store.id);
+
+      if (dbError) throw dbError;
+
+      // Update local state
+      setStore({
+        ...store,
+        description: JSON.stringify(updatedDescription),
+        custom_domain: customDomainNameInput.trim()
+      });
+      setFormData(prev => ({
+        ...prev,
+        custom_domain: customDomainNameInput.trim()
+      }));
+
+      alert("Payment proof screenshot uploaded successfully. Our team will verify it and your custom domain feature will be unlocked within 24 hours.");
+    };
+
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `domain-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
@@ -179,45 +219,24 @@ export default function SettingsPage() {
         publicUrl = url;
       }
 
-      // Save to description contract JSON
-      let existingDescription = {};
-      try {
-        if (store.description && store.description.startsWith('{')) {
-          existingDescription = JSON.parse(store.description);
-        }
-      } catch (e) {}
-
-      const updatedDescription = {
-        ...existingDescription,
-        domainPaymentScreenshotUrl: publicUrl,
-        domainPaymentStatus: 'pending'
-      };
-
-      const { error: dbError } = await supabase
-        .from('stores')
-        .update({
-          description: JSON.stringify(updatedDescription),
-          custom_domain: customDomainNameInput.trim() // Save the desired custom domain name as well!
-        })
-        .eq('id', store.id);
-
-      if (dbError) throw dbError;
-
-      // Update local state
-      setStore({
-        ...store,
-        description: JSON.stringify(updatedDescription),
-        custom_domain: customDomainNameInput.trim()
-      });
-      setFormData(prev => ({
-        ...prev,
-        custom_domain: customDomainNameInput.trim()
-      }));
-
-      alert("Payment proof screenshot uploaded successfully. Our team will verify it and your custom domain feature will be unlocked within 24 hours.");
+      await saveToDb(publicUrl);
     } catch (err: any) {
-      console.error(err);
-      alert(`Upload failed: ${err.message}`);
+      console.warn("Storage upload failed, falling back to base64 encoding", err);
+      // Base64 fallback if storage bucket has issue
+      try {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64Url = reader.result as string;
+          try {
+            await saveToDb(base64Url);
+          } catch (dbErr: any) {
+            alert(`Upload failed: ${dbErr.message}`);
+          }
+        };
+        reader.readAsDataURL(file);
+      } catch (readerErr: any) {
+        alert(`Upload failed: ${readerErr.message}`);
+      }
     } finally {
       setScreenshotUploading(false);
     }
