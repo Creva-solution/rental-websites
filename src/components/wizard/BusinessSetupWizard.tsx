@@ -951,27 +951,15 @@ export default function BusinessSetupWizard() {
                         {[
                           { 
                             id: 'gpay', 
-                            name: 'Google Pay', 
-                            color: 'hover:border-blue-500 hover:bg-blue-500/5', 
+                            name: 'Mobile Payment', 
+                            color: 'hover:border-indigo-500 hover:bg-indigo-500/5', 
                             icon: (
                               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 shrink-0">
-                                <rect width="24" height="24" rx="6" fill="#f1f3f4" />
-                                <path d="M12.2 16.2h-2.1v-5.6h-2.1v-1.8h6.3v1.8h-2.1v-5.6z" fill="#4285F4" />
-                                <path d="M17.1 12.8c.8 0 1.5.7 1.5 1.5v2.8h-1.8v-.6c-.3.4-.8.7-1.4.7-.9 0-1.7-.8-1.7-1.8 0-1 .8-1.8 1.7-1.8.6 0 1.1.3 1.4.7v-.8c0-.5-.4-.9-.9-.9s-.9.4-.9.9h-1.8c0-1.4 1.2-2.4 2.7-2.4z" fill="#34A853" />
-                                <path d="M17.1 14.5c0-.4-.3-.6-.7-.6s-.7.3-.7.6.3.7.7.7.7-.3.7-.7z" fill="#EA4335" />
-                                <path d="M8 12.8H5v1.8h3v-1.8z" fill="#FBBC05" />
-                              </svg>
-                            ) 
-                          },
-                          { 
-                            id: 'phonepe', 
-                            name: 'PhonePe', 
-                            color: 'hover:border-purple-500 hover:bg-purple-500/5', 
-                            icon: (
-                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 shrink-0">
-                                <rect width="24" height="24" rx="6" fill="#5f259f" />
-                                <circle cx="12" cy="12" r="6" stroke="#ffffff" strokeWidth="2" fill="none" />
-                                <circle cx="12" cy="12" r="2" fill="#ffffff" />
+                                <rect width="24" height="24" rx="6" fill="#6366f1" />
+                                <rect x="8" y="4" width="8" height="16" rx="2" stroke="#ffffff" strokeWidth="1.5" fill="none" />
+                                <circle cx="12" cy="17" r="0.75" fill="#ffffff" />
+                                <path d="M10 8h4M10 11h4" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" />
+                                <path d="M10 14h2" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" />
                               </svg>
                             ) 
                           },
