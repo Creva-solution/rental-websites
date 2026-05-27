@@ -56,8 +56,16 @@ export default async function CustomDomainStorefrontPage({ params }: { params: {
   }
 
   // Check if storefront is paused by super admin
+  let paymentStatus = null;
+  try {
+    if (store.description && store.description.trim().startsWith('{')) {
+      const parsed = JSON.parse(store.description);
+      paymentStatus = parsed.paymentStatus;
+    }
+  } catch (e) {}
+
   if (store.is_paused === true) {
-    return <StorePaused storeName={store.store_name} />;
+    return <StorePaused storeName={store.store_name} paymentStatus={paymentStatus} />;
   }
 
   // Check if subscription has expired

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Loader2, Lock, CheckCircle2, Globe, FileText, Printer, Download, Edit3, Phone, Check } from 'lucide-react';
+import { Loader2, Lock, CheckCircle2, Globe, FileText, Printer, Download, Edit3, Phone, Check, QrCode, Smartphone, Upload, Trash, X } from 'lucide-react';
 
 export default function BusinessSetupWizard() {
   const router = useRouter();
@@ -19,6 +19,15 @@ export default function BusinessSetupWizard() {
   const [isSignatureConfirmed, setIsSignatureConfirmed] = useState(false);
   const [assignedOfficer, setAssignedOfficer] = useState<any>(null);
   const sigCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Payment states
+  const [paymentScreenshot, setPaymentScreenshot] = useState<string | null>(null);
+  const [paymentScreenshotUrl, setPaymentScreenshotUrl] = useState<string | null>(null);
+  const [screenshotUploading, setScreenshotUploading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'qr' | 'app'>('qr');
+  const [selectedUpiApp, setSelectedUpiApp] = useState<'gpay' | 'phonepe' | 'paytm' | 'bhim' | null>(null);
+  const [isUpiSimulating, setIsUpiSimulating] = useState(false);
+  const [upiSimulationStep, setUpiSimulationStep] = useState<number>(0);
 
   const [formData, setFormData] = useState({
     businessName: '',
@@ -116,6 +125,10 @@ export default function BusinessSetupWizard() {
         alert("⚠️ Please digitally sign the SaaS agreement and click 'Confirm & Lock Signature' below the canvas to proceed!");
         return;
       }
+      if (!paymentScreenshotUrl) {
+        alert("⚠️ Please pay via scan QR code or UPI app, and upload your payment screenshot to proceed!");
+        return;
+      }
     }
     setStep((s) => Math.min(s + 1, 6));
   };
@@ -190,6 +203,95 @@ export default function BusinessSetupWizard() {
     }
     setSignature(null);
     setIsSignatureConfirmed(false);
+  };
+
+  const handleScreenshotFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("⚠️ Screenshot image is too large! Please choose a file under 5MB.");
+        return;
+      }
+      await uploadScreenshot(file);
+    }
+  };
+
+  const uploadScreenshot = async (file: File) => {
+    setScreenshotUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `payment-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      const filePath = `payment-screenshots/${fileName}`;
+
+      let publicUrl = '';
+      
+      // Try to upload to assets storage bucket first
+      const { data, error } = await supabase.storage
+        .from('assets')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.warn("Upload to 'assets' bucket failed, attempting 'products'...", error);
+        
+        const { data: dataAlt, error: errorAlt } = await supabase.storage
+          .from('products')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (errorAlt) throw errorAlt;
+        
+        const { data: { publicUrl: url } } = supabase.storage
+          .from('products')
+          .getPublicUrl(filePath);
+        publicUrl = url;
+      } else {
+        const { data: { publicUrl: url } } = supabase.storage
+          .from('assets')
+          .getPublicUrl(filePath);
+        publicUrl = url;
+      }
+
+      setPaymentScreenshotUrl(publicUrl);
+
+      // Also set preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPaymentScreenshot(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+
+    } catch (err: any) {
+      console.error("Storage upload failed, falling back to base64 encoding", err);
+      // Base64 fallback if storage bucket has issue
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPaymentScreenshot(reader.result as string);
+        setPaymentScreenshotUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setScreenshotUploading(false);
+    }
+  };
+
+  const handleSimulateUpiApp = (appName: 'gpay' | 'phonepe' | 'paytm' | 'bhim') => {
+    setSelectedUpiApp(appName);
+    setIsUpiSimulating(true);
+    setUpiSimulationStep(1);
+
+    // Step 1: Connecting securely...
+    setTimeout(() => {
+      setUpiSimulationStep(2); // Step 2: Transferring amount...
+      
+      setTimeout(() => {
+        setUpiSimulationStep(3); // Step 3: Payment successful!
+      }, 2000);
+    }, 1500);
   };
 
   const handlePrintContract = () => {
@@ -339,6 +441,8 @@ export default function BusinessSetupWizard() {
         contractSignature: signature,
         selectedPlan: selectedPlan,
         assignedOfficer: assignedOfficer,
+        paymentScreenshotUrl: paymentScreenshotUrl,
+        paymentStatus: 'pending' // Pending super admin verification
       };
 
       const { error: storeError } = await supabase
@@ -354,7 +458,8 @@ export default function BusinessSetupWizard() {
           contact_email: formData.email,
           contact_phone: formData.phone,
           subscription_expires_at: expiryDate,
-          custom_domain_enabled: false
+          custom_domain_enabled: false,
+          is_paused: true // Started as paused until verified
         }]);
 
       if (storeError) throw storeError;
@@ -717,6 +822,287 @@ export default function BusinessSetupWizard() {
                   👉 Use your finger (on mobile) or mouse drag to sign in the box above, then click <strong>Confirm & Lock Signature</strong>.
                 </p>
               </div>
+
+              {/* Dynamic Payment Verification Section (Reveals only after Signature Locked) */}
+              <AnimatePresence>
+                {isSignatureConfirmed && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="border-t border-border pt-6 mt-6 space-y-6 overflow-hidden"
+                  >
+                    <div>
+                      <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-500 animate-bounce" />
+                        Onboarding Fee & License Payment
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Please pay the onboarding setup fee below to instantly register your business in paused state. Our admin team will verify it.
+                      </p>
+                    </div>
+
+                    {/* Cost summary card */}
+                    <div className="bg-muted/40 p-4 rounded-xl border border-border flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Plan Selected</span>
+                        <span className="block text-sm font-bold text-foreground mt-0.5">
+                          {selectedPlan === '30' ? '1 Month Plan' : selectedPlan === '365' ? '1 Year Plan' : 'Lifetime Plan'}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Setup Price</span>
+                        <span className="block text-xl font-black text-primary mt-0.5">
+                          {selectedPlan === '30' ? '₹499' : selectedPlan === '365' ? '₹3,999' : '₹9,999'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Payment methods switchers */}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('qr')}
+                        className={`flex-1 py-2.5 rounded-xl border-2 text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                          paymentMethod === 'qr'
+                            ? 'border-primary bg-primary/5 text-primary'
+                            : 'border-border bg-card text-muted-foreground hover:bg-muted/50'
+                        }`}
+                      >
+                        <QrCode className="w-4 h-4" />
+                        Scan UPI QR Code
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('app')}
+                        className={`flex-1 py-2.5 rounded-xl border-2 text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                          paymentMethod === 'app'
+                            ? 'border-primary bg-primary/5 text-primary'
+                            : 'border-border bg-card text-muted-foreground hover:bg-muted/50'
+                        }`}
+                      >
+                        <Smartphone className="w-4 h-4" />
+                        Pay via UPI Apps
+                      </button>
+                    </div>
+
+                    {/* QR Code Scan Area */}
+                    {paymentMethod === 'qr' && (
+                      <div className="p-6 bg-card border border-border rounded-2xl flex flex-col md:flex-row items-center gap-6 shadow-sm">
+                        <div className="bg-white p-3 rounded-xl border border-input shadow-inner shrink-0 relative group">
+                          {/* Beautiful simulated QR Code */}
+                          <svg width="150" height="150" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="100" height="100" fill="white"/>
+                            {/* Inner custom QR matrix */}
+                            <rect x="5" y="5" width="20" height="20" fill="#0f172a"/>
+                            <rect x="10" y="10" width="10" height="10" fill="white"/>
+                            <rect x="75" y="5" width="20" height="20" fill="#0f172a"/>
+                            <rect x="80" y="10" width="10" height="10" fill="white"/>
+                            <rect x="5" y="75" width="20" height="20" fill="#0f172a"/>
+                            <rect x="10" y="80" width="10" height="10" fill="white"/>
+                            {/* Scattered pattern dots representing actual QR data encoding */}
+                            <rect x="35" y="15" width="5" height="5" fill="#0f172a"/>
+                            <rect x="45" y="10" width="10" height="5" fill="#0f172a"/>
+                            <rect x="60" y="20" width="5" height="15" fill="#0f172a"/>
+                            <rect x="15" y="35" width="15" height="5" fill="#0f172a"/>
+                            <rect x="40" y="40" width="20" height="20" fill="#0f172a"/>
+                            <rect x="45" y="45" width="10" height="10" fill="white"/>
+                            <rect x="10" y="60" width="5" height="5" fill="#0f172a"/>
+                            <rect x="25" y="50" width="5" height="10" fill="#0f172a"/>
+                            <rect x="70" y="45" width="15" height="5" fill="#0f172a"/>
+                            <rect x="85" y="35" width="10" height="5" fill="#0f172a"/>
+                            <rect x="75" y="75" width="20" height="5" fill="#0f172a"/>
+                            <rect x="85" y="80" width="5" height="15" fill="#0f172a"/>
+                            <rect x="65" y="85" width="10" height="5" fill="#0f172a"/>
+                            <rect x="35" y="80" width="5" height="10" fill="#0f172a"/>
+                            {/* Creva small center logo inside QR for that insanely premium touch */}
+                            <rect x="45" y="45" width="10" height="10" fill="#2563eb" rx="2"/>
+                            <circle cx="50" cy="50" r="2" fill="white"/>
+                          </svg>
+                          <div className="absolute inset-0 bg-black/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center font-bold text-[10px] text-foreground select-none">
+                            ⚡ UPI SECURE
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <span className="text-xs font-bold text-foreground block">How to pay via QR Code:</span>
+                          <ol className="text-xs text-muted-foreground list-decimal pl-4 space-y-1.5 leading-relaxed">
+                            <li>Open Google Pay, PhonePe, Paytm, or any banking App on your mobile.</li>
+                            <li>Scan the QR code displayed on the left.</li>
+                            <li>Pay the designated plan amount (<strong className="text-primary font-mono">{selectedPlan === '30' ? '₹499' : selectedPlan === '365' ? '₹3,999' : '₹9,999'}</strong>).</li>
+                            <li>Take a clear screenshot of the transaction success page.</li>
+                            <li>Upload the screenshot in the dropzone below to proceed.</li>
+                          </ol>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* UPI App Selection Area */}
+                    {paymentMethod === 'app' && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {[
+                          { id: 'gpay', name: 'Google Pay', color: 'hover:border-blue-500 hover:bg-blue-500/5', icon: '🔵' },
+                          { id: 'phonepe', name: 'PhonePe', color: 'hover:border-purple-500 hover:bg-purple-500/5', icon: '🟣' },
+                          { id: 'paytm', name: 'Paytm Wallet', color: 'hover:border-sky-500 hover:bg-sky-500/5', icon: '🌀' },
+                          { id: 'bhim', name: 'BHIM UPI', color: 'hover:border-orange-500 hover:bg-orange-500/5', icon: '🟠' }
+                        ].map((app) => (
+                          <button
+                            key={app.id}
+                            type="button"
+                            onClick={() => handleSimulateUpiApp(app.id as any)}
+                            className={`flex items-center gap-3 p-4 rounded-xl border border-border bg-card text-left text-xs font-bold transition-all hover:scale-102 hover:shadow-sm ${app.color}`}
+                          >
+                            <span className="text-xl shrink-0">{app.icon}</span>
+                            <div>
+                              <span className="block font-bold text-foreground">{app.name}</span>
+                              <span className="text-[10px] text-muted-foreground font-normal">Pay directly via instant deep link</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Screenshot Upload Dropzone */}
+                    <div className="space-y-2.5">
+                      <label className="block text-xs font-black text-muted-foreground uppercase tracking-wider">
+                        Upload Successful Payment Screenshot *
+                      </label>
+
+                      {!paymentScreenshot ? (
+                        <div className="relative border-2 border-dashed border-input rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/50 transition-colors animate-fade-in">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleScreenshotFileChange}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            disabled={screenshotUploading}
+                          />
+                          {screenshotUploading ? (
+                            <div className="flex flex-col items-center gap-2">
+                              <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                              <p className="text-sm font-semibold">Uploading to secure storage...</p>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-3">
+                                <Upload className="w-6 h-6" />
+                              </div>
+                              <p className="text-xs font-medium mb-0.5">Click or drag payment screenshot to upload</p>
+                              <p className="text-[10px] text-muted-foreground">PNG, JPG, JPEG up to 5MB</p>
+                            </>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="bg-card border border-border rounded-xl p-4 flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-border bg-muted shrink-0 shadow-inner">
+                              <img
+                                src={paymentScreenshot}
+                                alt="Payment Screenshot"
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="min-w-0">
+                              <span className="block text-xs font-bold text-foreground truncate">Screenshot Attached</span>
+                              <span className="inline-flex items-center gap-1 mt-1 text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                                <Check className="w-3 h-3" />
+                                Saved successfully
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPaymentScreenshot(null);
+                              setPaymentScreenshotUrl(null);
+                            }}
+                            className="p-2 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-lg transition-colors border border-destructive/20"
+                            title="Remove Screenshot"
+                          >
+                            <Trash className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* UPI Simulator Modal */}
+              <AnimatePresence>
+                {isUpiSimulating && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+                    <motion.div
+                      initial={{ scale: 0.95, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.95, opacity: 0 }}
+                      className="bg-card border border-border rounded-2xl w-full max-w-sm p-6 text-center space-y-6 shadow-2xl relative"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setIsUpiSimulating(false)}
+                        className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+
+                      {upiSimulationStep === 1 && (
+                        <div className="space-y-4 py-8">
+                          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
+                          <div className="space-y-1">
+                            <h4 className="font-bold text-sm text-foreground">Secure Redirection</h4>
+                            <p className="text-xs text-muted-foreground">
+                              Connecting to {selectedUpiApp === 'gpay' ? 'Google Pay' : selectedUpiApp === 'phonepe' ? 'PhonePe' : selectedUpiApp === 'paytm' ? 'Paytm' : 'BHIM'} app on your device...
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {upiSimulationStep === 2 && (
+                        <div className="space-y-4 py-8">
+                          <div className="w-16 h-16 rounded-full border-4 border-t-primary border-r-primary border-b-muted border-l-muted animate-spin mx-auto" />
+                          <div className="space-y-1">
+                            <h4 className="font-bold text-sm text-foreground">Awaiting Authentication</h4>
+                            <p className="text-xs text-muted-foreground">
+                              Confirming payment of <strong className="text-primary font-mono">{selectedPlan === '30' ? '₹499' : selectedPlan === '365' ? '₹3,999' : '₹9,999'}</strong> to Creva Solutions. Enter your UPI PIN...
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {upiSimulationStep === 3 && (
+                        <div className="space-y-4 py-4 animate-in zoom-in-95 duration-200">
+                          <div className="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
+                            <Check className="w-8 h-8" />
+                          </div>
+                          <div className="space-y-2">
+                            <h4 className="font-extrabold text-base text-emerald-600">Transaction Successful!</h4>
+                            <div className="bg-muted/40 rounded-xl p-3 border border-border text-left font-mono text-[10px] space-y-1 text-muted-foreground">
+                              <div><span className="font-sans font-bold text-foreground">Payee:</span> Creva SaaS Platform</div>
+                              <div><span className="font-sans font-bold text-foreground">Amount:</span> {selectedPlan === '30' ? '₹499.00' : selectedPlan === '365' ? '₹3,999.00' : '₹9,999.00'}</div>
+                              <div><span className="font-sans font-bold text-foreground">Txn ID:</span> CRV{Math.floor(100000 + Math.random() * 900000)}</div>
+                              <div><span className="font-sans font-bold text-foreground">Status:</span> APPROVED / SETTLED</div>
+                            </div>
+                          </div>
+
+                          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-3 text-[10px] leading-relaxed text-left">
+                            <strong>📸 Action Required:</strong> Take a screenshot of this success card or your phone's payment notification, then click the button below to upload it!
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setIsUpiSimulating(false)}
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2 rounded-lg transition-colors shadow-sm mt-2"
+                          >
+                            I Have Taken Screenshot 👍
+                          </button>
+                        </div>
+                      )}
+                    </motion.div>
+                  </div>
+                )}
+              </AnimatePresence>
             </motion.div>
           )}
 

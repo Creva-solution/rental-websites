@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  CreditCard, Loader2, Phone, Calendar, Clock, Infinity, ShieldCheck, FileText, Printer, ShieldAlert
+  CreditCard, Loader2, Phone, Calendar, Clock, Infinity, ShieldCheck, FileText, Printer, ShieldAlert, Upload
 } from 'lucide-react';
 
 export default function SubscriptionPage() {
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [reuploadSuccess, setReuploadSuccess] = useState(false);
 
   useEffect(() => {
     fetchStore();
@@ -207,6 +209,107 @@ export default function SubscriptionPage() {
     printWindow.document.close();
   };
 
+  const handleScreenshotReupload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("⚠️ File size must be under 5MB!");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      let uploadedUrl = '';
+      
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${store.id}_reupload_${Date.now()}.${fileExt}`;
+      const filePath = `payment_verification/${fileName}`;
+
+      // Try uploading to 'assets' bucket first
+      const { data: storageData, error: storageError } = await supabase.storage
+        .from('assets')
+        .upload(filePath, file, { cacheControl: '3600', upsert: true });
+
+      if (storageError) {
+        console.warn("Storage upload failed, falling back to base64 reader:", storageError.message);
+        // Fallback to base64
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          uploadedUrl = reader.result as string;
+          await updateStoreDescriptionWithScreenshot(uploadedUrl);
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+
+      // If storage succeeded, get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('assets')
+        .getPublicUrl(filePath);
+
+      uploadedUrl = publicUrl;
+      await updateStoreDescriptionWithScreenshot(uploadedUrl);
+
+    } catch (err: any) {
+      console.error(err);
+      alert(`⚠️ Failed to upload file: ${err.message}`);
+      setUploading(false);
+    }
+  };
+
+  const updateStoreDescriptionWithScreenshot = async (url: string) => {
+    try {
+      // Decode existing description JSON
+      let contractDetails = {
+        selectedPlan: '30',
+        contractSigned: true,
+        contractSignedAt: new Date().toISOString(),
+        contractSignature: '',
+        assignedOfficer: null,
+      };
+
+      try {
+        if (store.description && store.description.trim().startsWith('{')) {
+          contractDetails = JSON.parse(store.description);
+        }
+      } catch (e) {}
+
+      // Update details
+      const updatedContract = {
+        ...contractDetails,
+        paymentScreenshotUrl: url,
+        paymentStatus: 'pending' // Reset status to pending for superadmin approval!
+      };
+
+      const { error } = await supabase
+        .from('stores')
+        .update({
+          description: JSON.stringify(updatedContract),
+          is_paused: true // Keep store paused until re-verified!
+        })
+        .eq('id', store.id);
+
+      if (error) throw error;
+
+      // Update state
+      setStore({
+        ...store,
+        description: JSON.stringify(updatedContract),
+        is_paused: true
+      });
+
+      setReuploadSuccess(true);
+      setTimeout(() => setReuploadSuccess(false), 3000);
+      alert("🎉 Success: Payment screenshot successfully re-uploaded! Your store is now awaiting superadmin re-verification.");
+    } catch (err: any) {
+      console.error(err);
+      alert(`⚠️ Failed to update store payment info: ${err.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <div className="space-y-8 max-w-4xl">
       {/* Expiry Header Banner */}
@@ -252,6 +355,94 @@ export default function SubscriptionPage() {
             }`}>
               {expiryDate === null ? 'ACTIVE (LIFETIME)' : 'ACTIVE (PAID)'}
             </span>
+          </div>
+        </div>
+      )}
+
+      {contract && (
+        <div className="bg-card text-card-foreground rounded-xl border border-border/50 p-6 shadow-sm space-y-6">
+          <div className="flex items-center justify-between border-b pb-4 border-border/40">
+            <div className="text-left">
+              <h3 className="font-bold text-base">Payment & Onboarding Status</h3>
+              <p className="text-xs text-muted-foreground mt-0.5 font-sans">Verify your payment verification timeline and uploaded screenshot.</p>
+            </div>
+            
+            <span className={`px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider ${
+              contract.paymentStatus === 'verified'
+                ? 'bg-emerald-100 text-emerald-850 dark:bg-emerald-500/10 dark:text-emerald-400'
+                : contract.paymentStatus === 'rejected'
+                  ? 'bg-red-100 text-red-850 dark:bg-red-500/10 dark:text-red-400'
+                  : 'bg-amber-100 text-amber-850 dark:bg-amber-500/10 dark:text-amber-400'
+            }`}>
+              STATUS: {contract.paymentStatus?.toUpperCase() || 'PENDING'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left side: Upload Screenshot display */}
+            <div className="space-y-4 text-left">
+              <span className="text-[10px] text-muted-foreground uppercase font-black block tracking-wider">Uploaded Screenshot proof</span>
+              {contract.paymentScreenshotUrl ? (
+                <div className="relative group max-w-xs border border-border rounded-xl overflow-hidden shadow-md bg-muted/20">
+                  <img 
+                    src={contract.paymentScreenshotUrl} 
+                    alt="Payment screenshot proof" 
+                    className="max-h-[180px] w-full object-contain mx-auto p-2"
+                  />
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <a 
+                      href={contract.paymentScreenshotUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="bg-primary text-primary-foreground text-[10px] font-black px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors"
+                    >
+                      View Fullsize 🌐
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div className="border border-dashed border-border rounded-xl p-8 text-center text-muted-foreground bg-muted/10">
+                  <ShieldAlert className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+                  <p className="text-xs font-semibold">No screenshot found on file</p>
+                </div>
+              )}
+            </div>
+
+            {/* Right side: Reupload dropzone if pending or rejected */}
+            <div className="space-y-4 flex flex-col justify-center text-left">
+              <span className="text-[10px] text-muted-foreground uppercase font-black block tracking-wider">Submit/Re-upload payment receipt</span>
+              
+              {contract.paymentStatus === 'verified' ? (
+                <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-4 text-emerald-800 dark:text-emerald-350 text-xs leading-relaxed space-y-1">
+                  <span className="font-bold block">✨ Payment Verification Confirmed!</span>
+                  Your payment has been manually approved by the super administration. Your e-commerce storefront is active and open to customers.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {contract.paymentStatus === 'rejected' && (
+                    <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-4 text-red-800 dark:text-red-350 text-xs leading-relaxed">
+                      <strong className="block font-bold">🚨 Verification Compliance Notice:</strong>
+                      Your previous payment proof was rejected. Please transfer the setup fee and upload a clear screenshot of the UPI transaction receipt below.
+                    </div>
+                  )}
+
+                  <label className="relative border border-dashed border-border hover:border-primary/50 transition-colors rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer bg-muted/20 hover:bg-muted/30">
+                    <Upload className="w-6 h-6 text-muted-foreground mb-2 animate-bounce" />
+                    <span className="text-xs font-bold text-foreground">
+                      {uploading ? 'Uploading Transaction Screenshot...' : 'Click to Upload Receipt'}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground mt-1 block">Supports PNG, JPG (Max 5MB)</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleScreenshotReupload}
+                      disabled={uploading}
+                      className="hidden" 
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

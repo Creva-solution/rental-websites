@@ -22,7 +22,7 @@ export default function SuperAdminDashboard() {
   const [brandName, setBrandName] = useState<string>('StoreBuilder');
   const [brandLogo, setBrandLogo] = useState<string>('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80');
   const [invoiceNumber, setInvoiceNumber] = useState<string>('');
-  const [modalTab, setModalTab] = useState<'billing' | 'profile' | 'contract'>('billing');
+  const [modalTab, setModalTab] = useState<'billing' | 'profile' | 'contract' | 'payment'>('billing');
   
   // Advanced filters and branding dashboard states
   const [activeFilter, setActiveFilter] = useState<string>('all');
@@ -551,6 +551,165 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
       setTimeout(() => setActionStatus(null), 3000);
     } catch (err: any) {
       alert(`Error updating domain permission: ${err.message}`);
+      setActionStatus(null);
+    }
+  };
+
+  const handleVerifyPayment = async () => {
+    if (!selectedStore) return;
+    let contract = null;
+    try {
+      contract = JSON.parse(selectedStore.description);
+    } catch (e) {}
+    if (!contract) return;
+
+    setActionStatus("Verifying payment...");
+    try {
+      const updatedContract = {
+        ...contract,
+        paymentStatus: 'verified'
+      };
+
+      const { error: updateError } = await supabase
+        .from('stores')
+        .update({
+          description: JSON.stringify(updatedContract),
+          is_paused: false // Automatically activate the store when payment is verified!
+        })
+        .eq('id', selectedStore.id);
+
+      if (updateError) throw updateError;
+
+      // Update state
+      const updatedStore = {
+        ...selectedStore,
+        description: JSON.stringify(updatedContract),
+        is_paused: false
+      };
+      setSelectedStore(updatedStore);
+      setStores(stores.map(s => s.id === selectedStore.id ? updatedStore : s));
+
+      setActionStatus("Payment verified & Store activated!");
+      setTimeout(() => setActionStatus(null), 2500);
+      alert("🎉 Success: Payment verified. The storefront has been marked active and unpaused!");
+    } catch (err: any) {
+      console.error(err);
+      alert(`⚠️ Failed to verify payment: ${err.message}`);
+      setActionStatus(null);
+    }
+  };
+
+  const handleRejectPayment = async () => {
+    if (!selectedStore) return;
+    let contract = null;
+    try {
+      contract = JSON.parse(selectedStore.description);
+    } catch (e) {}
+    if (!contract) return;
+
+    if (!confirm("🚨 Are you sure you want to REJECT this merchant's payment verification?")) return;
+
+    setActionStatus("Rejecting payment...");
+    try {
+      const updatedContract = {
+        ...contract,
+        paymentStatus: 'rejected'
+      };
+
+      const { error: updateError } = await supabase
+        .from('stores')
+        .update({
+          description: JSON.stringify(updatedContract),
+          is_paused: true // Automatically lock/close the storefront when rejected!
+        })
+        .eq('id', selectedStore.id);
+
+      if (updateError) throw updateError;
+
+      // Update state
+      const updatedStore = {
+        ...selectedStore,
+        description: JSON.stringify(updatedContract),
+        is_paused: true
+      };
+      setSelectedStore(updatedStore);
+      setStores(stores.map(s => s.id === selectedStore.id ? updatedStore : s));
+
+      setActionStatus("Payment rejected & storefront locked!");
+      setTimeout(() => setActionStatus(null), 2500);
+      alert("✅ Merchant payment rejected successfully. Storefront is locked and merchant is notified via their dashboard.");
+    } catch (err: any) {
+      console.error(err);
+      alert(`⚠️ Failed to reject payment: ${err.message}`);
+      setActionStatus(null);
+    }
+  };
+
+  const handleDeleteScreenshot = async () => {
+    if (!selectedStore) return;
+    let contract = null;
+    try {
+      contract = JSON.parse(selectedStore.description);
+    } catch (e) {}
+    if (!contract || !contract.paymentScreenshotUrl) return;
+
+    if (!confirm("🚨 Are you sure you want to permanently delete this payment screenshot from cloud storage?")) return;
+
+    setActionStatus("Deleting screenshot...");
+    try {
+      const imageUrl = contract.paymentScreenshotUrl;
+      // Extract bucket and file path from URL
+      let filePath = '';
+      let bucket = 'assets';
+
+      if (imageUrl.includes('/products/')) {
+        bucket = 'products';
+        filePath = imageUrl.split('/products/').pop() || '';
+      } else if (imageUrl.includes('/assets/')) {
+        bucket = 'assets';
+        filePath = imageUrl.split('/assets/').pop() || '';
+      }
+
+      // If it's a valid storage file path, remove it from Supabase Storage bucket!
+      if (filePath && !filePath.startsWith('data:')) {
+        // Remove query parameters or hash from path if any
+        filePath = filePath.split('?')[0];
+        const { error: storageError } = await supabase.storage
+          .from(bucket)
+          .remove([filePath]);
+        if (storageError) console.error("Failed to delete file from bucket:", storageError);
+      }
+
+      // Update the database description field
+      const updatedContract = {
+        ...contract,
+        paymentScreenshotUrl: null,
+        paymentStatus: 'pending'
+      };
+
+      const { error: updateError } = await supabase
+        .from('stores')
+        .update({
+          description: JSON.stringify(updatedContract)
+        })
+        .eq('id', selectedStore.id);
+
+      if (updateError) throw updateError;
+
+      // Update state
+      const updatedStore = {
+        ...selectedStore,
+        description: JSON.stringify(updatedContract)
+      };
+      setSelectedStore(updatedStore);
+      setStores(stores.map(s => s.id === selectedStore.id ? updatedStore : s));
+
+      setActionStatus("Payment screenshot successfully deleted!");
+      setTimeout(() => setActionStatus(null), 2500);
+      alert("✅ Payment screenshot permanently deleted from S3-compatible cloud storage.");
+    } catch (err: any) {
+      console.error(err);
+      alert(`⚠️ Failed to delete screenshot: ${err.message}`);
       setActionStatus(null);
     }
   };
@@ -1265,6 +1424,18 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                   <ShieldCheck className="w-3.5 h-3.5" />
                   MERCHANT CONTRACT
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setModalTab('payment')}
+                  className={`pb-2.5 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 ${
+                    modalTab === 'payment'
+                      ? 'border-blue-500 text-blue-400 font-extrabold'
+                      : 'border-transparent text-gray-500 hover:text-gray-400'
+                  }`}
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  PAYMENT VERIFICATION
+                </button>
               </div>
 
               {modalTab === 'profile' ? (
@@ -1443,6 +1614,143 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                           <p className="text-[11px] text-gray-400 leading-relaxed text-justify">
                             Merchant signed: "The Creva Platform grants the signing Merchant the right to operate an e-commerce storefront utilizing Creva's software architecture. Merchant agrees to sell only products that comply with local guidelines. Selling illegal, counterfeit, or prohibited materials will result in immediate shop termination without any refunds."
                           </p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : modalTab === 'payment' ? (
+                <div className="space-y-6 text-left">
+                  {(() => {
+                    let contract = null;
+                    try {
+                      if (selectedStore.description && selectedStore.description.trim().startsWith('{')) {
+                        contract = JSON.parse(selectedStore.description);
+                      }
+                    } catch (e) {}
+
+                    if (!contract || !contract.contractSigned) {
+                      return (
+                        <div className="bg-gray-950 p-6 rounded-xl border border-gray-850 text-center space-y-3">
+                          <ShieldAlert className="w-12 h-12 text-yellow-500 mx-auto" />
+                          <h4 className="text-sm font-bold text-white uppercase tracking-wider">No Payment Details Found</h4>
+                          <p className="text-xs text-gray-400 max-w-sm mx-auto leading-relaxed">
+                            This store is either a legacy storefront or registered before the payment upload workflow was added.
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    const isVerified = contract.paymentStatus === 'verified';
+                    const hasScreenshot = !!contract.paymentScreenshotUrl;
+
+                    return (
+                      <div className="space-y-6">
+                        {/* Status Alert */}
+                        <div className={`border rounded-xl p-4 flex items-center justify-between ${
+                          isVerified
+                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                            : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                        }`}>
+                          <div className="flex items-center gap-3">
+                            {isVerified ? (
+                              <ShieldCheck className="w-6 h-6" />
+                            ) : (
+                              <ShieldAlert className="w-6 h-6 animate-pulse" />
+                            )}
+                            <div>
+                              <span className="text-[10px] font-black uppercase tracking-widest block">PAYMENT VERIFICATION</span>
+                              <span className="text-xs font-bold text-white">
+                                {isVerified ? 'Payment Verified & Storefront Active' : 'Pending Verification Review'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {!isVerified && (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={handleRejectPayment}
+                                className="bg-red-650 hover:bg-red-750 text-white text-[11px] font-black px-3.5 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 border border-red-800/30"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                                Reject Payment
+                              </button>
+                              <button
+                                onClick={handleVerifyPayment}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black px-3.5 py-2 rounded-xl transition-all shadow-md flex items-center gap-1"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                Verify & Approve
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Payment summary grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gray-950 p-4 rounded-xl border border-gray-850">
+                          <div>
+                            <span className="text-[9px] text-gray-500 uppercase block font-semibold">Subscribed Plan</span>
+                            <span className="text-xs font-black text-indigo-400 mt-1 block">
+                              {contract.selectedPlan === '30' ? '1 Month (₹499)' :
+                               contract.selectedPlan === '365' ? '1 Year (₹3,999)' : 'Lifetime (₹9,999)'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-gray-500 uppercase block font-semibold font-sans">Payment Mode</span>
+                            <span className="text-xs font-bold text-gray-300 mt-1 block font-mono">UPI Transfer</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-gray-500 uppercase block font-semibold">Verify Status</span>
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold mt-1 ${
+                              isVerified
+                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                            }`}>
+                              {contract.paymentStatus?.toUpperCase() || 'PENDING'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Payment Screenshot Display */}
+                        <div className="bg-gray-950 p-6 rounded-xl border border-gray-850 text-center space-y-4">
+                          <span className="text-[9px] text-gray-500 uppercase block font-semibold tracking-wider text-left">
+                            Transaction Screenshot Uploaded
+                          </span>
+
+                          {hasScreenshot ? (
+                            <div className="space-y-4">
+                              <div className="relative group max-w-sm mx-auto border border-gray-800 rounded-xl overflow-hidden shadow-2xl bg-gray-900">
+                                <img
+                                  src={contract.paymentScreenshotUrl}
+                                  alt="Merchant Payment Screenshot"
+                                  className="w-full h-auto max-h-[300px] object-contain mx-auto"
+                                />
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                  <a
+                                    href={contract.paymentScreenshotUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-all shadow-md"
+                                  >
+                                    View Fullsize 🌐
+                                  </a>
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={handleDeleteScreenshot}
+                                className="bg-red-600 hover:bg-red-700 text-white text-[11px] font-black px-4 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 mx-auto border border-red-800/35"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                Delete Screenshot (S3 Storage)
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="py-8 flex flex-col items-center justify-center text-gray-400 gap-2">
+                              <ShieldAlert className="w-10 h-10 text-gray-650" />
+                              <p className="text-xs font-bold text-gray-500">No payment screenshot attached to this storefront.</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );

@@ -130,6 +130,54 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </header>
 
+        {store.is_paused && (() => {
+          let paymentStatus = null;
+          try {
+            if (store.description && store.description.trim().startsWith('{')) {
+              const parsed = JSON.parse(store.description);
+              paymentStatus = parsed.paymentStatus;
+            }
+          } catch (e) {}
+
+          if (paymentStatus === 'rejected') {
+            return (
+              <div className="bg-red-50 border-b border-red-200 px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-red-800">
+                <div className="flex items-center gap-2.5">
+                  <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                  <div className="text-xs">
+                    <strong className="block font-bold">🚨 Onboarding Payment Screenshot Rejected</strong>
+                    Our verification compliance team reviewed and rejected your payment screenshot (marked as invalid or unverified). Please re-upload a valid receipt immediately to activate your storefront.
+                  </div>
+                </div>
+                <Link 
+                  href="/admin/subscription" 
+                  className="text-[10px] uppercase font-black tracking-widest text-red-900 bg-red-500/10 border border-red-500/25 px-3 py-1.5 rounded-lg hover:bg-red-500/20 self-start sm:self-auto shrink-0 transition-all font-sans"
+                >
+                  Re-Upload Screenshot
+                </Link>
+              </div>
+            );
+          }
+
+          return (
+            <div className="bg-amber-50 border-b border-amber-200 px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-800">
+              <div className="flex items-center gap-2.5">
+                <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
+                <div className="text-xs">
+                  <strong className="block font-bold">Storefront Under Verification Review</strong>
+                  Your payment screenshot is currently being reviewed by our verification compliance team. Your customer facing storefront remains in paused maintenance mode until approved.
+                </div>
+              </div>
+              <Link 
+                href="/admin/subscription" 
+                className="text-[10px] uppercase font-black tracking-widest text-amber-900 bg-amber-500/10 border border-amber-500/25 px-3 py-1.5 rounded-lg hover:bg-amber-500/20 self-start sm:self-auto shrink-0 transition-all"
+              >
+                Check Setup Details
+              </Link>
+            </div>
+          );
+        })()}
+
         <div className="flex-1 overflow-y-auto p-6">
           {children}
         </div>
