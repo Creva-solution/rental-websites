@@ -284,13 +284,27 @@ export default function BusinessSetupWizard() {
     setIsUpiSimulating(true);
     setUpiSimulationStep(1);
 
+    // 1. Generate real UPI deep link!
+    const upiId = globalSettings?.platformUpi || 'creva@ybl';
+    const planAmount = selectedPlan === '30' ? '499' : selectedPlan === '365' ? '3999' : '9999';
+    const merchantName = globalSettings?.brandName || 'StoreBuilder';
+    const upiIntent = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${planAmount}&cu=INR`;
+
+    // 2. If user is on a mobile device, try opening the real UPI deep link!
+    if (typeof window !== 'undefined') {
+      const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+      if (isMobile) {
+        window.location.href = upiIntent;
+      }
+    }
+
     // Step 1: Connecting securely...
     setTimeout(() => {
       setUpiSimulationStep(2); // Step 2: Transferring amount...
       
       setTimeout(() => {
         setUpiSimulationStep(3); // Step 3: Payment successful!
-      }, 2000);
+      }, 2500);
     }, 1500);
   };
 
@@ -935,21 +949,67 @@ export default function BusinessSetupWizard() {
                     {paymentMethod === 'app' && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {[
-                          { id: 'gpay', name: 'Google Pay', color: 'hover:border-blue-500 hover:bg-blue-500/5', icon: '🔵' },
-                          { id: 'phonepe', name: 'PhonePe', color: 'hover:border-purple-500 hover:bg-purple-500/5', icon: '🟣' },
-                          { id: 'paytm', name: 'Paytm Wallet', color: 'hover:border-sky-500 hover:bg-sky-500/5', icon: '🌀' },
-                          { id: 'bhim', name: 'BHIM UPI', color: 'hover:border-orange-500 hover:bg-orange-500/5', icon: '🟠' }
+                          { 
+                            id: 'gpay', 
+                            name: 'Google Pay', 
+                            color: 'hover:border-blue-500 hover:bg-blue-500/5', 
+                            icon: (
+                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 shrink-0">
+                                <rect width="24" height="24" rx="6" fill="#f1f3f4" />
+                                <path d="M12.2 16.2h-2.1v-5.6h-2.1v-1.8h6.3v1.8h-2.1v-5.6z" fill="#4285F4" />
+                                <path d="M17.1 12.8c.8 0 1.5.7 1.5 1.5v2.8h-1.8v-.6c-.3.4-.8.7-1.4.7-.9 0-1.7-.8-1.7-1.8 0-1 .8-1.8 1.7-1.8.6 0 1.1.3 1.4.7v-.8c0-.5-.4-.9-.9-.9s-.9.4-.9.9h-1.8c0-1.4 1.2-2.4 2.7-2.4z" fill="#34A853" />
+                                <path d="M17.1 14.5c0-.4-.3-.6-.7-.6s-.7.3-.7.6.3.7.7.7.7-.3.7-.7z" fill="#EA4335" />
+                                <path d="M8 12.8H5v1.8h3v-1.8z" fill="#FBBC05" />
+                              </svg>
+                            ) 
+                          },
+                          { 
+                            id: 'phonepe', 
+                            name: 'PhonePe', 
+                            color: 'hover:border-purple-500 hover:bg-purple-500/5', 
+                            icon: (
+                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 shrink-0">
+                                <rect width="24" height="24" rx="6" fill="#5f259f" />
+                                <circle cx="12" cy="12" r="6" stroke="#ffffff" strokeWidth="2" fill="none" />
+                                <circle cx="12" cy="12" r="2" fill="#ffffff" />
+                              </svg>
+                            ) 
+                          },
+                          { 
+                            id: 'paytm', 
+                            name: 'Paytm Wallet', 
+                            color: 'hover:border-sky-500 hover:bg-sky-500/5', 
+                            icon: (
+                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 shrink-0">
+                                <rect width="24" height="24" rx="6" fill="#002e6e" />
+                                <text x="12" y="15" fill="#00baf2" fontStyle="italic" fontWeight="bold" fontSize="9" textAnchor="middle" fontFamily="sans-serif">paytm</text>
+                              </svg>
+                            ) 
+                          },
+                          { 
+                            id: 'bhim', 
+                            name: 'BHIM UPI', 
+                            color: 'hover:border-orange-500 hover:bg-orange-500/5', 
+                            icon: (
+                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 shrink-0">
+                                <rect width="24" height="24" rx="6" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1" />
+                                <path d="M6 10l6-6 6 6-6 6-6-6z" fill="#097939" />
+                                <path d="M12 4l6 6-6 6V4z" fill="#ed1c24" />
+                                <text x="12" y="14" fill="#ffffff" fontWeight="black" fontSize="5" textAnchor="middle" fontFamily="sans-serif">BHIM</text>
+                              </svg>
+                            ) 
+                          }
                         ].map((app) => (
                           <button
                             key={app.id}
                             type="button"
                             onClick={() => handleSimulateUpiApp(app.id as any)}
-                            className={`flex items-center gap-3 p-4 rounded-xl border border-border bg-card text-left text-xs font-bold transition-all hover:scale-102 hover:shadow-sm ${app.color}`}
+                            className={`flex items-center gap-3.5 p-4 rounded-2xl border border-border bg-card text-left text-xs font-bold transition-all hover:scale-102 hover:shadow-md ${app.color}`}
                           >
-                            <span className="text-xl shrink-0">{app.icon}</span>
+                            <div className="shrink-0">{app.icon}</div>
                             <div>
-                              <span className="block font-bold text-foreground">{app.name}</span>
-                              <span className="text-[10px] text-muted-foreground font-normal">Pay directly via instant deep link</span>
+                              <span className="block font-bold text-foreground text-[13px]">{app.name}</span>
+                              <span className="text-[10px] text-muted-foreground font-normal block mt-0.5">Pay directly via instant deep link</span>
                             </div>
                           </button>
                         ))}
