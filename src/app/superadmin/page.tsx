@@ -1810,7 +1810,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                       }
                     } catch (e) {}
 
-                    if (!contract || !contract.contractSigned) {
+                    if (!contract) {
                       return (
                         <div className="bg-gray-950 p-6 rounded-xl border border-gray-850 text-center space-y-3">
                           <ShieldAlert className="w-12 h-12 text-yellow-500 mx-auto" />
@@ -1828,120 +1828,129 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                     return (
                       <div className="space-y-6">
                         {/* 1. Subscription Onboarding Payment Section */}
-                        <div className="border border-gray-800 p-4 rounded-xl bg-gray-950/20 space-y-4">
-                          <h4 className="text-xs font-black text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
-                            <Zap className="w-3.5 h-3.5" />
-                            1. Platform Subscription Payment
-                          </h4>
+                        {(!contract.contractSigned && !contract.paymentStatus && !contract.paymentScreenshotUrl) ? (
+                          <div className="border border-gray-800 p-4 rounded-xl bg-gray-950/20 space-y-2">
+                            <h4 className="text-xs font-black text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                              <Zap className="w-3.5 h-3.5" />
+                              1. Platform Subscription Payment
+                            </h4>
+                            <p className="text-xs text-gray-500 italic">This store is manually activated or a legacy storefront without subscription payment proof.</p>
+                          </div>
+                        ) : (
+                          <div className="border border-gray-800 p-4 rounded-xl bg-gray-950/20 space-y-4">
+                            <h4 className="text-xs font-black text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                              <Zap className="w-3.5 h-3.5" />
+                              1. Platform Subscription Payment
+                            </h4>
 
-                          <div className={`border rounded-xl p-4 flex items-center justify-between ${
-                            isVerified
-                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                              : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                          }`}>
-                            <div className="flex items-center gap-3">
-                              {isVerified ? (
-                                <ShieldCheck className="w-6 h-6" />
-                              ) : (
-                                <ShieldAlert className="w-6 h-6 animate-pulse" />
+                            <div className={`border rounded-xl p-4 flex items-center justify-between ${
+                              isVerified
+                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                            }`}>
+                              <div className="flex items-center gap-3">
+                                {isVerified ? (
+                                  <ShieldCheck className="w-6 h-6" />
+                                ) : (
+                                  <ShieldAlert className="w-6 h-6 animate-pulse" />
+                                )}
+                                <div>
+                                  <span className="text-[10px] font-black uppercase tracking-widest block">PAYMENT VERIFICATION</span>
+                                  <span className="text-xs font-bold text-white">
+                                    {isVerified ? 'Payment Verified & Storefront Active' : 'Pending Verification Review'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {!isVerified && (
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={handleRejectPayment}
+                                    className="bg-red-650 hover:bg-red-750 text-white text-[11px] font-black px-3.5 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 border border-red-800/30"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                    Reject Payment
+                                  </button>
+                                  <button
+                                    onClick={handleVerifyPayment}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black px-3.5 py-2 rounded-xl transition-all shadow-md flex items-center gap-1"
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                    Verify & Approve
+                                  </button>
+                                </div>
                               )}
+                            </div>
+
+                            {/* Payment summary grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gray-950 p-4 rounded-xl border border-gray-850">
                               <div>
-                                <span className="text-[10px] font-black uppercase tracking-widest block">PAYMENT VERIFICATION</span>
-                                <span className="text-xs font-bold text-white">
-                                  {isVerified ? 'Payment Verified & Storefront Active' : 'Pending Verification Review'}
+                                <span className="text-[9px] text-gray-500 uppercase block font-semibold">Subscribed Plan</span>
+                                <span className="text-xs font-black text-indigo-400 mt-1 block">
+                                  {contract.selectedPlan === '30' ? '1 Month' :
+                                   contract.selectedPlan === '365' ? '1 Year' : 'Lifetime'}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-[9px] text-gray-500 uppercase block font-semibold font-sans">Payment Mode</span>
+                                <span className="text-xs font-bold text-gray-300 mt-1 block font-mono">UPI Transfer</span>
+                              </div>
+                              <div>
+                                <span className="text-[9px] text-gray-500 uppercase block font-semibold">Verify Status</span>
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold mt-1 ${
+                                  isVerified
+                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                    : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                }`}>
+                                  {contract.paymentStatus?.toUpperCase() || 'PENDING'}
                                 </span>
                               </div>
                             </div>
 
-                            {!isVerified && (
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={handleRejectPayment}
-                                  className="bg-red-650 hover:bg-red-750 text-white text-[11px] font-black px-3.5 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 border border-red-800/30"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                  Reject Payment
-                                </button>
-                                <button
-                                  onClick={handleVerifyPayment}
-                                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black px-3.5 py-2 rounded-xl transition-all shadow-md flex items-center gap-1"
-                                >
-                                  <Check className="w-3.5 h-3.5" />
-                                  Verify & Approve
-                                </button>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Payment summary grid */}
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gray-950 p-4 rounded-xl border border-gray-850">
-                            <div>
-                              <span className="text-[9px] text-gray-500 uppercase block font-semibold">Subscribed Plan</span>
-                              <span className="text-xs font-black text-indigo-400 mt-1 block">
-                                {contract.selectedPlan === '30' ? '1 Month' :
-                                 contract.selectedPlan === '365' ? '1 Year' : 'Lifetime'}
+                            {/* Payment Screenshot Display */}
+                            <div className="bg-gray-950 p-6 rounded-xl border border-gray-850 text-center space-y-4">
+                              <span className="text-[9px] text-gray-500 uppercase block font-semibold tracking-wider text-left">
+                                Transaction Screenshot Uploaded
                               </span>
-                            </div>
-                            <div>
-                              <span className="text-[9px] text-gray-500 uppercase block font-semibold font-sans">Payment Mode</span>
-                              <span className="text-xs font-bold text-gray-300 mt-1 block font-mono">UPI Transfer</span>
-                            </div>
-                            <div>
-                              <span className="text-[9px] text-gray-500 uppercase block font-semibold">Verify Status</span>
-                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold mt-1 ${
-                                isVerified
-                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                              }`}>
-                                {contract.paymentStatus?.toUpperCase() || 'PENDING'}
-                              </span>
-                            </div>
-                          </div>
 
-                          {/* Payment Screenshot Display */}
-                          <div className="bg-gray-950 p-6 rounded-xl border border-gray-850 text-center space-y-4">
-                            <span className="text-[9px] text-gray-500 uppercase block font-semibold tracking-wider text-left">
-                              Transaction Screenshot Uploaded
-                            </span>
-
-                            {hasScreenshot ? (
-                              <div className="space-y-4">
-                                <div className="relative group max-w-sm mx-auto border border-gray-800 rounded-xl overflow-hidden shadow-2xl bg-gray-900">
-                                  <img
-                                    src={contract.paymentScreenshotUrl}
-                                    alt="Merchant Payment Screenshot"
-                                    className="w-full h-auto max-h-[300px] object-contain mx-auto"
-                                  />
-                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                    <a
-                                      href={contract.paymentScreenshotUrl}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-all shadow-md"
-                                    >
-                                      View Fullsize 🌐
-                                    </a>
+                              {hasScreenshot ? (
+                                <div className="space-y-4">
+                                  <div className="relative group max-w-sm mx-auto border border-gray-800 rounded-xl overflow-hidden shadow-2xl bg-gray-900">
+                                    <img
+                                      src={contract.paymentScreenshotUrl}
+                                      alt="Merchant Payment Screenshot"
+                                      className="w-full h-auto max-h-[300px] object-contain mx-auto"
+                                    />
+                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                      <a
+                                        href={contract.paymentScreenshotUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-all shadow-md"
+                                      >
+                                        View Fullsize 🌐
+                                      </a>
+                                    </div>
                                   </div>
+
+                                  <button
+                                    onClick={handleDeleteScreenshot}
+                                    className="bg-red-600 hover:bg-red-750 text-white text-[11px] font-black px-4 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 mx-auto border border-red-800/35"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    Delete Screenshot (S3 Storage)
+                                  </button>
                                 </div>
-
-                                <button
-                                  onClick={handleDeleteScreenshot}
-                                  className="bg-red-600 hover:bg-red-700 text-white text-[11px] font-black px-4 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 mx-auto border border-red-800/35"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                  Delete Screenshot (S3 Storage)
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="py-8 flex flex-col items-center justify-center text-gray-400 gap-2">
-                                <ShieldAlert className="w-10 h-10 text-gray-650" />
-                                <p className="text-xs font-bold text-gray-500">No payment screenshot attached to this storefront.</p>
-                              </div>
-                            )}
+                              ) : (
+                                <div className="py-8 flex flex-col items-center justify-center text-gray-400 gap-2">
+                                  <ShieldAlert className="w-10 h-10 text-gray-650" />
+                                  <p className="text-xs font-bold text-gray-500">No payment screenshot attached to this storefront.</p>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
+                        )}
 
-                        {/* 2. Custom Domain Unlock Verification Section */}
                         <div className="border border-gray-800 p-4 rounded-xl bg-gray-950/20 space-y-4">
                           <h4 className="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
                             <Globe className="w-3.5 h-3.5 animate-pulse" />
