@@ -841,10 +841,79 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
 
       setActionStatus("Payment screenshot successfully deleted!");
       setTimeout(() => setActionStatus(null), 2500);
-      alert("✅ Payment screenshot permanently deleted from S3-compatible cloud storage.");
+      alert("Payment screenshot permanently deleted from S3-compatible cloud storage.");
     } catch (err: any) {
       console.error(err);
-      alert(`⚠️ Failed to delete screenshot: ${err.message}`);
+      alert(`Failed to delete screenshot: ${err.message}`);
+      setActionStatus(null);
+    }
+  };
+
+  const handleDeleteDomainScreenshot = async () => {
+    if (!selectedStore) return;
+    let contract = null;
+    try {
+      contract = JSON.parse(selectedStore.description);
+    } catch (e) {}
+    if (!contract || !contract.domainPaymentScreenshotUrl) return;
+
+    if (!confirm("Are you sure you want to permanently delete this domain payment screenshot from cloud storage?")) return;
+
+    setActionStatus("Deleting screenshot...");
+    try {
+      const imageUrl = contract.domainPaymentScreenshotUrl;
+      // Extract bucket and file path from URL
+      let filePath = '';
+      let bucket = 'assets';
+
+      if (imageUrl.includes('/products/')) {
+        bucket = 'products';
+        filePath = imageUrl.split('/products/').pop() || '';
+      } else if (imageUrl.includes('/assets/')) {
+        bucket = 'assets';
+        filePath = imageUrl.split('/assets/').pop() || '';
+      }
+
+      // If it's a valid storage file path, remove it from Supabase Storage bucket!
+      if (filePath && !filePath.startsWith('data:')) {
+        // Remove query parameters or hash from path if any
+        filePath = filePath.split('?')[0];
+        const { error: storageError } = await supabase.storage
+          .from(bucket)
+          .remove([filePath]);
+        if (storageError) console.error("Failed to delete file from bucket:", storageError);
+      }
+
+      // Update the database description field
+      const updatedContract = {
+        ...contract,
+        domainPaymentScreenshotUrl: null,
+        domainPaymentStatus: 'none'
+      };
+
+      const { error: updateError } = await supabase
+        .from('stores')
+        .update({
+          description: JSON.stringify(updatedContract)
+        })
+        .eq('id', selectedStore.id);
+
+      if (updateError) throw updateError;
+
+      // Update state
+      const updatedStore = {
+        ...selectedStore,
+        description: JSON.stringify(updatedContract)
+      };
+      setSelectedStore(updatedStore);
+      setStores(stores.map(s => s.id === selectedStore.id ? updatedStore : s));
+
+      setActionStatus("Domain screenshot successfully deleted!");
+      setTimeout(() => setActionStatus(null), 2500);
+      alert("Domain screenshot permanently deleted from cloud storage.");
+    } catch (err: any) {
+      console.error(err);
+      alert(`Failed to delete domain screenshot: ${err.message}`);
       setActionStatus(null);
     }
   };
@@ -2031,7 +2100,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                                 </div>
 
                                 {domainScreenshot ? (
-                                  <div className="bg-gray-950 p-4 rounded-xl border border-gray-850 text-center space-y-3">
+                                  <div className="bg-gray-950 p-4 rounded-xl border border-gray-850 text-center space-y-4">
                                     <span className="text-[9px] text-gray-500 uppercase block font-semibold tracking-wider text-left">
                                       Domain Payment Proof Screenshot
                                     </span>
@@ -2052,6 +2121,14 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                                         </a>
                                       </div>
                                     </div>
+
+                                    <button
+                                      onClick={handleDeleteDomainScreenshot}
+                                      className="bg-red-650 hover:bg-red-750 text-white text-[11px] font-black px-4 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 mx-auto border border-red-800/35"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                      Delete Screenshot (S3 Storage)
+                                    </button>
                                   </div>
                                 ) : (
                                   <div className="bg-gray-950 p-4 rounded-xl border border-gray-850 text-center text-xs text-gray-500 italic">
