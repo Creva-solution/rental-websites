@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  CreditCard, Loader2, Phone, Calendar, Clock, Infinity, ShieldCheck, FileText, Printer, ShieldAlert, Upload
+  CreditCard, Loader2, Phone, Calendar, Clock, Infinity, ShieldCheck, FileText, Printer, ShieldAlert, Upload, Trash2
 } from 'lucide-react';
 
 export default function SubscriptionPage() {
@@ -258,6 +258,66 @@ export default function SubscriptionPage() {
     }
   };
 
+  const handleDeleteScreenshot = async () => {
+    if (!contract || !contract.paymentScreenshotUrl) return;
+
+    if (!confirm("Are you sure you want to permanently delete your payment screenshot from cloud storage?")) return;
+
+    setUploading(true);
+    try {
+      const imageUrl = contract.paymentScreenshotUrl;
+      // Extract bucket and file path from URL
+      let filePath = '';
+      let bucket = 'assets';
+
+      if (imageUrl.includes('/products/')) {
+        bucket = 'products';
+        filePath = imageUrl.split('/products/').pop() || '';
+      } else if (imageUrl.includes('/assets/')) {
+        bucket = 'assets';
+        filePath = imageUrl.split('/assets/').pop() || '';
+      }
+
+      // If it's a valid storage file path, remove it from Supabase Storage bucket!
+      if (filePath && !filePath.startsWith('data:')) {
+        filePath = filePath.split('?')[0];
+        const { error: storageError } = await supabase.storage
+          .from(bucket)
+          .remove([filePath]);
+        if (storageError) console.error("Failed to delete file from bucket:", storageError);
+      }
+
+      // Update the database description field
+      const updatedContract = {
+        ...contract,
+        paymentScreenshotUrl: null,
+        paymentStatus: 'pending'
+      };
+
+      const { error: updateError } = await supabase
+        .from('stores')
+        .update({
+          description: JSON.stringify(updatedContract)
+        })
+        .eq('id', store.id);
+
+      if (updateError) throw updateError;
+
+      // Update state
+      setStore({
+        ...store,
+        description: JSON.stringify(updatedContract)
+      });
+
+      alert("Payment screenshot successfully deleted.");
+    } catch (err: any) {
+      console.error(err);
+      alert(`Failed to delete screenshot: ${err.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const updateStoreDescriptionWithScreenshot = async (url: string) => {
     try {
       // Decode existing description JSON
@@ -383,22 +443,33 @@ export default function SubscriptionPage() {
             <div className="space-y-4 text-left">
               <span className="text-[10px] text-muted-foreground uppercase font-black block tracking-wider">Uploaded Screenshot proof</span>
               {contract.paymentScreenshotUrl ? (
-                <div className="relative group max-w-xs border border-border rounded-xl overflow-hidden shadow-md bg-muted/20">
-                  <img 
-                    src={contract.paymentScreenshotUrl} 
-                    alt="Payment screenshot proof" 
-                    className="max-h-[180px] w-full object-contain mx-auto p-2"
-                  />
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <a 
-                      href={contract.paymentScreenshotUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="bg-primary text-primary-foreground text-[10px] font-black px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors"
-                    >
-                      View Fullsize 🌐
-                    </a>
+                <div className="space-y-3">
+                  <div className="relative group max-w-xs border border-border rounded-xl overflow-hidden shadow-md bg-muted/20">
+                    <img 
+                      src={contract.paymentScreenshotUrl} 
+                      alt="Payment screenshot proof" 
+                      className="max-h-[180px] w-full object-contain mx-auto p-2"
+                    />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <a 
+                        href={contract.paymentScreenshotUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="bg-primary text-primary-foreground text-[10px] font-black px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors"
+                      >
+                        View Fullsize 🌐
+                      </a>
+                    </div>
                   </div>
+
+                  <button
+                    onClick={handleDeleteScreenshot}
+                    disabled={uploading}
+                    className="bg-red-600 hover:bg-red-700 text-white text-[11px] font-black px-4 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 border border-red-800/35"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Delete Screenshot
+                  </button>
                 </div>
               ) : (
                 <div className="border border-dashed border-border rounded-xl p-8 text-center text-muted-foreground bg-muted/10">
