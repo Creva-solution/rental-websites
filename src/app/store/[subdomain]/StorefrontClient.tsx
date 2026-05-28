@@ -186,6 +186,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   let announcementText = `✨ EXCLUSIVE SPRING SALE: FREE SHIPPING ON ALL ORDERS OVER ${currencySymbol}500 ✨`;
   let socialLinks = { instagram: '', facebook: '', twitter: '', youtube: '', linkedin: '' };
   let flashAd: any = null;
+  let selectedTemplate: 'minimal' | 'artisan' | 'bold' = 'minimal';
   try {
     if (store.description && store.description.startsWith('{')) {
       const data = JSON.parse(store.description);
@@ -203,6 +204,11 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       };
       if (data.flashAd) {
         flashAd = data.flashAd;
+      }
+      if (data.selectedTemplate) {
+        selectedTemplate = data.selectedTemplate;
+      } else if (data.template) {
+        selectedTemplate = data.template;
       }
     }
   } catch (e) {
@@ -720,7 +726,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   };
 
   return (
-    <div className="font-luxury-sans selection:bg-purple-600 selection:text-white bg-[#FCFCFC] min-h-screen flex flex-col">
+    <div className="font-theme-body bg-theme-main selection:bg-purple-600 selection:text-white min-h-screen flex flex-col transition-colors duration-300">
       <style>{`
         :root {
           --store-primary: ${primaryColor};
@@ -738,6 +744,172 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         .selection-custom::selection {
           background-color: var(--store-primary) !important;
           color: #fff !important;
+        }
+
+        /* Dynamic Template Typography Overrides */
+        .font-theme-body {
+          font-family: ${
+            selectedTemplate === 'artisan'
+              ? "'Georgia', Cambria, 'Times New Roman', Times, serif"
+              : selectedTemplate === 'bold'
+                ? "'Plus Jakarta Sans', -apple-system, sans-serif"
+                : "system-ui, -apple-system, sans-serif"
+          } !important;
+        }
+        
+        .font-theme-title {
+          font-family: ${
+            selectedTemplate === 'artisan'
+              ? "'Georgia', Cambria, 'Times New Roman', Times, serif"
+              : selectedTemplate === 'bold'
+                ? "'Plus Jakarta Sans', -apple-system, sans-serif"
+                : "system-ui, -apple-system, sans-serif"
+          } !important;
+          font-weight: ${selectedTemplate === 'bold' ? '900' : selectedTemplate === 'artisan' ? '800' : '700'} !important;
+          letter-spacing: ${selectedTemplate === 'minimal' ? '-0.03em' : 'normal'} !important;
+        }
+
+        /* Dynamic Template Background Overrides */
+        .bg-theme-main {
+          background-color: ${
+            selectedTemplate === 'minimal'
+              ? '#FCFCFC'
+              : selectedTemplate === 'artisan'
+                ? '#FAF6F0'
+                : '#FFFFFF'
+          } !important;
+          color: ${selectedTemplate === 'artisan' ? '#2F1E12' : '#111827'} !important;
+        }
+
+        /* Header Style Overrides */
+        .header-theme {
+          background-color: ${
+            selectedTemplate === 'artisan'
+              ? '#FAF6F0'
+              : selectedTemplate === 'bold'
+                ? '#FFFFFF'
+                : '#FFFFFF'
+          } !important;
+          border-bottom: ${
+            selectedTemplate === 'bold'
+              ? '4px solid #000000'
+              : selectedTemplate === 'artisan'
+                ? '1px solid #E4DAC9'
+                : '1px solid #F3F4F6'
+          } !important;
+        }
+
+        /* Announcement Bar Customization */
+        .announcement-bar-theme {
+          background-color: ${
+            selectedTemplate === 'minimal'
+              ? '#000000'
+              : selectedTemplate === 'artisan'
+                ? '#8B5A2B'
+                : 'var(--store-primary)'
+          } !important;
+          color: ${selectedTemplate === 'artisan' ? '#FDFBF7' : '#FFFFFF'} !important;
+          letter-spacing: ${selectedTemplate === 'minimal' ? '0.3em' : '0.1em'} !important;
+          font-weight: ${selectedTemplate === 'bold' ? '950' : '700'} !important;
+          font-family: ${selectedTemplate === 'artisan' ? "'Georgia', serif" : 'inherit'} !important;
+          border-bottom: ${selectedTemplate === 'bold' ? '3px solid #000000' : 'none'} !important;
+        }
+
+        /* Product Card Styling */
+        .card-theme {
+          background-color: ${
+            selectedTemplate === 'artisan' ? '#FDFBF7' : '#FFFFFF'
+          } !important;
+          border: ${
+            selectedTemplate === 'bold'
+              ? '3px solid #000000'
+              : selectedTemplate === 'artisan'
+                ? '1px solid #E4DAC9'
+                : '1px solid #F3F4F6'
+          } !important;
+          border-radius: ${
+            selectedTemplate === 'minimal'
+              ? '0px'
+              : selectedTemplate === 'artisan'
+                ? '24px'
+                : '16px'
+          } !important;
+          box-shadow: ${
+            selectedTemplate === 'bold'
+              ? '6px 6px 0px 0px #000000'
+              : selectedTemplate === 'artisan'
+                ? '0 6px 20px -3px rgba(139, 90, 43, 0.07)'
+                : '0 4px 12px -2px rgba(0,0,0,0.04)'
+          } !important;
+          overflow: hidden !important;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        
+        .card-theme:hover {
+          transform: ${
+            selectedTemplate === 'bold'
+              ? 'translate(-2px, -2px)'
+              : 'translateY(-6px)'
+          } !important;
+          box-shadow: ${
+            selectedTemplate === 'bold'
+              ? '8px 8px 0px 0px #000000'
+              : selectedTemplate === 'artisan'
+                ? '0 12px 28px -5px rgba(139, 90, 43, 0.16)'
+                : '0 12px 24px -4px rgba(0,0,0,0.1)'
+          } !important;
+        }
+
+        /* Primary Button Styling */
+        .btn-theme-primary {
+          background-color: var(--store-primary) !important;
+          color: #FFFFFF !important;
+          font-weight: ${selectedTemplate === 'bold' ? '900' : '700'} !important;
+          border-radius: ${
+            selectedTemplate === 'minimal'
+              ? '0px'
+              : selectedTemplate === 'artisan'
+                ? '9999px'
+                : '8px'
+          } !important;
+          border: ${
+            selectedTemplate === 'bold' ? '3px solid #000000' : 'none'
+          } !important;
+          box-shadow: ${
+            selectedTemplate === 'bold'
+              ? '4px 4px 0px 0px #000000'
+              : 'none'
+          } !important;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+          text-transform: ${selectedTemplate === 'artisan' ? 'none' : 'uppercase'} !important;
+          letter-spacing: ${selectedTemplate === 'minimal' ? '0.15em' : 'normal'} !important;
+        }
+
+        .btn-theme-primary:hover {
+          background-color: var(--store-primary-dark) !important;
+          transform: ${
+            selectedTemplate === 'bold'
+              ? 'translate(-1px, -1px)'
+              : 'scale-[1.02]'
+          } !important;
+          box-shadow: ${
+            selectedTemplate === 'bold'
+              ? '5px 5px 0px 0px #000000'
+              : 'none'
+          } !important;
+        }
+
+        .btn-theme-primary:active {
+          transform: ${
+            selectedTemplate === 'bold'
+              ? 'translate(2px, 2px)'
+              : 'scale-[0.98]'
+          } !important;
+          box-shadow: ${
+            selectedTemplate === 'bold'
+              ? '2px 2px 0px 0px #000000'
+              : 'none'
+          } !important;
         }
 
         /* Base Tailwind purple overrides */
@@ -814,12 +986,12 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       `}</style>
       
       {/* Top Announcement Bar */}
-      <div className="bg-gradient-to-r from-purple-700 via-indigo-800 to-rose-600 text-white text-[10px] md:text-xs py-3 px-4 text-center tracking-[0.25em] uppercase font-bold shadow-sm">
+      <div className="announcement-bar-theme text-xs py-3 px-4 text-center tracking-[0.25em] uppercase font-bold shadow-sm">
         {announcementText}
       </div>
 
       {/* Dynamic Sticky Header Navigation */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-40 transition-all shadow-sm">
+      <header className="header-theme sticky top-0 z-40 transition-all shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between relative gap-4">
           
           {/* Left Side: Hamburger Menu Button */}
@@ -1086,7 +1258,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         {/* Title and Controls Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 pb-6 border-b border-gray-100">
           <div>
-            <h3 className="text-2xl md:text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-rose-600 tracking-tight font-luxury-sans">
+            <h3 className="text-2xl md:text-4xl font-theme-title bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-rose-600 tracking-tight">
               Explore Our Products
             </h3>
           </div>
@@ -1180,7 +1352,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               }
 
               return (
-                <div key={product.id} className="group relative flex flex-col bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+                <div key={product.id} className="card-theme flex flex-col group relative">
                   
                   {/* Square 1:1 image layout with overlay buttons */}
                   <div className="relative aspect-square w-full bg-gray-50 overflow-hidden cursor-pointer" onClick={() => setSelectedProduct(product)}>
@@ -1244,7 +1416,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                             addToCart(product, 1);
                           }
                         }}
-                        className="w-full py-2.5 bg-gradient-to-r from-purple-700 to-rose-500 text-white font-black uppercase text-[9px] tracking-[0.2em] shadow-lg hover:opacity-90 transition-all"
+                        className="w-full py-2.5 btn-theme-primary text-[9px] uppercase tracking-[0.2em] font-black"
                       >
                         Quick Add
                       </button>
@@ -1426,7 +1598,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 ) : (
                   <button 
                     onClick={() => setIsCheckout(true)}
-                    className="w-full py-4 bg-gradient-to-r from-purple-700 to-rose-500 text-white font-black uppercase tracking-[0.2em] text-[10px] flex items-center justify-center gap-2 hover:opacity-90 shadow-md"
+                    className="w-full py-4 btn-theme-primary text-white font-black uppercase tracking-[0.2em] text-[10px] flex items-center justify-center gap-2"
                   >
                     Proceed to Checkout <ArrowRight className="w-4 h-4" />
                   </button>
@@ -1666,7 +1838,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               <div className="flex flex-col gap-3 pt-2">
                 <button
                   onClick={() => addToCart(selectedProduct, 1, selectedSize, selectedColor)}
-                  className="w-full py-3.5 bg-gradient-to-r from-purple-700 to-rose-500 text-white font-black uppercase text-xs tracking-[0.2em] shadow-md hover:opacity-95 transition-all"
+                  className="w-full py-3.5 btn-theme-primary text-white font-black uppercase text-xs tracking-[0.2em]"
                 >
                   Add to Cart
                 </button>

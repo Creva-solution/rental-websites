@@ -7,6 +7,7 @@ import { X } from 'lucide-react';
 
 export default function Home() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const router = useRouter();
 
   return (
@@ -93,13 +94,16 @@ export default function Home() {
              </div>
              <div className="mx-auto grid max-w-5xl items-center gap-6 py-12 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 lg:gap-12">
                 {[
-                  { name: 'Minimal Elegance', desc: 'Clean, modern design for premium products', path: '/templates/minimal/index.html', image: '/images/minimal.png' },
-                  { name: 'Artisan Craft', desc: 'Warm, handmade aesthetic', path: '/templates/artisan/index.html', image: '/images/artisan.png' },
-                  { name: 'Bold Commerce', desc: 'Vibrant, product-focused layout', path: '/templates/bold/index.html', image: '/images/bold.png' }
+                  { id: '1', name: 'Minimal Elegance', desc: 'Clean, modern design for premium products', path: '/templates/minimal/index.html', image: '/images/minimal.png' },
+                  { id: '2', name: 'Artisan Craft', desc: 'Warm, handmade aesthetic', path: '/templates/artisan/index.html', image: '/images/artisan.png' },
+                  { id: '3', name: 'Bold Commerce', desc: 'Vibrant, product-focused layout', path: '/templates/bold/index.html', image: '/images/bold.png' }
                 ].map((template, i) => (
                   <div 
                     key={i} 
-                    onClick={() => setPreviewUrl(template.path)}
+                    onClick={() => {
+                      setPreviewUrl(template.path);
+                      setSelectedTemplateId(template.id);
+                    }}
                     className="group relative overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md hover:-translate-y-1 block cursor-pointer"
                   >
                     <div className="aspect-[4/3] relative overflow-hidden">
@@ -143,7 +147,10 @@ export default function Home() {
             <div className="flex items-center justify-between p-4 border-b">
               <h3 className="font-semibold">Template Preview</h3>
               <button 
-                onClick={() => setPreviewUrl(null)}
+                onClick={() => {
+                  setPreviewUrl(null);
+                  setSelectedTemplateId(null);
+                }}
                 className="p-2 hover:bg-muted rounded-full transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -158,13 +165,16 @@ export default function Home() {
             </div>
             <div className="p-4 border-t flex justify-end gap-3 bg-background">
               <button 
-                onClick={() => setPreviewUrl(null)}
+                onClick={() => {
+                  setPreviewUrl(null);
+                  setSelectedTemplateId(null);
+                }}
                 className="px-6 py-2 rounded-md border border-input bg-background hover:bg-muted font-medium transition-colors"
               >
                 Cancel
               </button>
               <button 
-                onClick={() => router.push('/register')}
+                onClick={() => router.push(`/register?template=${selectedTemplateId || '1'}`)}
                 className="px-6 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 font-medium shadow-sm transition-colors"
               >
                 Start Now

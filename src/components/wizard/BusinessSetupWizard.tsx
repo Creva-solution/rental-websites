@@ -29,6 +29,8 @@ export default function BusinessSetupWizard() {
   const [isUpiSimulating, setIsUpiSimulating] = useState(false);
   const [upiSimulationStep, setUpiSimulationStep] = useState<number>(0);
 
+  const [selectedTemplate, setSelectedTemplate] = useState<'minimal' | 'artisan' | 'bold'>('minimal');
+
   const [formData, setFormData] = useState({
     businessName: '',
     businessDescription: '',
@@ -43,6 +45,24 @@ export default function BusinessSetupWizard() {
   });
 
   const [globalSettings, setGlobalSettings] = useState<any>(null);
+
+  // Pre-select template from URL query parameters if present
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tempParam = params.get('template');
+      if (tempParam === 'minimal' || tempParam === '1') {
+        setSelectedTemplate('minimal');
+        setFormData(prev => ({ ...prev, primaryColor: '#000000' }));
+      } else if (tempParam === 'artisan' || tempParam === '2') {
+        setSelectedTemplate('artisan');
+        setFormData(prev => ({ ...prev, primaryColor: '#8B5A2B' }));
+      } else if (tempParam === 'bold' || tempParam === '3') {
+        setSelectedTemplate('bold');
+        setFormData(prev => ({ ...prev, primaryColor: '#E11D48' }));
+      }
+    }
+  }, []);
 
   // Fetch SaaS settings on mount
   useEffect(() => {
@@ -453,7 +473,8 @@ export default function BusinessSetupWizard() {
         selectedPlan: selectedPlan,
         assignedOfficer: assignedOfficer,
         paymentScreenshotUrl: paymentScreenshotUrl,
-        paymentStatus: 'pending' // Pending super admin verification
+        paymentStatus: 'pending', // Pending super admin verification
+        selectedTemplate: selectedTemplate // Persisted storefront design template selection
       };
 
       const { error: storeError } = await supabase
@@ -594,11 +615,52 @@ export default function BusinessSetupWizard() {
               className="space-y-6"
             >
               <div>
-                <h2 className="text-2xl font-bold tracking-tight mb-2">Design your brand</h2>
-                <p className="text-muted-foreground">Upload your logo and choose your brand colors.</p>
+                <h2 className="text-2xl font-bold tracking-tight mb-2">Design your brand & template</h2>
+                <p className="text-muted-foreground">Select a high-end storefront template, upload your logo and customize your primary theme color.</p>
+              </div>
+
+              {/* Template Selection Section */}
+              <div className="space-y-3">
+                <label className="block text-xs font-black text-muted-foreground uppercase tracking-wider">Choose Storefront Design Template</label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[
+                    { id: 'minimal', name: 'Minimal Elegance', defaultColor: '#000000', desc: 'Sleek luxury, high contrast, clean typography. Perfect for boutique brands.' },
+                    { id: 'artisan', name: 'Artisan Craft', defaultColor: '#8B5A2B', desc: 'Warm cream tones, classical serif accents, hand-crafted organic feel.' },
+                    { id: 'bold', name: 'Bold Commerce', defaultColor: '#E11D48', desc: 'Vibrant, thick-bordered grid layouts, chunky shadows, high-impact details.' }
+                  ].map((tpl) => (
+                    <button
+                      key={tpl.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedTemplate(tpl.id as any);
+                        setFormData(prev => ({ ...prev, primaryColor: tpl.defaultColor }));
+                      }}
+                      className={`flex flex-col text-left p-4 rounded-xl border-2 transition-all relative ${
+                        selectedTemplate === tpl.id
+                          ? 'border-primary bg-primary/5 shadow-md scale-[1.02]'
+                          : 'border-border bg-card hover:bg-muted/30 hover:scale-[1.01]'
+                      }`}
+                    >
+                      {selectedTemplate === tpl.id && (
+                        <span className="absolute top-2.5 right-2.5 bg-primary text-primary-foreground rounded-full p-0.5">
+                          <Check className="w-3.5 h-3.5" />
+                        </span>
+                      )}
+                      <span className="text-[10px] font-black uppercase tracking-widest text-primary">Template {tpl.id === 'minimal' ? '1' : tpl.id === 'artisan' ? '2' : '3'}</span>
+                      <span className="text-sm font-black text-foreground mt-1">{tpl.name}</span>
+                      <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed flex-1">{tpl.desc}</p>
+                      
+                      {/* Theme color hint circle */}
+                      <div className="mt-3.5 flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
+                        <span className="w-3 h-3 rounded-full border border-border" style={{ backgroundColor: tpl.defaultColor }} />
+                        Preset Active
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
               
-              <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-3">
                 <div>
                   <label className="block text-sm font-medium mb-2">Logo</label>
                   <div className="border-2 border-dashed border-input rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/50 transition-colors">
@@ -626,6 +688,18 @@ export default function BusinessSetupWizard() {
                       onChange={handleChange}
                       className="flex-1 h-10 px-3 rounded-md border border-input bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring uppercase" 
                     />
+                  </div>
+                  
+                  {/* Preset Quick Previews */}
+                  <div className="mt-4 p-4 rounded-xl border border-border bg-background">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground mb-2.5 tracking-wider">Store Button Preview</p>
+                    <button 
+                      type="button"
+                      className="w-full py-2 px-4 rounded-md text-white font-medium shadow-sm transition-opacity hover:opacity-90 uppercase text-[10px] font-black tracking-widest"
+                      style={{ backgroundColor: formData.primaryColor }}
+                    >
+                      {selectedTemplate === 'minimal' ? 'EXPLORE CATALOG' : selectedTemplate === 'artisan' ? 'Shop Handcrafted Pieces' : 'ADD TO CART ⚡'}
+                    </button>
                   </div>
                 </div>
               </div>

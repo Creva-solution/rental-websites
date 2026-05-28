@@ -15,6 +15,8 @@ export default function AppearancePage() {
     primary_color: '#3B82F6',
   });
 
+  const [selectedTemplate, setSelectedTemplate] = useState<'minimal' | 'artisan' | 'bold'>('minimal');
+
   const [logoUrl, setLogoUrl] = useState('');
   const [description, setDescription] = useState('');
   const [banners, setBanners] = useState<any[]>([]);
@@ -119,6 +121,7 @@ export default function AppearancePage() {
         cta: 'Claim Offer',
         link: '#catalog'
       };
+      let tplVal = 'minimal';
 
       try {
         if (storeData.description && storeData.description.startsWith('{')) {
@@ -129,6 +132,11 @@ export default function AppearancePage() {
           if (data.flashAd) {
             parsedFlashAd = { ...parsedFlashAd, ...data.flashAd };
           }
+          if (data.selectedTemplate) {
+            tplVal = data.selectedTemplate;
+          } else if (data.template) {
+            tplVal = data.template;
+          }
         }
       } catch (e) {
         console.error("Failed to parse store metadata description:", e);
@@ -137,6 +145,7 @@ export default function AppearancePage() {
       setBanners(bannerList);
       setAnnouncement(announcementMsg);
       setFlashAd(parsedFlashAd);
+      setSelectedTemplate(tplVal as any);
     }
     setLoading(false);
   };
@@ -262,7 +271,8 @@ export default function AppearancePage() {
       description: description,
       banners: banners,
       announcement: announcement,
-      flashAd: flashAd
+      flashAd: flashAd,
+      selectedTemplate: selectedTemplate
     });
 
     try {
@@ -369,6 +379,70 @@ export default function AppearancePage() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Storefront Template Design Selection Card */}
+      <div className="bg-card text-card-foreground rounded-xl border border-border shadow-sm overflow-hidden p-6 space-y-6">
+        <div>
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Layers className="w-5 h-5 text-primary" /> Storefront Layout Template
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">Select one of our three hand-crafted visual systems to instantly change the structure, colors, and layout of your customer storefront.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { 
+              id: 'minimal', 
+              name: 'Minimal Elegance', 
+              desc: 'Clean black & white aesthetics, spacious layouts, razor sharp details, modern thin typography. Ideal for high-end boutique stores.',
+              previewColor: '#000000',
+              label: 'Template 1'
+            },
+            { 
+              id: 'artisan', 
+              name: 'Artisan Craft', 
+              desc: 'Soft warm tone palettes, rounded accents, elegant vintage serif headings. Adds an authentic handcrafted warmth to your catalog.',
+              previewColor: '#8B5A2B',
+              label: 'Template 2'
+            },
+            { 
+              id: 'bold', 
+              name: 'Bold Commerce', 
+              desc: 'High-contrast vibrant designs, thick bold solid borders, heavy flat shadows, eye-catching action labels. Demands attention.',
+              previewColor: '#E11D48',
+              label: 'Template 3'
+            }
+          ].map((tpl) => (
+            <button
+              key={tpl.id}
+              type="button"
+              onClick={() => {
+                setSelectedTemplate(tpl.id as any);
+                setFormData(prev => ({ ...prev, primary_color: tpl.previewColor }));
+              }}
+              className={`flex flex-col text-left p-5 rounded-xl border-2 transition-all relative ${
+                selectedTemplate === tpl.id
+                  ? 'border-primary bg-primary/5 shadow-md scale-[1.02]'
+                  : 'border-border bg-card hover:bg-muted/50 hover:scale-[1.01]'
+              }`}
+            >
+              {selectedTemplate === tpl.id && (
+                <span className="absolute top-3.5 right-3.5 bg-primary text-primary-foreground rounded-full p-0.5">
+                  <Check className="w-3.5 h-3.5" />
+                </span>
+              )}
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary">{tpl.label}</span>
+              <span className="text-base font-black text-foreground mt-1.5">{tpl.name}</span>
+              <p className="text-xs text-muted-foreground mt-2 leading-relaxed flex-1">{tpl.desc}</p>
+              
+              <div className="mt-4 flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                <span className="w-3.5 h-3.5 rounded-full border border-border" style={{ backgroundColor: tpl.previewColor }} />
+                Apply Palette
+              </div>
+            </button>
+          ))}
         </div>
       </div>
 
