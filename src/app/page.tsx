@@ -92,11 +92,13 @@ export default function Home() {
                  </p>
                </div>
              </div>
-             <div className="mx-auto grid max-w-5xl items-center gap-6 py-12 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 lg:gap-12">
+             <div className="mx-auto grid max-w-7xl items-stretch gap-6 py-12 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
                 {[
-                  { id: '1', name: 'Minimal Elegance', desc: 'Clean, modern design for premium products', path: '/templates/minimal/index.html', image: '/images/minimal.png' },
-                  { id: '2', name: 'Artisan Craft', desc: 'Warm, handmade aesthetic', path: '/templates/artisan/index.html', image: '/images/artisan.png' },
-                  { id: '3', name: 'Bold Commerce', desc: 'Vibrant, product-focused layout', path: '/templates/bold/index.html', image: '/images/bold.png' }
+                  { id: '1', name: 'Minimal Elegance', desc: 'Clean, modern design for premium boutique brands', path: '/templates/minimal/index.html', image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=800' },
+                  { id: '2', name: 'Artisan Craft', desc: 'Warm, hand-crafted organic classic serif aesthetic', path: '/templates/artisan/index.html', image: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&q=80&w=800' },
+                  { id: '3', name: 'Bold Commerce', desc: 'Vibrant, high-impact flat grid layout design', path: '/templates/bold/index.html', image: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=800' },
+                  { id: '4', name: 'Dark Luxe', desc: 'Exclusive gold on pitch black luxury storefront', path: '/templates/luxe/index.html', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=800' },
+                  { id: '5', name: 'Retro Grid', desc: 'Space-grotesk flat shadow neon creative layout', path: '/templates/retro/index.html', image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=800' }
                 ].map((template, i) => (
                   <div 
                     key={i} 
@@ -104,7 +106,7 @@ export default function Home() {
                       setPreviewUrl(template.path);
                       setSelectedTemplateId(template.id);
                     }}
-                    className="group relative overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md hover:-translate-y-1 block cursor-pointer"
+                    className="group relative overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md hover:-translate-y-1 flex flex-col justify-between cursor-pointer"
                   >
                     <div className="aspect-[4/3] relative overflow-hidden">
                        <img 
@@ -117,8 +119,9 @@ export default function Home() {
                        </div>
                     </div>
                     <div className="p-6">
-                      <h3 className="font-semibold text-xl mb-2">{template.name}</h3>
-                      <p className="text-sm text-muted-foreground">{template.desc}</p>
+                      <h3 className="font-bold text-sm mb-1">{template.name}</h3>
+                      <p className="text-[11px] text-muted-foreground leading-normal">{template.desc}</p>
+                      <span className="text-[10px] font-black text-primary tracking-wider uppercase mt-3 block">Template {template.id}</span>
                     </div>
                   </div>
                 ))}

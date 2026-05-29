@@ -15,7 +15,7 @@ export default function AppearancePage() {
     primary_color: '#3B82F6',
   });
 
-  const [selectedTemplate, setSelectedTemplate] = useState<'minimal' | 'artisan' | 'bold'>('minimal');
+  const [selectedTemplate, setSelectedTemplate] = useState<'minimal' | 'artisan' | 'bold' | 'luxe' | 'retro'>('minimal');
 
   const [logoUrl, setLogoUrl] = useState('');
   const [description, setDescription] = useState('');
@@ -388,10 +388,10 @@ export default function AppearancePage() {
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Layers className="w-5 h-5 text-primary" /> Storefront Layout Template
           </h3>
-          <p className="text-xs text-muted-foreground mt-1">Select one of our three hand-crafted visual systems to instantly change the structure, colors, and layout of your customer storefront.</p>
+          <p className="text-xs text-muted-foreground mt-1">Select one of our five hand-crafted visual systems to instantly change the structure, colors, and layout of your customer storefront.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
           {[
             { 
               id: 'minimal', 
@@ -413,6 +413,20 @@ export default function AppearancePage() {
               desc: 'High-contrast vibrant designs, thick bold solid borders, heavy flat shadows, eye-catching action labels. Demands attention.',
               previewColor: '#E11D48',
               label: 'Template 3'
+            },
+            { 
+              id: 'luxe', 
+              name: 'Dark Luxe', 
+              desc: 'Premium dark mode system. Pitch black gold backgrounds, gold accents, luxurious Playfair serif headers. High-end luxury products.',
+              previewColor: '#D4AF37',
+              label: 'Template 4'
+            },
+            { 
+              id: 'retro', 
+              name: 'Retro Grid', 
+              desc: 'Space-grotesk flat shadow neon creative system. Bold grids, light pastel lavender colors, pop art elements, chunky buttons.',
+              previewColor: '#8B5CF6',
+              label: 'Template 5'
             }
           ].map((tpl) => (
             <button

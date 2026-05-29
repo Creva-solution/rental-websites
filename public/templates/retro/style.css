@@ -1,0 +1,192 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Space Grotesk', sans-serif;
+    color: #000000;
+    background-color: #F8F6FF;
+    line-height: 1.6;
+}
+
+header {
+    padding: 1.5rem 5%;
+    background: #FFFFFF;
+    border-bottom: 4px solid #000000;
+}
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: #000000;
+    text-transform: uppercase;
+}
+
+nav ul {
+    display: flex;
+    list-style: none;
+    gap: 2rem;
+}
+
+nav ul li a {
+    text-decoration: none;
+    color: #000000;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    transition: all 0.2s;
+}
+
+nav ul li a:hover {
+    color: #8B5CF6;
+}
+
+.cart {
+    background-color: #FFFFFF;
+    border: 3px solid #000000;
+    padding: 0.5rem 1.2rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    box-shadow: 3px 3px 0px #000000;
+    text-transform: uppercase;
+}
+
+.hero {
+    height: 70vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background-color: #EDE9FE;
+    padding: 0 10%;
+    border-bottom: 4px solid #000000;
+}
+
+.hero .badge {
+    font-size: 0.75rem;
+    background-color: #8B5CF6;
+    color: #FFFFFF;
+    border: 2px solid #000000;
+    padding: 0.4rem 1rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 1.5rem;
+    box-shadow: 2px 2px 0px #000000;
+}
+
+.hero h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 3.8rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: #000000;
+    letter-spacing: -1px;
+}
+
+.hero p {
+    font-size: 1.15rem;
+    color: #1F2937;
+    margin-bottom: 2.5rem;
+    max-w: 650px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.cta {
+    display: inline-block;
+    padding: 1.2rem 3rem;
+    background-color: #C084FC;
+    color: #000000;
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 700;
+    border: 3px solid #000000;
+    box-shadow: 4px 4px 0px #000000;
+    transition: all 0.2s;
+}
+
+.cta:hover {
+    background-color: #8B5CF6;
+    color: #FFFFFF;
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000000;
+}
+
+.cta:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px #000000;
+}
+
+.products {
+    padding: 6rem 5%;
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 3.5rem;
+}
+
+.product-card {
+    text-align: center;
+    background: #FFFFFF;
+    padding: 1.5rem;
+    border: 4px solid #000000;
+    box-shadow: 6px 6px 0px #000000;
+    transition: all 0.2s;
+}
+
+.product-card:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: 9px 9px 0px #000000;
+}
+
+.product-image {
+    width: 100%;
+    aspect-ratio: 1/1;
+    background-color: #F3F4F6;
+    border: 3px solid #000000;
+    margin-bottom: 1.5rem;
+}
+
+.product-card h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #000000;
+}
+
+.price {
+    color: #000000;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+footer {
+    padding: 3rem 5%;
+    text-align: center;
+    border-top: 4px solid #000000;
+    background: #FFFFFF;
+    color: #000000;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+@media (max-width: 768px) {
+    .hero h1 {
+        font-size: 2.6rem;
+    }
+    nav ul {
+        display: none;
+    }
+}

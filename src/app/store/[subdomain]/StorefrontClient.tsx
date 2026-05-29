@@ -186,7 +186,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   let announcementText = `✨ EXCLUSIVE SPRING SALE: FREE SHIPPING ON ALL ORDERS OVER ${currencySymbol}500 ✨`;
   let socialLinks = { instagram: '', facebook: '', twitter: '', youtube: '', linkedin: '' };
   let flashAd: any = null;
-  let selectedTemplate: 'minimal' | 'artisan' | 'bold' = 'minimal';
+  let selectedTemplate: 'minimal' | 'artisan' | 'bold' | 'luxe' | 'retro' = 'minimal';
   try {
     if (store.description && store.description.startsWith('{')) {
       const data = JSON.parse(store.description);
@@ -749,24 +749,28 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         /* Dynamic Template Typography Overrides */
         .font-theme-body {
           font-family: ${
-            selectedTemplate === 'artisan'
+            selectedTemplate === 'artisan' || selectedTemplate === 'luxe'
               ? "'Georgia', Cambria, 'Times New Roman', Times, serif"
-              : selectedTemplate === 'bold'
-                ? "'Plus Jakarta Sans', -apple-system, sans-serif"
-                : "system-ui, -apple-system, sans-serif"
+              : selectedTemplate === 'retro'
+                ? "'Space Grotesk', 'Plus Jakarta Sans', monospace, sans-serif"
+                : selectedTemplate === 'bold'
+                  ? "'Plus Jakarta Sans', -apple-system, sans-serif"
+                  : "system-ui, -apple-system, sans-serif"
           } !important;
         }
         
         .font-theme-title {
           font-family: ${
-            selectedTemplate === 'artisan'
+            selectedTemplate === 'artisan' || selectedTemplate === 'luxe'
               ? "'Georgia', Cambria, 'Times New Roman', Times, serif"
-              : selectedTemplate === 'bold'
-                ? "'Plus Jakarta Sans', -apple-system, sans-serif"
-                : "system-ui, -apple-system, sans-serif"
+              : selectedTemplate === 'retro'
+                ? "'Space Grotesk', 'Plus Jakarta Sans', monospace, sans-serif"
+                : selectedTemplate === 'bold'
+                  ? "'Plus Jakarta Sans', -apple-system, sans-serif"
+                  : "system-ui, -apple-system, sans-serif"
           } !important;
-          font-weight: ${selectedTemplate === 'bold' ? '900' : selectedTemplate === 'artisan' ? '800' : '700'} !important;
-          letter-spacing: ${selectedTemplate === 'minimal' ? '-0.03em' : 'normal'} !important;
+          font-weight: ${selectedTemplate === 'bold' ? '900' : selectedTemplate === 'retro' ? '850' : selectedTemplate === 'artisan' ? '800' : selectedTemplate === 'luxe' ? '400' : '700'} !important;
+          letter-spacing: ${selectedTemplate === 'minimal' ? '-0.03em' : selectedTemplate === 'luxe' ? '0.02em' : 'normal'} !important;
         }
 
         /* Dynamic Template Background Overrides */
@@ -776,9 +780,13 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               ? '#FCFCFC'
               : selectedTemplate === 'artisan'
                 ? '#FAF6F0'
-                : '#FFFFFF'
+                : selectedTemplate === 'luxe'
+                  ? '#0A0A0A'
+                  : selectedTemplate === 'retro'
+                    ? '#F8F6FF'
+                    : '#FFFFFF'
           } !important;
-          color: ${selectedTemplate === 'artisan' ? '#2F1E12' : '#111827'} !important;
+          color: ${selectedTemplate === 'artisan' ? '#2F1E12' : selectedTemplate === 'luxe' ? '#E5E5E5' : selectedTemplate === 'retro' ? '#000000' : '#111827'} !important;
         }
 
         /* Header Style Overrides */
@@ -786,16 +794,18 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           background-color: ${
             selectedTemplate === 'artisan'
               ? '#FAF6F0'
-              : selectedTemplate === 'bold'
-                ? '#FFFFFF'
+              : selectedTemplate === 'luxe'
+                ? '#0D0D0D'
                 : '#FFFFFF'
           } !important;
           border-bottom: ${
-            selectedTemplate === 'bold'
+            selectedTemplate === 'bold' || selectedTemplate === 'retro'
               ? '4px solid #000000'
-              : selectedTemplate === 'artisan'
-                ? '1px solid #E4DAC9'
-                : '1px solid #F3F4F6'
+              : selectedTemplate === 'luxe'
+                ? '1px solid #1A1A1A'
+                : selectedTemplate === 'artisan'
+                  ? '1px solid #E4DAC9'
+                  : '1px solid #F3F4F6'
           } !important;
         }
 
@@ -806,36 +816,46 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               ? '#000000'
               : selectedTemplate === 'artisan'
                 ? '#8B5A2B'
-                : 'var(--store-primary)'
+                : selectedTemplate === 'luxe'
+                  ? '#0A0A0A'
+                  : selectedTemplate === 'retro'
+                    ? '#8B5CF6'
+                    : 'var(--store-primary)'
           } !important;
-          color: ${selectedTemplate === 'artisan' ? '#FDFBF7' : '#FFFFFF'} !important;
+          color: ${selectedTemplate === 'artisan' ? '#FDFBF7' : selectedTemplate === 'luxe' ? '#D4AF37' : '#FFFFFF'} !important;
           letter-spacing: ${selectedTemplate === 'minimal' ? '0.3em' : '0.1em'} !important;
-          font-weight: ${selectedTemplate === 'bold' ? '950' : '700'} !important;
-          font-family: ${selectedTemplate === 'artisan' ? "'Georgia', serif" : 'inherit'} !important;
-          border-bottom: ${selectedTemplate === 'bold' ? '3px solid #000000' : 'none'} !important;
+          font-weight: ${selectedTemplate === 'bold' || selectedTemplate === 'retro' ? '950' : '700'} !important;
+          font-family: ${selectedTemplate === 'artisan' || selectedTemplate === 'luxe' ? "'Georgia', serif" : 'inherit'} !important;
+          border-bottom: ${selectedTemplate === 'bold' ? '3px solid #000000' : selectedTemplate === 'retro' ? '4px solid #000000' : selectedTemplate === 'luxe' ? '1px solid #1A1A1A' : 'none'} !important;
         }
 
         /* Product Card Styling */
         .card-theme {
           background-color: ${
-            selectedTemplate === 'artisan' ? '#FDFBF7' : '#FFFFFF'
+            selectedTemplate === 'artisan' ? '#FDFBF7' : selectedTemplate === 'luxe' ? '#0E0E0E' : '#FFFFFF'
           } !important;
           border: ${
             selectedTemplate === 'bold'
               ? '3px solid #000000'
-              : selectedTemplate === 'artisan'
-                ? '1px solid #E4DAC9'
-                : '1px solid #F3F4F6'
+              : selectedTemplate === 'retro'
+                ? '4px solid #000000'
+                : selectedTemplate === 'luxe'
+                  ? '1px solid #1A1A1A'
+                  : selectedTemplate === 'artisan'
+                    ? '1px solid #E4DAC9'
+                    : '1px solid #F3F4F6'
           } !important;
           border-radius: ${
-            selectedTemplate === 'minimal'
+            selectedTemplate === 'minimal' || selectedTemplate === 'retro'
               ? '0px'
-              : selectedTemplate === 'artisan'
-                ? '24px'
-                : '16px'
+              : selectedTemplate === 'luxe'
+                ? '4px'
+                : selectedTemplate === 'artisan'
+                  ? '24px'
+                  : '16px'
           } !important;
           box-shadow: ${
-            selectedTemplate === 'bold'
+            selectedTemplate === 'bold' || selectedTemplate === 'retro'
               ? '6px 6px 0px 0px #000000'
               : selectedTemplate === 'artisan'
                 ? '0 6px 20px -3px rgba(139, 90, 43, 0.07)'
@@ -849,53 +869,73 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           transform: ${
             selectedTemplate === 'bold'
               ? 'translate(-2px, -2px)'
-              : 'translateY(-6px)'
+              : selectedTemplate === 'retro'
+                ? 'translate(-3px, -3px)'
+                : selectedTemplate === 'luxe'
+                  ? 'translateY(-4px)'
+                  : 'translateY(-6px)'
           } !important;
           box-shadow: ${
             selectedTemplate === 'bold'
               ? '8px 8px 0px 0px #000000'
-              : selectedTemplate === 'artisan'
-                ? '0 12px 28px -5px rgba(139, 90, 43, 0.16)'
-                : '0 12px 24px -4px rgba(0,0,0,0.1)'
+              : selectedTemplate === 'retro'
+                ? '9px 9px 0px 0px #000000'
+                : selectedTemplate === 'luxe'
+                  ? '0 10px 25px -5px rgba(212, 175, 55, 0.15)'
+                  : selectedTemplate === 'artisan'
+                    ? '0 12px 28px -5px rgba(139, 90, 43, 0.16)'
+                    : '0 12px 24px -4px rgba(0,0,0,0.1)'
           } !important;
+          border-color: ${selectedTemplate === 'luxe' ? 'var(--store-primary) !important' : 'inherit'} !important;
         }
 
         /* Primary Button Styling */
         .btn-theme-primary {
           background-color: var(--store-primary) !important;
-          color: #FFFFFF !important;
-          font-weight: ${selectedTemplate === 'bold' ? '900' : '700'} !important;
+          color: ${selectedTemplate === 'luxe' || selectedTemplate === 'retro' ? '#000000' : '#FFFFFF'} !important;
+          font-weight: ${selectedTemplate === 'bold' || selectedTemplate === 'retro' ? '900' : '700'} !important;
           border-radius: ${
-            selectedTemplate === 'minimal'
+            selectedTemplate === 'minimal' || selectedTemplate === 'retro'
               ? '0px'
-              : selectedTemplate === 'artisan'
-                ? '9999px'
-                : '8px'
+              : selectedTemplate === 'luxe'
+                ? '2px'
+                : selectedTemplate === 'artisan'
+                  ? '9999px'
+                  : '8px'
           } !important;
           border: ${
-            selectedTemplate === 'bold' ? '3px solid #000000' : 'none'
+            selectedTemplate === 'bold' 
+              ? '3px solid #000000' 
+              : selectedTemplate === 'retro'
+                ? '3.5px solid #000000'
+                : 'none'
           } !important;
           box-shadow: ${
-            selectedTemplate === 'bold'
+            selectedTemplate === 'bold' || selectedTemplate === 'retro'
               ? '4px 4px 0px 0px #000000'
               : 'none'
           } !important;
           transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
           text-transform: ${selectedTemplate === 'artisan' ? 'none' : 'uppercase'} !important;
-          letter-spacing: ${selectedTemplate === 'minimal' ? '0.15em' : 'normal'} !important;
+          letter-spacing: ${selectedTemplate === 'minimal' ? '0.15em' : selectedTemplate === 'luxe' ? '0.2em' : 'normal'} !important;
         }
 
         .btn-theme-primary:hover {
-          background-color: var(--store-primary-dark) !important;
+          background-color: ${selectedTemplate === 'luxe' ? '#FFFFFF' : 'var(--store-primary-dark)'} !important;
+          color: ${selectedTemplate === 'luxe' ? '#000000' : 'inherit'} !important;
           transform: ${
             selectedTemplate === 'bold'
               ? 'translate(-1px, -1px)'
-              : 'scale-[1.02]'
+              : selectedTemplate === 'retro'
+                ? 'translate(-1.5px, -1.5px)'
+                : 'scale-[1.02]'
           } !important;
           box-shadow: ${
             selectedTemplate === 'bold'
               ? '5px 5px 0px 0px #000000'
-              : 'none'
+              : selectedTemplate === 'retro'
+                ? '5.5px 5.5px 0px 0px #000000'
+                : 'none'
           } !important;
         }
 
@@ -903,10 +943,12 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           transform: ${
             selectedTemplate === 'bold'
               ? 'translate(2px, 2px)'
-              : 'scale-[0.98]'
+              : selectedTemplate === 'retro'
+                ? 'translate(3px, 3px)'
+                : 'scale-[0.98]'
           } !important;
           box-shadow: ${
-            selectedTemplate === 'bold'
+            selectedTemplate === 'bold' || selectedTemplate === 'retro'
               ? '2px 2px 0px 0px #000000'
               : 'none'
           } !important;

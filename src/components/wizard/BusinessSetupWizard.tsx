@@ -29,7 +29,7 @@ export default function BusinessSetupWizard() {
   const [isUpiSimulating, setIsUpiSimulating] = useState(false);
   const [upiSimulationStep, setUpiSimulationStep] = useState<number>(0);
 
-  const [selectedTemplate, setSelectedTemplate] = useState<'minimal' | 'artisan' | 'bold'>('minimal');
+  const [selectedTemplate, setSelectedTemplate] = useState<'minimal' | 'artisan' | 'bold' | 'luxe' | 'retro'>('minimal');
 
   const [formData, setFormData] = useState({
     businessName: '',
@@ -60,6 +60,12 @@ export default function BusinessSetupWizard() {
       } else if (tempParam === 'bold' || tempParam === '3') {
         setSelectedTemplate('bold');
         setFormData(prev => ({ ...prev, primaryColor: '#E11D48' }));
+      } else if (tempParam === 'luxe' || tempParam === '4') {
+        setSelectedTemplate('luxe');
+        setFormData(prev => ({ ...prev, primaryColor: '#D4AF37' }));
+      } else if (tempParam === 'retro' || tempParam === '5') {
+        setSelectedTemplate('retro');
+        setFormData(prev => ({ ...prev, primaryColor: '#8B5CF6' }));
       }
     }
   }, []);
@@ -622,12 +628,14 @@ export default function BusinessSetupWizard() {
               {/* Template Selection Section */}
               <div className="space-y-3">
                 <label className="block text-xs font-black text-muted-foreground uppercase tracking-wider">Choose Storefront Design Template</label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                   {[
                     { id: 'minimal', name: 'Minimal Elegance', defaultColor: '#000000', desc: 'Sleek luxury, high contrast, clean typography. Perfect for boutique brands.' },
                     { id: 'artisan', name: 'Artisan Craft', defaultColor: '#8B5A2B', desc: 'Warm cream tones, classical serif accents, hand-crafted organic feel.' },
-                    { id: 'bold', name: 'Bold Commerce', defaultColor: '#E11D48', desc: 'Vibrant, thick-bordered grid layouts, chunky shadows, high-impact details.' }
-                  ].map((tpl) => (
+                    { id: 'bold', name: 'Bold Commerce', defaultColor: '#E11D48', desc: 'Vibrant, thick-bordered grid layouts, chunky shadows, high-impact details.' },
+                    { id: 'luxe', name: 'Dark Luxe', defaultColor: '#D4AF37', desc: 'Exclusive gold on pitch black premium layout. For luxury timepieces, jewelry and high-end accessories.' },
+                    { id: 'retro', name: 'Retro Grid', defaultColor: '#8B5CF6', desc: 'Space-grotesk flat shadow neon theme. Heavy borders, nostalgic retro aesthetics.' }
+                  ].map((tpl, idx) => (
                     <button
                       key={tpl.id}
                       type="button"
@@ -646,7 +654,7 @@ export default function BusinessSetupWizard() {
                           <Check className="w-3.5 h-3.5" />
                         </span>
                       )}
-                      <span className="text-[10px] font-black uppercase tracking-widest text-primary">Template {tpl.id === 'minimal' ? '1' : tpl.id === 'artisan' ? '2' : '3'}</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-primary">Template {idx + 1}</span>
                       <span className="text-sm font-black text-foreground mt-1">{tpl.name}</span>
                       <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed flex-1">{tpl.desc}</p>
                       
@@ -695,10 +703,25 @@ export default function BusinessSetupWizard() {
                     <p className="text-xs font-semibold uppercase text-muted-foreground mb-2.5 tracking-wider">Store Button Preview</p>
                     <button 
                       type="button"
-                      className="w-full py-2 px-4 rounded-md text-white font-medium shadow-sm transition-opacity hover:opacity-90 uppercase text-[10px] font-black tracking-widest"
-                      style={{ backgroundColor: formData.primaryColor }}
+                      className="w-full py-2.5 px-4 font-medium transition-all uppercase text-[10px] font-black tracking-widest"
+                      style={{ 
+                        backgroundColor: formData.primaryColor,
+                        color: selectedTemplate === 'luxe' || selectedTemplate === 'retro' ? '#000000' : '#FFFFFF',
+                        borderRadius: selectedTemplate === 'minimal' || selectedTemplate === 'retro' ? '0px' : selectedTemplate === 'luxe' ? '2px' : selectedTemplate === 'artisan' ? '9999px' : '8px',
+                        border: selectedTemplate === 'retro' ? '3px solid #000000' : selectedTemplate === 'bold' ? '2px solid #000000' : 'none',
+                        boxShadow: selectedTemplate === 'retro' || selectedTemplate === 'bold' ? '3px 3px 0px 0px #000000' : 'none'
+                      }}
                     >
-                      {selectedTemplate === 'minimal' ? 'EXPLORE CATALOG' : selectedTemplate === 'artisan' ? 'Shop Handcrafted Pieces' : 'ADD TO CART ⚡'}
+                      {selectedTemplate === 'minimal' 
+                        ? 'EXPLORE CATALOG' 
+                        : selectedTemplate === 'artisan' 
+                          ? 'Shop Handcrafted' 
+                          : selectedTemplate === 'luxe'
+                            ? 'DISCOVER LUXE'
+                            : selectedTemplate === 'retro'
+                              ? 'GO RETRO ⚡'
+                              : 'ADD TO CART ⚡'
+                      }
                     </button>
                   </div>
                 </div>
