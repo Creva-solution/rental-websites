@@ -248,6 +248,8 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [showToast, setShowToast] = useState<{productName: string, quantity: number} | null>(null);
   const [showAdPopup, setShowAdPopup] = useState(false);
+  const [artisanHeroError, setArtisanHeroError] = useState(false);
+  const [luxeHeroError, setLuxeHeroError] = useState(false);
 
   // Automatically trigger the Flash Advertisement Pop-up Modal on load EXACTLY ONCE per session
   useEffect(() => {
@@ -1130,12 +1132,25 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           <section className="relative px-4 sm:px-6 lg:px-8 py-10 max-w-7xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center bg-[#FAF6F0] p-6 sm:p-10 border border-[#E4DAC9] rounded-[24px]">
               {/* Left Side: organic image with rounded corners */}
-              <div className="aspect-[4/3] w-full overflow-hidden rounded-[24px] border border-[#E4DAC9]">
-                <img 
-                  src="https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&q=80&w=1200" 
-                  alt="Artisan Craft Studio" 
-                  className="w-full h-full object-cover"
-                />
+              <div className="aspect-[4/3] w-full overflow-hidden rounded-[24px] border border-[#E4DAC9] bg-[#FAF6F0] flex items-center justify-center relative">
+                {!artisanHeroError ? (
+                  <img 
+                    src="https://images.unsplash.com/photo-1565192647048-f997ed8799d4?auto=format&fit=crop&q=80&w=1200" 
+                    alt="Artisan Craft Studio" 
+                    className="w-full h-full object-cover"
+                    onError={() => setArtisanHeroError(true)}
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#FAF6F0] to-[#E4DAC9]/40 flex flex-col items-center justify-center p-6 text-center space-y-4">
+                    <svg className="w-16 h-16 text-[#8B5A2B]/60 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v20M17 5v14M7 5v14M12 8a4 4 0 00-4 4v4a4 4 0 008 0v-4a4 4 0 00-4-4z" />
+                    </svg>
+                    <div>
+                      <span className="text-[9px] tracking-[0.2em] font-black text-[#8B5A2B] uppercase block">THE ARTISAN WHEEL</span>
+                      <span className="text-[10px] text-[#2F1E12]/60 italic font-serif mt-1 block">Est. 2026 • Mud, Water, & Patience</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Right Side: storytelling warm block */}
@@ -1218,11 +1233,16 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           <section className="relative h-[65vh] w-full overflow-hidden bg-black flex items-center justify-center border-b border-zinc-900">
             {/* Dark elegant overlay and floating gold sparkles */}
             <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60 z-10" />
-            <img 
-              src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=1920" 
-              alt="Luxury Collection" 
-              className="absolute inset-0 w-full h-full object-cover opacity-45 scale-100 transition-transform duration-[10s]"
-            />
+            {!luxeHeroError ? (
+              <img 
+                src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=1920" 
+                alt="Luxury Collection" 
+                className="absolute inset-0 w-full h-full object-cover opacity-45 scale-100 transition-transform duration-[10s]"
+                onError={() => setLuxeHeroError(true)}
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-tr from-zinc-950 via-[#121212] to-zinc-900 flex items-center justify-center opacity-70" />
+            )}
             
             {/* Elegant luxury text */}
             <div className="relative z-20 text-center px-4 max-w-3xl mx-auto space-y-6 md:space-y-8 flex flex-col items-center">
@@ -1337,6 +1357,10 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   src={banner.image} 
                   alt={banner.title} 
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.parentElement?.classList.add('bg-gradient-to-br', 'from-zinc-800', 'to-zinc-950');
+                  }}
                 />
                 
                 {/* Minimal Centered Typography Overlay */}
