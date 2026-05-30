@@ -1126,6 +1126,39 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   };
 
   const renderHero = () => {
+    const mainBanner = banners[0];
+    const secondBanner = banners[1] || banners[0];
+    
+    // Artisan
+    const artisanHeroTitle = mainBanner?.title || "Meticulously Handcrafted Ceramics";
+    const artisanHeroSubtitle = mainBanner?.subtitle || "\"We mold organic local earth with slowness, patience, and traditional kiln firings. Every single object carries tiny tactile traces of our hands, keeping the quiet spirit of craftsmanship alive in your daily home rituals.\"";
+    const artisanHeroCTA = mainBanner?.cta || "DISCOVER EARTH COLLECTION";
+    const artisanHeroImage = mainBanner?.image || "https://images.unsplash.com/photo-1565192647048-f997ed8799d4?auto=format&fit=crop&q=80&w=1200";
+
+    // Luxe
+    const luxeHeroTitle = mainBanner?.title || "Curated Timeless Masterpieces";
+    const luxeHeroSubtitle = mainBanner?.subtitle || "Fine jewelry, hand-brushed luxury watches, and leather travel cases designed with exceptional dedication and finished in 18k premium gold.";
+    const luxeHeroCTA = mainBanner?.cta || "ENTER THE SALON";
+    const luxeHeroImage = mainBanner?.image || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=1920";
+
+    // Bold
+    const boldTitle1 = mainBanner?.title || "WE MOVE WITHOUT LIMITS";
+    const boldSubtitle1 = mainBanner?.subtitle || "Heavyweight double-mesh active gear, utility outercoats, and modular street essentials.";
+    const boldCTA1 = mainBanner?.cta || "ACQUIRE GEAR NOW";
+    
+    const boldTitle2 = secondBanner?.title || "STREET STYLE GRID PARADIGM";
+    const boldSubtitle2 = secondBanner?.subtitle || "Designed for heavy wear and maximum impact. Thick canvas overlays and solid metal accessories.";
+    const boldCTA2 = secondBanner?.cta || "VIEW CATALOG [EX.DLL]";
+
+    // Retro
+    const retroTitle1 = mainBanner?.title || "WELCOME TO NEON RADICAL";
+    const retroSubtitle1 = mainBanner?.subtitle || "SYSTEM REPORT: Nostalgia subagent fully online. All systems reporting retro green levels. Load complete. Hardware drops: lo-fi gadgets, vintage pocket cameras, pixel widgets.";
+    const retroCTA1 = mainBanner?.cta || "EXECUTE SHOP_NOW";
+    
+    const retroTitle2 = secondBanner?.title || "90S SIMULATION ACTIVE";
+    const retroSubtitle2 = secondBanner?.subtitle || "SYSTEM STATS: Neon Purple grids activated. Heavy shadows rendering... Flat shadow pixels initialized. CRT flicker: on. Radar: online. Radical lo-fi gear is back in folder.";
+    const retroCTA2 = secondBanner?.cta || "LOAD SYSTEM.SYS";
+
     switch (selectedTemplate) {
       case 'artisan':
         return (
@@ -1135,7 +1168,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               <div className="aspect-[4/3] w-full overflow-hidden rounded-[24px] border border-[#E4DAC9] bg-[#FAF6F0] flex items-center justify-center relative">
                 {!artisanHeroError ? (
                   <img 
-                    src="https://images.unsplash.com/photo-1565192647048-f997ed8799d4?auto=format&fit=crop&q=80&w=1200" 
+                    src={artisanHeroImage} 
                     alt="Artisan Craft Studio" 
                     className="w-full h-full object-cover"
                     onError={() => setArtisanHeroError(true)}
@@ -1157,17 +1190,17 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               <div className="space-y-6 lg:pl-6 text-[#2F1E12]">
                 <span className="text-[10px] tracking-[0.3em] font-black text-[#8B5A2B] uppercase block">SINCE 2026 • THE WAY OF MUD & FIRE</span>
                 <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight font-serif text-[#2F1E12] leading-tight">
-                  Meticulously Handcrafted Ceramics
+                  {artisanHeroTitle}
                 </h2>
                 <p className="text-sm leading-relaxed text-[#2F1E12]/80 font-serif italic">
-                  "We mold organic local earth with slowness, patience, and traditional kiln firings. Every single object carries tiny tactile traces of our hands, keeping the quiet spirit of craftsmanship alive in your daily home rituals."
+                  {artisanHeroSubtitle}
                 </p>
                 <div className="pt-4">
                   <a 
                     href="#catalog"
                     className="inline-block px-10 py-4 bg-[#8B5A2B] text-white hover:bg-[#6e4620] text-[10px] font-black uppercase tracking-[0.2em] rounded-full transition-all duration-200 shadow-md hover:scale-[1.02]"
                   >
-                    DISCOVER EARTH COLLECTION →
+                    {artisanHeroCTA} →
                   </a>
                 </div>
               </div>
@@ -1186,10 +1219,10 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     METROPOLIS V1 DROP
                   </span>
                   <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter leading-none">
-                    WE MOVE<br />WITHOUT LIMITS.
+                    {boldTitle1}
                   </h2>
                   <p className="text-xs text-zinc-400 font-bold max-w-sm uppercase tracking-wide leading-relaxed">
-                    Heavyweight double-mesh active gear, utility outercoats, and modular street essentials.
+                    {boldSubtitle1}
                   </p>
                 </div>
                 <div className="pt-6">
@@ -1197,7 +1230,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     href="#catalog" 
                     className="inline-block bg-yellow-300 hover:bg-yellow-400 text-black border-2 border-black px-8 py-3 text-[10px] font-black uppercase tracking-widest shadow-[3px_3px_0px_#fff] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all"
                   >
-                    ACQUIRE GEAR NOW →
+                    {boldCTA1} →
                   </a>
                 </div>
               </div>
@@ -1209,10 +1242,10 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     SEASON SPECIAL
                   </span>
                   <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter leading-none">
-                    STREET STYLE<br />GRID PARADIGM
+                    {boldTitle2}
                   </h2>
                   <p className="text-xs text-zinc-800 font-bold max-w-sm uppercase tracking-wide leading-relaxed">
-                    Designed for heavy wear and maximum impact. Thick canvas overlays and solid metal accessories.
+                    {boldSubtitle2}
                   </p>
                 </div>
                 <div className="pt-6">
@@ -1220,7 +1253,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     href="#catalog" 
                     className="inline-block bg-black hover:bg-[#EF4444] hover:text-white text-white border-2 border-black px-8 py-3 text-[10px] font-black uppercase tracking-widest shadow-[3px_3px_0px_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all"
                   >
-                    VIEW CATALOG [EX.DLL] →
+                    {boldCTA2} →
                   </a>
                 </div>
               </div>
@@ -1235,7 +1268,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
             <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60 z-10" />
             {!luxeHeroError ? (
               <img 
-                src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=1920" 
+                src={luxeHeroImage} 
                 alt="Luxury Collection" 
                 className="absolute inset-0 w-full h-full object-cover opacity-45 scale-100 transition-transform duration-[10s]"
                 onError={() => setLuxeHeroError(true)}
@@ -1250,17 +1283,17 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 THE AURELIA CURATION
               </span>
               <h2 className="text-4xl sm:text-6xl font-light text-white tracking-[0.1em] uppercase font-serif leading-tight">
-                Curated Timeless Masterpieces
+                {luxeHeroTitle}
               </h2>
               <p className="text-xs md:text-sm text-zinc-400 font-serif max-w-xl tracking-wider leading-relaxed">
-                Fine jewelry, hand-brushed luxury watches, and leather travel cases designed with exceptional dedication and finished in 18k premium gold.
+                {luxeHeroSubtitle}
               </p>
               <div className="pt-2">
                 <a 
                   href="#catalog"
                   className="inline-block px-12 py-4 bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black hover:from-white hover:to-white text-[10px] font-black uppercase tracking-[0.25em] transition-all duration-300 shadow-[0_0_20px_rgba(212,175,55,0.2)] rounded-sm hover:scale-[1.03]"
                 >
-                  ENTER THE SALON
+                  {luxeHeroCTA}
                 </a>
               </div>
             </div>
@@ -1289,10 +1322,10 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   <div className="space-y-3">
                     <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">&gt; LOAD DATASET</div>
                     <h3 className="text-xl sm:text-2xl font-black uppercase tracking-widest text-[#10B981]">
-                      WELCOME TO NEON RADICAL
+                      {retroTitle1}
                     </h3>
                     <p className="text-[11px] text-zinc-400 leading-relaxed font-mono">
-                      &gt; SYSTEM REPORT: Nostalgia subagent fully online. All systems reporting retro green levels. Load complete. Hardware drops: lo-fi gadgets, vintage pocket cameras, pixel widgets.
+                      &gt; {retroSubtitle1}
                     </p>
                   </div>
                   <div className="pt-6 border-t border-[#10B981]/20">
@@ -1300,7 +1333,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                       href="#catalog"
                       className="inline-block bg-[#10B981] text-black border-2 border-black px-6 py-2.5 text-[9px] font-black uppercase tracking-widest shadow-[3px_3px_0px_#8B5CF6] hover:translate-x-[-1.5px] hover:translate-y-[-1.5px] active:translate-x-[2px] active:translate-y-[2px] transition-all"
                     >
-                      [ EXECUTE SHOP_NOW ]
+                      [ {retroCTA1} ]
                     </a>
                   </div>
                 </div>
@@ -1322,10 +1355,10 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   <div className="space-y-3">
                     <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">&gt; STATUS REPORT</div>
                     <h3 className="text-xl sm:text-2xl font-black uppercase tracking-widest text-[#8B5CF6]">
-                      90S SIMULATION ACTIVE
+                      {retroTitle2}
                     </h3>
                     <p className="text-[11px] text-zinc-400 leading-relaxed font-mono">
-                      &gt; SYSTEM STATS: Neon Purple grids activated. Heavy shadows rendering... Flat shadow pixels initialized. CRT flicker: on. Radar: online. Radical lo-fi gear is back in folder.
+                      &gt; {retroSubtitle2}
                     </p>
                   </div>
                   <div className="pt-6 border-t border-[#8B5CF6]/20">
@@ -1333,7 +1366,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                       onClick={() => setIsAboutOpen(true)}
                       className="inline-block bg-[#8B5CF6] text-black border-2 border-black px-6 py-2.5 text-[9px] font-black uppercase tracking-widest shadow-[3px_3px_0px_#10B981] hover:translate-x-[-1.5px] hover:translate-y-[-1.5px] active:translate-x-[2px] active:translate-y-[2px] transition-all"
                     >
-                      [ ACTIVATE STAGE_01 ]
+                      [ {retroCTA2} ]
                     </button>
                   </div>
                 </div>
@@ -1447,7 +1480,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 [ ERROR_404: NO PRODUCTS FOUND ]
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
                 {processedProducts.map((product, idx) => {
                   const isLiked = favorites.includes(product.id);
                   let displayPrice = Number(product.price);
@@ -1531,7 +1564,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               <span className="text-[10px] tracking-[0.3em] font-black text-[#8B5A2B] uppercase block mb-3">OUR BRAND DIARIES</span>
               <h3 className="text-2xl md:text-3xl font-extrabold tracking-tight font-serif text-[#2F1E12]">Visual Stories From The Pottery</h3>
               
-              <div className="flex justify-center gap-6 mt-8 overflow-x-auto py-2 scrollbar-none">
+              <div className="flex justify-start sm:justify-center items-center gap-6 sm:gap-8 mt-8 overflow-x-auto py-2 px-4 scrollbar-none max-w-full">
                 {[
                   { title: "Sourcing Clay", desc: "We dig local terracotta directly from the pristine riverbed clay veins, retaining rich iron and granular silica textures.", img: "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&q=80&w=150" },
                   { title: "The Pottery Wheel", desc: "Every piece is carefully shaped on a slow kickwheel, where natural variations in finger pressure leave organic ripples.", img: "https://images.unsplash.com/photo-1565192647048-f997ed8799d4?auto=format&fit=crop&q=80&w=150" },
@@ -1543,8 +1576,23 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     onClick={() => alert(`🌾 ${story.title}:\n\n${story.desc}`)}
                     className="flex flex-col items-center cursor-pointer group flex-shrink-0"
                   >
-                    <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#E4DAC9] group-hover:border-[#8B5A2B] transition-all p-1 bg-white">
-                      <img src={story.img} alt={story.title} className="w-full h-full object-cover rounded-full" />
+                    <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#E4DAC9] group-hover:border-[#8B5A2B] transition-all p-1 bg-white relative flex items-center justify-center">
+                      <img 
+                        src={story.img} 
+                        alt={story.title} 
+                        className="w-full h-full object-cover rounded-full" 
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const parent = e.currentTarget.parentElement;
+                          if (parent && !parent.querySelector('.fallback-letter')) {
+                            parent.classList.add('bg-gradient-to-br', 'from-[#FAF6F0]', 'to-[#E4DAC9]', 'flex', 'items-center', 'justify-center');
+                            const textNode = document.createElement('span');
+                            textNode.className = 'fallback-letter font-serif text-[12px] font-black text-[#8B5A2B]';
+                            textNode.innerText = story.title.charAt(0);
+                            parent.appendChild(textNode);
+                          }
+                        }}
+                      />
                     </div>
                     <span className="text-[9px] font-bold uppercase tracking-wider text-[#2F1E12] mt-2.5 group-hover:text-[#8B5A2B] transition-colors">{story.title}</span>
                   </div>
@@ -1578,7 +1626,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 No organic goods in this category. Check back soon.
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-8">
                 {processedProducts.map((product, idx) => {
                   const isLiked = favorites.includes(product.id);
                   let displayPrice = Number(product.price);
@@ -1843,7 +1891,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 Curations Empty. Under Preparation.
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-8">
                 {processedProducts.map((product) => {
                   const isLiked = favorites.includes(product.id);
                   let displayPrice = Number(product.price);
