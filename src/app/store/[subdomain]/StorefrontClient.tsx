@@ -111,6 +111,23 @@ const getProductImage = (product: any) => {
   return product.image_url || '';
 };
 
+const renderBenefitIcon = (iconName: string) => {
+  const cn = "w-8 h-8 text-purple-600 stroke-[1.25] flex-shrink-0";
+  switch (iconName) {
+    case 'Shield': return <Shield className={cn} />;
+    case 'RefreshCw': return <RefreshCw className={cn} />;
+    case 'Heart': return <Heart className={cn} />;
+    case 'Star': return <Star className={cn} />;
+    case 'Sparkles': return <Sparkles className={cn} />;
+    case 'Package': return <Package className={cn} />;
+    case 'ShoppingBag': return <ShoppingBag className={cn} />;
+    case 'Clock': return <Clock className={cn} />;
+    case 'Truck':
+    default:
+      return <Truck className={cn} />;
+  }
+};
+
 export default function StorefrontClient({ store, products }: { store: any, products: any[] }) {
   const primaryColor = useMemo(() => {
     const raw = store.primary_color || '#3B82F6';
@@ -187,6 +204,27 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   let socialLinks = { instagram: '', facebook: '', twitter: '', youtube: '', linkedin: '' };
   let flashAd: any = null;
   let selectedTemplate: 'minimal' | 'artisan' | 'bold' | 'luxe' | 'retro' = 'minimal';
+  let benefits = {
+    enabled: true,
+    items: [
+      {
+        icon: 'Truck',
+        title: 'Free Global Shipping',
+        subtitle: `Complimentary shipping on orders over ${currencySymbol}500`
+      },
+      {
+        icon: 'Shield',
+        title: 'End-to-End Secure',
+        subtitle: 'Shop safely and checkout via encrypted WhatsApp'
+      },
+      {
+        icon: 'RefreshCw',
+        title: 'Hassle-Free Returns',
+        subtitle: 'Complimentary 30-day return policy for peace of mind'
+      }
+    ]
+  };
+
   try {
     if (store.description && store.description.startsWith('{')) {
       const data = JSON.parse(store.description);
@@ -209,6 +247,12 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         selectedTemplate = data.selectedTemplate;
       } else if (data.template) {
         selectedTemplate = data.template;
+      }
+      if (data.benefits) {
+        benefits = {
+          enabled: data.benefits.enabled !== false,
+          items: data.benefits.items || benefits.items
+        };
       }
     }
   } catch (e) {
@@ -1589,7 +1633,48 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       case 'artisan':
         return (
           <section id="catalog" className="px-4 sm:px-6 lg:px-8 py-16 max-w-7xl mx-auto text-[#2F1E12]">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-10">
+            {/* Story highlights above catalog */}
+            <div className="mb-14 text-center">
+              <span className="text-[10px] tracking-[0.3em] font-black text-[#8B5A2B] uppercase block mb-3">OUR BRAND DIARIES</span>
+              <h3 className="text-2xl md:text-3xl font-extrabold tracking-tight font-serif text-[#2F1E12]">Visual Stories From The Pottery</h3>
+              
+              <div className="flex justify-start sm:justify-center items-center gap-6 sm:gap-8 mt-8 overflow-x-auto py-2 px-4 scrollbar-none max-w-full">
+                {[
+                  { title: "Sourcing Clay", desc: "We dig local terracotta directly from the pristine riverbed clay veins, retaining rich iron and granular silica textures.", img: "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&q=80&w=150" },
+                  { title: "The Pottery Wheel", desc: "Every piece is carefully shaped on a slow kickwheel, where natural variations in finger pressure leave organic ripples.", img: "https://images.unsplash.com/photo-1565192647048-f997ed8799d4?auto=format&fit=crop&q=80&w=150" },
+                  { title: "Kiln Firing", desc: "We wood-fire our stoneware continuously for over 36 hours at 2,300°F. The falling ash creates soft, toasted gradients.", img: "https://images.unsplash.com/photo-1595435934249-5df7ed86b1c0?auto=format&fit=crop&q=80&w=150" },
+                  { title: "Our Artisans", desc: "A tight-knit community of 6 master potters bringing ancient techniques into contemporary functional modern tableware.", img: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=150" }
+                ].map((story, i) => (
+                  <div 
+                    key={i} 
+                    onClick={() => alert(`🌾 ${story.title}:\n\n${story.desc}`)}
+                    className="flex flex-col items-center cursor-pointer group flex-shrink-0"
+                  >
+                    <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#E4DAC9] group-hover:border-[#8B5A2B] transition-all p-1 bg-white relative flex items-center justify-center">
+                      <img 
+                        src={story.img} 
+                        alt={story.title} 
+                        className="w-full h-full object-cover rounded-full" 
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const parent = e.currentTarget.parentElement;
+                          if (parent && !parent.querySelector('.fallback-letter')) {
+                            parent.classList.add('bg-gradient-to-br', 'from-[#FAF6F0]', 'to-[#E4DAC9]', 'flex', 'items-center', 'justify-center');
+                            const textNode = document.createElement('span');
+                            textNode.className = 'fallback-letter font-serif text-[12px] font-black text-[#8B5A2B]';
+                            textNode.innerText = story.title.charAt(0);
+                            parent.appendChild(textNode);
+                          }
+                        }}
+                      />
+                    </div>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#2F1E12] mt-2.5 group-hover:text-[#8B5A2B] transition-colors">{story.title}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t border-[#E4DAC9] pt-12 flex flex-col md:flex-row items-center justify-between gap-6 mb-10">
               <h4 className="text-xl font-bold font-serif text-[#2F1E12] tracking-wide uppercase">{displayCatalogTitle()}</h4>
               
               <div className="flex flex-wrap gap-2.5 items-center justify-center">
@@ -3038,33 +3123,23 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       )}
 
       {/* Trust Benefits Section placed directly above the Footer */}
-      <section className="bg-white border-t border-b border-gray-100 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-gray-100 text-center">
-            <div className="flex items-center justify-center gap-4 px-4 py-4 md:py-0">
-              <Truck className="w-8 h-8 text-purple-600 stroke-[1.25] flex-shrink-0" />
-              <div className="text-left">
-                <h4 className="font-bold text-gray-950 text-xs tracking-wider uppercase">Free Global Shipping</h4>
-                <p className="text-[11px] text-gray-400 mt-0.5">Complimentary shipping on orders over {currencySymbol}500</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-center gap-4 px-4 py-4 md:py-0">
-              <Shield className="w-8 h-8 text-purple-600 stroke-[1.25] flex-shrink-0" />
-              <div className="text-left">
-                <h4 className="font-bold text-gray-950 text-xs tracking-wider uppercase">End-to-End Secure</h4>
-                <p className="text-[11px] text-gray-400 mt-0.5">Shop safely and checkout via encrypted WhatsApp</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-center gap-4 px-4 py-4 md:py-0">
-              <RefreshCw className="w-8 h-8 text-purple-600 stroke-[1.25] flex-shrink-0" />
-              <div className="text-left">
-                <h4 className="font-bold text-gray-950 text-xs tracking-wider uppercase">Hassle-Free Returns</h4>
-                <p className="text-[11px] text-gray-400 mt-0.5">Complimentary 30-day return policy for peace of mind</p>
-              </div>
+      {benefits.enabled && (
+        <section className="bg-white border-t border-b border-gray-100 py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className={`grid grid-cols-1 md:grid-cols-${Math.min(3, benefits.items.length)} gap-8 divide-y md:divide-y-0 md:divide-x divide-gray-100 text-center`}>
+              {benefits.items.map((item: any, idx: number) => (
+                <div key={idx} className="flex items-center justify-center gap-4 px-4 py-4 md:py-0">
+                  {renderBenefitIcon(item.icon)}
+                  <div className="text-left">
+                    <h4 className="font-bold text-gray-950 text-xs tracking-wider uppercase">{item.title}</h4>
+                    <p className="text-[11px] text-gray-400 mt-0.5">{item.subtitle}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Elegant Footer Area */}
       <footer id="contact" className="bg-gray-950 text-white border-t border-white/5 py-20 mt-auto">

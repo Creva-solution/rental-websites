@@ -31,6 +31,27 @@ export default function AppearancePage() {
     link: '#catalog'
   });
 
+  const [benefits, setBenefits] = useState({
+    enabled: true,
+    items: [
+      {
+        icon: 'Truck',
+        title: 'Free Global Shipping',
+        subtitle: 'Complimentary shipping on orders over ₹500'
+      },
+      {
+        icon: 'Shield',
+        title: 'End-to-End Secure',
+        subtitle: 'Shop safely and checkout via encrypted WhatsApp'
+      },
+      {
+        icon: 'RefreshCw',
+        title: 'Hassle-Free Returns',
+        subtitle: 'Complimentary 30-day return policy for peace of mind'
+      }
+    ]
+  });
+
   // Drag and Crop Modal State
   const [cropModalOpen, setCropModalOpen] = useState(false);
   const [cropType, setCropType] = useState<'logo' | 'banner' | 'flashAd'>('logo');
@@ -121,6 +142,26 @@ export default function AppearancePage() {
         cta: 'Claim Offer',
         link: '#catalog'
       };
+      let parsedBenefits = {
+        enabled: true,
+        items: [
+          {
+            icon: 'Truck',
+            title: 'Free Global Shipping',
+            subtitle: 'Complimentary shipping on orders over ₹500'
+          },
+          {
+            icon: 'Shield',
+            title: 'End-to-End Secure',
+            subtitle: 'Shop safely and checkout via encrypted WhatsApp'
+          },
+          {
+            icon: 'RefreshCw',
+            title: 'Hassle-Free Returns',
+            subtitle: 'Complimentary 30-day return policy for peace of mind'
+          }
+        ]
+      };
       let tplVal = 'minimal';
 
       try {
@@ -136,6 +177,12 @@ export default function AppearancePage() {
             tplVal = data.selectedTemplate;
           } else if (data.template) {
             tplVal = data.template;
+          }
+          if (data.benefits) {
+            parsedBenefits = {
+              enabled: data.benefits.enabled !== false,
+              items: data.benefits.items || parsedBenefits.items
+            };
           }
         }
       } catch (e) {
@@ -166,6 +213,7 @@ export default function AppearancePage() {
       }
       setAnnouncement(announcementMsg);
       setFlashAd(parsedFlashAd);
+      setBenefits(parsedBenefits);
       setSelectedTemplate(tplVal as any);
     }
     setLoading(false);
@@ -293,7 +341,8 @@ export default function AppearancePage() {
       banners: banners,
       announcement: announcement,
       flashAd: flashAd,
-      selectedTemplate: selectedTemplate
+      selectedTemplate: selectedTemplate,
+      benefits: benefits
     });
 
     try {
@@ -690,6 +739,95 @@ export default function AppearancePage() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Trust Benefits Settings */}
+      <div className="bg-card text-card-foreground rounded-xl border border-border shadow-sm overflow-hidden p-6 space-y-6">
+        <div className="flex justify-between items-center border-b border-border pb-4">
+          <div className="space-y-1">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <SlidersHorizontal className="w-5 h-5 text-primary" /> Store Trust Benefits Settings
+            </h3>
+            <p className="text-xs text-muted-foreground">Highlight custom service guarantees or benefits directly above your page footer.</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer select-none">
+            <input 
+              type="checkbox" 
+              checked={benefits.enabled}
+              onChange={e => setBenefits(prev => ({ ...prev, enabled: e.target.checked }))}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            <span className="ml-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">{benefits.enabled ? 'Enabled' : 'Disabled'}</span>
+          </label>
+        </div>
+
+        {benefits.enabled && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            {benefits.items.map((item, index) => (
+              <div key={index} className="p-5 border border-border rounded-xl bg-muted/10 space-y-4 shadow-sm">
+                <div className="flex justify-between items-center border-b border-border pb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Benefit Item #{index + 1}</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">Select Icon</label>
+                    <select
+                      value={item.icon}
+                      onChange={(e) => {
+                        const newItems = [...benefits.items];
+                        newItems[index].icon = e.target.value;
+                        setBenefits(prev => ({ ...prev, items: newItems }));
+                      }}
+                      className="w-full h-10 px-3 mt-1.5 rounded border border-input bg-background text-sm cursor-pointer outline-none"
+                    >
+                      <option value="Truck">🚚 Shipping Truck</option>
+                      <option value="Shield">🛡️ Security Shield</option>
+                      <option value="RefreshCw">🔄 Return Loop</option>
+                      <option value="Heart">❤️ Heart / Love</option>
+                      <option value="Star">⭐ Review Star</option>
+                      <option value="Sparkles">✨ Special Sparkles</option>
+                      <option value="Package">📦 Delivery Package</option>
+                      <option value="ShoppingBag">🛍️ Shopping Bag</option>
+                      <option value="Clock">⏱️ 24/7 Clock</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">Benefit Title</label>
+                    <input 
+                      type="text" 
+                      value={item.title}
+                      onChange={(e) => {
+                        const newItems = [...benefits.items];
+                        newItems[index].title = e.target.value;
+                        setBenefits(prev => ({ ...prev, items: newItems }));
+                      }}
+                      className="w-full h-10 px-3 mt-1.5 rounded border border-input bg-background text-sm font-semibold outline-none focus:ring-1 focus:ring-primary"
+                      placeholder="e.g. Free Global Shipping"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">Description Subtitle</label>
+                    <input 
+                      type="text" 
+                      value={item.subtitle}
+                      onChange={(e) => {
+                        const newItems = [...benefits.items];
+                        newItems[index].subtitle = e.target.value;
+                        setBenefits(prev => ({ ...prev, items: newItems }));
+                      }}
+                      className="w-full h-10 px-3 mt-1.5 rounded border border-input bg-background text-sm outline-none focus:ring-1 focus:ring-primary"
+                      placeholder="e.g. Complimentary shipping over ₹500"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Flash Advertisement Settings */}
