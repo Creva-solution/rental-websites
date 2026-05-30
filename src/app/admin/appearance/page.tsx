@@ -688,31 +688,6 @@ export default function AppearancePage() {
             >
               👗 Premium Fashion Presets
             </button>
-            <button 
-              onClick={() => {
-                setBanners([
-                  {
-                    id: 1,
-                    image: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=1920',
-                    title: 'The New Era of Apparel',
-                    subtitle: 'Refined utilitarianism designed for modern metropolitan life. Experience premium style accents.',
-                    cta: 'SHOP COLLECTION',
-                    link: '#catalog'
-                  },
-                  {
-                    id: 2,
-                    image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=1920',
-                    title: 'Exquisite Summer Collection',
-                    subtitle: 'Indulge in our limited-edition handcrafted series. Up to 40% off online deals.',
-                    cta: 'EXPLORE ALL',
-                    link: '#catalog'
-                  }
-                ]);
-              }}
-              className="text-xs px-3 py-1.5 border border-border rounded hover:bg-muted font-medium transition-colors bg-background shadow-sm"
-            >
-              🧥 Template 1 (Minimal) Defaults
-            </button>
           </div>
         </div>
       </div>
