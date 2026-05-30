@@ -1467,7 +1467,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                           <span className="text-[8px] text-[#8B5CF6] font-bold tracking-widest uppercase block">&gt; {getProductCategory(product).toUpperCase()}</span>
                           <h4 
                             onClick={() => setSelectedProduct(product)}
-                            className="font-bold text-[#10B981] text-xs hover:underline cursor-pointer uppercase tracking-wider truncate"
+                            className="font-bold text-[#10B981] text-xs hover:underline cursor-pointer uppercase tracking-wider line-clamp-2 min-h-[2rem]"
                           >
                             {product.name}
                           </h4>
@@ -1478,13 +1478,13 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                             <span>STABILITY: [100%]</span>
                           </div>
 
-                          <div className="flex items-center justify-between gap-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
                             <span className="font-extrabold text-white text-sm">
                               {currencySymbol}{displayPrice.toLocaleString()}
                             </span>
                             <button 
                               onClick={() => addToCart(product, 1)}
-                              className="px-3 py-1 bg-[#10B981] hover:bg-[#8B5CF6] hover:text-black text-black border-2 border-black font-black uppercase text-[8px] shadow-[2px_2px_0px_rgba(16,185,129,0.3)] transition-all"
+                              className="w-full sm:w-auto text-center px-3 py-1.5 bg-[#10B981] hover:bg-[#8B5CF6] hover:text-black text-black border-2 border-black font-black uppercase text-[8px] shadow-[2px_2px_0px_rgba(16,185,129,0.3)] transition-all"
                             >
                               [ LOAD ]
                             </button>
@@ -1597,7 +1597,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                           <span className="text-[8px] font-bold text-[#8B5A2B] tracking-[0.25em] uppercase block">{getProductCategory(product)}</span>
                           <h4 
                             onClick={() => setSelectedProduct(product)}
-                            className="font-bold text-[#2F1E12] text-sm hover:underline cursor-pointer font-serif leading-tight"
+                            className="font-bold text-[#2F1E12] text-sm hover:underline cursor-pointer font-serif leading-tight line-clamp-2 min-h-[2.5rem]"
                           >
                             {product.name}
                           </h4>
@@ -1606,13 +1606,13 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                           </p>
                         </div>
 
-                        <div className="pt-2 border-t border-[#E4DAC9]/60 flex items-center justify-between gap-4">
+                        <div className="pt-2 border-t border-[#E4DAC9]/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                           <span className="font-bold text-[#8B5A2B] font-serif text-base">
                             {currencySymbol}{displayPrice.toLocaleString()}
                           </span>
                           <button 
                             onClick={() => addToCart(product, 1)}
-                            className="px-5 py-2 bg-[#8B5A2B] hover:bg-[#6e4620] text-white text-[9px] font-black uppercase tracking-[0.15em] rounded-full transition-colors"
+                            className="w-full sm:w-auto text-center px-5 py-2 bg-[#8B5A2B] hover:bg-[#6e4620] text-white text-[9px] font-black uppercase tracking-[0.15em] rounded-full transition-colors"
                           >
                             Add To Cart
                           </button>
@@ -1735,19 +1735,19 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                               <span className="inline-block bg-yellow-300 text-black border border-black font-black uppercase text-[7px] px-1.5 py-0.5">{getProductCategory(product)}</span>
                               <h4 
                                 onClick={() => setSelectedProduct(product)}
-                                className="font-extrabold text-black text-xs sm:text-sm hover:underline cursor-pointer uppercase tracking-tight block truncate mt-1"
+                                className="font-extrabold text-black text-xs sm:text-sm hover:underline cursor-pointer uppercase tracking-tight block line-clamp-2 min-h-[2.5rem] mt-1"
                               >
                                 {product.name}
                               </h4>
                             </div>
 
-                            <div className="flex items-center justify-between gap-3 pt-2">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
                               <span className="font-black text-black text-sm sm:text-base">
                                 {currencySymbol}{displayPrice.toLocaleString()}
                               </span>
                               <button 
                                 onClick={() => addToCart(product, 1)}
-                                className="px-3.5 py-2 bg-black text-white hover:bg-[#E11D48] border-2 border-black font-black text-[8px] uppercase tracking-widest shadow-[2px_2px_0_0_#fff]"
+                                className="w-full sm:w-auto text-center px-3.5 py-2 bg-black text-white hover:bg-[#E11D48] border-2 border-black font-black text-[8px] uppercase tracking-widest shadow-[2px_2px_0_0_#fff]"
                               >
                                 BUY [EX]
                               </button>
@@ -1854,7 +1854,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                           <span className="text-[8px] font-black text-[#D4AF37] tracking-[0.2em] uppercase block">{getProductCategory(product)}</span>
                           <h4 
                             onClick={() => setSelectedProduct(product)}
-                            className="font-light text-white text-sm hover:text-[#D4AF37] cursor-pointer font-serif leading-tight"
+                            className="font-light text-white text-sm hover:text-[#D4AF37] cursor-pointer font-serif leading-tight line-clamp-2 min-h-[2.5rem]"
                           >
                             {product.name}
                           </h4>
@@ -1863,13 +1863,13 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                           </p>
                         </div>
 
-                        <div className="pt-4 border-t border-zinc-900 flex items-center justify-between gap-4">
+                        <div className="pt-4 border-t border-zinc-900 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                           <span className="font-bold text-[#D4AF37] font-serif text-sm">
                             {currencySymbol}{displayPrice.toLocaleString()}
                           </span>
                           <button 
                             onClick={() => addToCart(product, 1)}
-                            className="px-5 py-2 bg-[#D4AF37] text-black hover:bg-white text-[8px] font-black uppercase tracking-[0.2em] transition-all duration-300 rounded-[2px] border border-transparent"
+                            className="w-full sm:w-auto text-center px-5 py-2 bg-[#D4AF37] text-black hover:bg-white text-[8px] font-black uppercase tracking-[0.2em] transition-all duration-300 rounded-[2px] border border-transparent"
                           >
                             ORDER NOW
                           </button>
@@ -1962,19 +1962,19 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                           <span className="text-[8px] font-black text-gray-400 tracking-[0.2em] uppercase block">{getProductCategory(product)}</span>
                           <h4 
                             onClick={() => setSelectedProduct(product)}
-                            className="font-light text-gray-950 text-xs md:text-sm hover:underline cursor-pointer tracking-wider truncate"
+                            className="font-light text-gray-950 text-xs md:text-sm hover:underline cursor-pointer tracking-wider line-clamp-2 min-h-[2.2rem]"
                           >
                             {product.name}
                           </h4>
                         </div>
 
-                        <div className="flex items-center justify-between border-t border-gray-100 pt-2.5">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 border-t border-gray-100 pt-2.5">
                           <span className="font-extrabold text-black text-xs md:text-sm">
                             {currencySymbol}{displayPrice.toLocaleString()}
                           </span>
                           <button 
                             onClick={() => addToCart(product, 1)}
-                            className="px-3.5 py-1.5 bg-black hover:opacity-85 text-white text-[8px] font-black uppercase tracking-[0.15em] rounded-none transition-all"
+                            className="w-full sm:w-auto text-center px-3.5 py-2 bg-black hover:opacity-85 text-white text-[8.5px] font-black uppercase tracking-[0.15em] rounded-none transition-all"
                           >
                             ADD TO BAG
                           </button>
