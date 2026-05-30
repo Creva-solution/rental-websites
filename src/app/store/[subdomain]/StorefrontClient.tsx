@@ -755,8 +755,12 @@ export default function StorefrontClient({ store, products }: { store: any, prod
             {/* Desktop Fixed Left Sidebar Header Navigation */}
             <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-80 bg-zinc-950 text-[#10B981] border-r-4 border-black p-6 z-40 overflow-y-auto font-mono">
               <div className="flex flex-col items-center text-center space-y-4 pb-6 border-b-4 border-[#10B981]/30">
-                <div className="w-16 h-16 rounded bg-[#10B981]/10 border-2 border-[#10B981] flex items-center justify-center text-[#10B981] font-black text-2xl shadow-[0_0_15px_rgba(16,185,129,0.3)] animate-pulse">
-                  {store.store_name?.charAt(0).toUpperCase()}
+                <div className="w-16 h-16 rounded bg-[#10B981]/5 border-2 border-[#10B981] flex items-center justify-center text-[#10B981] font-black text-2xl overflow-hidden shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                  {store.logo_url ? (
+                    <img src={store.logo_url} alt={store.store_name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span>{store.store_name?.charAt(0).toUpperCase()}</span>
+                  )}
                 </div>
                 <div>
                   <h1 className="font-extrabold text-sm uppercase tracking-widest text-[#10B981] drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
@@ -812,7 +816,13 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-[#10B981] border-2 border-black bg-zinc-900 rounded shadow-[2px_2px_0_0_#000]">
                   <Menu className="w-5 h-5 stroke-[2.5]" />
                 </button>
-                <span className="font-extrabold text-sm uppercase tracking-tight text-[#10B981]">{store.store_name}</span>
+                <span className="font-extrabold text-sm uppercase tracking-tight text-[#10B981] flex items-center gap-2">
+                  {store.logo_url ? (
+                    <img src={store.logo_url} alt={store.store_name} className="h-6 w-auto object-contain" />
+                  ) : (
+                    store.store_name
+                  )}
+                </span>
                 <button onClick={() => setIsCartOpen(true)} className="p-2 text-black border-2 border-black bg-[#10B981] rounded shadow-[2px_2px_0_0_#000] relative">
                   <ShoppingCart className="w-5 h-5" />
                   {cartItemCount > 0 && (
@@ -839,10 +849,16 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               {/* Centered Brand Logo */}
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex items-center justify-center">
                 <Link href="/" className="flex flex-col items-center gap-0.5 group">
-                  <span className="font-bold text-xl md:text-2xl tracking-widest text-[#2F1E12] uppercase font-serif">
-                    {store.store_name}
-                  </span>
-                  <span className="text-[8px] tracking-[0.3em] font-semibold text-[#8B5A2B] uppercase block">HANDMADE APOTHECARY</span>
+                  {store.logo_url ? (
+                    <img src={store.logo_url} alt={store.store_name} className="h-10 w-auto object-contain" />
+                  ) : (
+                    <>
+                      <span className="font-bold text-xl md:text-2xl tracking-widest text-[#2F1E12] uppercase font-serif">
+                        {store.store_name}
+                      </span>
+                      <span className="text-[8px] tracking-[0.3em] font-semibold text-[#8B5A2B] uppercase block">HANDMADE APOTHECARY</span>
+                    </>
+                  )}
                 </Link>
               </div>
 
@@ -910,9 +926,13 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               {/* Left Aligned Heavy Brand Logo */}
               <div className="flex items-center gap-6">
                 <Link href="/" className="group flex items-center">
-                  <span className="font-extrabold text-2xl tracking-tighter text-black uppercase font-sans border-2 border-black px-3.5 py-1 shadow-[3px_3px_0px_#000] group-hover:bg-yellow-300 transition-colors">
-                    {store.store_name}
-                  </span>
+                  {store.logo_url ? (
+                    <img src={store.logo_url} alt={store.store_name} className="h-10 w-auto object-contain border-2 border-black shadow-[3px_3px_0px_#000] p-1 bg-white" />
+                  ) : (
+                    <span className="font-extrabold text-2xl tracking-tighter text-black uppercase font-sans border-2 border-black px-3.5 py-1 shadow-[3px_3px_0px_#000] group-hover:bg-yellow-300 transition-colors">
+                      {store.store_name}
+                    </span>
+                  )}
                 </Link>
                 <nav className="hidden md:flex items-center gap-6 font-black uppercase text-[10px] tracking-widest text-black">
                   <button onClick={() => setIsAboutOpen(true)} className="hover:text-[#E11D48] transition-colors border-l-2 border-black pl-6 py-1">[ ABOUT SYSTEM ]</button>
@@ -987,10 +1007,16 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               {/* Centered Logo with Gold Details */}
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex items-center justify-center">
                 <Link href="/" className="flex flex-col items-center gap-1 group">
-                  <span className="font-light text-2xl tracking-[0.25em] text-white uppercase font-serif drop-shadow-[0_2px_10px_rgba(212,175,55,0.15)] group-hover:text-[#D4AF37] transition-all">
-                    {store.store_name}
-                  </span>
-                  <div className="w-12 h-[1px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent group-hover:w-20 transition-all duration-500"></div>
+                  {store.logo_url ? (
+                    <img src={store.logo_url} alt={store.store_name} className="h-10 w-auto object-contain brightness-110 drop-shadow-[0_0_8px_rgba(212,175,55,0.3)]" />
+                  ) : (
+                    <>
+                      <span className="font-light text-2xl tracking-[0.25em] text-white uppercase font-serif drop-shadow-[0_2px_10px_rgba(212,175,55,0.15)] group-hover:text-[#D4AF37] transition-all">
+                        {store.store_name}
+                      </span>
+                      <div className="w-12 h-[1px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent group-hover:w-20 transition-all duration-500"></div>
+                    </>
+                  )}
                 </Link>
               </div>
 
@@ -1063,9 +1089,13 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex items-center justify-center">
                 <Link href="/" className="flex items-center gap-2 group">
-                  <span className="font-light text-lg md:text-xl tracking-[0.2em] text-gray-950 uppercase font-sans">
-                    {store.store_name}
-                  </span>
+                  {store.logo_url ? (
+                    <img src={store.logo_url} alt={store.store_name} className="h-9 w-auto object-contain" />
+                  ) : (
+                    <span className="font-light text-lg md:text-xl tracking-[0.2em] text-gray-950 uppercase font-sans">
+                      {store.store_name}
+                    </span>
+                  )}
                 </Link>
               </div>
 
