@@ -725,6 +725,1271 @@ export default function StorefrontClient({ store, products }: { store: any, prod
     }
   };
 
+  const renderAnnouncementBar = () => {
+    if (selectedTemplate === 'bold') {
+      return (
+        <div className="announcement-bar-theme text-xs py-3.5 border-b-4 border-black bg-black text-white font-black uppercase tracking-[0.2em] relative overflow-hidden h-12 flex items-center">
+          <div className="absolute whitespace-nowrap animate-marquee flex gap-10">
+            <span>{announcementText}</span>
+            <span>{announcementText}</span>
+            <span>{announcementText}</span>
+            <span>{announcementText}</span>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="announcement-bar-theme text-[10px] sm:text-xs py-3 px-4 text-center tracking-[0.25em] uppercase font-bold shadow-sm">
+        {announcementText}
+      </div>
+    );
+  };
+
+  const renderHeader = () => {
+    switch (selectedTemplate) {
+      case 'retro':
+        return (
+          <>
+            {/* Desktop Fixed Left Sidebar Header Navigation */}
+            <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-80 bg-zinc-950 text-[#10B981] border-r-4 border-black p-6 z-40 overflow-y-auto font-mono">
+              <div className="flex flex-col items-center text-center space-y-4 pb-6 border-b-4 border-[#10B981]/30">
+                <div className="w-16 h-16 rounded bg-[#10B981]/10 border-2 border-[#10B981] flex items-center justify-center text-[#10B981] font-black text-2xl shadow-[0_0_15px_rgba(16,185,129,0.3)] animate-pulse">
+                  {store.store_name?.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h1 className="font-extrabold text-sm uppercase tracking-widest text-[#10B981] drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
+                    {store.store_name}
+                  </h1>
+                  <p className="text-[9px] text-[#10B981]/70 font-bold uppercase mt-1">SYSTEM ONLINE v1.99</p>
+                </div>
+              </div>
+
+              {/* Digital Clock Display */}
+              <div className="mt-4 p-3 bg-zinc-900/60 border border-[#10B981]/30 rounded text-center text-xs">
+                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">LOCAL SYSTEM TIME</div>
+                <div className="font-bold text-[#10B981] mt-1 tracking-widest font-mono">
+                  {new Date().toLocaleTimeString()}
+                </div>
+              </div>
+
+              {/* Sidebar Menu Items */}
+              <nav className="flex flex-col gap-4 mt-8 uppercase text-xs">
+                <button onClick={() => setIsAboutOpen(true)} className="text-left py-2.5 px-3 border border-[#10B981]/20 hover:bg-[#10B981]/10 rounded transition-all text-[#10B981] font-bold">
+                  [ ABOUT_SYSTEM ]
+                </button>
+                <a href="#catalog" className="text-left py-2.5 px-3 border border-[#10B981]/20 hover:bg-[#10B981]/10 rounded transition-all text-[#10B981] font-bold">
+                  [ SHOP_CATALOG.EXE ]
+                </a>
+                <button onClick={() => { setIsTrackOpen(true); setIsCartOpen(false); }} className="text-left py-2.5 px-3 border border-[#10B981]/20 hover:bg-[#10B981]/10 rounded transition-all text-[#10B981] font-bold">
+                  [ ORDER_TRACK.SYS ]
+                </button>
+              </nav>
+
+              {/* Action buttons (Cart / Wishlist) */}
+              <div className="mt-auto space-y-3 pt-6 border-t-2 border-[#10B981]/20">
+                <button 
+                  onClick={() => setIsWishlistOpen(true)} 
+                  className="w-full py-2.5 bg-[#EF4444]/10 hover:bg-[#EF4444]/25 border border-red-500 rounded text-red-500 text-[10px] font-black transition-all flex items-center justify-between px-4"
+                >
+                  <span>WISHLIST.SYS</span>
+                  <span>({favorites.length})</span>
+                </button>
+                <button 
+                  onClick={() => setIsCartOpen(true)} 
+                  className="w-full py-3 bg-[#10B981] hover:bg-[#10B981]/90 active:scale-95 border-2 border-black text-black text-[10px] font-black transition-all flex items-center justify-between px-4 shadow-[3px_3px_0px_rgba(16,185,129,0.3)]"
+                >
+                  <span>RUN CART.EXE</span>
+                  <span>({cartItemCount})</span>
+                </button>
+              </div>
+            </aside>
+
+            {/* Mobile Header Navigation for Retro */}
+            <header className="header-theme sticky top-0 z-40 transition-all shadow-sm lg:hidden bg-zinc-950 text-[#10B981] border-b-4 border-black">
+              <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+                <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-[#10B981] border-2 border-black bg-zinc-900 rounded shadow-[2px_2px_0_0_#000]">
+                  <Menu className="w-5 h-5 stroke-[2.5]" />
+                </button>
+                <span className="font-extrabold text-sm uppercase tracking-tight text-[#10B981]">{store.store_name}</span>
+                <button onClick={() => setIsCartOpen(true)} className="p-2 text-black border-2 border-black bg-[#10B981] rounded shadow-[2px_2px_0_0_#000] relative">
+                  <ShoppingCart className="w-5 h-5" />
+                  {cartItemCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full text-[9px] w-4 h-4 flex items-center justify-center font-bold border border-black animate-bounce">{cartItemCount}</span>
+                  )}
+                </button>
+              </div>
+            </header>
+          </>
+        );
+
+      case 'artisan':
+        return (
+          <header className="header-theme sticky top-0 z-40 transition-all bg-[#FAF6F0] border-b border-[#E4DAC9]">
+            {/* Row 1: Logo and Action Icons */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between relative gap-4">
+              <button 
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="p-2 -ml-2 text-[#2F1E12] hover:bg-[#F3EFE7] rounded-full transition-all md:hidden"
+              >
+                <Menu className="w-6 h-6 stroke-[1.5]" />
+              </button>
+
+              {/* Centered Brand Logo */}
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex items-center justify-center">
+                <Link href="/" className="flex flex-col items-center gap-0.5 group">
+                  <span className="font-bold text-xl md:text-2xl tracking-widest text-[#2F1E12] uppercase font-serif">
+                    {store.store_name}
+                  </span>
+                  <span className="text-[8px] tracking-[0.3em] font-semibold text-[#8B5A2B] uppercase block">HANDMADE APOTHECARY</span>
+                </Link>
+              </div>
+
+              {/* Right Side: Quick Action Icons */}
+              <div className="flex items-center gap-1.5 md:gap-3 ml-auto z-20">
+                <button onClick={() => setIsSearchOverlayOpen(!isSearchOverlayOpen)} className="p-2 text-[#2F1E12] hover:bg-[#F3EFE7] rounded-full transition-all">
+                  <Search className="w-5 h-5 stroke-[1.5]" />
+                </button>
+                <button onClick={() => setIsWishlistOpen(true)} className="p-2 text-[#2F1E12] hover:bg-[#F3EFE7] rounded-full transition-all relative">
+                  <Heart className="w-5 h-5 text-rose-700/80 stroke-[1.5]" />
+                  {favorites.length > 0 && (
+                    <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-[#8B5A2B] text-white rounded-full text-[8px] font-black flex items-center justify-center">
+                      {favorites.length}
+                    </span>
+                  )}
+                </button>
+                <button onClick={() => setIsCartOpen(true)} className="p-2 text-[#2F1E12] hover:bg-[#F3EFE7] rounded-full transition-all relative">
+                  <ShoppingCart className="w-5 h-5 stroke-[1.5]" />
+                  {cartItemCount > 0 && (
+                    <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-[#8B5A2B] text-white rounded-full text-[8px] font-black flex items-center justify-center font-bold">
+                      {cartItemCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Row 2: Centered Desktop Links (Centered Navigation sub-row) */}
+            <div className="hidden md:flex items-center justify-center h-10 border-t border-[#E4DAC9]/60 pb-1.5 pt-1.5 bg-[#FAF6F0]">
+              <nav className="flex items-center gap-10 font-bold uppercase tracking-[0.2em] text-[9px] text-[#2F1E12]/80">
+                <button onClick={() => setIsAboutOpen(true)} className="hover:text-[#8B5A2B] transition-colors">Our Craft</button>
+                <a href="#catalog" className="hover:text-[#8B5A2B] transition-colors">Shop Pottery</a>
+                <button onClick={() => { setIsTrackOpen(true); setIsCartOpen(false); }} className="hover:text-[#8B5A2B] transition-colors">Track Order</button>
+              </nav>
+            </div>
+
+            {/* Premium Sliding Search Bar Overlay */}
+            {isSearchOverlayOpen && (
+              <div className="bg-[#FAF6F0] border-t border-[#E4DAC9] px-4 py-3.5 animate-in slide-in-from-top duration-300">
+                <div className="max-w-3xl mx-auto relative">
+                  <input 
+                    type="text" 
+                    placeholder="Search organic collection..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full h-10 pl-10 pr-10 bg-white border border-[#E4DAC9] rounded-none text-xs outline-none focus:border-[#8B5A2B]"
+                    autoFocus
+                  />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8B5A2B]/60" />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8B5A2B]">
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </header>
+        );
+
+      case 'bold':
+        return (
+          <header className="header-theme sticky top-0 z-40 transition-all bg-white border-b-4 border-black">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+              {/* Left Aligned Heavy Brand Logo */}
+              <div className="flex items-center gap-6">
+                <Link href="/" className="group flex items-center">
+                  <span className="font-extrabold text-2xl tracking-tighter text-black uppercase font-sans border-2 border-black px-3.5 py-1 shadow-[3px_3px_0px_#000] group-hover:bg-yellow-300 transition-colors">
+                    {store.store_name}
+                  </span>
+                </Link>
+                <nav className="hidden md:flex items-center gap-6 font-black uppercase text-[10px] tracking-widest text-black">
+                  <button onClick={() => setIsAboutOpen(true)} className="hover:text-[#E11D48] transition-colors border-l-2 border-black pl-6 py-1">[ ABOUT SYSTEM ]</button>
+                  <a href="#catalog" className="hover:text-[#E11D48] transition-colors border-l-2 border-black pl-6 py-1">[ SHOP ALL ]</a>
+                  <button onClick={() => { setIsTrackOpen(true); setIsCartOpen(false); }} className="hover:text-[#E11D48] transition-colors border-l-2 border-black pl-6 py-1">[ TRACK ORDER ]</button>
+                </nav>
+              </div>
+
+              {/* Right Side: Quick Action Icons */}
+              <div className="flex items-center gap-2">
+                <button onClick={() => setIsSearchOverlayOpen(!isSearchOverlayOpen)} className="p-2 border-2 border-black bg-white hover:bg-gray-100 rounded text-black transition-all">
+                  <Search className="w-5 h-5 stroke-[2.5]" />
+                </button>
+                <button onClick={() => setIsWishlistOpen(true)} className="p-2 border-2 border-black bg-white hover:bg-gray-100 rounded text-black transition-all relative">
+                  <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+                  {favorites.length > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-black text-white border-2 border-white rounded-full text-[8px] font-black w-4 h-4 flex items-center justify-center">
+                      {favorites.length}
+                    </span>
+                  )}
+                </button>
+                <button 
+                  onClick={() => setIsCartOpen(true)}
+                  className="p-2.5 border-2 border-black bg-[#E11D48] text-white hover:bg-[#be123c] rounded transition-all relative shadow-[2px_2px_0px_#000]"
+                >
+                  <ShoppingCart className="w-5 h-5 stroke-[2.5]" />
+                  {cartItemCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-black text-white rounded-full text-[8px] font-black w-4 h-4 flex items-center justify-center border-2 border-white animate-bounce">
+                      {cartItemCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Sliding Search Bar Overlay */}
+            {isSearchOverlayOpen && (
+              <div className="bg-white border-t-2 border-b-2 border-black px-4 py-3.5 animate-in slide-in-from-top duration-300">
+                <div className="max-w-3xl mx-auto relative">
+                  <input 
+                    type="text" 
+                    placeholder="SEARCH BOLD COMMERCE..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full h-11 pl-11 pr-10 bg-white border-2 border-black text-xs font-bold uppercase tracking-widest outline-none focus:bg-yellow-50"
+                    autoFocus
+                  />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-black" />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-black hover:scale-110">
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </header>
+        );
+
+      case 'luxe':
+        return (
+          <header className="header-theme sticky top-0 z-40 transition-all bg-[#0A0A0A]/90 backdrop-blur-md border-b border-zinc-900">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between relative gap-4">
+              {/* Hamburger Mobile */}
+              <button 
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="p-2 -ml-2 text-white hover:text-[#D4AF37] transition-colors md:hidden"
+              >
+                <Menu className="w-6 h-6 stroke-[1.2]" />
+              </button>
+
+              {/* Centered Logo with Gold Details */}
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex items-center justify-center">
+                <Link href="/" className="flex flex-col items-center gap-1 group">
+                  <span className="font-light text-2xl tracking-[0.25em] text-white uppercase font-serif drop-shadow-[0_2px_10px_rgba(212,175,55,0.15)] group-hover:text-[#D4AF37] transition-all">
+                    {store.store_name}
+                  </span>
+                  <div className="w-12 h-[1px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent group-hover:w-20 transition-all duration-500"></div>
+                </Link>
+              </div>
+
+              {/* Desktop links */}
+              <nav className="hidden md:flex items-center gap-8 font-light uppercase text-[9px] tracking-[0.25em] text-[#D4AF37] absolute left-10">
+                <button onClick={() => setIsAboutOpen(true)} className="hover:text-white transition-colors">THE HOUSE</button>
+                <a href="#catalog" className="hover:text-white transition-colors">COLLECTIONS</a>
+                <button onClick={() => { setIsTrackOpen(true); setIsCartOpen(false); }} className="hover:text-white transition-colors">TRACK ORDER</button>
+              </nav>
+
+              {/* Right Action Buttons */}
+              <div className="flex items-center gap-2 ml-auto z-20">
+                <button onClick={() => setIsSearchOverlayOpen(!isSearchOverlayOpen)} className="p-2 text-zinc-400 hover:text-white transition-colors">
+                  <Search className="w-5 h-5 stroke-[1.2]" />
+                </button>
+                <button onClick={() => setIsWishlistOpen(true)} className="p-2 text-zinc-400 hover:text-white transition-colors relative">
+                  <Heart className="w-5 h-5 stroke-[1.2] text-[#D4AF37]/80" />
+                  {favorites.length > 0 && (
+                    <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-[#D4AF37] text-black rounded-full text-[8px] font-black flex items-center justify-center">
+                      {favorites.length}
+                    </span>
+                  )}
+                </button>
+                <button onClick={() => setIsCartOpen(true)} className="p-2 text-[#D4AF37] hover:text-white transition-colors relative">
+                  <ShoppingCart className="w-5 h-5 stroke-[1.2]" />
+                  {cartItemCount > 0 && (
+                    <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-[#D4AF37] text-black rounded-full text-[8px] font-black flex items-center justify-center font-bold shadow-[0_0_8px_rgba(212,175,55,0.4)]">
+                      {cartItemCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Sliding Search Bar Overlay */}
+            {isSearchOverlayOpen && (
+              <div className="bg-[#0D0D0D] border-t border-b border-zinc-900 px-4 py-3.5 animate-in slide-in-from-top duration-300">
+                <div className="max-w-3xl mx-auto relative">
+                  <input 
+                    type="text" 
+                    placeholder="Search curated collection..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full h-10 pl-10 pr-10 bg-[#070707] border border-zinc-800 text-white rounded-none text-xs outline-none focus:border-[#D4AF37] tracking-wider"
+                    autoFocus
+                  />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#D4AF37]" />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white">
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </header>
+        );
+
+      case 'minimal':
+      default:
+        return (
+          <header className="header-theme sticky top-0 z-40 transition-all bg-white border-b border-gray-100">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between relative gap-4">
+              <button 
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="p-2 -ml-2 text-gray-900 hover:text-black transition-colors md:hidden"
+              >
+                <Menu className="w-6 h-6 stroke-[1.5]" />
+              </button>
+
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex items-center justify-center">
+                <Link href="/" className="flex items-center gap-2 group">
+                  <span className="font-light text-lg md:text-xl tracking-[0.2em] text-gray-950 uppercase font-sans">
+                    {store.store_name}
+                  </span>
+                </Link>
+              </div>
+
+              {/* Left-side Navigation Link for Copenhagen Minimal */}
+              <nav className="hidden md:flex items-center gap-8 font-light uppercase text-[9px] tracking-[0.2em] text-gray-400 absolute left-8">
+                <button onClick={() => setIsAboutOpen(true)} className="hover:text-black transition-colors">ABOUT</button>
+                <a href="#catalog" className="hover:text-black transition-colors">CATALOG</a>
+                <button onClick={() => { setIsTrackOpen(true); setIsCartOpen(false); }} className="hover:text-black transition-colors">TRACK ORDER</button>
+              </nav>
+
+              <div className="flex items-center gap-1.5 ml-auto z-20">
+                <button onClick={() => setIsSearchOverlayOpen(!isSearchOverlayOpen)} className="p-2 text-gray-500 hover:text-black transition-all">
+                  <Search className="w-5 h-5 stroke-[1.5]" />
+                </button>
+                <button onClick={() => setIsWishlistOpen(true)} className="p-2 text-gray-500 hover:text-black transition-all relative">
+                  <Heart className="w-5 h-5 stroke-[1.5] text-rose-500" />
+                  {favorites.length > 0 && (
+                    <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-black text-white rounded-full text-[8px] font-black flex items-center justify-center">
+                      {favorites.length}
+                    </span>
+                  )}
+                </button>
+                <button onClick={() => setIsCartOpen(true)} className="p-2 text-gray-950 hover:text-black transition-all relative">
+                  <ShoppingCart className="w-5 h-5 stroke-[1.5]" />
+                  {cartItemCount > 0 && (
+                    <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-black text-white rounded-full text-[8px] font-black flex items-center justify-center font-bold">
+                      {cartItemCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Sliding Search Overlay */}
+            {isSearchOverlayOpen && (
+              <div className="bg-white border-t border-b border-gray-100 px-4 py-3.5 animate-in slide-in-from-top duration-300">
+                <div className="max-w-3xl mx-auto relative">
+                  <input 
+                    type="text" 
+                    placeholder="Search catalog..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full h-10 pl-10 pr-10 bg-[#FCFCFC] border border-gray-200 rounded-none text-xs outline-none focus:border-black font-light"
+                    autoFocus
+                  />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black">
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </header>
+        );
+    }
+  };
+
+  const renderHero = () => {
+    switch (selectedTemplate) {
+      case 'artisan':
+        return (
+          <section className="relative px-4 sm:px-6 lg:px-8 py-10 max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center bg-[#FAF6F0] p-6 sm:p-10 border border-[#E4DAC9] rounded-[24px]">
+              {/* Left Side: organic image with rounded corners */}
+              <div className="aspect-[4/3] w-full overflow-hidden rounded-[24px] border border-[#E4DAC9]">
+                <img 
+                  src="https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&q=80&w=1200" 
+                  alt="Artisan Craft Studio" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              {/* Right Side: storytelling warm block */}
+              <div className="space-y-6 lg:pl-6 text-[#2F1E12]">
+                <span className="text-[10px] tracking-[0.3em] font-black text-[#8B5A2B] uppercase block">SINCE 2026 • THE WAY OF MUD & FIRE</span>
+                <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight font-serif text-[#2F1E12] leading-tight">
+                  Meticulously Handcrafted Ceramics
+                </h2>
+                <p className="text-sm leading-relaxed text-[#2F1E12]/80 font-serif italic">
+                  "We mold organic local earth with slowness, patience, and traditional kiln firings. Every single object carries tiny tactile traces of our hands, keeping the quiet spirit of craftsmanship alive in your daily home rituals."
+                </p>
+                <div className="pt-4">
+                  <a 
+                    href="#catalog"
+                    className="inline-block px-10 py-4 bg-[#8B5A2B] text-white hover:bg-[#6e4620] text-[10px] font-black uppercase tracking-[0.2em] rounded-full transition-all duration-200 shadow-md hover:scale-[1.02]"
+                  >
+                    DISCOVER EARTH COLLECTION →
+                  </a>
+                </div>
+              </div>
+            </div>
+          </section>
+        );
+
+      case 'bold':
+        return (
+          <section className="px-4 sm:px-6 lg:px-8 py-10 max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Hero Block 1 */}
+              <div className="border-4 border-black p-8 bg-black text-white flex flex-col justify-between aspect-[16/10] shadow-[6px_6px_0px_#EF4444]">
+                <div className="space-y-4">
+                  <span className="inline-block bg-[#EF4444] text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 border-2 border-white">
+                    METROPOLIS V1 DROP
+                  </span>
+                  <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter leading-none">
+                    WE MOVE<br />WITHOUT LIMITS.
+                  </h2>
+                  <p className="text-xs text-zinc-400 font-bold max-w-sm uppercase tracking-wide leading-relaxed">
+                    Heavyweight double-mesh active gear, utility outercoats, and modular street essentials.
+                  </p>
+                </div>
+                <div className="pt-6">
+                  <a 
+                    href="#catalog" 
+                    className="inline-block bg-yellow-300 hover:bg-yellow-400 text-black border-2 border-black px-8 py-3 text-[10px] font-black uppercase tracking-widest shadow-[3px_3px_0px_#fff] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all"
+                  >
+                    ACQUIRE GEAR NOW →
+                  </a>
+                </div>
+              </div>
+
+              {/* Hero Block 2 */}
+              <div className="border-4 border-black p-8 bg-yellow-300 text-black flex flex-col justify-between aspect-[16/10] shadow-[6px_6px_0px_#000]">
+                <div className="space-y-4">
+                  <span className="inline-block bg-black text-white text-[9px] font-black uppercase tracking-widest px-3 py-1">
+                    SEASON SPECIAL
+                  </span>
+                  <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter leading-none">
+                    STREET STYLE<br />GRID PARADIGM
+                  </h2>
+                  <p className="text-xs text-zinc-800 font-bold max-w-sm uppercase tracking-wide leading-relaxed">
+                    Designed for heavy wear and maximum impact. Thick canvas overlays and solid metal accessories.
+                  </p>
+                </div>
+                <div className="pt-6">
+                  <a 
+                    href="#catalog" 
+                    className="inline-block bg-black hover:bg-[#EF4444] hover:text-white text-white border-2 border-black px-8 py-3 text-[10px] font-black uppercase tracking-widest shadow-[3px_3px_0px_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all"
+                  >
+                    VIEW CATALOG [EX.DLL] →
+                  </a>
+                </div>
+              </div>
+            </div>
+          </section>
+        );
+
+      case 'luxe':
+        return (
+          <section className="relative h-[65vh] w-full overflow-hidden bg-black flex items-center justify-center border-b border-zinc-900">
+            {/* Dark elegant overlay and floating gold sparkles */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60 z-10" />
+            <img 
+              src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=1920" 
+              alt="Luxury Collection" 
+              className="absolute inset-0 w-full h-full object-cover opacity-45 scale-100 transition-transform duration-[10s]"
+            />
+            
+            {/* Elegant luxury text */}
+            <div className="relative z-20 text-center px-4 max-w-3xl mx-auto space-y-6 md:space-y-8 flex flex-col items-center">
+              <span className="inline-block px-5 py-2 border border-[#D4AF37]/40 text-[#D4AF37] text-[9px] font-black uppercase tracking-[0.3em] rounded bg-black/45 backdrop-blur-sm animate-pulse">
+                THE AURELIA CURATION
+              </span>
+              <h2 className="text-4xl sm:text-6xl font-light text-white tracking-[0.1em] uppercase font-serif leading-tight">
+                Curated Timeless Masterpieces
+              </h2>
+              <p className="text-xs md:text-sm text-zinc-400 font-serif max-w-xl tracking-wider leading-relaxed">
+                Fine jewelry, hand-brushed luxury watches, and leather travel cases designed with exceptional dedication and finished in 18k premium gold.
+              </p>
+              <div className="pt-2">
+                <a 
+                  href="#catalog"
+                  className="inline-block px-12 py-4 bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black hover:from-white hover:to-white text-[10px] font-black uppercase tracking-[0.25em] transition-all duration-300 shadow-[0_0_20px_rgba(212,175,55,0.2)] rounded-sm hover:scale-[1.03]"
+                >
+                  ENTER THE SALON
+                </a>
+              </div>
+            </div>
+          </section>
+        );
+
+      case 'retro':
+        return (
+          <section className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto font-mono">
+            {/* 90s Staggered computer windows grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+              
+              {/* Computer Window 1 */}
+              <div className="border-4 border-black bg-zinc-900 text-white rounded overflow-hidden flex flex-col shadow-[6px_6px_0px_#8B5CF6]">
+                {/* OS Title Bar */}
+                <div className="bg-[#8B5CF6] text-black h-8 px-3.5 flex items-center justify-between font-black uppercase tracking-wider text-[10px] border-b-4 border-black">
+                  <span>PROMO_V1.EXE</span>
+                  <div className="flex gap-1.5">
+                    <span className="w-3.5 h-3.5 bg-black text-[#8B5CF6] flex items-center justify-center font-bold text-[8px] border border-black cursor-pointer">_</span>
+                    <span className="w-3.5 h-3.5 bg-black text-[#8B5CF6] flex items-center justify-center font-bold text-[8px] border border-black cursor-pointer">X</span>
+                  </div>
+                </div>
+                
+                {/* Inner lo-fi CRT screen */}
+                <div className="p-6 space-y-4 flex-1 bg-zinc-950 text-[#10B981] flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">&gt; LOAD DATASET</div>
+                    <h3 className="text-xl sm:text-2xl font-black uppercase tracking-widest text-[#10B981]">
+                      WELCOME TO NEON RADICAL
+                    </h3>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed font-mono">
+                      &gt; SYSTEM REPORT: Nostalgia subagent fully online. All systems reporting retro green levels. Load complete. Hardware drops: lo-fi gadgets, vintage pocket cameras, pixel widgets.
+                    </p>
+                  </div>
+                  <div className="pt-6 border-t border-[#10B981]/20">
+                    <a 
+                      href="#catalog"
+                      className="inline-block bg-[#10B981] text-black border-2 border-black px-6 py-2.5 text-[9px] font-black uppercase tracking-widest shadow-[3px_3px_0px_#8B5CF6] hover:translate-x-[-1.5px] hover:translate-y-[-1.5px] active:translate-x-[2px] active:translate-y-[2px] transition-all"
+                    >
+                      [ EXECUTE SHOP_NOW ]
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Computer Window 2 */}
+              <div className="border-4 border-black bg-zinc-900 text-white rounded overflow-hidden flex flex-col shadow-[6px_6px_0px_#10B981]">
+                {/* OS Title Bar */}
+                <div className="bg-[#10B981] text-black h-8 px-3.5 flex items-center justify-between font-black uppercase tracking-wider text-[10px] border-b-4 border-black">
+                  <span>WIDGET.SYS</span>
+                  <div className="flex gap-1.5">
+                    <span className="w-3.5 h-3.5 bg-black text-[#10B981] flex items-center justify-center font-bold text-[8px] border border-black cursor-pointer">_</span>
+                    <span className="w-3.5 h-3.5 bg-black text-[#10B981] flex items-center justify-center font-bold text-[8px] border border-black cursor-pointer">X</span>
+                  </div>
+                </div>
+                
+                {/* Lofi CRT display */}
+                <div className="p-6 space-y-4 flex-1 bg-zinc-950 text-[#8B5CF6] flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">&gt; STATUS REPORT</div>
+                    <h3 className="text-xl sm:text-2xl font-black uppercase tracking-widest text-[#8B5CF6]">
+                      90S SIMULATION ACTIVE
+                    </h3>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed font-mono">
+                      &gt; SYSTEM STATS: Neon Purple grids activated. Heavy shadows rendering... Flat shadow pixels initialized. CRT flicker: on. Radar: online. Radical lo-fi gear is back in folder.
+                    </p>
+                  </div>
+                  <div className="pt-6 border-t border-[#8B5CF6]/20">
+                    <button 
+                      onClick={() => setIsAboutOpen(true)}
+                      className="inline-block bg-[#8B5CF6] text-black border-2 border-black px-6 py-2.5 text-[9px] font-black uppercase tracking-widest shadow-[3px_3px_0px_#10B981] hover:translate-x-[-1.5px] hover:translate-y-[-1.5px] active:translate-x-[2px] active:translate-y-[2px] transition-all"
+                    >
+                      [ ACTIVATE STAGE_01 ]
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </section>
+        );
+
+      case 'minimal':
+      default:
+        return (
+          <section className="relative h-[50vh] sm:h-[60vh] w-full overflow-hidden bg-[#F3F4F6]">
+            {carouselSlides.map((banner, index) => (
+              <div 
+                key={banner.id || index}
+                className={`absolute inset-0 transition-all duration-[1000ms] ease-in-out ${index === currentSlide ? 'opacity-100 z-10 scale-100' : 'opacity-0 z-0 scale-105'}`}
+              >
+                <div className="absolute inset-0 bg-black/10 z-10"></div>
+                <img 
+                  src={banner.image} 
+                  alt={banner.title} 
+                  className="w-full h-full object-cover"
+                />
+                
+                {/* Minimal Centered Typography Overlay */}
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-4 max-w-4xl mx-auto space-y-4">
+                  <h2 className="text-3xl sm:text-5xl md:text-6xl font-light text-white tracking-tight leading-none uppercase font-sans drop-shadow-[0_2px_4px_rgba(0,0,0,0.2)]">
+                    {banner.title}
+                  </h2>
+                  <p className="text-[10px] sm:text-xs md:text-sm text-white/90 max-w-xl leading-relaxed tracking-widest font-light uppercase">
+                    {banner.subtitle}
+                  </p>
+                  <div className="pt-4">
+                    <a 
+                      href="#catalog"
+                      className="inline-block px-10 py-3.5 bg-black text-white hover:opacity-85 text-[9px] font-black uppercase tracking-[0.2em] rounded-none transition-all"
+                    >
+                      EXPLORE ALL
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Carousel navigation arrows */}
+            <button onClick={prevSlide} className="absolute left-4 top-1/2 -translate-y-1/2 z-25 w-9 h-9 rounded-full bg-white/60 hover:bg-white/90 flex items-center justify-center text-black shadow-sm transition-all">
+              <ChevronLeft className="w-5 h-5 stroke-[1.5]" />
+            </button>
+            <button onClick={nextSlide} className="absolute right-4 top-1/2 -translate-y-1/2 z-25 w-9 h-9 rounded-full bg-white/60 hover:bg-white/90 flex items-center justify-center text-black shadow-sm transition-all">
+              <ChevronRight className="w-5 h-5 stroke-[1.5]" />
+            </button>
+          </section>
+        );
+    }
+  };
+
+  const renderCatalog = () => {
+    // Shared parameters
+    const displayCatalogTitle = () => {
+      switch (selectedTemplate) {
+        case 'artisan':
+          return "Our Curated Earth Goods";
+        case 'bold':
+          return "ACQUIRE HARDWARE CO.";
+        case 'luxe':
+          return "The Salon Curations";
+        case 'retro':
+          return "FOLDER: ALL_ITEMS.DIR";
+        case 'minimal':
+        default:
+          return "Copenhagen Collection";
+      }
+    };
+
+    switch (selectedTemplate) {
+      case 'retro':
+        return (
+          <section id="catalog" className="px-4 sm:px-6 lg:px-8 py-12 font-mono text-[#10B981]">
+            <div className="border-4 border-black p-4 mb-8 bg-zinc-950 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[4px_4px_0_0_#8B5CF6]">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase">
+                <span className="w-2.5 h-2.5 bg-red-600 rounded-full animate-ping"></span>
+                <span>STATUS: RETRO_CATALOG_LOADED.EXE</span>
+              </div>
+              
+              {/* Category Pills inside Retro */}
+              <div className="flex flex-wrap gap-2">
+                {categoriesList.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-3 py-1.5 border-2 border-black rounded text-[9px] font-bold uppercase tracking-wider ${
+                      selectedCategory === cat 
+                        ? 'bg-[#10B981] text-black shadow-[2px_2px_0px_#8B5CF6]'
+                        : 'bg-zinc-900 text-[#10B981] hover:bg-[#10B981]/25'
+                    }`}
+                  >
+                    {cat === 'All' ? 'ALL_FILTERS' : `${cat.toUpperCase()}`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Product Windows Grid */}
+            {processedProducts.length === 0 ? (
+              <div className="text-center py-20 bg-zinc-950 border-4 border-black rounded shadow-[4px_4px_0_0_#EF4444] text-red-500 font-bold uppercase tracking-widest text-xs">
+                [ ERROR_404: NO PRODUCTS FOUND ]
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {processedProducts.map((product, idx) => {
+                  const isLiked = favorites.includes(product.id);
+                  let displayPrice = Number(product.price);
+
+                  return (
+                    <div key={product.id} className="border-4 border-black bg-zinc-900 rounded overflow-hidden flex flex-col justify-between shadow-[4px_4px_0px_#8B5CF6] hover:shadow-[6px_6px_0px_#10B981] transition-all hover:translate-x-[-1px] hover:translate-y-[-1px]">
+                      {/* OS Folder Window Header */}
+                      <div className="bg-black text-[#10B981] h-7 px-3 flex items-center justify-between border-b-4 border-black text-[9px] font-black tracking-wider uppercase">
+                        <span>ITEM_{idx + 1 < 10 ? '0' + (idx + 1) : idx + 1}.SYS</span>
+                        <div className="flex gap-1">
+                          <span onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }} className={`w-3.5 h-3.5 border border-black flex items-center justify-center font-bold text-[8px] cursor-pointer ${isLiked ? 'bg-red-500 text-white' : 'bg-zinc-800 text-[#10B981]'}`}>
+                            ♥
+                          </span>
+                          <span className="w-3.5 h-3.5 bg-[#8B5CF6] text-black flex items-center justify-center font-bold text-[8px] border border-black cursor-pointer">X</span>
+                        </div>
+                      </div>
+
+                      {/* Image Frame */}
+                      <div className="aspect-square relative w-full bg-black overflow-hidden border-b-4 border-black group cursor-pointer" onClick={() => setSelectedProduct(product)}>
+                        {getProductImage(product) ? (
+                          <img 
+                            src={getProductImage(product)} 
+                            alt={product.name} 
+                            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center text-zinc-600 font-bold text-4xl">?</div>
+                        )}
+                        
+                        {/* Neon retro badges */}
+                        {product.is_new && (
+                          <span className="absolute top-2 left-2 bg-yellow-300 text-black border-2 border-black font-black uppercase text-[8px] px-2 py-0.5 shadow-[2px_2px_0px_#000]">
+                            HOT!
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Info Frame */}
+                      <div className="p-4 space-y-2 flex-1 flex flex-col justify-between bg-zinc-950">
+                        <div className="space-y-1">
+                          <span className="text-[8px] text-[#8B5CF6] font-bold tracking-widest uppercase block">&gt; {getProductCategory(product).toUpperCase()}</span>
+                          <h4 
+                            onClick={() => setSelectedProduct(product)}
+                            className="font-bold text-[#10B981] text-xs hover:underline cursor-pointer uppercase tracking-wider truncate"
+                          >
+                            {product.name}
+                          </h4>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-1 font-bold text-[9px] text-zinc-500">
+                            <span>STABILITY: [100%]</span>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-extrabold text-white text-sm">
+                              {currencySymbol}{displayPrice.toLocaleString()}
+                            </span>
+                            <button 
+                              onClick={() => addToCart(product, 1)}
+                              className="px-3 py-1 bg-[#10B981] hover:bg-[#8B5CF6] hover:text-black text-black border-2 border-black font-black uppercase text-[8px] shadow-[2px_2px_0px_rgba(16,185,129,0.3)] transition-all"
+                            >
+                              [ LOAD ]
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        );
+
+      case 'artisan':
+        return (
+          <section id="catalog" className="px-4 sm:px-6 lg:px-8 py-16 max-w-7xl mx-auto text-[#2F1E12]">
+            {/* Story highlights above catalog */}
+            <div className="mb-14 text-center">
+              <span className="text-[10px] tracking-[0.3em] font-black text-[#8B5A2B] uppercase block mb-3">OUR BRAND DIARIES</span>
+              <h3 className="text-2xl md:text-3xl font-extrabold tracking-tight font-serif text-[#2F1E12]">Visual Stories From The Pottery</h3>
+              
+              <div className="flex justify-center gap-6 mt-8 overflow-x-auto py-2 scrollbar-none">
+                {[
+                  { title: "Sourcing Clay", desc: "We dig local terracotta directly from the pristine riverbed clay veins, retaining rich iron and granular silica textures.", img: "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&q=80&w=150" },
+                  { title: "The Pottery Wheel", desc: "Every piece is carefully shaped on a slow kickwheel, where natural variations in finger pressure leave organic ripples.", img: "https://images.unsplash.com/photo-1565192647048-f997ed8799d4?auto=format&fit=crop&q=80&w=150" },
+                  { title: "Kiln Firing", desc: "We wood-fire our stoneware continuously for over 36 hours at 2,300°F. The falling ash creates soft, toasted gradients.", img: "https://images.unsplash.com/photo-1595435934249-5df7ed86b1c0?auto=format&fit=crop&q=80&w=150" },
+                  { title: "Our Artisans", desc: "A tight-knit community of 6 master potters bringing ancient techniques into contemporary functional modern tableware.", img: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=150" }
+                ].map((story, i) => (
+                  <div 
+                    key={i} 
+                    onClick={() => alert(`🌾 ${story.title}:\n\n${story.desc}`)}
+                    className="flex flex-col items-center cursor-pointer group flex-shrink-0"
+                  >
+                    <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#E4DAC9] group-hover:border-[#8B5A2B] transition-all p-1 bg-white">
+                      <img src={story.img} alt={story.title} className="w-full h-full object-cover rounded-full" />
+                    </div>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#2F1E12] mt-2.5 group-hover:text-[#8B5A2B] transition-colors">{story.title}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t border-[#E4DAC9] pt-12 flex flex-col md:flex-row items-center justify-between gap-6 mb-10">
+              <h4 className="text-xl font-bold font-serif text-[#2F1E12] tracking-wide uppercase">{displayCatalogTitle()}</h4>
+              
+              <div className="flex flex-wrap gap-2.5 items-center justify-center">
+                {categoriesList.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${
+                      selectedCategory === cat 
+                        ? 'bg-[#8B5A2B] border-[#8B5A2B] text-white'
+                        : 'bg-white border-[#E4DAC9] text-[#2F1E12]/70 hover:border-[#8B5A2B]'
+                    }`}
+                  >
+                    {cat === 'All' ? 'ALL ESSENTIALS' : cat.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Asymmetrical Staggered Pottery Grid */}
+            {processedProducts.length === 0 ? (
+              <div className="text-center py-20 bg-[#FDFBF7] border border-dashed border-[#E4DAC9] rounded-[24px] text-gray-500 font-serif italic text-sm">
+                No organic goods in this category. Check back soon.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+                {processedProducts.map((product, idx) => {
+                  const isLiked = favorites.includes(product.id);
+                  let displayPrice = Number(product.price);
+                  
+                  // Introduce dynamic height class for true staggered layout look
+                  const isStaggered = idx % 3 === 1;
+
+                  return (
+                    <div 
+                      key={product.id} 
+                      className={`card-theme flex flex-col bg-[#FDFBF7] border border-[#E4DAC9] rounded-[24px] overflow-hidden group shadow-sm transition-all duration-300 hover:shadow-md ${isStaggered ? 'md:translate-y-8' : ''}`}
+                    >
+                      <div className="relative aspect-[4/5] bg-gray-50 overflow-hidden cursor-pointer" onClick={() => setSelectedProduct(product)}>
+                        {getProductImage(product) ? (
+                          <img 
+                            src={getProductImage(product)} 
+                            alt={product.name} 
+                            className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center font-bold text-[#E4DAC9] text-3xl">P</div>
+                        )}
+                        
+                        {/* Organic Badge */}
+                        <span className="absolute top-3 left-3 bg-[#FAF6F0] text-[#8B5A2B] border border-[#E4DAC9] text-[7.5px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-full">
+                          🌱 100% ORGANIC STONEWARE
+                        </span>
+
+                        {/* Heart Button */}
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
+                          className="absolute top-3 right-3 p-2.5 rounded-full bg-[#FAF6F0]/95 text-zinc-500 hover:text-red-500 transition-colors z-20 border border-[#E4DAC9]"
+                        >
+                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-rose-700 text-rose-700' : 'text-gray-400'}`} />
+                        </button>
+                      </div>
+
+                      <div className="p-5 flex-1 flex flex-col justify-between bg-[#FDFBF7] space-y-4">
+                        <div className="space-y-1">
+                          <span className="text-[8px] font-bold text-[#8B5A2B] tracking-[0.25em] uppercase block">{getProductCategory(product)}</span>
+                          <h4 
+                            onClick={() => setSelectedProduct(product)}
+                            className="font-bold text-[#2F1E12] text-sm hover:underline cursor-pointer font-serif leading-tight"
+                          >
+                            {product.name}
+                          </h4>
+                          <p className="text-[10px] text-zinc-400 font-serif italic mt-0.5 line-clamp-2 leading-relaxed">
+                            {getProductDescription(product) || 'A tactile, functional stoneware perfect for organic home accents.'}
+                          </p>
+                        </div>
+
+                        <div className="pt-2 border-t border-[#E4DAC9]/60 flex items-center justify-between gap-4">
+                          <span className="font-bold text-[#8B5A2B] font-serif text-base">
+                            {currencySymbol}{displayPrice.toLocaleString()}
+                          </span>
+                          <button 
+                            onClick={() => addToCart(product, 1)}
+                            className="px-5 py-2 bg-[#8B5A2B] hover:bg-[#6e4620] text-white text-[9px] font-black uppercase tracking-[0.15em] rounded-full transition-colors"
+                          >
+                            Add To Cart
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        );
+
+      case 'bold':
+        return (
+          <section id="catalog" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 text-black">
+            <h3 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-black mb-10 border-b-4 border-black pb-4">
+              {displayCatalogTitle()}
+            </h3>
+
+            {/* Desktop Sticky Left Sidebar Filter and 4-column brutalist catalog */}
+            <div className="flex flex-col lg:flex-row gap-10 items-stretch">
+              
+              {/* Sticky Left Sidebar filter on desktop */}
+              <aside className="hidden lg:block w-64 flex-shrink-0 sticky top-28 self-start border-4 border-black p-5 bg-white shadow-[4px_4px_0_0_#000]">
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="font-black text-xs uppercase tracking-widest text-black border-b-2 border-black pb-2 mb-3">
+                      SYSTEM CATEGORIES
+                    </h4>
+                    <div className="flex flex-col gap-2.5 font-black text-[10px] tracking-wider">
+                      {categoriesList.map(cat => (
+                        <button
+                          key={cat}
+                          onClick={() => setSelectedCategory(cat)}
+                          className={`text-left uppercase py-1 border-b border-gray-100 hover:text-[#E11D48] transition-colors flex items-center justify-between ${
+                            selectedCategory === cat ? 'text-[#E11D48]' : 'text-black'
+                          }`}
+                        >
+                          <span>{cat === 'All' ? 'ALL GEAR' : cat}</span>
+                          {selectedCategory === cat && <span className="w-2 h-2 rounded-full bg-[#E11D48]"></span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t-2 border-black">
+                    <h4 className="font-black text-xs uppercase tracking-widest text-black mb-3">
+                      SORT ENGINE
+                    </h4>
+                    <select 
+                      value={sortBy} 
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="w-full p-2 border-2 border-black text-[10px] font-black uppercase outline-none cursor-pointer"
+                    >
+                      <option value="Featured">Featured</option>
+                      <option value="Price: Low to High">Low to High</option>
+                      <option value="Price: High to Low">High to Low</option>
+                      <option value="Popularity">Stars (High)</option>
+                    </select>
+                  </div>
+                </div>
+              </aside>
+
+              {/* Products content */}
+              <div className="flex-1">
+                {/* Mobile horizontal category scrolling */}
+                <div className="flex lg:hidden gap-2 overflow-x-auto pb-4 mb-6">
+                  {categoriesList.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`px-4 py-2 border-2 border-black text-[9px] font-black uppercase tracking-widest rounded-none ${
+                        selectedCategory === cat ? 'bg-[#E11D48] text-white shadow-[2px_2px_0_0_#000]' : 'bg-white text-black'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+
+                {processedProducts.length === 0 ? (
+                  <div className="text-center py-20 border-4 border-black bg-gray-50 text-black font-black uppercase tracking-widest text-xs shadow-[4px_4px_0_0_#000]">
+                    [ DATABASE EMPTY ]
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {processedProducts.map((product) => {
+                      const isLiked = favorites.includes(product.id);
+                      let displayPrice = Number(product.price);
+
+                      return (
+                        <div key={product.id} className="border-4 border-black bg-white rounded-none flex flex-col justify-between group shadow-[4px_4px_0px_#000] hover:shadow-[6px_6px_0px_#E11D48] transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] overflow-hidden">
+                          <div className="relative aspect-square w-full bg-gray-50 overflow-hidden cursor-pointer" onClick={() => setSelectedProduct(product)}>
+                            {getProductImage(product) ? (
+                              <img 
+                                src={getProductImage(product)} 
+                                alt={product.name} 
+                                className="w-full h-full object-cover transition-all group-hover:scale-105 duration-300"
+                              />
+                            ) : (
+                              <div className="absolute inset-0 flex items-center justify-center font-bold text-gray-400">B</div>
+                            )}
+
+                            {/* Heavy Bold Tags */}
+                            <span className="absolute top-2 left-2 bg-[#E11D48] text-white border-2 border-black font-black uppercase text-[8px] px-2 py-0.5 tracking-wider">
+                              FAST RELEASE
+                            </span>
+
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
+                              className="absolute top-2 right-2 p-2 border-2 border-black bg-white text-black hover:bg-yellow-300 transition-colors z-20 shadow-[2px_2px_0_0_#000]"
+                            >
+                              <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+                            </button>
+                          </div>
+
+                          <div className="p-4 flex-1 flex flex-col justify-between space-y-4 border-t-4 border-black bg-white">
+                            <div className="space-y-1">
+                              <span className="inline-block bg-yellow-300 text-black border border-black font-black uppercase text-[7px] px-1.5 py-0.5">{getProductCategory(product)}</span>
+                              <h4 
+                                onClick={() => setSelectedProduct(product)}
+                                className="font-extrabold text-black text-xs sm:text-sm hover:underline cursor-pointer uppercase tracking-tight block truncate mt-1"
+                              >
+                                {product.name}
+                              </h4>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-3 pt-2">
+                              <span className="font-black text-black text-sm sm:text-base">
+                                {currencySymbol}{displayPrice.toLocaleString()}
+                              </span>
+                              <button 
+                                onClick={() => addToCart(product, 1)}
+                                className="px-3.5 py-2 bg-black text-white hover:bg-[#E11D48] border-2 border-black font-black text-[8px] uppercase tracking-widest shadow-[2px_2px_0_0_#fff]"
+                              >
+                                BUY [EX]
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+            </div>
+          </section>
+        );
+
+      case 'luxe':
+        return (
+          <section id="catalog" className="bg-[#0A0A0A] px-4 sm:px-6 lg:px-8 py-16 text-white max-w-7xl mx-auto">
+            {/* Curated Masterpieces Horizontal Carousel Slider */}
+            <div className="mb-20">
+              <span className="text-[9px] tracking-[0.3em] font-black text-[#D4AF37] uppercase block mb-3 text-center">CURATED SHOWCASE</span>
+              <h3 className="text-2xl md:text-3xl font-light tracking-[0.15em] uppercase text-white font-serif text-center mb-10">House Masterpieces</h3>
+              
+              <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-none snap-x snap-mandatory">
+                {displayProducts.slice(0, 3).map((prod, i) => (
+                  <div 
+                    key={prod.id || i}
+                    onClick={() => setSelectedProduct(prod)}
+                    className="w-[85vw] sm:w-[500px] flex-shrink-0 snap-start bg-[#0E0E0E] border border-zinc-900 rounded-[4px] overflow-hidden grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 items-center cursor-pointer hover:border-[#D4AF37] transition-all group"
+                  >
+                    <div className="aspect-[4/5] bg-black overflow-hidden rounded-[2px]">
+                      <img src={getProductImage(prod)} alt={prod.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    </div>
+                    <div className="p-4 space-y-4">
+                      <span className="text-[8px] font-black text-[#D4AF37] tracking-[0.25em] uppercase block">EXCLUSIVE NO.0{i+1}</span>
+                      <h4 className="text-sm font-light text-white uppercase tracking-wider font-serif leading-tight">{prod.name}</h4>
+                      <p className="text-[10px] text-[#D4AF37] font-serif leading-relaxed line-clamp-3">{prod.description || 'A timeless addition crafted for fine aesthetic appreciation.'}</p>
+                      <div className="text-[#D4AF37] font-serif text-sm font-bold pt-2">{currencySymbol}{Number(prod.price).toLocaleString()}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Main Luxury Catalog Grid */}
+            <div className="border-t border-zinc-900 pt-16 flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
+              <h4 className="text-lg font-light tracking-[0.2em] uppercase text-white font-serif">{displayCatalogTitle()}</h4>
+              
+              <div className="flex flex-wrap gap-2 justify-center">
+                {categoriesList.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-4 py-1.5 border rounded-none text-[8px] font-black tracking-[0.2em] uppercase transition-all ${
+                      selectedCategory === cat 
+                        ? 'bg-[#D4AF37] border-[#D4AF37] text-black shadow-[0_0_10px_rgba(212,175,55,0.3)]'
+                        : 'bg-transparent border-zinc-800 text-zinc-500 hover:border-[#D4AF37] hover:text-[#D4AF37]'
+                    }`}
+                  >
+                    {cat === 'All' ? 'ALL HOUSE LINES' : cat.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {processedProducts.length === 0 ? (
+              <div className="text-center py-20 bg-[#0E0E0E] border border-zinc-900 rounded-[4px] text-zinc-500 font-serif text-xs uppercase tracking-[0.15em]">
+                Curations Empty. Under Preparation.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+                {processedProducts.map((product) => {
+                  const isLiked = favorites.includes(product.id);
+                  let displayPrice = Number(product.price);
+
+                  return (
+                    <div key={product.id} className="bg-[#0E0E0E] border border-zinc-900 rounded-[4px] overflow-hidden flex flex-col justify-between group hover:border-[#D4AF37] transition-all duration-300 shadow-md">
+                      <div className="relative aspect-square bg-black overflow-hidden cursor-pointer" onClick={() => setSelectedProduct(product)}>
+                        {getProductImage(product) ? (
+                          <img 
+                            src={getProductImage(product)} 
+                            alt={product.name} 
+                            className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center text-zinc-800 font-serif text-3xl">L</div>
+                        )}
+                        
+                        <span className="absolute top-3 left-3 bg-[#0A0A0A] border border-[#D4AF37]/50 text-[#D4AF37] text-[7px] font-black uppercase tracking-[0.25em] px-2.5 py-1">
+                          AURELIA CLASSIC
+                        </span>
+
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
+                          className="absolute top-3 right-3 p-2 bg-black/80 text-zinc-500 hover:text-white hover:border-[#D4AF37] transition-all z-20 border border-zinc-900 rounded"
+                        >
+                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-[#D4AF37] text-[#D4AF37]' : 'text-zinc-500'}`} />
+                        </button>
+                      </div>
+
+                      <div className="p-5 flex-1 flex flex-col justify-between bg-[#0E0E0E] space-y-4">
+                        <div className="space-y-1">
+                          <span className="text-[8px] font-black text-[#D4AF37] tracking-[0.2em] uppercase block">{getProductCategory(product)}</span>
+                          <h4 
+                            onClick={() => setSelectedProduct(product)}
+                            className="font-light text-white text-sm hover:text-[#D4AF37] cursor-pointer font-serif leading-tight"
+                          >
+                            {product.name}
+                          </h4>
+                          <p className="text-[10px] text-[#D4AF37] font-serif leading-relaxed line-clamp-2">
+                            {getProductDescription(product) || 'A curated masterpiece designed with fine detailing and high-end materials.'}
+                          </p>
+                        </div>
+
+                        <div className="pt-4 border-t border-zinc-900 flex items-center justify-between gap-4">
+                          <span className="font-bold text-[#D4AF37] font-serif text-sm">
+                            {currencySymbol}{displayPrice.toLocaleString()}
+                          </span>
+                          <button 
+                            onClick={() => addToCart(product, 1)}
+                            className="px-5 py-2 bg-[#D4AF37] text-black hover:bg-white text-[8px] font-black uppercase tracking-[0.2em] transition-all duration-300 rounded-[2px] border border-transparent"
+                          >
+                            ORDER NOW
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        );
+
+      case 'minimal':
+      default:
+        return (
+          <section id="catalog" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-gray-950 flex-1">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 pb-6 border-b border-gray-100">
+              <h3 className="text-2xl md:text-3xl font-light tracking-[0.2em] uppercase text-gray-950">
+                {displayCatalogTitle()}
+              </h3>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap gap-1">
+                  {categoriesList.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`px-4 py-2 text-[9px] font-black uppercase tracking-wider border transition-all ${
+                        selectedCategory === cat 
+                          ? 'bg-black border-black text-white'
+                          : 'bg-white border-gray-200 text-gray-500 hover:border-black hover:text-black'
+                      }`}
+                    >
+                      {cat === 'All' ? 'ALL FILTERS' : cat.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2 border border-gray-200 rounded-none px-3 py-1.5 bg-white shadow-sm ml-auto">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-gray-500" />
+                  <select 
+                    value={sortBy} 
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="text-[9px] bg-transparent outline-none border-none font-bold uppercase tracking-wider text-gray-600 cursor-pointer"
+                  >
+                    <option value="Featured">Featured</option>
+                    <option value="Price: Low to High">Price: Low to High</option>
+                    <option value="Price: High to Low">Price: High to Low</option>
+                    <option value="Popularity">Popularity</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {processedProducts.length === 0 ? (
+              <div className="text-center py-20 bg-gray-50 border border-dashed border-gray-200">
+                <EyeOff className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">No Products</h3>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-8">
+                {processedProducts.map((product) => {
+                  const isLiked = favorites.includes(product.id);
+                  let displayPrice = Number(product.price);
+
+                  return (
+                    <div key={product.id} className="flex flex-col group relative bg-white border border-gray-100 p-3 hover:border-gray-300 transition-all">
+                      <div className="relative aspect-[4/5] w-full bg-gray-50 overflow-hidden cursor-pointer" onClick={() => setSelectedProduct(product)}>
+                        {getProductImage(product) ? (
+                          <img 
+                            src={getProductImage(product)} 
+                            alt={product.name} 
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-103"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center text-gray-300 text-3xl font-light">M</div>
+                        )}
+
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
+                          className="absolute top-2.5 right-2.5 p-2 bg-white text-gray-400 hover:text-red-500 shadow-sm transition-colors z-20"
+                        >
+                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-black text-black' : 'text-gray-400'}`} />
+                        </button>
+                      </div>
+
+                      <div className="p-3 space-y-2 flex-1 flex flex-col justify-between bg-white mt-2">
+                        <div className="space-y-1">
+                          <span className="text-[8px] font-black text-gray-400 tracking-[0.2em] uppercase block">{getProductCategory(product)}</span>
+                          <h4 
+                            onClick={() => setSelectedProduct(product)}
+                            className="font-light text-gray-950 text-xs md:text-sm hover:underline cursor-pointer tracking-wider truncate"
+                          >
+                            {product.name}
+                          </h4>
+                        </div>
+
+                        <div className="flex items-center justify-between border-t border-gray-100 pt-2.5">
+                          <span className="font-extrabold text-black text-xs md:text-sm">
+                            {currencySymbol}{displayPrice.toLocaleString()}
+                          </span>
+                          <button 
+                            onClick={() => addToCart(product, 1)}
+                            className="px-3.5 py-1.5 bg-black hover:opacity-85 text-white text-[8px] font-black uppercase tracking-[0.15em] rounded-none transition-all"
+                          >
+                            ADD TO BAG
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        );
+    }
+  };
+
   return (
     <div className="font-theme-body bg-theme-main selection:bg-purple-600 selection:text-white min-h-screen flex flex-col transition-colors duration-300">
       <style>{`
@@ -773,150 +2038,168 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           letter-spacing: ${selectedTemplate === 'minimal' ? '-0.03em' : selectedTemplate === 'luxe' ? '0.02em' : 'normal'} !important;
         }
 
-        /* Dynamic Template Background Overrides */
-        .bg-theme-main {
-          background-color: ${
-            selectedTemplate === 'minimal'
-              ? '#FCFCFC'
-              : selectedTemplate === 'artisan'
-                ? '#FAF6F0'
-                : selectedTemplate === 'luxe'
-                  ? '#0A0A0A'
-                  : selectedTemplate === 'retro'
-                    ? '#F8F6FF'
-                    : '#FFFFFF'
-          } !important;
-          color: ${selectedTemplate === 'artisan' ? '#2F1E12' : selectedTemplate === 'luxe' ? '#E5E5E5' : selectedTemplate === 'retro' ? '#000000' : '#111827'} !important;
+        @keyframes marquee {
+          0% { transform: translateX(0%); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+          display: flex;
+          animation: marquee 25s linear infinite;
         }
 
-        /* Header Style Overrides */
+        /* Responsive Custom Banners and Card styling details */
         .header-theme {
           background-color: ${
-            selectedTemplate === 'artisan'
-              ? '#FAF6F0'
+            selectedTemplate === 'retro'
+              ? '#09090b'
               : selectedTemplate === 'luxe'
-                ? '#0D0D0D'
-                : '#FFFFFF'
+                ? '#0A0A0A'
+                : selectedTemplate === 'artisan'
+                  ? '#FAF6F0'
+                  : '#FFFFFF'
+          } !important;
+          color: ${
+            selectedTemplate === 'retro'
+              ? '#10B981'
+              : selectedTemplate === 'luxe'
+                ? '#FFFFFF'
+                : '#111827'
           } !important;
           border-bottom: ${
-            selectedTemplate === 'bold' || selectedTemplate === 'retro'
-              ? '4px solid #000000'
-              : selectedTemplate === 'luxe'
-                ? '1px solid #1A1A1A'
-                : selectedTemplate === 'artisan'
-                  ? '1px solid #E4DAC9'
-                  : '1px solid #F3F4F6'
-          } !important;
-        }
-
-        /* Announcement Bar Customization */
-        .announcement-bar-theme {
-          background-color: ${
-            selectedTemplate === 'minimal'
-              ? '#000000'
-              : selectedTemplate === 'artisan'
-                ? '#8B5A2B'
-                : selectedTemplate === 'luxe'
-                  ? '#0A0A0A'
-                  : selectedTemplate === 'retro'
-                    ? '#8B5CF6'
-                    : 'var(--store-primary)'
-          } !important;
-          color: ${selectedTemplate === 'artisan' ? '#FDFBF7' : selectedTemplate === 'luxe' ? '#D4AF37' : '#FFFFFF'} !important;
-          letter-spacing: ${selectedTemplate === 'minimal' ? '0.3em' : '0.1em'} !important;
-          font-weight: ${selectedTemplate === 'bold' || selectedTemplate === 'retro' ? '950' : '700'} !important;
-          font-family: ${selectedTemplate === 'artisan' || selectedTemplate === 'luxe' ? "'Georgia', serif" : 'inherit'} !important;
-          border-bottom: ${selectedTemplate === 'bold' ? '3px solid #000000' : selectedTemplate === 'retro' ? '4px solid #000000' : selectedTemplate === 'luxe' ? '1px solid #1A1A1A' : 'none'} !important;
-        }
-
-        /* Product Card Styling */
-        .card-theme {
-          background-color: ${
-            selectedTemplate === 'artisan' ? '#FDFBF7' : selectedTemplate === 'luxe' ? '#0E0E0E' : '#FFFFFF'
-          } !important;
-          border: ${
             selectedTemplate === 'bold'
-              ? '3px solid #000000'
+              ? '4px solid #000000'
               : selectedTemplate === 'retro'
                 ? '4px solid #000000'
                 : selectedTemplate === 'luxe'
-                  ? '1px solid #1A1A1A'
+                  ? '1px solid #1f2937'
+                  : selectedTemplate === 'artisan'
+                    ? '1px solid #E4DAC9'
+                    : '1px solid #F3F4F6'
+          } !important;
+        }
+
+        .announcement-bar-theme {
+          background-color: ${
+            selectedTemplate === 'bold'
+              ? '#000000'
+              : selectedTemplate === 'retro'
+                ? '#8B5CF6'
+                : selectedTemplate === 'luxe'
+                  ? '#111111'
+                  : selectedTemplate === 'artisan'
+                    ? '#8B5A2B'
+                    : 'var(--store-primary)'
+          } !important;
+          color: ${
+            selectedTemplate === 'retro' || selectedTemplate === 'bold'
+              ? '#FFFFFF'
+              : selectedTemplate === 'luxe'
+                ? '#D4AF37'
+                : '#FFFFFF'
+          } !important;
+          border-bottom: ${selectedTemplate === 'bold' ? '4px solid #000000' : 'none'} !important;
+        }
+
+        .bg-theme-main {
+          background-color: ${
+            selectedTemplate === 'retro'
+              ? '#09090b'
+              : selectedTemplate === 'luxe'
+                ? '#0A0A0A'
+                : selectedTemplate === 'artisan'
+                  ? '#FAF6F0'
+                  : '#FCFCFC'
+          } !important;
+        }
+
+        .card-theme {
+          background-color: ${
+            selectedTemplate === 'retro'
+              ? '#09090b'
+              : selectedTemplate === 'luxe'
+                ? '#0E0E0E'
+                : selectedTemplate === 'artisan'
+                  ? '#FDFBF7'
+                  : '#FFFFFF'
+          } !important;
+          border: ${
+            selectedTemplate === 'bold'
+              ? '4px solid #000000'
+              : selectedTemplate === 'retro'
+                ? '4px solid #000000'
+                : selectedTemplate === 'luxe'
+                  ? '1px solid #1c1c1e'
                   : selectedTemplate === 'artisan'
                     ? '1px solid #E4DAC9'
                     : '1px solid #F3F4F6'
           } !important;
           border-radius: ${
-            selectedTemplate === 'minimal' || selectedTemplate === 'retro'
-              ? '0px'
-              : selectedTemplate === 'luxe'
+            selectedTemplate === 'artisan'
+              ? '24px'
+              : selectedTemplate === 'minimal' || selectedTemplate === 'luxe'
                 ? '4px'
-                : selectedTemplate === 'artisan'
-                  ? '24px'
-                  : '16px'
-          } !important;
-          box-shadow: ${
-            selectedTemplate === 'bold' || selectedTemplate === 'retro'
-              ? '6px 6px 0px 0px #000000'
-              : selectedTemplate === 'artisan'
-                ? '0 6px 20px -3px rgba(139, 90, 43, 0.07)'
-                : '0 4px 12px -2px rgba(0,0,0,0.04)'
-          } !important;
-          overflow: hidden !important;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        }
-        
-        .card-theme:hover {
-          transform: ${
-            selectedTemplate === 'bold'
-              ? 'translate(-2px, -2px)'
-              : selectedTemplate === 'retro'
-                ? 'translate(-3px, -3px)'
-                : selectedTemplate === 'luxe'
-                  ? 'translateY(-4px)'
-                  : 'translateY(-6px)'
+                : '0px'
           } !important;
           box-shadow: ${
             selectedTemplate === 'bold'
-              ? '8px 8px 0px 0px #000000'
+              ? '4px 4px 0px 0px #000000'
               : selectedTemplate === 'retro'
-                ? '9px 9px 0px 0px #000000'
-                : selectedTemplate === 'luxe'
-                  ? '0 10px 25px -5px rgba(212, 175, 55, 0.15)'
-                  : selectedTemplate === 'artisan'
-                    ? '0 12px 28px -5px rgba(139, 90, 43, 0.16)'
-                    : '0 12px 24px -4px rgba(0,0,0,0.1)'
-          } !important;
-          border-color: ${selectedTemplate === 'luxe' ? 'var(--store-primary) !important' : 'inherit'} !important;
-        }
-
-        /* Primary Button Styling */
-        .btn-theme-primary {
-          background-color: var(--store-primary) !important;
-          color: ${selectedTemplate === 'luxe' || selectedTemplate === 'retro' ? '#000000' : '#FFFFFF'} !important;
-          font-weight: ${selectedTemplate === 'bold' || selectedTemplate === 'retro' ? '900' : '700'} !important;
-          border-radius: ${
-            selectedTemplate === 'minimal' || selectedTemplate === 'retro'
-              ? '0px'
-              : selectedTemplate === 'luxe'
-                ? '2px'
-                : selectedTemplate === 'artisan'
-                  ? '9999px'
-                  : '8px'
-          } !important;
-          border: ${
-            selectedTemplate === 'bold' 
-              ? '3px solid #000000' 
-              : selectedTemplate === 'retro'
-                ? '3.5px solid #000000'
+                ? '4px 4px 0px 0px #8B5CF6'
                 : 'none'
           } !important;
+          overflow: hidden;
+          transition: all 0.3s ease;
+        }
+
+        .card-theme:hover {
+          border-color: ${selectedTemplate === 'luxe' ? '#D4AF37' : selectedTemplate === 'retro' ? '#10B981' : 'inherit'} !important;
           box-shadow: ${
+            selectedTemplate === 'bold'
+              ? '6px 6px 0px 0px #E11D48'
+              : selectedTemplate === 'retro'
+                ? '6px 6px 0px 0px #10B981'
+                : 'none'
+          } !important;
+        }
+
+        .btn-theme-primary {
+          background-color: ${
+            selectedTemplate === 'bold'
+              ? '#000000'
+              : selectedTemplate === 'retro'
+                ? '#10B981'
+                : selectedTemplate === 'luxe'
+                  ? '#D4AF37'
+                  : selectedTemplate === 'artisan'
+                    ? '#8B5A2B'
+                    : 'var(--store-primary)'
+          } !important;
+          color: ${
+            selectedTemplate === 'retro' || selectedTemplate === 'luxe' || selectedTemplate === 'bold'
+              ? '#000000'
+              : '#FFFFFF'
+          } !important;
+          font-weight: 900 !important;
+          border: ${
             selectedTemplate === 'bold' || selectedTemplate === 'retro'
-              ? '4px 4px 0px 0px #000000'
+              ? '2px solid #000000'
               : 'none'
           } !important;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-          text-transform: ${selectedTemplate === 'artisan' ? 'none' : 'uppercase'} !important;
+          border-radius: ${
+            selectedTemplate === 'artisan'
+              ? '9999px'
+              : selectedTemplate === 'minimal' || selectedTemplate === 'luxe'
+                ? '2px'
+                : '0px'
+          } !important;
+          box-shadow: ${
+            selectedTemplate === 'bold'
+              ? '3px 3px 0px 0px #000000'
+              : selectedTemplate === 'retro'
+                ? '3px 3px 0px 0px #8B5CF6'
+                : 'none'
+          } !important;
+          transition: all 0.2s ease !important;
           letter-spacing: ${selectedTemplate === 'minimal' ? '0.15em' : selectedTemplate === 'luxe' ? '0.2em' : 'normal'} !important;
         }
 
@@ -1027,492 +2310,21 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         }
       `}</style>
       
-      {/* Top Announcement Bar */}
-      <div className="announcement-bar-theme text-xs py-3 px-4 text-center tracking-[0.25em] uppercase font-bold shadow-sm">
-        {announcementText}
+      {/* Dynamic Announcement Bar */}
+      {renderAnnouncementBar()}
+
+      <div className={selectedTemplate === 'retro' ? 'flex flex-col lg:flex-row min-h-screen relative w-full' : ''}>
+        {/* Dynamic Sticky Header Navigation */}
+        {renderHeader()}
+
+        <div className={`flex-1 flex flex-col ${selectedTemplate === 'retro' ? 'lg:pl-80' : ''}`}>
+          {/* Dynamic Hero Banner */}
+          {renderHero()}
+
+          {/* Dynamic Product Display Catalog */}
+          {renderCatalog()}
+        </div>
       </div>
-
-      {/* Dynamic Sticky Header Navigation */}
-      <header className="header-theme sticky top-0 z-40 transition-all shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between relative gap-4">
-          
-          {/* Left Side: Hamburger Menu Button */}
-          <button 
-            onClick={() => setIsMobileMenuOpen(true)}
-            className="p-2 -ml-2 text-gray-700 hover:text-purple-600 transition-colors flex items-center justify-center"
-            aria-label="Open navigation menu"
-          >
-            <Menu className="w-6 h-6 stroke-[2]" />
-          </button>
-
-          {/* Center: Perfectly Centered brand Logo / shop title */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center z-10">
-            <Link href="/" className="flex items-center gap-2.5 group">
-              {store.logo_url ? (
-                <img 
-                  src={store.logo_url} 
-                  alt={store.store_name} 
-                  className="h-10 sm:h-12 w-auto max-w-[150px] object-contain transition-transform group-hover:scale-105"
-                />
-              ) : (
-                <div 
-                  className="h-9 w-9 sm:h-11 sm:w-11 rounded-full flex items-center justify-center text-white font-black text-sm sm:text-base bg-gradient-to-tr from-purple-600 to-rose-500 shadow-sm transition-transform group-hover:scale-105"
-                >
-                  {store.store_name?.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <span className="hidden xs:inline font-extrabold text-sm sm:text-base md:text-lg tracking-tight uppercase bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-rose-600 font-luxury-sans">
-                {store.store_name}
-              </span>
-            </Link>
-          </div>
-
-          {/* Right Side: Quick Action Icons */}
-          <div className="flex items-center justify-end gap-1 sm:gap-2.5">
-            {/* Expanded Search Toggle Icon */}
-            <button 
-              onClick={() => setIsSearchOverlayOpen(!isSearchOverlayOpen)}
-              className={`p-2 text-gray-700 hover:text-purple-600 transition-colors rounded-full ${isSearchOverlayOpen ? 'bg-gray-100 text-purple-600' : ''}`}
-              title="Search products"
-            >
-              <Search className="w-5 h-5 stroke-[2]" />
-            </button>
-
-            {/* Wishlist Icon Button */}
-            <button 
-              onClick={() => setIsWishlistOpen(true)}
-              className="p-2 text-gray-700 hover:text-purple-600 rounded-full transition-colors relative"
-              title="View Wishlist"
-            >
-              <Heart className="w-5 h-5 text-rose-500" />
-              {favorites.length > 0 && (
-                <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-rose-500 text-white rounded-full text-[8px] font-black flex items-center justify-center border border-white">
-                  {favorites.length}
-                </span>
-              )}
-            </button>
-
-            {/* Shopping Cart Button */}
-            <button 
-              className="p-2 text-gray-900 hover:text-purple-600 rounded-full transition-colors relative" 
-              onClick={() => setIsCartOpen(true)}
-              title="View shopping cart"
-            >
-              <ShoppingCart className="w-5 h-5 text-purple-700" />
-              {cartItemCount > 0 && (
-                <span 
-                  className="absolute top-1 right-1 w-4 h-4 rounded-full text-[8px] text-white flex items-center justify-center font-black bg-rose-500 shadow-md animate-bounce"
-                >
-                  {cartItemCount}
-                </span>
-              )}
-            </button>
-          </div>
-
-        </div>
-
-        {/* Premium Sliding Search Bar Overlay */}
-        {isSearchOverlayOpen && (
-          <div className="bg-gray-50 border-t border-b border-gray-100 px-4 py-3.5 animate-in slide-in-from-top duration-300">
-            <div className="max-w-3xl mx-auto relative">
-              <input 
-                type="text" 
-                placeholder="Search products..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-11 pl-11 pr-10 bg-white border border-gray-200 rounded-full text-xs outline-none focus:border-purple-600 shadow-sm"
-                autoFocus
-              />
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400" />
-              {searchQuery && (
-                <button 
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-      </header>
-
-      {/* Slide-out Left Navigation Drawer Menu */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 flex">
-          {/* Transparent Dark overlay */}
-          <div 
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
-          />
-          {/* Main Drawer block */}
-          <div className="relative w-80 max-w-xs bg-white h-full shadow-2xl flex flex-col p-6 animate-in slide-in-from-left duration-300 z-10">
-            <div className="flex items-center justify-between pb-5 border-b border-gray-100">
-              <span className="font-extrabold text-gray-950 tracking-tight text-base uppercase font-luxury-sans">
-                {store.store_name}
-              </span>
-              <button 
-                onClick={() => setIsMobileMenuOpen(false)} 
-                className="p-2 text-gray-500 hover:text-gray-900 rounded-full hover:bg-gray-50"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <nav className="flex flex-col gap-6 mt-8 font-bold text-gray-700 tracking-wider text-xs uppercase flex-1">
-              <a 
-                href="#" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  setIsAboutOpen(true);
-                  setIsMobileMenuOpen(false);
-                }}
-                className="hover:text-purple-600 transition-colors pb-3 border-b border-gray-50"
-              >
-                About Us
-              </a>
-              <a 
-                href="#catalog" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="hover:text-purple-600 transition-colors pb-3 border-b border-gray-50"
-              >
-                Shop Catalog
-              </a>
-              
-              <div className="space-y-3">
-                <div className="text-[10px] text-gray-400 font-black tracking-widest">PRODUCT CATEGORIES</div>
-                <div className="flex flex-col gap-2.5 pl-2 max-h-[30vh] overflow-y-auto scrollbar-thin">
-                  {categoriesList.map(cat => (
-                    <button
-                      key={cat}
-                      onClick={() => {
-                        setSelectedCategory(cat);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`text-left text-xs py-1 hover:text-purple-600 transition-colors uppercase font-bold ${selectedCategory === cat ? 'text-purple-600' : 'text-gray-500'}`}
-                    >
-                      {cat === 'All' ? 'All Filters' : cat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              <button 
-                onClick={() => { setIsTrackOpen(true); setIsMobileMenuOpen(false); }}
-                className="flex items-center gap-2 text-left py-3 border-t border-gray-100 text-purple-600 hover:text-purple-700 font-extrabold mt-auto uppercase tracking-widest text-[10px]"
-              >
-                Track Your Order →
-              </button>
-            </nav>
-          </div>
-        </div>
-      )}
-
-      {/* Hero Carousel Section with Custom Aspect Ratio (Responsive Banner Sizes) */}
-      <section className="relative h-[200px] xs:h-[240px] sm:h-[340px] md:h-[460px] lg:h-[550px] w-full overflow-hidden bg-gray-900">
-        {carouselSlides.map((banner, index) => (
-          <div 
-            key={banner.id || index}
-            className={`absolute inset-0 transition-all duration-[1000ms] ease-in-out ${index === currentSlide ? 'opacity-100 z-10 scale-100' : 'opacity-0 z-0 scale-105'}`}
-          >
-            {/* Elegant horizontal vignette gradient shadows */}
-            <div className="absolute inset-0 bg-gradient-to-t from-gray-950/65 via-gray-950/15 to-gray-950/20 z-10"></div>
-            <img 
-              src={banner.image} 
-              alt={banner.title} 
-              className="w-full h-full object-cover"
-            />
-            
-            {/* Adapting Text Overlays matching requested centered luxury mockup */}
-            {(banner.title || banner.subtitle) && (
-              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-4 max-w-4xl mx-auto space-y-4 sm:space-y-6 md:space-y-8 animate-in fade-in zoom-in-95 duration-700">
-                {/* Purple gradient top pill badge */}
-                <span className="inline-flex items-center gap-2 px-5 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-purple-800/90 to-purple-600/90 backdrop-blur-sm border border-purple-400/30 text-white text-[8px] sm:text-[10px] md:text-xs font-black uppercase tracking-[0.25em] rounded-full shadow-lg">
-                  ✨ {banner.isPromo ? "LIMITED FLASH OFFER" : "PREMIUM SHAPES AND COLOR SWATCHES"}
-                </span>
-
-                {/* Main bold white title */}
-                <h2 className="text-2xl sm:text-4xl md:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-none drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)] uppercase font-luxury-sans">
-                  {banner.title}
-                </h2>
-
-                {/* Subtitle/description paragraph */}
-                <p className="text-[10px] sm:text-xs md:text-sm lg:text-base text-white/95 max-w-2xl leading-relaxed tracking-wider drop-shadow-[0_2px_6px_rgba(0,0,0,0.4)] font-medium">
-                  {banner.subtitle}
-                </p>
-
-                {/* Large Blue Pill Button */}
-                <div className="pt-2 md:pt-4">
-                  {banner.isPromo ? (
-                    <button 
-                      onClick={() => setSelectedProduct(banner.product)}
-                      className="px-8 py-3.5 sm:px-12 sm:py-4.5 bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-95 text-[9px] sm:text-[11px] font-black uppercase tracking-[0.25em] text-white shadow-xl rounded-full transition-all duration-200"
-                    >
-                      {banner.cta || 'CLAIM OFFER'}
-                    </button>
-                  ) : (
-                    <a 
-                      href="#catalog"
-                      className="inline-block px-8 py-3.5 sm:px-12 sm:py-4.5 bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-95 text-[9px] sm:text-[11px] font-black uppercase tracking-[0.25em] text-white shadow-xl rounded-full transition-all duration-200 text-center"
-                    >
-                      {banner.cta || 'SHOP COLLECTION'}
-                    </a>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
-
-        {/* Circular Left/Right Navigation Arrows matching the screenshot */}
-        <button 
-          onClick={prevSlide}
-          className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-25 w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/25 hover:bg-black/45 backdrop-blur-sm flex items-center justify-center text-white transition-all shadow-md active:scale-90"
-          aria-label="Previous Slide"
-        >
-          <ChevronLeft className="w-4.5 h-4.5 sm:w-6 sm:h-6 stroke-[2.5]" />
-        </button>
-        
-        <button 
-          onClick={nextSlide}
-          className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-25 w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/25 hover:bg-black/45 backdrop-blur-sm flex items-center justify-center text-white transition-all shadow-md active:scale-90"
-          aria-label="Next Slide"
-        >
-          <ChevronRight className="w-4.5 h-4.5 sm:w-6 sm:h-6 stroke-[2.5]" />
-        </button>
-
-        {/* Circle Dot Indicators */}
-        <div className="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-2">
-          {carouselSlides.map((_, idx) => (
-            <button 
-              key={idx}
-              onClick={() => setCurrentSlide(idx)}
-              className={`h-1.5 sm:h-2 rounded-full transition-all duration-500 ${idx === currentSlide ? 'bg-purple-500 w-6 sm:w-8 shadow-md' : 'bg-white/40 w-1.5 sm:w-2'}`}
-              aria-label={`Slide ${idx + 1}`}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* Product Display Catalog Section */}
-      <section id="catalog" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 flex-1">
-        
-        {/* Title and Controls Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 pb-6 border-b border-gray-100">
-          <div>
-            <h3 className="text-2xl md:text-4xl font-theme-title bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-rose-600 tracking-tight">
-              Explore Our Products
-            </h3>
-          </div>
-
-          {/* Filtering Categories & Sorting controls */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Category selection */}
-            <div className="flex flex-wrap gap-1.5">
-              {categoriesList.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-wider border transition-all ${
-                    selectedCategory === cat 
-                      ? 'bg-purple-600 border-purple-600 text-white shadow-md'
-                      : 'bg-white border-gray-200 text-gray-500 hover:border-purple-600 hover:text-purple-600'
-                  }`}
-                >
-                  {cat === 'All' ? 'All Filters' : cat}
-                </button>
-              ))}
-            </div>
-
-            {/* Sorting Dropdown */}
-            <div className="flex items-center gap-2 border border-gray-200 rounded-full px-3 py-1.5 bg-white shadow-sm ml-auto">
-              <ArrowUpDown className="w-3.5 h-3.5 text-purple-600" />
-              <select 
-                value={sortBy} 
-                onChange={(e) => setSortBy(e.target.value)}
-                className="text-[10px] bg-transparent outline-none border-none font-bold uppercase tracking-wider text-gray-600 cursor-pointer"
-              >
-                <option value="Featured">Featured</option>
-                <option value="Price: Low to High">Price: Low to High</option>
-                <option value="Price: High to Low">Price: High to Low</option>
-                <option value="Popularity">Popularity (Stars)</option>
-                <option value="New Arrivals">New Arrivals</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Dynamic products list rendering */}
-        {processedProducts.length === 0 ? (
-          <div className="text-center py-20 bg-gray-50 border border-dashed border-gray-200 rounded-2xl">
-            <EyeOff className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <h3 className="text-lg font-bold text-gray-900 uppercase tracking-widest">No Products Found</h3>
-            <p className="text-gray-400 text-xs mt-1 uppercase tracking-wider">Try clearing search filter or selecting another category.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {processedProducts.map((product) => {
-              const isLiked = favorites.includes(product.id);
-
-              // Parse dynamic flash sale offer from product description JSON
-              let descText = product.description || '';
-              let hasActiveOffer = false;
-              let displayPrice = Number(product.price);
-              let originalPrice = Number(product.price);
-              let offerPercent = 0;
-              let timeLeftText = '';
-
-              try {
-                if (product.description && product.description.startsWith('{')) {
-                  const parsed = JSON.parse(product.description);
-                  descText = parsed.description || '';
-                  if (parsed.offer_ends_at && parsed.offer_price) {
-                    const endTime = new Date(parsed.offer_ends_at).getTime();
-                    const now = Date.now();
-                    if (endTime > now) {
-                      hasActiveOffer = true;
-                      displayPrice = Number(parsed.offer_price);
-                      originalPrice = Number(product.price);
-                      offerPercent = Number(parsed.offer_percent) || 50;
-                      
-                      const diffMs = endTime - now;
-                      const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
-                      const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                      const diffSecs = Math.floor((diffMs % (1000 * 60)) / 1000);
-                      if (diffHrs > 0) {
-                        timeLeftText = `${diffHrs}h ${diffMins}m ${diffSecs}s`;
-                      } else if (diffMins > 0) {
-                        timeLeftText = `${diffMins}m ${diffSecs}s`;
-                      } else {
-                        timeLeftText = `${diffSecs}s`;
-                      }
-                    }
-                  }
-                }
-              } catch (e) {
-                // fallback
-              }
-
-              return (
-                <div key={product.id} className="card-theme flex flex-col group relative">
-                  
-                  {/* Square 1:1 image layout with overlay buttons */}
-                  <div className="relative aspect-square w-full bg-gray-50 overflow-hidden cursor-pointer" onClick={() => setSelectedProduct(product)}>
-                    {getProductImage(product) ? (
-                      <img 
-                        src={getProductImage(product)} 
-                        alt={product.name} 
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center bg-gray-100 font-bold text-gray-300 text-3xl font-luxury-serif">
-                        {product.name[0]}
-                      </div>
-                    )}
-
-                    {/* Dynamic Flash Sale Badge or New Badge */}
-                    {hasActiveOffer ? (
-                      <span className="absolute top-3 left-3 bg-gradient-to-r from-red-600 to-amber-500 text-white text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 shadow-sm flex items-center gap-1 rounded-sm animate-pulse">
-                        🔥 {offerPercent}% OFF ({timeLeftText})
-                      </span>
-                    ) : product.is_new ? (
-                      <span className="absolute top-3 left-3 bg-purple-600 text-white text-[8px] font-black uppercase tracking-widest px-2 py-0.5 shadow-sm">
-                        NEW
-                      </span>
-                    ) : null}
-
-                    {/* Heart button */}
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleFavorite(product.id);
-                      }}
-                      className="absolute top-3 right-3 p-2 rounded-full bg-white/90 shadow-sm text-gray-500 hover:text-red-500 transition-colors z-20"
-                    >
-                      <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
-                    </button>
-
-                    {/* Hover Quick View Eyeball button */}
-                    <div className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedProduct(product);
-                        }}
-                        className="p-3 bg-white text-gray-900 rounded-full shadow-lg hover:scale-105 transition-transform flex items-center justify-center"
-                        title="Quick View Details"
-                      >
-                        <Eye className="w-4 h-4 text-purple-700" />
-                      </button>
-                    </div>
-
-                    {/* Quick Add Bottom Slide up */}
-                    <div className="absolute bottom-3 left-3 right-3 translate-y-8 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const sizes = getProductSizes(product);
-                          if (sizes.length > 0) {
-                            setSelectedProduct(product);
-                          } else {
-                            addToCart(product, 1);
-                          }
-                        }}
-                        className="w-full py-2.5 btn-theme-primary text-[9px] uppercase tracking-[0.2em] font-black"
-                      >
-                        Quick Add
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Description Box */}
-                  <div className="p-4 space-y-1.5 flex-1 flex flex-col justify-between">
-                    <div>
-                      <span className="text-[9px] font-black text-purple-600 tracking-widest uppercase block">{getProductCategory(product)}</span>
-                      <h4 
-                        onClick={() => setSelectedProduct(product)}
-                        className="font-bold text-gray-950 text-xs md:text-sm hover:underline cursor-pointer line-clamp-1 mt-0.5"
-                      >
-                        {product.name}
-                      </h4>
-                    </div>
-
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1">
-                        <div className="flex text-yellow-400">
-                          <Star className="w-3 h-3 fill-current" />
-                          <Star className="w-3 h-3 fill-current" />
-                          <Star className="w-3 h-3 fill-current" />
-                          <Star className="w-3 h-3 fill-current" />
-                          <Star className="w-3 h-3 fill-current" />
-                        </div>
-                        <span className="text-[9px] text-gray-400 font-bold">5.0</span>
-                      </div>
-                      
-                      {hasActiveOffer ? (
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-extrabold text-purple-700 text-sm md:text-base">
-                            {currencySymbol}{displayPrice.toLocaleString()}
-                          </span>
-                          <span className="text-[10px] text-gray-400 line-through font-bold">
-                            {currencySymbol}{originalPrice.toLocaleString()}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="font-extrabold text-purple-700 text-sm md:text-base">
-                          {currencySymbol}{Number(product.price).toLocaleString()}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-      </section>
 
       {/* Shopping Cart Drawer Sidebar */}
       {isCartOpen && (
