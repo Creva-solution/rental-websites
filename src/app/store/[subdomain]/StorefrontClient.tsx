@@ -1589,48 +1589,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       case 'artisan':
         return (
           <section id="catalog" className="px-4 sm:px-6 lg:px-8 py-16 max-w-7xl mx-auto text-[#2F1E12]">
-            {/* Story highlights above catalog */}
-            <div className="mb-14 text-center">
-              <span className="text-[10px] tracking-[0.3em] font-black text-[#8B5A2B] uppercase block mb-3">OUR BRAND DIARIES</span>
-              <h3 className="text-2xl md:text-3xl font-extrabold tracking-tight font-serif text-[#2F1E12]">Visual Stories From The Pottery</h3>
-              
-              <div className="flex justify-start sm:justify-center items-center gap-6 sm:gap-8 mt-8 overflow-x-auto py-2 px-4 scrollbar-none max-w-full">
-                {[
-                  { title: "Sourcing Clay", desc: "We dig local terracotta directly from the pristine riverbed clay veins, retaining rich iron and granular silica textures.", img: "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&q=80&w=150" },
-                  { title: "The Pottery Wheel", desc: "Every piece is carefully shaped on a slow kickwheel, where natural variations in finger pressure leave organic ripples.", img: "https://images.unsplash.com/photo-1565192647048-f997ed8799d4?auto=format&fit=crop&q=80&w=150" },
-                  { title: "Kiln Firing", desc: "We wood-fire our stoneware continuously for over 36 hours at 2,300°F. The falling ash creates soft, toasted gradients.", img: "https://images.unsplash.com/photo-1595435934249-5df7ed86b1c0?auto=format&fit=crop&q=80&w=150" },
-                  { title: "Our Artisans", desc: "A tight-knit community of 6 master potters bringing ancient techniques into contemporary functional modern tableware.", img: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=150" }
-                ].map((story, i) => (
-                  <div 
-                    key={i} 
-                    onClick={() => alert(`🌾 ${story.title}:\n\n${story.desc}`)}
-                    className="flex flex-col items-center cursor-pointer group flex-shrink-0"
-                  >
-                    <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#E4DAC9] group-hover:border-[#8B5A2B] transition-all p-1 bg-white relative flex items-center justify-center">
-                      <img 
-                        src={story.img} 
-                        alt={story.title} 
-                        className="w-full h-full object-cover rounded-full" 
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const parent = e.currentTarget.parentElement;
-                          if (parent && !parent.querySelector('.fallback-letter')) {
-                            parent.classList.add('bg-gradient-to-br', 'from-[#FAF6F0]', 'to-[#E4DAC9]', 'flex', 'items-center', 'justify-center');
-                            const textNode = document.createElement('span');
-                            textNode.className = 'fallback-letter font-serif text-[12px] font-black text-[#8B5A2B]';
-                            textNode.innerText = story.title.charAt(0);
-                            parent.appendChild(textNode);
-                          }
-                        }}
-                      />
-                    </div>
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#2F1E12] mt-2.5 group-hover:text-[#8B5A2B] transition-colors">{story.title}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="border-t border-[#E4DAC9] pt-12 flex flex-col md:flex-row items-center justify-between gap-6 mb-10">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-10">
               <h4 className="text-xl font-bold font-serif text-[#2F1E12] tracking-wide uppercase">{displayCatalogTitle()}</h4>
               
               <div className="flex flex-wrap gap-2.5 items-center justify-center">
