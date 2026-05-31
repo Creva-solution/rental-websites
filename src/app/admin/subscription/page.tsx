@@ -547,29 +547,41 @@ export default function SubscriptionPage() {
             <p className="text-xs text-muted-foreground mt-1">Select an upgrade plan below to connect directly with our support team.</p>
           </div>
 
-          <div className="space-y-3">
-            {[
-              { id: '1 Month Plan', price: '₹499 / Month', desc: 'Standard merchant package' },
-              { id: '1 Year Plan', price: '₹3,999 / Year', desc: 'Best deal for retail brands' },
-              { id: 'Lifetime Plan', price: '₹9,999 / Lifetime', desc: 'Unlimited professional features' }
-            ].map((plan) => (
-              <div 
-                key={plan.id} 
-                className="flex items-center justify-between p-3 bg-muted/30 border border-border rounded-xl hover:bg-muted/50 transition-colors"
-              >
-                <div>
-                  <h4 className="text-xs font-bold">{plan.id}</h4>
-                  <span className="text-[10px] text-muted-foreground block mt-0.5">{plan.desc}</span>
-                </div>
-                <button
-                  onClick={() => handleWhatsAppInquiry(plan.id)}
-                  className="flex items-center gap-1 bg-success hover:bg-success/90 text-primary-foreground text-[10px] font-black px-3 py-2 rounded-lg transition-colors shadow-sm"
+          <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+            {(() => {
+              const defaultPlans = [
+                { id: '30', name: '1 Month Plan', price: `₹${localStorage.getItem('saas_plan_30_price') || '499'} / Month`, desc: 'Standard merchant package' },
+                { id: '365', name: '1 Year Plan', price: `₹${Number(localStorage.getItem('saas_plan_365_price') || 3999).toLocaleString()} / Year`, desc: 'Best deal for retail brands' },
+                { id: 'lifetime', name: 'Lifetime Plan', price: `₹${Number(localStorage.getItem('saas_plan_lifetime_price') || 9999).toLocaleString()} / Lifetime`, desc: 'Unlimited professional features' }
+              ].filter(plan => !(typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('saas_disabled_default_packages') || '[]') : []).includes(plan.id));
+
+              const customPlans = (customPackages || []).map((pkg: any) => ({
+                id: pkg.id,
+                name: pkg.name,
+                price: `₹${Number(pkg.price || 0).toLocaleString()} / ${pkg.duration} ${pkg.durationType}s`,
+                desc: `Custom Package • ${pkg.days} Days Access`
+              }));
+
+              return [...defaultPlans, ...customPlans].map((plan) => (
+                <div 
+                  key={plan.id} 
+                  className="flex items-center justify-between p-3 bg-muted/30 border border-border rounded-xl hover:bg-muted/50 transition-colors"
                 >
-                  <Phone className="w-3 h-3" />
-                  ENQUIRE NOW
-                </button>
-              </div>
-            ))}
+                  <div>
+                    <h4 className="text-xs font-bold">{plan.name}</h4>
+                    <span className="text-[10px] text-primary font-bold block mt-0.5">{plan.price}</span>
+                    <span className="text-[9px] text-muted-foreground block mt-0.5">{plan.desc}</span>
+                  </div>
+                  <button
+                    onClick={() => handleWhatsAppInquiry(plan.name)}
+                    className="flex items-center gap-1 bg-success hover:bg-success/90 text-primary-foreground text-[10px] font-black px-3 py-2 rounded-lg transition-colors shadow-sm"
+                  >
+                    <Phone className="w-3 h-3" />
+                    ENQUIRE NOW
+                  </button>
+                </div>
+              ));
+            })()}
           </div>
 
           <div className="bg-muted/40 p-4 rounded-xl text-[11px] text-muted-foreground border leading-relaxed">

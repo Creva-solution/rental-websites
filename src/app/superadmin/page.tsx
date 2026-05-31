@@ -45,6 +45,7 @@ export default function SuperAdminDashboard() {
 
   // Custom subscription packages states
   const [customPackages, setCustomPackages] = useState<any[]>([]);
+  const [disabledDefaultPackages, setDisabledDefaultPackages] = useState<string[]>([]);
   const [newPkgName, setNewPkgName] = useState<string>('');
   const [newPkgDuration, setNewPkgDuration] = useState<string>('3');
   const [newPkgDurationType, setNewPkgDurationType] = useState<'day' | 'month' | 'year'>('month');
@@ -88,6 +89,7 @@ export default function SuperAdminDashboard() {
     const savedCustomDomainUnlock = localStorage.getItem('saas_custom_domain_unlock_price');
     const savedTemplateThumbnails = localStorage.getItem('saas_template_thumbnails');
     const savedCustomPackages = localStorage.getItem('saas_custom_packages');
+    const savedDisabledDefaultPlans = localStorage.getItem('saas_disabled_default_packages');
 
     if (savedBrand) setBrandName(savedBrand);
     if (savedLogo) setBrandLogo(savedLogo);
@@ -104,6 +106,9 @@ export default function SuperAdminDashboard() {
     }
     if (savedCustomPackages) {
       try { setCustomPackages(JSON.parse(savedCustomPackages)); } catch (e) {}
+    }
+    if (savedDisabledDefaultPlans) {
+      try { setDisabledDefaultPackages(JSON.parse(savedDisabledDefaultPlans)); } catch (e) {}
     }
   }, []);
 
@@ -294,6 +299,62 @@ export default function SuperAdminDashboard() {
     setModalTab('billing');
   };
 
+  const persistPackages = async (updatedPackages: any[], updatedDisabledDefaults: string[]) => {
+    setCustomPackages(updatedPackages);
+    setDisabledDefaultPackages(updatedDisabledDefaults);
+    localStorage.setItem('saas_custom_packages', JSON.stringify(updatedPackages));
+    localStorage.setItem('saas_disabled_default_packages', JSON.stringify(updatedDisabledDefaults));
+
+    try {
+      const settingsData = {
+        brandName,
+        brandLogo,
+        officers,
+        agreementTemplate,
+        platformUpi,
+        plan30Price,
+        plan365Price,
+        planLifetimePrice,
+        customDomainUnlockPrice,
+        templateThumbnails,
+        customPackages: updatedPackages,
+        disabledDefaultPackages: updatedDisabledDefaults
+      };
+
+      // Check if global settings row exists in Supabase
+      const { data: existingRow } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('subdomain', '__creva_saas_global_settings__')
+        .maybeSingle();
+
+      if (existingRow) {
+        await supabase
+          .from('stores')
+          .update({
+            description: JSON.stringify(settingsData)
+          })
+          .eq('subdomain', '__creva_saas_global_settings__');
+      } else {
+        const { data: authData } = await supabase.auth.getUser();
+        await supabase
+          .from('stores')
+          .insert([{
+            owner_id: authData?.user?.id || null,
+            store_name: 'Creva SaaS Settings',
+            subdomain: '__creva_saas_global_settings__',
+            business_category: 'SaaS Config',
+            description: JSON.stringify(settingsData),
+            primary_color: '#3B82F6',
+            currency: 'INR',
+            custom_domain_enabled: false
+          }]);
+      }
+    } catch (err: any) {
+      console.error("Autosave custom packages failed:", err);
+    }
+  };
+
   const handleAddCustomPackage = () => {
     if (!newPkgName.trim() || !newPkgPrice.trim()) {
       alert("⚠️ Please provide both package name and price.");
@@ -320,7 +381,9 @@ export default function SuperAdminDashboard() {
       price: newPkgPrice
     };
 
-    setCustomPackages(prev => [...prev, newPkg]);
+    const updated = [...customPackages, newPkg];
+    persistPackages(updated, disabledDefaultPackages);
+
     setNewPkgName('');
     setNewPkgPrice('');
     setActionStatus('Custom subscription package created!');
@@ -328,7 +391,8 @@ export default function SuperAdminDashboard() {
   };
 
   const handleDeleteCustomPackage = (id: string) => {
-    setCustomPackages(prev => prev.filter(p => p.id !== id));
+    const updated = customPackages.filter(p => p.id !== id);
+    persistPackages(updated, disabledDefaultPackages);
     setActionStatus('Custom package deleted.');
     setTimeout(() => setActionStatus(null), 2500);
   };
@@ -347,6 +411,7 @@ export default function SuperAdminDashboard() {
       localStorage.setItem('saas_custom_domain_unlock_price', customDomainUnlockPrice);
       localStorage.setItem('saas_template_thumbnails', JSON.stringify(templateThumbnails));
       localStorage.setItem('saas_custom_packages', JSON.stringify(customPackages));
+      localStorage.setItem('saas_disabled_default_packages', JSON.stringify(disabledDefaultPackages));
 
       const settingsData = {
         brandName,
@@ -359,7 +424,8 @@ export default function SuperAdminDashboard() {
         planLifetimePrice,
         customDomainUnlockPrice,
         templateThumbnails,
-        customPackages
+        customPackages,
+        disabledDefaultPackages
       };
 
       // Check if global settings row exists
@@ -605,6 +671,10 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
           if (parsed.customPackages) {
             setCustomPackages(parsed.customPackages);
             localStorage.setItem('saas_custom_packages', JSON.stringify(parsed.customPackages));
+          }
+          if (parsed.disabledDefaultPackages) {
+            setDisabledDefaultPackages(parsed.disabledDefaultPackages);
+            localStorage.setItem('saas_disabled_default_packages', JSON.stringify(parsed.disabledDefaultPackages));
           }
         } catch (e) {
           console.error("Failed to parse global settings from DB:", e);
@@ -2632,44 +2702,139 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                           <span className="text-xs font-bold text-gray-200">📦 Store Subscription Package Prices</span>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          <div>
-                            <label className="text-[9px] font-bold text-gray-400 uppercase">1 Month Plan</label>
-                            <div className="flex items-center mt-1">
-                              <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-md text-gray-500 font-mono text-xs">₹</span>
-                              <input 
-                                type="number"
-                                value={plan30Price}
-                                onChange={(e) => setPlan30Price(e.target.value)}
-                                placeholder="499"
-                                className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
-                              />
+                          {/* 1 Month Plan */}
+                          <div className={`p-3 rounded-lg border transition-all ${
+                            disabledDefaultPackages.includes('30') 
+                              ? 'border-red-950/30 bg-red-950/5 opacity-60' 
+                              : 'border-gray-850 bg-gray-900/30'
+                          }`}>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label className="text-[9px] font-bold text-gray-400 uppercase">1 Month Plan</label>
+                              {disabledDefaultPackages.includes('30') ? (
+                                <button
+                                  type="button"
+                                  onClick={() => persistPackages(customPackages, disabledDefaultPackages.filter(x => x !== '30'))}
+                                  className="text-[8px] bg-indigo-950 hover:bg-indigo-900 text-indigo-400 font-bold px-1.5 py-0.5 rounded transition-all animate-pulse"
+                                >
+                                  RESTORE +
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => persistPackages(customPackages, [...disabledDefaultPackages, '30'])}
+                                  className="p-1 bg-red-950 hover:bg-red-900 text-red-450 rounded transition-all"
+                                  title="Delete 1 Month Plan"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
+                            {!disabledDefaultPackages.includes('30') ? (
+                              <div className="flex items-center">
+                                <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-md text-gray-500 font-mono text-xs">₹</span>
+                                <input 
+                                  type="number"
+                                  value={plan30Price}
+                                  onChange={(e) => setPlan30Price(e.target.value)}
+                                  placeholder="499"
+                                  className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
+                                />
+                              </div>
+                            ) : (
+                              <div className="text-[10px] text-red-400 font-mono italic h-9 flex items-center">
+                                🚫 Package Deleted / Hidden
+                              </div>
+                            )}
                           </div>
-                          <div>
-                            <label className="text-[9px] font-bold text-gray-400 uppercase">1 Year Plan</label>
-                            <div className="flex items-center mt-1">
-                              <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-md text-gray-500 font-mono text-xs">₹</span>
-                              <input 
-                                type="number"
-                                value={plan365Price}
-                                onChange={(e) => setPlan365Price(e.target.value)}
-                                placeholder="3999"
-                                className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
-                              />
+
+                          {/* 1 Year Plan */}
+                          <div className={`p-3 rounded-lg border transition-all ${
+                            disabledDefaultPackages.includes('365') 
+                              ? 'border-red-950/30 bg-red-950/5 opacity-60' 
+                              : 'border-gray-850 bg-gray-900/30'
+                          }`}>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label className="text-[9px] font-bold text-gray-400 uppercase">1 Year Plan</label>
+                              {disabledDefaultPackages.includes('365') ? (
+                                <button
+                                  type="button"
+                                  onClick={() => persistPackages(customPackages, disabledDefaultPackages.filter(x => x !== '365'))}
+                                  className="text-[8px] bg-indigo-950 hover:bg-indigo-900 text-indigo-400 font-bold px-1.5 py-0.5 rounded transition-all animate-pulse"
+                                >
+                                  RESTORE +
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => persistPackages(customPackages, [...disabledDefaultPackages, '365'])}
+                                  className="p-1 bg-red-950 hover:bg-red-900 text-red-450 rounded transition-all"
+                                  title="Delete 1 Year Plan"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
+                            {!disabledDefaultPackages.includes('365') ? (
+                              <div className="flex items-center">
+                                <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-md text-gray-500 font-mono text-xs">₹</span>
+                                <input 
+                                  type="number"
+                                  value={plan365Price}
+                                  onChange={(e) => setPlan365Price(e.target.value)}
+                                  placeholder="3999"
+                                  className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
+                                />
+                              </div>
+                            ) : (
+                              <div className="text-[10px] text-red-400 font-mono italic h-9 flex items-center">
+                                🚫 Package Deleted / Hidden
+                              </div>
+                            )}
                           </div>
-                          <div>
-                            <label className="text-[9px] font-bold text-gray-400 uppercase">Lifetime Plan</label>
-                            <div className="flex items-center mt-1">
-                              <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-md text-gray-500 font-mono text-xs">₹</span>
-                              <input 
-                                type="number"
-                                value={planLifetimePrice}
-                                onChange={(e) => setPlanLifetimePrice(e.target.value)}
-                                placeholder="9999"
-                                className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
-                              />
+
+                          {/* Lifetime Plan */}
+                          <div className={`p-3 rounded-lg border transition-all ${
+                            disabledDefaultPackages.includes('lifetime') 
+                              ? 'border-red-950/30 bg-red-950/5 opacity-60' 
+                              : 'border-gray-850 bg-gray-900/30'
+                          }`}>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label className="text-[9px] font-bold text-gray-400 uppercase">Lifetime Plan</label>
+                              {disabledDefaultPackages.includes('lifetime') ? (
+                                <button
+                                  type="button"
+                                  onClick={() => persistPackages(customPackages, disabledDefaultPackages.filter(x => x !== 'lifetime'))}
+                                  className="text-[8px] bg-indigo-950 hover:bg-indigo-900 text-indigo-400 font-bold px-1.5 py-0.5 rounded transition-all animate-pulse"
+                                >
+                                  RESTORE +
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => persistPackages(customPackages, [...disabledDefaultPackages, 'lifetime'])}
+                                  className="p-1 bg-red-950 hover:bg-red-900 text-red-455 rounded transition-all"
+                                  title="Delete Lifetime Plan"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
+                            {!disabledDefaultPackages.includes('lifetime') ? (
+                              <div className="flex items-center">
+                                <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-md text-gray-500 font-mono text-xs">₹</span>
+                                <input 
+                                  type="number"
+                                  value={planLifetimePrice}
+                                  onChange={(e) => setPlanLifetimePrice(e.target.value)}
+                                  placeholder="9999"
+                                  className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
+                                />
+                              </div>
+                            ) : (
+                              <div className="text-[10px] text-red-400 font-mono italic h-9 flex items-center">
+                                🚫 Package Deleted / Hidden
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>

@@ -854,7 +854,7 @@ export default function BusinessSetupWizard() {
                     { id: '30', name: '1 Month Plan', price: `₹${globalSettings?.plan30Price || '499'}`, desc: 'Best for trial storefronts' },
                     { id: '365', name: '1 Year Plan', price: `₹${Number(globalSettings?.plan365Price || 3999).toLocaleString()}`, desc: 'Most popular for small shops' },
                     { id: 'lifetime', name: 'Lifetime Plan', price: `₹${Number(globalSettings?.planLifetimePrice || 9999).toLocaleString()}`, desc: 'Ultimate professional pack' }
-                  ];
+                  ].filter(plan => !(globalSettings?.disabledDefaultPackages || []).includes(plan.id));
                   
                   const customPlans = (globalSettings?.customPackages || []).map((pkg: any) => ({
                     id: pkg.id,
