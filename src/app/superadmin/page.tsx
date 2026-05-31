@@ -2699,7 +2699,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                       <div className="border border-gray-800 p-5 rounded-xl bg-gray-950/40 space-y-4">
                         <div className="flex items-center gap-2">
                           <Database className="w-4 h-4 text-indigo-450" />
-                          <span className="text-xs font-bold text-gray-200">📦 Store Subscription Package Prices</span>
+                          <span className="text-xs font-bold text-gray-200">Store Subscription Package Prices</span>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           {/* 1 Month Plan */}
@@ -2741,8 +2741,9 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                                 />
                               </div>
                             ) : (
-                              <div className="text-[10px] text-red-400 font-mono italic h-9 flex items-center">
-                                🚫 Package Deleted / Hidden
+                              <div className="text-[10px] text-red-400 font-mono italic h-9 flex items-center gap-1">
+                                <ShieldAlert className="w-3 h-3 text-red-500" />
+                                Deleted / Hidden
                               </div>
                             )}
                           </div>
@@ -2786,8 +2787,9 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                                 />
                               </div>
                             ) : (
-                              <div className="text-[10px] text-red-400 font-mono italic h-9 flex items-center">
-                                🚫 Package Deleted / Hidden
+                              <div className="text-[10px] text-red-400 font-mono italic h-9 flex items-center gap-1">
+                                <ShieldAlert className="w-3 h-3 text-red-500" />
+                                Deleted / Hidden
                               </div>
                             )}
                           </div>
@@ -2831,8 +2833,9 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                                 />
                               </div>
                             ) : (
-                              <div className="text-[10px] text-red-400 font-mono italic h-9 flex items-center">
-                                🚫 Package Deleted / Hidden
+                              <div className="text-[10px] text-red-400 font-mono italic h-9 flex items-center gap-1">
+                                <ShieldAlert className="w-3 h-3 text-red-500" />
+                                Deleted / Hidden
                               </div>
                             )}
                           </div>
@@ -2844,7 +2847,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                         <div className="flex items-center justify-between border-b border-gray-850 pb-2.5">
                           <div className="flex items-center gap-2">
                             <Layers className="w-4 h-4 text-indigo-400" />
-                            <span className="text-xs font-bold text-gray-250">🛠️ Dynamic Custom Packages</span>
+                            <span className="text-xs font-bold text-gray-250">Dynamic Custom Packages</span>
                           </div>
                           <span className="text-[10px] text-gray-400 font-mono">Total Packages: {customPackages.length}</span>
                         </div>

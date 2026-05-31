@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  CreditCard, Loader2, Phone, Calendar, Clock, Infinity, ShieldCheck, FileText, Printer, ShieldAlert, Upload, Trash2
+  CreditCard, Loader2, Phone, Calendar, Clock, Infinity, ShieldCheck, FileText, Printer, ShieldAlert, Upload, Trash2, Lock
 } from 'lucide-react';
 
 export default function SubscriptionPage() {
@@ -651,7 +651,7 @@ export default function SubscriptionPage() {
           <div className="text-left border-b pb-4 border-border/40">
             <h3 className="font-bold text-base flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
-              📜 Live Merchant Licensing Agreement Document
+              Live Merchant Licensing Agreement Document
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               Review your digitally signed contract, licensing terms, and regulatory stamps in real-time below.
@@ -746,8 +746,11 @@ export default function SubscriptionPage() {
             </div>
 
             {/* Document Footer Verification Seal */}
-            <div className="mt-8 text-center text-[9px] text-slate-400 font-mono border-t border-slate-100 pt-4 flex items-center justify-center gap-1.5">
-              <span>🔒 Cryptographically Signed & Secured via Creva SaaS Engine</span>
+            <div className="mt-8 text-center text-[9px] text-slate-450 font-mono border-t border-slate-100 pt-4 flex items-center justify-center gap-1.5">
+              <span className="flex items-center gap-1">
+                <Lock className="w-2.5 h-2.5 text-slate-400" />
+                Cryptographically Signed & Secured via Creva SaaS Engine
+              </span>
               <span>•</span>
               <span className="font-bold text-slate-500 uppercase tracking-widest">ID: store_{store.id.slice(0,8)}</span>
             </div>
