@@ -505,7 +505,7 @@ export default function SettingsPage() {
           <h3 className="text-lg font-semibold flex items-center gap-2"><Globe className="w-5 h-5 text-primary" /> Domains</h3>
           <div className="space-y-6">
             <div className="space-y-2">
-              <label className="text-sm font-medium">StoreBuilder Subdomain</label>
+              <label className="text-sm font-medium">CREVA WEbzz Subdomain</label>
               <div className="flex items-center">
                 <input 
                   type="text" 

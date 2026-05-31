@@ -38,7 +38,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md bg-background rounded-2xl shadow-xl border border-border overflow-hidden">
         <div className="p-8">
           <div className="text-center mb-8">
-            <Link href="/" className="inline-block text-2xl font-bold text-primary mb-2">StoreBuilder</Link>
+            <Link href="/" className="inline-block text-2xl font-bold text-primary mb-2">CREVA WEbzz</Link>
             <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
             <p className="text-muted-foreground text-sm">Login to manage your store</p>
           </div>
