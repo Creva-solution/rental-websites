@@ -19,7 +19,7 @@ export default function SuperAdminDashboard() {
   const [selectedStore, setSelectedStore] = useState<any | null>(null);
   const [billPlan, setBillPlan] = useState<string>('90');
   const [billPrice, setBillPrice] = useState<string>('1299');
-  const [brandName, setBrandName] = useState<string>('CREVA WEbzz');
+  const [brandName, setBrandName] = useState<string>('Creva Webzz');
   const [brandLogo, setBrandLogo] = useState<string>('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80');
   const [platformUpi, setPlatformUpi] = useState<string>('creva@ybl');
   const [plan30Price, setPlan30Price] = useState<string>('499');

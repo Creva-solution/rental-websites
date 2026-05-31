@@ -92,7 +92,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Mobile Drawer Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-background border-r border-border flex flex-col transform transition-transform duration-300 ease-in-out md:hidden ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="h-16 flex items-center justify-between px-6 border-b border-border">
-          <Link href="/" className="font-bold text-xl text-primary">CREVA WEbzz</Link>
+          <Link href="/" className="font-bold text-xl text-primary">Creva Webzz</Link>
           <button 
             type="button" 
             onClick={() => setIsMobileOpen(false)}
@@ -137,7 +137,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Desktop Sidebar */}
       <aside className="w-64 bg-background border-r border-border hidden md:flex flex-col flex-shrink-0">
         <div className="h-16 flex items-center px-6 border-b border-border">
-          <Link href="/" className="font-bold text-xl text-primary">CREVA WEbzz</Link>
+          <Link href="/" className="font-bold text-xl text-primary">Creva Webzz</Link>
         </div>
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
           <Link href="/admin" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>

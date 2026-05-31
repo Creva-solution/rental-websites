@@ -5,7 +5,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-muted/20 flex flex-col">
       <header className="h-16 flex items-center px-6 border-b bg-background">
-        <Link href="/" className="font-bold text-xl text-primary">CREVA WEbzz</Link>
+        <Link href="/" className="font-bold text-xl text-primary">Creva Webzz</Link>
         <div className="ml-auto flex items-center gap-4 text-sm">
           <span className="text-muted-foreground">Already have an account?</span>
           <Link href="/login" className="font-medium hover:text-primary transition-colors">Log in</Link>

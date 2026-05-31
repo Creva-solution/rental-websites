@@ -128,7 +128,7 @@ function PreviewContent() {
       <footer className="mt-auto border-t bg-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500">
           <p className="mb-2 font-bold text-gray-900">{activeStore.store_name}</p>
-          <p className="text-xs text-muted-foreground">Demo Interactive Storefront Preview • Powered by CREVA WEbzz</p>
+          <p className="text-xs text-muted-foreground">Demo Interactive Storefront Preview • Powered by Creva Webzz</p>
         </div>
       </footer>
     </div>
