@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { 
   Building2, Globe, ShieldAlert, ShieldCheck, Play, Pause, 
   Search, RefreshCw, Copy, Check, Database, HelpCircle,
-  Infinity, Calendar, Clock, Zap, Plus, FileText, X, Printer, Send, Upload, Trash2
+  Infinity, Calendar, Clock, Zap, Plus, FileText, X, Printer, Send, Upload, Trash2, Smartphone, Layers
 } from 'lucide-react';
 
 export default function SuperAdminDashboard() {
@@ -32,7 +32,16 @@ export default function SuperAdminDashboard() {
   // Advanced filters and branding dashboard states
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [isBrandingOpen, setIsBrandingOpen] = useState<boolean>(false);
-  const [activeSettingTab, setActiveSettingTab] = useState<'branding' | 'pricing' | 'officers' | 'agreement'>('branding');
+  const [activeSettingTab, setActiveSettingTab] = useState<'branding' | 'pricing' | 'officers' | 'agreement' | 'templates'>('branding');
+
+  // Custom storefront templates thumbnail state
+  const [templateThumbnails, setTemplateThumbnails] = useState<Record<string, string>>({
+    minimal: '',
+    artisan: '',
+    bold: '',
+    luxe: '',
+    retro: ''
+  });
 
   // States for Image Cropping tool
   const [rawImage, setRawImage] = useState<string | null>(null);
@@ -70,6 +79,7 @@ export default function SuperAdminDashboard() {
     const savedPlan365 = localStorage.getItem('saas_plan_365_price');
     const savedPlanLifetime = localStorage.getItem('saas_plan_lifetime_price');
     const savedCustomDomainUnlock = localStorage.getItem('saas_custom_domain_unlock_price');
+    const savedTemplateThumbnails = localStorage.getItem('saas_template_thumbnails');
 
     if (savedBrand) setBrandName(savedBrand);
     if (savedLogo) setBrandLogo(savedLogo);
@@ -81,6 +91,9 @@ export default function SuperAdminDashboard() {
     if (savedPlan365) setPlan365Price(savedPlan365);
     if (savedPlanLifetime) setPlanLifetimePrice(savedPlanLifetime);
     if (savedCustomDomainUnlock) setCustomDomainUnlockPrice(savedCustomDomainUnlock);
+    if (savedTemplateThumbnails) {
+      try { setTemplateThumbnails(JSON.parse(savedTemplateThumbnails)); } catch (e) {}
+    }
   }, []);
 
   // Handle officer stamp image upload
@@ -282,6 +295,7 @@ export default function SuperAdminDashboard() {
       localStorage.setItem('saas_plan_365_price', plan365Price);
       localStorage.setItem('saas_plan_lifetime_price', planLifetimePrice);
       localStorage.setItem('saas_custom_domain_unlock_price', customDomainUnlockPrice);
+      localStorage.setItem('saas_template_thumbnails', JSON.stringify(templateThumbnails));
 
       const settingsData = {
         brandName,
@@ -292,7 +306,8 @@ export default function SuperAdminDashboard() {
         plan30Price,
         plan365Price,
         planLifetimePrice,
-        customDomainUnlockPrice
+        customDomainUnlockPrice,
+        templateThumbnails
       };
 
       // Check if global settings row exists
@@ -530,6 +545,10 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
           if (parsed.customDomainUnlockPrice) {
             setCustomDomainUnlockPrice(parsed.customDomainUnlockPrice);
             localStorage.setItem('saas_custom_domain_unlock_price', parsed.customDomainUnlockPrice);
+          }
+          if (parsed.templateThumbnails) {
+            setTemplateThumbnails(parsed.templateThumbnails);
+            localStorage.setItem('saas_template_thumbnails', JSON.stringify(parsed.templateThumbnails));
           }
         } catch (e) {
           console.error("Failed to parse global settings from DB:", e);
@@ -2429,7 +2448,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                   Licensing Officers
                 </button>
 
-                <button
+                 <button
                   type="button"
                   onClick={() => setActiveSettingTab('agreement')}
                   className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-bold transition-all w-full text-left ${
@@ -2440,6 +2459,19 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                 >
                   <FileText className="w-4 h-4" />
                   Legal Agreement Terms
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveSettingTab('templates')}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-bold transition-all w-full text-left ${
+                    activeSettingTab === 'templates'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-850'
+                  }`}
+                >
+                  <Layers className="w-4 h-4" />
+                  Template Thumbnails
                 </button>
               </div>
 
@@ -2751,6 +2783,146 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                           Reset to default template
                         </button>
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 5. STOREFRONT TEMPLATES TAB */}
+                {activeSettingTab === 'templates' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                        <Layers className="w-4 h-4 text-blue-400" />
+                        Storefront Templates Thumbnails Management
+                      </h3>
+                      <p className="text-xs text-gray-400 mt-0.5">Customize representative thumbnails for storefront templates shown in the Setup Wizard.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      {[
+                        { id: 'minimal', name: 'Minimal Elegance', defaultThumb: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=600', desc: 'Sleek luxury black and white boutique design.' },
+                        { id: 'artisan', name: 'Artisan Craft', defaultThumb: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=600', desc: 'Warm organic pottery serif template.' },
+                        { id: 'bold', name: 'Bold Commerce', defaultThumb: 'https://images.unsplash.com/photo-1540959733332-eab4deceeaf7?auto=format&fit=crop&q=80&w=600', desc: 'Vibrant grid design with chunky shadows.' },
+                        { id: 'luxe', name: 'Dark Luxe', defaultThumb: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=600', desc: 'Premium gold on pitch black luxury design.' },
+                        { id: 'retro', name: 'Retro Grid', defaultThumb: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=600', desc: 'Grotesk neon shadows flat retro theme.' }
+                      ].map((tpl) => {
+                        const customThumb = templateThumbnails[tpl.id] || '';
+                        const currentThumb = customThumb || tpl.defaultThumb;
+
+                        return (
+                          <div key={tpl.id} className="bg-gray-950 border border-gray-850 rounded-xl overflow-hidden flex flex-col justify-between group shadow-sm transition-all hover:border-gray-800">
+                            {/* Visual Header */}
+                            <div className="w-full h-32 relative overflow-hidden bg-gray-900 border-b border-gray-850">
+                              <img 
+                                src={currentThumb} 
+                                alt={tpl.name}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute top-2.5 left-2.5 px-2.5 py-0.5 bg-black/60 rounded-full text-[9px] font-black text-white tracking-widest uppercase border border-white/10 backdrop-blur-md">
+                                {tpl.id}
+                              </div>
+                              {!customThumb && (
+                                <div className="absolute top-2.5 right-2.5 px-2 py-0.5 bg-blue-500/80 rounded text-[8px] font-bold text-white uppercase tracking-wider">
+                                  Default Stock
+                                </div>
+                              )}
+                              {customThumb && (
+                                <div className="absolute top-2.5 right-2.5 px-2 py-0.5 bg-emerald-500/80 rounded text-[8px] font-bold text-white uppercase tracking-wider">
+                                  Custom Active
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Details & Action Controls */}
+                            <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                              <div className="space-y-1">
+                                <h4 className="text-xs font-black text-white">{tpl.name}</h4>
+                                <p className="text-[10px] text-gray-500 leading-normal">{tpl.desc}</p>
+                              </div>
+
+                              <div className="space-y-3 pt-2">
+                                {/* Direct File Upload */}
+                                <div>
+                                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Upload Custom Thumbnail File</label>
+                                  <label
+                                    htmlFor={`thumbnail-file-${tpl.id}`}
+                                    className="flex items-center justify-center gap-2 py-2 rounded-lg border border-dashed border-gray-850 hover:border-blue-500 bg-gray-900 hover:bg-gray-900/60 cursor-pointer text-[10px] font-bold text-gray-400 hover:text-white transition-all text-center"
+                                  >
+                                    <Upload className="w-3.5 h-3.5 text-blue-500" />
+                                    <span>Choose Image File</span>
+                                  </label>
+                                  <input 
+                                    type="file"
+                                    accept="image/*"
+                                    id={`thumbnail-file-${tpl.id}`}
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (!file) return;
+                                      if (file.size > 2 * 1024 * 1024) {
+                                        alert('⚠️ Thumbnail image too large. Please upload under 2MB.');
+                                        return;
+                                      }
+                                      const reader = new FileReader();
+                                      reader.onload = (ev) => {
+                                        const res = ev.target?.result;
+                                        if (res) {
+                                          setTemplateThumbnails(prev => ({
+                                            ...prev,
+                                            [tpl.id]: res as string
+                                          }));
+                                          setActionStatus(`Thumbnail uploaded for ${tpl.name}!`);
+                                          setTimeout(() => setActionStatus(null), 2500);
+                                        }
+                                      };
+                                      reader.readAsDataURL(file);
+                                    }}
+                                    className="hidden"
+                                  />
+                                </div>
+
+                                {/* URL Textbox */}
+                                <div className="space-y-1">
+                                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Or Paste Thumbnail Image URL</label>
+                                  <input 
+                                    type="text"
+                                    value={customThumb.startsWith('data:') ? '[Base64 Uploaded File]' : customThumb}
+                                    disabled={customThumb.startsWith('data:')}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setTemplateThumbnails(prev => ({
+                                        ...prev,
+                                        [tpl.id]: val
+                                      }));
+                                    }}
+                                    placeholder="e.g. https://images.unsplash.com/..."
+                                    className="w-full bg-gray-900 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[10px] text-white transition-all font-mono placeholder:text-gray-750 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  />
+                                </div>
+
+                                {/* Reset button */}
+                                {customThumb && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setTemplateThumbnails(prev => {
+                                        const next = { ...prev };
+                                        delete next[tpl.id];
+                                        return next;
+                                      });
+                                      setActionStatus(`Reset ${tpl.name} thumbnail to Stock default.`);
+                                      setTimeout(() => setActionStatus(null), 2500);
+                                    }}
+                                    className="text-[9px] text-red-400 hover:text-red-300 font-bold transition-all text-left flex items-center gap-1.5"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    Reset to Default Preset Stock
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

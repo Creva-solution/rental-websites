@@ -630,41 +630,58 @@ export default function BusinessSetupWizard() {
                 <label className="block text-xs font-black text-muted-foreground uppercase tracking-wider">Choose Storefront Design Template</label>
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                   {[
-                    { id: 'minimal', name: 'Minimal Elegance', defaultColor: '#000000', desc: 'Sleek luxury, high contrast, clean typography. Perfect for boutique brands.' },
-                    { id: 'artisan', name: 'Artisan Craft', defaultColor: '#8B5A2B', desc: 'Warm cream tones, classical serif accents, hand-crafted organic feel.' },
-                    { id: 'bold', name: 'Bold Commerce', defaultColor: '#E11D48', desc: 'Vibrant, thick-bordered grid layouts, chunky shadows, high-impact details.' },
-                    { id: 'luxe', name: 'Dark Luxe', defaultColor: '#D4AF37', desc: 'Exclusive gold on pitch black premium layout. For luxury timepieces, jewelry and high-end accessories.' },
-                    { id: 'retro', name: 'Retro Grid', defaultColor: '#8B5CF6', desc: 'Space-grotesk flat shadow neon theme. Heavy borders, nostalgic retro aesthetics.' }
-                  ].map((tpl, idx) => (
-                    <button
-                      key={tpl.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedTemplate(tpl.id as any);
-                        setFormData(prev => ({ ...prev, primaryColor: tpl.defaultColor }));
-                      }}
-                      className={`flex flex-col text-left p-4 rounded-xl border-2 transition-all relative ${
-                        selectedTemplate === tpl.id
-                          ? 'border-primary bg-primary/5 shadow-md scale-[1.02]'
-                          : 'border-border bg-card hover:bg-muted/30 hover:scale-[1.01]'
-                      }`}
-                    >
-                      {selectedTemplate === tpl.id && (
-                        <span className="absolute top-2.5 right-2.5 bg-primary text-primary-foreground rounded-full p-0.5">
-                          <Check className="w-3.5 h-3.5" />
-                        </span>
-                      )}
-                      <span className="text-[10px] font-black uppercase tracking-widest text-primary">Template {idx + 1}</span>
-                      <span className="text-sm font-black text-foreground mt-1">{tpl.name}</span>
-                      <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed flex-1">{tpl.desc}</p>
-                      
-                      {/* Theme color hint circle */}
-                      <div className="mt-3.5 flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
-                        <span className="w-3 h-3 rounded-full border border-border" style={{ backgroundColor: tpl.defaultColor }} />
-                        Preset Active
-                      </div>
-                    </button>
-                  ))}
+                    { id: 'minimal', name: 'Minimal Elegance', defaultColor: '#000000', desc: 'Sleek luxury, high contrast, clean typography. Perfect for boutique brands.', defaultThumb: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=600' },
+                    { id: 'artisan', name: 'Artisan Craft', defaultColor: '#8B5A2B', desc: 'Warm cream tones, classical serif accents, hand-crafted organic feel.', defaultThumb: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=600' },
+                    { id: 'bold', name: 'Bold Commerce', defaultColor: '#E11D48', desc: 'Vibrant, thick-bordered grid layouts, chunky shadows, high-impact details.', defaultThumb: 'https://images.unsplash.com/photo-1540959733332-eab4deceeaf7?auto=format&fit=crop&q=80&w=600' },
+                    { id: 'luxe', name: 'Dark Luxe', defaultColor: '#D4AF37', desc: 'Exclusive gold on pitch black premium layout. For luxury timepieces, jewelry and high-end accessories.', defaultThumb: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=600' },
+                    { id: 'retro', name: 'Retro Grid', defaultColor: '#8B5CF6', desc: 'Space-grotesk flat shadow neon theme. Heavy borders, nostalgic retro aesthetics.', defaultThumb: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=600' }
+                  ].map((tpl, idx) => {
+                    const customThumbnail = globalSettings?.templateThumbnails?.[tpl.id];
+                    const thumbnailUrl = customThumbnail || tpl.defaultThumb;
+
+                    return (
+                      <button
+                        key={tpl.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedTemplate(tpl.id as any);
+                          setFormData(prev => ({ ...prev, primaryColor: tpl.defaultColor }));
+                        }}
+                        className={`flex flex-col text-left rounded-xl border-2 overflow-hidden transition-all relative group ${
+                          selectedTemplate === tpl.id
+                            ? 'border-primary bg-primary/5 shadow-md scale-[1.02]'
+                            : 'border-border bg-card hover:bg-muted/30 hover:scale-[1.01]'
+                        }`}
+                      >
+                        {/* Thumbnail image slot */}
+                        <div className="w-full h-24 relative overflow-hidden bg-muted border-b border-border/50">
+                          <img 
+                            src={thumbnailUrl} 
+                            alt={tpl.name}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        </div>
+
+                        {selectedTemplate === tpl.id && (
+                          <span className="absolute top-2.5 right-2.5 bg-primary text-primary-foreground rounded-full p-0.5 z-10 shadow-sm">
+                            <Check className="w-3.5 h-3.5" />
+                          </span>
+                        )}
+                        
+                        <div className="p-4 flex flex-col flex-1">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-primary">Template {idx + 1}</span>
+                          <span className="text-sm font-black text-foreground mt-1">{tpl.name}</span>
+                          <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed flex-1">{tpl.desc}</p>
+                          
+                          {/* Theme color hint circle */}
+                          <div className="mt-3.5 flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
+                            <span className="w-3 h-3 rounded-full border border-border" style={{ backgroundColor: tpl.defaultColor }} />
+                            Apply Palette
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               
