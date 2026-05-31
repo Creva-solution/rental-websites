@@ -469,7 +469,14 @@ export default function BusinessSetupWizard() {
         expiryDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
       } else if (selectedPlan === '365') {
         expiryDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
-      } // lifetime is null
+      } else if (selectedPlan === 'lifetime') {
+        expiryDate = null;
+      } else {
+        const customPkg = (globalSettings?.customPackages || []).find((pkg: any) => pkg.id === selectedPlan);
+        if (customPkg) {
+          expiryDate = new Date(now.getTime() + Number(customPkg.days || 30) * 24 * 60 * 60 * 1000).toISOString();
+        }
+      }
 
       const contractDetails = {
         description: formData.businessDescription,
@@ -841,32 +848,43 @@ export default function BusinessSetupWizard() {
               </div>
 
               {/* Sub Plans Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[
-                  { id: '30', name: '1 Month Plan', price: `₹${globalSettings?.plan30Price || '499'}`, desc: 'Best for trial storefronts' },
-                  { id: '365', name: '1 Year Plan', price: `₹${Number(globalSettings?.plan365Price || 3999).toLocaleString()}`, desc: 'Most popular for small shops' },
-                  { id: 'lifetime', name: 'Lifetime Plan', price: `₹${Number(globalSettings?.planLifetimePrice || 9999).toLocaleString()}`, desc: 'Ultimate professional pack' }
-                ].map((plan) => (
-                  <button
-                    key={plan.id}
-                    type="button"
-                    onClick={() => setSelectedPlan(plan.id as any)}
-                    className={`flex flex-col text-left p-4 rounded-xl border-2 transition-all relative ${
-                      selectedPlan === plan.id
-                        ? 'border-primary bg-primary/5 shadow-md'
-                        : 'border-border bg-card hover:bg-muted/50'
-                    }`}
-                  >
-                    {selectedPlan === plan.id && (
-                      <span className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-0.5">
-                        <Check className="w-3 h-3" />
-                      </span>
-                    )}
-                    <span className="text-xs text-muted-foreground uppercase font-black tracking-wider">{plan.name}</span>
-                    <span className="text-2xl font-black text-foreground mt-1.5">{plan.price}</span>
-                    <span className="text-[10px] text-muted-foreground mt-2 leading-relaxed">{plan.desc}</span>
-                  </button>
-                ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {(() => {
+                  const defaultPlans = [
+                    { id: '30', name: '1 Month Plan', price: `₹${globalSettings?.plan30Price || '499'}`, desc: 'Best for trial storefronts' },
+                    { id: '365', name: '1 Year Plan', price: `₹${Number(globalSettings?.plan365Price || 3999).toLocaleString()}`, desc: 'Most popular for small shops' },
+                    { id: 'lifetime', name: 'Lifetime Plan', price: `₹${Number(globalSettings?.planLifetimePrice || 9999).toLocaleString()}`, desc: 'Ultimate professional pack' }
+                  ];
+                  
+                  const customPlans = (globalSettings?.customPackages || []).map((pkg: any) => ({
+                    id: pkg.id,
+                    name: pkg.name,
+                    price: `₹${Number(pkg.price || 0).toLocaleString()}`,
+                    desc: `Custom Package • ${pkg.days} Days Access`
+                  }));
+
+                  return [...defaultPlans, ...customPlans].map((plan) => (
+                    <button
+                      key={plan.id}
+                      type="button"
+                      onClick={() => setSelectedPlan(plan.id as any)}
+                      className={`flex flex-col text-left p-4 rounded-xl border-2 transition-all relative ${
+                        selectedPlan === plan.id
+                          ? 'border-primary bg-primary/5 shadow-md scale-[1.01]'
+                          : 'border-border bg-card hover:bg-muted/50 hover:scale-[1.005]'
+                      }`}
+                    >
+                      {selectedPlan === plan.id && (
+                        <span className="absolute top-2.5 right-2.5 bg-primary text-primary-foreground rounded-full p-0.5">
+                          <Check className="w-3 h-3" />
+                        </span>
+                      )}
+                      <span className="text-xs text-muted-foreground uppercase font-black tracking-wider">{plan.name}</span>
+                      <span className="text-2xl font-black text-foreground mt-1.5">{plan.price}</span>
+                      <span className="text-[10px] text-muted-foreground mt-2 leading-relaxed">{plan.desc}</span>
+                    </button>
+                  ));
+                })()}
               </div>
 
               {/* Inquiry Message Box */}
@@ -1031,7 +1049,12 @@ export default function BusinessSetupWizard() {
                               ? (globalSettings?.plan30Price || '499') 
                               : selectedPlan === '365' 
                                 ? (globalSettings?.plan365Price || '3999') 
-                                : (globalSettings?.planLifetimePrice || '9999');
+                                : selectedPlan === 'lifetime'
+                                  ? (globalSettings?.planLifetimePrice || '9999')
+                                  : (() => {
+                                      const customPkg = (globalSettings?.customPackages || []).find((pkg: any) => pkg.id === selectedPlan);
+                                      return customPkg?.price || '0';
+                                    })();
                             const merchantName = globalSettings?.brandName || 'StoreBuilder';
                             const upiIntent = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${planAmount}&cu=INR`;
                             const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiIntent)}&margin=10`;
@@ -1062,7 +1085,18 @@ export default function BusinessSetupWizard() {
                           <ol className="text-xs text-muted-foreground list-decimal pl-4 space-y-1.5 leading-relaxed text-left">
                             <li>Open Google Pay, PhonePe, Paytm, or any banking App on your mobile.</li>
                             <li>Scan the QR code displayed on the left or send to VPA ID: <strong className="text-primary font-mono select-all bg-muted/60 px-1.5 py-0.5 rounded border border-border">{globalSettings?.platformUpi || 'creva@ybl'}</strong></li>
-                            <li>Pay the designated plan amount (<strong className="text-primary font-mono">{selectedPlan === '30' ? `₹${globalSettings?.plan30Price || '499'}` : selectedPlan === '365' ? `₹${Number(globalSettings?.plan365Price || 3999).toLocaleString()}` : `₹${Number(globalSettings?.planLifetimePrice || 9999).toLocaleString()}`}</strong>).</li>
+                            <li>Pay the designated plan amount (<strong className="text-primary font-mono">{
+                                selectedPlan === '30'
+                                  ? `₹${globalSettings?.plan30Price || '499'}`
+                                  : selectedPlan === '365'
+                                    ? `₹${Number(globalSettings?.plan365Price || 3999).toLocaleString()}`
+                                    : selectedPlan === 'lifetime'
+                                      ? `₹${Number(globalSettings?.planLifetimePrice || 9999).toLocaleString()}`
+                                      : (() => {
+                                          const customPkg = (globalSettings?.customPackages || []).find((pkg: any) => pkg.id === selectedPlan);
+                                          return `₹${Number(customPkg?.price || 0).toLocaleString()}`;
+                                        })()
+                             }</strong>).</li>
                             <li>Take a clear screenshot of the transaction success page.</li>
                             <li>Upload the screenshot in the dropzone below to proceed.</li>
                           </ol>

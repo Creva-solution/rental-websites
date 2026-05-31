@@ -43,6 +43,13 @@ export default function SuperAdminDashboard() {
     retro: ''
   });
 
+  // Custom subscription packages states
+  const [customPackages, setCustomPackages] = useState<any[]>([]);
+  const [newPkgName, setNewPkgName] = useState<string>('');
+  const [newPkgDuration, setNewPkgDuration] = useState<string>('3');
+  const [newPkgDurationType, setNewPkgDurationType] = useState<'day' | 'month' | 'year'>('month');
+  const [newPkgPrice, setNewPkgPrice] = useState<string>('');
+
   // States for Image Cropping tool
   const [rawImage, setRawImage] = useState<string | null>(null);
   const [cropZoom, setCropZoom] = useState<number>(1);
@@ -80,6 +87,7 @@ export default function SuperAdminDashboard() {
     const savedPlanLifetime = localStorage.getItem('saas_plan_lifetime_price');
     const savedCustomDomainUnlock = localStorage.getItem('saas_custom_domain_unlock_price');
     const savedTemplateThumbnails = localStorage.getItem('saas_template_thumbnails');
+    const savedCustomPackages = localStorage.getItem('saas_custom_packages');
 
     if (savedBrand) setBrandName(savedBrand);
     if (savedLogo) setBrandLogo(savedLogo);
@@ -93,6 +101,9 @@ export default function SuperAdminDashboard() {
     if (savedCustomDomainUnlock) setCustomDomainUnlockPrice(savedCustomDomainUnlock);
     if (savedTemplateThumbnails) {
       try { setTemplateThumbnails(JSON.parse(savedTemplateThumbnails)); } catch (e) {}
+    }
+    if (savedCustomPackages) {
+      try { setCustomPackages(JSON.parse(savedCustomPackages)); } catch (e) {}
     }
   }, []);
 
@@ -283,6 +294,45 @@ export default function SuperAdminDashboard() {
     setModalTab('billing');
   };
 
+  const handleAddCustomPackage = () => {
+    if (!newPkgName.trim() || !newPkgPrice.trim()) {
+      alert("⚠️ Please provide both package name and price.");
+      return;
+    }
+    
+    const days = newPkgDurationType === 'day' 
+      ? Number(newPkgDuration) 
+      : newPkgDurationType === 'month' 
+        ? Number(newPkgDuration) * 30 
+        : Number(newPkgDuration) * 365;
+
+    if (isNaN(days) || days <= 0) {
+      alert("⚠️ Please enter a valid duration.");
+      return;
+    }
+
+    const newPkg = {
+      id: `plan_custom_${Date.now()}`,
+      name: newPkgName,
+      duration: Number(newPkgDuration),
+      durationType: newPkgDurationType,
+      days: days,
+      price: newPkgPrice
+    };
+
+    setCustomPackages(prev => [...prev, newPkg]);
+    setNewPkgName('');
+    setNewPkgPrice('');
+    setActionStatus('Custom subscription package created!');
+    setTimeout(() => setActionStatus(null), 2500);
+  };
+
+  const handleDeleteCustomPackage = (id: string) => {
+    setCustomPackages(prev => prev.filter(p => p.id !== id));
+    setActionStatus('Custom package deleted.');
+    setTimeout(() => setActionStatus(null), 2500);
+  };
+
   const handleSaveBrandSettings = async () => {
     setActionStatus('Saving settings to cloud...');
     try {
@@ -296,6 +346,7 @@ export default function SuperAdminDashboard() {
       localStorage.setItem('saas_plan_lifetime_price', planLifetimePrice);
       localStorage.setItem('saas_custom_domain_unlock_price', customDomainUnlockPrice);
       localStorage.setItem('saas_template_thumbnails', JSON.stringify(templateThumbnails));
+      localStorage.setItem('saas_custom_packages', JSON.stringify(customPackages));
 
       const settingsData = {
         brandName,
@@ -307,7 +358,8 @@ export default function SuperAdminDashboard() {
         plan365Price,
         planLifetimePrice,
         customDomainUnlockPrice,
-        templateThumbnails
+        templateThumbnails,
+        customPackages
       };
 
       // Check if global settings row exists
@@ -549,6 +601,10 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
           if (parsed.templateThumbnails) {
             setTemplateThumbnails(parsed.templateThumbnails);
             localStorage.setItem('saas_template_thumbnails', JSON.stringify(parsed.templateThumbnails));
+          }
+          if (parsed.customPackages) {
+            setCustomPackages(parsed.customPackages);
+            localStorage.setItem('saas_custom_packages', JSON.stringify(parsed.customPackages));
           }
         } catch (e) {
           console.error("Failed to parse global settings from DB:", e);
@@ -2614,6 +2670,109 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                                 className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
                               />
                             </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Dynamic Custom Subscription Packages Section */}
+                      <div className="border border-gray-800 p-5 rounded-xl bg-gray-950/40 space-y-4">
+                        <div className="flex items-center justify-between border-b border-gray-850 pb-2.5">
+                          <div className="flex items-center gap-2">
+                            <Layers className="w-4 h-4 text-indigo-400" />
+                            <span className="text-xs font-bold text-gray-250">🛠️ Dynamic Custom Packages</span>
+                          </div>
+                          <span className="text-[10px] text-gray-400 font-mono">Total Packages: {customPackages.length}</span>
+                        </div>
+
+                        {/* Existing Custom Packages list */}
+                        {customPackages.length > 0 ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[220px] overflow-y-auto pr-1">
+                            {customPackages.map((pkg) => (
+                              <div key={pkg.id} className="bg-gray-900/60 border border-gray-850 p-3 rounded-lg flex items-center justify-between transition-all hover:bg-gray-900/95 hover:border-gray-800">
+                                <div className="space-y-1">
+                                  <div className="text-[11px] font-bold text-white flex items-center gap-1.5">
+                                    {pkg.name}
+                                    <span className="text-[9px] bg-blue-950 text-blue-400 px-1.5 py-0.5 rounded font-mono">
+                                      {pkg.days} Days
+                                    </span>
+                                  </div>
+                                  <div className="text-[10px] text-gray-400 font-mono">Price: <span className="text-emerald-450 font-bold">₹{pkg.price}</span></div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCustomPackage(pkg.id)}
+                                  className="p-1.5 bg-red-950/40 hover:bg-red-950 text-red-400 rounded-lg transition-colors border border-red-900/30"
+                                  title="Delete Package"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="border border-dashed border-gray-850 rounded-lg p-5 text-center text-gray-500 text-xs">
+                            No custom subscription packages configured yet. Use the tool below to add.
+                          </div>
+                        )}
+
+                        {/* Inline Package Creator Form */}
+                        <div className="bg-gray-900/30 border border-gray-850/50 p-4 rounded-xl space-y-3.5 mt-2">
+                          <span className="text-[10px] text-gray-400 font-black uppercase tracking-wider block">Add New Subscription Package</span>
+                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                            <div className="sm:col-span-4">
+                              <label className="text-[9px] font-bold text-gray-400 uppercase">Package Display Name</label>
+                              <input 
+                                type="text"
+                                value={newPkgName}
+                                onChange={(e) => setNewPkgName(e.target.value)}
+                                placeholder="e.g. 3 Months Plan"
+                                className="w-full h-9 bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-indigo-500 focus:outline-none rounded-lg px-2.5 text-xs text-white"
+                              />
+                            </div>
+                            <div className="sm:col-span-3">
+                              <label className="text-[9px] font-bold text-gray-400 uppercase">Duration Count</label>
+                              <input 
+                                type="number"
+                                value={newPkgDuration}
+                                onChange={(e) => setNewPkgDuration(e.target.value)}
+                                placeholder="3"
+                                className="w-full h-9 bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-indigo-500 focus:outline-none rounded-lg px-2.5 text-xs text-white font-mono"
+                              />
+                            </div>
+                            <div className="sm:col-span-2">
+                              <label className="text-[9px] font-bold text-gray-400 uppercase">Duration Unit</label>
+                              <select 
+                                value={newPkgDurationType}
+                                onChange={(e) => setNewPkgDurationType(e.target.value as any)}
+                                className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-lg px-2.5 text-xs text-white"
+                              >
+                                <option value="day">Days</option>
+                                <option value="month">Months</option>
+                                <option value="year">Years</option>
+                              </select>
+                            </div>
+                            <div className="sm:col-span-3">
+                              <label className="text-[9px] font-bold text-gray-400 uppercase">Package Price (₹)</label>
+                              <div className="flex items-center">
+                                <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-lg text-gray-500 font-mono text-xs">₹</span>
+                                <input 
+                                  type="number"
+                                  value={newPkgPrice}
+                                  onChange={(e) => setNewPkgPrice(e.target.value)}
+                                  placeholder="1299"
+                                  className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-r-lg px-2.5 text-xs text-white font-mono"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex justify-end pt-1">
+                            <button
+                              type="button"
+                              onClick={handleAddCustomPackage}
+                              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md shadow-indigo-600/10"
+                            >
+                              Add Package +
+                            </button>
                           </div>
                         </div>
                       </div>

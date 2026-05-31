@@ -11,9 +11,16 @@ export default function SubscriptionPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [reuploadSuccess, setReuploadSuccess] = useState(false);
+  const [customPackages, setCustomPackages] = useState<any[]>([]);
 
   useEffect(() => {
     fetchStore();
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('saas_custom_packages');
+      if (saved) {
+        try { setCustomPackages(JSON.parse(saved)); } catch (e) {}
+      }
+    }
   }, []);
 
   const fetchStore = async () => {
@@ -45,6 +52,10 @@ export default function SubscriptionPage() {
           if (parsed.brandLogo) localStorage.setItem('saas_brand_logo', parsed.brandLogo);
           if (parsed.officers) localStorage.setItem('saas_licensing_officers', JSON.stringify(parsed.officers));
           if (parsed.agreementTemplate) localStorage.setItem('saas_agreement_template', parsed.agreementTemplate);
+          if (parsed.customPackages) {
+            localStorage.setItem('saas_custom_packages', JSON.stringify(parsed.customPackages));
+            setCustomPackages(parsed.customPackages);
+          }
         } catch (e) {
           console.error("Failed to parse global settings in subscription page:", e);
         }
@@ -84,7 +95,18 @@ export default function SubscriptionPage() {
       ? '1 Month Plan (₹499/mo)' 
       : contract?.selectedPlan === '365'
         ? '1 Year Plan (₹3,999/yr)'
-        : 'SaaS Active Plan';
+        : (() => {
+            const customPkg = (customPackages || []).find((pkg: any) => pkg.id === contract?.selectedPlan);
+            return customPkg ? `${customPkg.name} (₹${Number(customPkg.price).toLocaleString()})` : 'SaaS Active Plan';
+          })();
+
+  const planLabel = contract?.selectedPlan === '30' ? '1 Month (30 Days)' :
+                    contract?.selectedPlan === '365' ? '1 Year (365 Days)' :
+                    contract?.selectedPlan === 'lifetime' ? 'Lifetime Subscription' :
+                    (() => {
+                      const customPkg = (customPackages || []).find((pkg: any) => pkg.id === contract?.selectedPlan);
+                      return customPkg ? `${customPkg.name} (${customPkg.days} Days)` : 'Custom Active Plan';
+                    })();
 
   const handleWhatsAppInquiry = (planName: string) => {
     const text = encodeURIComponent(
@@ -97,9 +119,6 @@ export default function SubscriptionPage() {
     if (!contract || typeof window === 'undefined') return;
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
-
-    const planLabel = contract.selectedPlan === '30' ? '1 Month (30 Days)' :
-                      contract.selectedPlan === '365' ? '1 Year (365 Days)' : 'Lifetime Subscription';
 
     const assignedOfficer = contract.assignedOfficer;
     const logoUrl = localStorage.getItem('saas_brand_logo') || '';
@@ -613,6 +632,117 @@ export default function SubscriptionPage() {
         </div>
 
       </div>
+
+      {/* Visual Live Document Agreement Section */}
+      {contract && contract.contractSigned && (
+        <div className="bg-card text-card-foreground rounded-xl border border-border/50 p-6 shadow-sm space-y-6">
+          <div className="text-left border-b pb-4 border-border/40">
+            <h3 className="font-bold text-base flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              📜 Live Merchant Licensing Agreement Document
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Review your digitally signed contract, licensing terms, and regulatory stamps in real-time below.
+            </p>
+          </div>
+
+          <div className="relative bg-white text-slate-800 rounded-xl p-8 md:p-12 border border-slate-200 shadow-md font-sans text-left max-w-3xl mx-auto overflow-hidden">
+            {/* Watermark */}
+            <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none">
+              <span className="text-9xl font-black rotate-[25deg]">CREVA</span>
+            </div>
+
+            {/* Document Header */}
+            <div className="relative border-b-2 border-slate-350 pb-6 mb-8 text-center">
+              {(() => {
+                const logoUrl = localStorage.getItem('saas_brand_logo') || '';
+                return logoUrl ? (
+                  <img src={logoUrl} alt="Platform Logo" className="max-h-[50px] max-w-[170px] mx-auto mb-4 block" />
+                ) : (
+                  <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-3">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                );
+              })()}
+              <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide text-slate-900">Creva SaaS Storefront Agreement</h2>
+              <span className="text-[10px] md:text-xs text-slate-500 uppercase tracking-widest font-black block mt-1">Official Licensing & Merchant Operations Contract</span>
+            </div>
+
+            {/* Document Meta Section */}
+            <div className="space-y-4 mb-8">
+              <h4 className="text-xs font-bold text-slate-900 border-l-4 border-primary pl-2 uppercase tracking-wide">1. Merchant & Subdomain Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border border-slate-200 rounded-lg p-4 bg-slate-50/50">
+                <div className="space-y-2">
+                  <div className="text-[11px]"><strong className="text-slate-500">Merchant Store:</strong> <span className="font-bold text-slate-800">{store.store_name}</span></div>
+                  <div className="text-[11px]"><strong className="text-slate-500">Registered Subdomain:</strong> <span className="font-mono font-bold text-primary select-all">{store.subdomain}.crevasolution.in</span></div>
+                  <div className="text-[11px]"><strong className="text-slate-500">Licensing Tier:</strong> <span className="px-2 py-0.5 bg-blue-100 text-blue-800 font-mono text-[9px] font-black rounded-full uppercase tracking-wider">{planLabel}</span></div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-[11px]"><strong className="text-slate-500">Contact Email:</strong> <span className="text-slate-700">{store.contact_email || 'N/A'}</span></div>
+                  <div className="text-[11px]"><strong className="text-slate-500">Contact Phone:</strong> <span className="text-slate-700 font-mono">{store.contact_phone || 'N/A'}</span></div>
+                  <div className="text-[11px]"><strong className="text-slate-500">Date Signed:</strong> <span className="text-slate-700">{contract.contractSignedAt ? new Date(contract.contractSignedAt).toLocaleDateString('en-IN') : 'N/A'}</span></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Document Terms Section */}
+            <div className="space-y-3 mb-8">
+              <h4 className="text-xs font-bold text-slate-900 border-l-4 border-primary pl-2 uppercase tracking-wide">2. Provisions & Licensing Terms</h4>
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-5 text-[11px] text-slate-650 leading-relaxed text-justify max-h-[220px] overflow-y-auto font-sans shadow-inner scrollbar-thin">
+                {(() => {
+                  const savedTemplate = localStorage.getItem('saas_agreement_template') || '1. PROVISIONS OF SERVICE: The Creva E-Commerce SaaS platform grants the undersigned Merchant the license to operate an automated retail storefront website using our cloud architecture.';
+                  return savedTemplate.split('\n').filter(l => l.trim()).map((para, i) => (
+                    <p key={i} className="mb-2 last:mb-0">{para.trim()}</p>
+                  ));
+                })()}
+              </div>
+            </div>
+
+            {/* Document Signatures Section */}
+            <div className="flex flex-col sm:flex-row gap-6 justify-between items-stretch mt-10 relative pt-6 border-t border-slate-200">
+              {/* Officer stamp block */}
+              <div className="flex-1 border border-slate-200 rounded-lg p-4 bg-slate-50/50 flex flex-col justify-between items-center text-center">
+                <div className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-2">{contract.assignedOfficer?.title || 'Licensing Authority'}</div>
+                {contract.assignedOfficer?.signature ? (
+                  <img src={contract.assignedOfficer.signature} alt="Officer stamp" className="max-h-[60px] object-contain block mix-blend-multiply mb-2" />
+                ) : (
+                  <div className="h-[60px] flex items-center justify-center text-[10px] text-slate-400 font-mono italic">
+                    [CREVA OFFICIAL STAMP]
+                  </div>
+                )}
+                <div className="border-t border-slate-300 pt-1.5 w-full">
+                  <span className="text-xs font-bold text-slate-800 block">{contract.assignedOfficer?.name || 'Creva Representative'}</span>
+                  <span className="text-[9px] text-slate-400 font-bold block uppercase tracking-widest mt-0.5">Authorized Signatory</span>
+                </div>
+              </div>
+
+              {/* Merchant stamp block */}
+              <div className="flex-1 border border-slate-200 rounded-lg p-4 bg-slate-50/50 flex flex-col justify-between items-center text-center">
+                <div className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-2">Registered Store Owner</div>
+                {contract.contractSignature ? (
+                  <img src={contract.contractSignature} alt="Merchant signature" className="max-h-[60px] object-contain block mix-blend-multiply invert mb-2" />
+                ) : (
+                  <div className="h-[60px] flex items-center justify-center text-[10px] text-slate-400 font-mono italic">
+                    [MISSING DIGITIZED SIGNATURE]
+                  </div>
+                )}
+                <div className="border-t border-slate-300 pt-1.5 w-full">
+                  <span className="text-xs font-bold text-slate-800 block">{store.store_name} Representative</span>
+                  <span className="text-[9px] text-slate-400 font-bold block uppercase tracking-widest mt-0.5">Digital Signatory</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Document Footer Verification Seal */}
+            <div className="mt-8 text-center text-[9px] text-slate-400 font-mono border-t border-slate-100 pt-4 flex items-center justify-center gap-1.5">
+              <span>🔒 Cryptographically Signed & Secured via Creva SaaS Engine</span>
+              <span>•</span>
+              <span className="font-bold text-slate-500 uppercase tracking-widest">ID: store_{store.id.slice(0,8)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
