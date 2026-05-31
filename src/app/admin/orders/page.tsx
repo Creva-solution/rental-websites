@@ -87,6 +87,60 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-6">
+      <style>{`
+        @media print {
+          /* Hide all non-printable elements by default */
+          body * {
+            visibility: hidden !important;
+          }
+          /* Only show the print target container and its children */
+          .print-invoice-container,
+          .print-invoice-container * {
+            visibility: visible !important;
+          }
+          /* Position the print target container at the absolute top-left of the viewport */
+          .print-invoice-container {
+            visibility: visible !important;
+            display: block !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            background: white !important;
+            color: black !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          /* Reset page margins and scroll overflows on parent layouts */
+          html, body {
+            background: white !important;
+            color: black !important;
+            height: auto !important;
+            min-height: auto !important;
+            overflow: visible !important;
+          }
+          /* Prevent display: flex or height restrictions from shrinking pages */
+          div, main, section, aside {
+            height: auto !important;
+            min-height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+            display: block !important;
+          }
+          /* Define clean layout specs for printed sheets */
+          .print-invoice-sheet {
+            page-break-after: always !important;
+            break-after: page !important;
+            display: block !important;
+            background: white !important;
+            padding: 2cm !important;
+            box-sizing: border-box !important;
+            border: none !important;
+            box-shadow: none !important;
+            width: 100% !important;
+          }
+        }
+      `}</style>
       <div className="flex justify-between items-center print:hidden">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Orders & Billing</h2>
@@ -236,7 +290,7 @@ export default function OrdersPage() {
             </div>
 
             {/* Printable Invoice Area */}
-            <div ref={invoiceRef} className="p-10 overflow-y-auto print:overflow-visible print:p-8 bg-white text-black">
+            <div ref={invoiceRef} className="p-10 overflow-y-auto print:overflow-visible print:p-8 bg-white text-black print-invoice-container print-invoice-sheet">
               {/* Invoice Header */}
               <div className="flex justify-between items-start border-b border-gray-200 pb-8 mb-8">
                 <div>
@@ -381,11 +435,11 @@ export default function OrdersPage() {
             </div>
 
             {/* Printable Area - renders each invoice page */}
-            <div className="flex-1 overflow-y-auto p-6 bg-muted/10 print:bg-white print:p-0 space-y-8 print:space-y-0 print:overflow-visible">
+            <div className="flex-1 overflow-y-auto p-6 bg-muted/10 print:bg-white print:p-0 space-y-8 print:space-y-0 print:overflow-visible print-invoice-container">
               {bulkPrintOrders.map((order) => (
                 <div 
                   key={order.id} 
-                  className="bg-white text-black p-10 border border-border rounded-xl shadow-sm print:shadow-none print:border-none print:p-8 print:bg-white"
+                  className="bg-white text-black p-10 border border-border rounded-xl shadow-sm print:shadow-none print:border-none print:p-8 print:bg-white print-invoice-sheet"
                   style={{ pageBreakAfter: 'always', breakAfter: 'page' }}
                 >
                   {/* Invoice Header */}
