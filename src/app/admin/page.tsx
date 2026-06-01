@@ -70,6 +70,20 @@ export default function DashboardHome() {
 
   return (
     <div className="space-y-6">
+      {store.is_paused && (
+        <div className="bg-amber-500/10 border border-amber-500/30 text-amber-500 p-5 rounded-xl flex items-start gap-3.5 shadow-sm">
+          <div className="w-9 h-9 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 font-black shrink-0 text-lg">
+            ⚠️
+          </div>
+          <div className="flex-1">
+            <h4 className="text-sm font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">Onboarding Verification Pending</h4>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              Our compliance team is currently reviewing your payment screenshot. Your storefront (<a href={`http://${store.subdomain}.crevasolution.in`} target="_blank" rel="noopener noreferrer" className="font-bold text-primary hover:underline">{store.subdomain}.crevasolution.in</a>) is temporarily paused and will automatically go live as soon as it is approved by the Super Admin!
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-card text-card-foreground p-6 rounded-xl border border-border/50 shadow-sm">
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Total Revenue</h3>

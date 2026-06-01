@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 4c412f03cd452377e6b66fcf1323e676b2c1bf73 oreplates <oreplates@gmail.com> 1780319428 +0530	commit (initial): Initialize backend repository with PHP REST API and PostgreSQL
+4c412f03cd452377e6b66fcf1323e676b2c1bf73 57260a978982384a7255e17212a5e0e0e8879c72 oreplates <oreplates@gmail.com> 1780332085 +0530	commit: Optimize castBooleans helper to use safe array casting
+57260a978982384a7255e17212a5e0e0e8879c72 a92dba1e4312d9bd3803d0b0c99f54ae6e51316b oreplates <oreplates@gmail.com> 1780332474 +0530	commit: Configure Apache .htaccess with Header always set and direct OPTIONS interceptor

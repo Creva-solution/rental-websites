@@ -624,7 +624,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
       if (error) throw error;
 
       const allRows = data || [];
-      const globalSettingsRow = allRows.find(s => s.subdomain === '__creva_saas_global_settings__');
+      const globalSettingsRow = allRows.find((s: any) => s.subdomain === '__creva_saas_global_settings__');
       if (globalSettingsRow && globalSettingsRow.description) {
         try {
           const parsed = JSON.parse(globalSettingsRow.description);
@@ -681,7 +681,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
         }
       }
 
-      setStores(allRows.filter(s => s.subdomain !== '__creva_saas_global_settings__'));
+      setStores(allRows.filter((s: any) => s.subdomain !== '__creva_saas_global_settings__'));
     } catch (err: any) {
       console.error('Error loading stores:', err.message);
     } finally {
@@ -1191,7 +1191,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
         .eq('store_id', storeId);
 
       if (ordersData && ordersData.length > 0) {
-        const orderIds = ordersData.map(o => o.id);
+        const orderIds = ordersData.map((o: any) => o.id);
         
         // Delete order items
         await supabase
