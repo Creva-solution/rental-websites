@@ -279,15 +279,23 @@ export default function BusinessSetupWizard() {
 
         if (errorAlt) throw errorAlt;
         
-        const { data: { publicUrl: url } } = supabase.storage
-          .from('products')
-          .getPublicUrl(filePath);
-        publicUrl = url;
+        if (dataAlt && dataAlt.path && (dataAlt.path.startsWith('http://') || dataAlt.path.startsWith('https://'))) {
+          publicUrl = dataAlt.path;
+        } else {
+          const { data: { publicUrl: url } } = supabase.storage
+            .from('products')
+            .getPublicUrl(filePath);
+          publicUrl = url;
+        }
       } else {
-        const { data: { publicUrl: url } } = supabase.storage
-          .from('assets')
-          .getPublicUrl(filePath);
-        publicUrl = url;
+        if (data && data.path && (data.path.startsWith('http://') || data.path.startsWith('https://'))) {
+          publicUrl = data.path;
+        } else {
+          const { data: { publicUrl: url } } = supabase.storage
+            .from('assets')
+            .getPublicUrl(filePath);
+          publicUrl = url;
+        }
       }
 
       setPaymentScreenshotUrl(publicUrl);

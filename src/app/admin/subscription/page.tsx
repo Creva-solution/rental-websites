@@ -262,12 +262,16 @@ export default function SubscriptionPage() {
         return;
       }
 
-      // If storage succeeded, get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('assets')
-        .getPublicUrl(filePath);
-
-      uploadedUrl = publicUrl;
+      // If storage succeeded, use the returned path if it is an absolute URL, otherwise fall back to getPublicUrl
+      if (storageData && storageData.path && (storageData.path.startsWith('http://') || storageData.path.startsWith('https://'))) {
+        uploadedUrl = storageData.path;
+      } else {
+        const { data: { publicUrl } } = supabase.storage
+          .from('assets')
+          .getPublicUrl(filePath);
+        uploadedUrl = publicUrl;
+      }
+      
       await updateStoreDescriptionWithScreenshot(uploadedUrl);
 
     } catch (err: any) {
