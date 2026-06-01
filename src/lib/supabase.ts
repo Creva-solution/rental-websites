@@ -19,7 +19,9 @@ class MockSupabaseQueryBuilder {
 
   select(fields: string = '*') {
     this.selectFields = fields;
-    this.action = 'select';
+    if (this.action !== 'insert' && this.action !== 'update' && this.action !== 'delete') {
+      this.action = 'select';
+    }
     return this;
   }
 

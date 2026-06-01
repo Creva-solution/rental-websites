@@ -442,7 +442,7 @@ export default function SuperAdminDashboard() {
             store_name: 'Creva SaaS Settings',
             description: JSON.stringify(settingsData)
           })
-          .eq('subdomain', '__creva_saas_global_settings__');
+          .eq('id', existingRow.id);
         if (error) throw error;
       } else {
         const { data: authData } = await supabase.auth.getUser();
