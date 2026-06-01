@@ -6,10 +6,7 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Send standard CORS Headers
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Headers: Authorization, Content-Type, Accept, X-Requested-With');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+// Send standard content-type header (CORS is handled globally by Apache system level)
 header('Content-Type: application/json');
 
 // Handle CORS preflight pre-requests
