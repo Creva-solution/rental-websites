@@ -258,8 +258,8 @@ try {
                 $body['plan_starts_at'] ?? null,
                 $body['plan_ends_at'] ?? null,
                 $body['status'] ?? 'active',
-                isset($body['is_paused']) ? (bool)$body['is_paused'] : true,
-                isset($body['custom_domain_enabled']) ? (bool)$body['custom_domain_enabled'] : false,
+                (isset($body['is_paused']) ? (bool)$body['is_paused'] : true) ? 1 : 0,
+                (isset($body['custom_domain_enabled']) ? (bool)$body['custom_domain_enabled'] : false) ? 1 : 0,
                 $body['subscription_expires_at'] ?? null
             ]);
             
