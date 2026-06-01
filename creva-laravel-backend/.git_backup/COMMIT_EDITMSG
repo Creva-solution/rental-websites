@@ -1,1 +1,1 @@
-Configure global wildcard CORS headers directly at Apache system level in Dockerfile
+Isolate Apache CORS config in separate RUN step to invalidate Docker cache

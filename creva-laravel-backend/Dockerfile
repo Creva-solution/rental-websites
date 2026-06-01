@@ -4,15 +4,17 @@ FROM php:8.2-apache
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     && docker-php-ext-install pdo pdo_pgsql pgsql \
-    && a2enmod rewrite headers \
-    && echo "Header always set Access-Control-Allow-Origin '*'" >> /etc/apache2/apache2.conf \
-    && echo "Header always set Access-Control-Allow-Methods 'GET, POST, PUT, DELETE, OPTIONS'" >> /etc/apache2/apache2.conf \
-    && echo "Header always set Access-Control-Allow-Headers 'Authorization, Content-Type, Accept, X-Requested-With'" >> /etc/apache2/apache2.conf
+    && a2enmod rewrite headers
 
 # Configure Apache DocumentRoot to point to public/
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+
+# Enable system-level CORS in Apache configuration (Separate RUN step to bypass Docker cache)
+RUN echo "Header always set Access-Control-Allow-Origin '*'" >> /etc/apache2/apache2.conf \
+    && echo "Header always set Access-Control-Allow-Methods 'GET, POST, PUT, DELETE, OPTIONS'" >> /etc/apache2/apache2.conf \
+    && echo "Header always set Access-Control-Allow-Headers 'Authorization, Content-Type, Accept, X-Requested-With'" >> /etc/apache2/apache2.conf
 
 # Set working directory
 WORKDIR /var/www/html
