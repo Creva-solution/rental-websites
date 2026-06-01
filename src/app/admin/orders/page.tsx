@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, ReceiptText, CheckCircle, Clock, Printer } from 'lucide-react';
+import { Loader2, ReceiptText, CheckCircle, Clock, Printer, RotateCw } from 'lucide-react';
 
 export default function OrdersPage() {
   const [store, setStore] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Invoice Modal State
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -23,8 +24,12 @@ export default function OrdersPage() {
   }, []);
 
   const fetchOrders = async () => {
+    setRefreshing(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setRefreshing(false);
+      return;
+    }
     
     const { data: storeData } = await supabase.from('stores').select('*').eq('owner_id', user.id).single();
     if (storeData) {
@@ -46,6 +51,7 @@ export default function OrdersPage() {
       if (ordData) setOrders(ordData);
     }
     setLoading(false);
+    setRefreshing(false);
   };
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
@@ -161,6 +167,14 @@ export default function OrdersPage() {
           <h2 className="text-2xl font-bold tracking-tight">Orders & Billing</h2>
           <p className="text-muted-foreground">Manage your WhatsApp orders and generate bills.</p>
         </div>
+        <button
+          onClick={fetchOrders}
+          disabled={refreshing}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground text-xs font-bold rounded-lg border border-border hover:bg-secondary/80 disabled:opacity-50 transition-all shadow-sm"
+        >
+          <RotateCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+          {refreshing ? 'Refreshing...' : 'Refresh Orders'}
+        </button>
       </div>
 
       <div className="bg-card text-card-foreground rounded-xl border border-border shadow-sm flex flex-col print:hidden">
