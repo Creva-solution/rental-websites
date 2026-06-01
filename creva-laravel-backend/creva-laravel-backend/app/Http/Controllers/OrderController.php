@@ -172,4 +172,34 @@ class OrderController extends Controller
         $query->delete();
         return response()->json(['success' => true]);
     }
+
+    public function storeOrderItems(Request $request)
+    {
+        $data = $request->all();
+        
+        // Handle both single object or array of objects
+        if (is_array($data) && isset($data[0]) && is_array($data[0])) {
+            foreach ($data as $item) {
+                DB::table('order_items')->insert([
+                    'order_id' => $item['order_id'],
+                    'product_id' => $item['product_id'],
+                    'quantity' => $item['quantity'],
+                    'price_at_purchase' => $item['price_at_purchase'],
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
+        } else {
+            DB::table('order_items')->insert([
+                'order_id' => $request->input('order_id'),
+                'product_id' => $request->input('product_id'),
+                'quantity' => $request->input('quantity'),
+                'price_at_purchase' => $request->input('price_at_purchase'),
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        }
+
+        return response()->json(['success' => true]);
+    }
 }

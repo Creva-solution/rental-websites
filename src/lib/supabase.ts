@@ -113,7 +113,28 @@ class MockSupabaseQueryBuilder {
           body: JSON.stringify(bodyData)
         });
       } else if (this.action === 'update') {
-        const targetId = this.filters['id'];
+        let targetId = this.filters['id'];
+        if (!targetId) {
+          // Dynamic ID resolution fallback using query filters (e.g. subdomain)
+          try {
+            const params = new URLSearchParams();
+            Object.entries(this.filters).forEach(([key, val]) => {
+              params.append(key, val);
+            });
+            const fetchUrl = `${API_BASE_URL}/${this.tableName}?${params.toString()}`;
+            const fetchRes = await fetch(fetchUrl, { headers });
+            if (fetchRes.ok) {
+              const rows = await fetchRes.json();
+              const singleRow = Array.isArray(rows) ? (rows[0] || null) : rows;
+              if (singleRow && singleRow.id) {
+                targetId = singleRow.id;
+              }
+            }
+          } catch (e) {
+            console.warn("Failed to auto-resolve target ID for update:", e);
+          }
+        }
+
         if (!targetId) {
           throw new Error("Updates must target a specific ID using .eq('id', value)");
         }

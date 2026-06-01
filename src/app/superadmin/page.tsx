@@ -435,7 +435,7 @@ export default function SuperAdminDashboard() {
         .eq('subdomain', '__creva_saas_global_settings__')
         .maybeSingle();
 
-      if (existingRow) {
+      if (existingRow && existingRow.id) {
         const { error } = await supabase
           .from('stores')
           .update({

@@ -55,6 +55,7 @@ Route::put('/orders/{id}', [OrderController::class, 'update']);
 Route::delete('/orders/{id?}', [OrderController::class, 'destroy']);
 
 // Order Items Routes
+Route::post('/order_items', [OrderController::class, 'storeOrderItems']);
 Route::delete('/order_items/{id?}', [OrderController::class, 'destroyOrderItems']);
 
 // Local Storage Uploads
