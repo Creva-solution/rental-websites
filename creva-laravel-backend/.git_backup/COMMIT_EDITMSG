@@ -1,1 +1,1 @@
-Configure Apache .htaccess with Header always set and direct OPTIONS interceptor
+Configure global wildcard CORS headers directly at Apache system level in Dockerfile
