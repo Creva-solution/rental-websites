@@ -52,6 +52,10 @@ export default function SubscriptionPage() {
           if (parsed.brandLogo) localStorage.setItem('saas_brand_logo', parsed.brandLogo);
           if (parsed.officers) localStorage.setItem('saas_licensing_officers', JSON.stringify(parsed.officers));
           if (parsed.agreementTemplate) localStorage.setItem('saas_agreement_template', parsed.agreementTemplate);
+          if (parsed.plan30Price) localStorage.setItem('saas_plan_30_price', parsed.plan30Price);
+          if (parsed.plan365Price) localStorage.setItem('saas_plan_365_price', parsed.plan365Price);
+          if (parsed.planLifetimePrice) localStorage.setItem('saas_plan_lifetime_price', parsed.planLifetimePrice);
+          if (parsed.disabledDefaultPackages) localStorage.setItem('saas_disabled_default_packages', JSON.stringify(parsed.disabledDefaultPackages));
           if (parsed.customPackages) {
             localStorage.setItem('saas_custom_packages', JSON.stringify(parsed.customPackages));
             setCustomPackages(parsed.customPackages);
@@ -92,9 +96,9 @@ export default function SubscriptionPage() {
   const activePlanLabel = expiryDate === null 
     ? 'Lifetime Subscription' 
     : contract?.selectedPlan === '30' 
-      ? '1 Month Plan (₹499/mo)' 
+      ? `1 Month Plan (₹${typeof window !== 'undefined' ? localStorage.getItem('saas_plan_30_price') || '499' : '499'}/mo)` 
       : contract?.selectedPlan === '365'
-        ? '1 Year Plan (₹3,999/yr)'
+        ? `1 Year Plan (₹${typeof window !== 'undefined' ? Number(localStorage.getItem('saas_plan_365_price') || 3999).toLocaleString() : '3,999'}/yr)`
         : (() => {
             const customPkg = (customPackages || []).find((pkg: any) => pkg.id === contract?.selectedPlan);
             return customPkg ? `${customPkg.name} (₹${Number(customPkg.price).toLocaleString()})` : 'SaaS Active Plan';

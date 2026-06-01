@@ -89,6 +89,11 @@ export default function BusinessSetupWizard() {
           if (parsed.brandLogo) localStorage.setItem('saas_brand_logo', parsed.brandLogo);
           if (parsed.officers) localStorage.setItem('saas_licensing_officers', JSON.stringify(parsed.officers));
           if (parsed.agreementTemplate) localStorage.setItem('saas_agreement_template', parsed.agreementTemplate);
+          if (parsed.plan30Price) localStorage.setItem('saas_plan_30_price', parsed.plan30Price);
+          if (parsed.plan365Price) localStorage.setItem('saas_plan_365_price', parsed.plan365Price);
+          if (parsed.planLifetimePrice) localStorage.setItem('saas_plan_lifetime_price', parsed.planLifetimePrice);
+          if (parsed.disabledDefaultPackages) localStorage.setItem('saas_disabled_default_packages', JSON.stringify(parsed.disabledDefaultPackages));
+          if (parsed.customPackages) localStorage.setItem('saas_custom_packages', JSON.stringify(parsed.customPackages));
         }
       } catch (err) {
         console.error("Failed to load global SaaS settings from DB:", err);
@@ -173,7 +178,7 @@ export default function BusinessSetupWizard() {
     if (!ctx) return;
     
     setIsDrawingSig(true);
-    ctx.strokeStyle = '#0f172a';
+    ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
     
@@ -1008,13 +1013,30 @@ export default function BusinessSetupWizard() {
                       <div>
                         <span className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Plan Selected</span>
                         <span className="block text-sm font-bold text-foreground mt-0.5">
-                          {selectedPlan === '30' ? '1 Month Plan' : selectedPlan === '365' ? '1 Year Plan' : 'Lifetime Plan'}
+                          {(() => {
+                            if (selectedPlan === '30') return '1 Month Plan';
+                            if (selectedPlan === '365') return '1 Year Plan';
+                            if (selectedPlan === 'lifetime') return 'Lifetime Plan';
+                            const customPkg = (globalSettings?.customPackages || []).find((pkg: any) => pkg.id === selectedPlan);
+                            return customPkg ? customPkg.name : 'SaaS Plan';
+                          })()}
                         </span>
                       </div>
                       <div className="text-right">
                         <span className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Setup Price</span>
                         <span className="block text-xl font-black text-primary mt-0.5">
-                          {selectedPlan === '30' ? '₹499' : selectedPlan === '365' ? '₹3,999' : '₹9,999'}
+                          {(() => {
+                            if (selectedPlan === '30') {
+                              return `₹${globalSettings?.plan30Price || '499'}`;
+                            } else if (selectedPlan === '365') {
+                              return `₹${Number(globalSettings?.plan365Price || 3999).toLocaleString()}`;
+                            } else if (selectedPlan === 'lifetime') {
+                              return `₹${Number(globalSettings?.planLifetimePrice || 9999).toLocaleString()}`;
+                            } else {
+                              const customPkg = (globalSettings?.customPackages || []).find((pkg: any) => pkg.id === selectedPlan);
+                              return customPkg ? `₹${Number(customPkg.price || 0).toLocaleString()}` : '₹0';
+                            }
+                          })()}
                         </span>
                       </div>
                     </div>
