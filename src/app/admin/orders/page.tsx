@@ -9,6 +9,62 @@ import {
   ShoppingBag, TrendingUp, X, BarChart3
 } from 'lucide-react';
 
+function numberToWords(num: number): string {
+  const a = [
+    '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+    'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
+  ];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+  if (num === 0) return 'Zero';
+
+  function chunk(n: number): string {
+    if (n < 20) return a[n];
+    if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + a[n % 10] : '');
+    return a[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' And ' + chunk(n % 100) : '');
+  }
+
+  let words = '';
+  if (num >= 10000000) {
+    words += chunk(Math.floor(num / 10000000)) + ' Crore ';
+    num %= 10000000;
+  }
+  if (num >= 100000) {
+    words += chunk(Math.floor(num / 100000)) + ' Lakh ';
+    num %= 100000;
+  }
+  if (num >= 1000) {
+    words += chunk(Math.floor(num / 1000)) + ' Thousand ';
+    num %= 1000;
+  }
+  if (num > 0) {
+    words += chunk(num);
+  }
+  return words.trim();
+}
+
+const formatDate = (dateStr: string) => {
+  try {
+    const d = new Date(dateStr);
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June', 
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  } catch (e) {
+    return dateStr;
+  }
+};
+
+const getInvoiceNumber = (orderId: string) => {
+  let seed = 0;
+  for (let i = 0; i < orderId.length; i++) {
+    seed += orderId.charCodeAt(i);
+  }
+  const numericPart = Math.floor(1000000 + (seed * 12345) % 9000000);
+  return `5154-${numericPart}`;
+};
+
 export default function OrdersPage() {
   const [store, setStore] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
@@ -1102,119 +1158,204 @@ export default function OrdersPage() {
 
             {/* Printable Area - renders each invoice page */}
             <div className="flex-1 overflow-y-auto p-6 bg-muted/10 print:bg-white print:p-0 space-y-8 print:space-y-0 print:overflow-visible print-invoice-container">
-              {bulkPrintOrders.map((order) => (
-                <div 
-                  key={order.id} 
-                  className="bg-white text-black p-10 border border-border rounded-xl shadow-sm print:shadow-none print:border-none print:p-8 print:bg-white print-invoice-sheet"
-                  style={{ pageBreakAfter: 'always', breakAfter: 'page' }}
-                >
-                  {/* Invoice Header */}
-                  <div className="flex justify-between items-start border-b border-gray-200 pb-8 mb-8 text-left">
-                    <div>
-                      <div className="mb-4">
-                        <svg width="120" height="110" viewBox="0 0 206 189" fill="none" xmlns="http://www.w3.org/2000/svg" className="select-none">
-                          <rect width="41.0051" height="41.0051" transform="translate(0 86)" fill="#3C77C3"/>
-                          <path d="M11.5973 106.619C11.5973 104.889 11.9876 103.336 12.7681 101.962C13.5486 100.57 14.6091 99.4844 15.9496 98.7039C17.307 97.9234 18.8086 97.5331 20.4545 97.5331C22.3888 97.5331 24.0771 97.9997 25.5194 98.933C26.9616 99.8662 28.0136 101.19 28.6754 102.903H25.9012C25.4091 101.834 24.6964 101.012 23.7632 100.435C22.847 99.8577 21.7441 99.5692 20.4545 99.5692C19.2159 99.5692 18.1045 99.8577 17.1203 100.435C16.1362 101.012 15.3642 101.834 14.8043 102.903C14.2443 103.955 13.9643 105.194 13.9643 106.619C13.9643 108.028 14.2443 109.266 14.8043 110.335C15.3642 111.387 16.1362 112.202 17.1203 112.779C18.1045 113.356 19.2159 113.644 20.4545 113.644C21.7441 113.644 22.847 113.364 23.7632 112.804C24.6964 112.227 25.4091 111.404 25.9012 110.335H28.6754C28.0136 112.032 26.9616 113.347 25.5194 114.28C24.0771 115.197 22.3888 115.655 20.4545 115.655C18.8086 115.655 17.307 115.273 15.9496 114.509C14.6091 113.729 13.5486 112.651 12.7681 111.277C11.9876 109.903 11.5973 108.35 11.5973 106.619Z" fill="white"/>
-                          <rect width="41.0051" height="41.0051" transform="translate(41.0039 98.7246)" fill="#3C77C3"/>
-                          <path d="M64.8074 128.227L60.5824 120.973H57.7827V128.227H55.4666V110.487H61.1932C62.5337 110.487 63.662 110.716 64.5783 111.174C65.5115 111.632 66.2072 112.251 66.6653 113.032C67.1234 113.812 67.3525 114.703 67.3525 115.704C67.3525 116.926 66.9962 118.003 66.2835 118.937C65.5879 119.87 64.5359 120.489 63.1275 120.795L67.5816 128.227H64.8074ZM57.7827 119.115H61.1932C62.4488 119.115 63.3905 118.809 64.0184 118.199C64.6462 117.571 64.9601 116.739 64.9601 115.704C64.9601 114.652 64.6462 113.838 64.0184 113.261C63.4075 112.684 62.4658 112.396 61.1932 112.396H57.7827V119.115Z" fill="white"/>
-                          <rect width="41.0051" height="41.0051" transform="translate(82.0088 86)" fill="#3C77C3"/>
-                          <path d="M99.7876 99.6456V105.576H106.252V107.485H99.7876V113.593H107.016V115.502H97.4715V97.7367H107.016V99.6456H99.7876Z" fill="white"/>
-                          <rect width="41.0051" height="41.0051" transform="translate(123.015 98.7246)" fill="#3C77C3"/>
-                          <path d="M151.137 110.487L144.444 128.227H141.771L135.078 110.487H137.546L143.12 125.783L148.694 110.487H151.137Z" fill="white"/>
-                          <rect width="41.0051" height="41.0051" transform="translate(164.021 86)" fill="#3C77C3"/>
-                          <path d="M187.969 111.557H180.232L178.807 115.502H176.363L182.777 97.864H185.45L191.838 115.502H189.395L187.969 111.557ZM187.308 109.674L184.101 100.715L180.894 109.674H187.308Z" fill="white"/>
-                          <path fill-rule="evenodd" clip-rule="evenodd" d="M151.609 0.266528C150.787 0.443259 149.224 1.0234 148.136 1.5553C143.392 3.87416 140.27 8.63054 139.851 14.1765L139.703 16.1346L134.13 16.2005L128.557 16.2667L127.436 16.888C125.665 17.869 124.797 19.2248 124.416 21.6028C123.447 27.6533 122.677 31.4413 122.315 31.9388C122.095 32.241 121.492 32.7046 120.975 32.9687C120.048 33.4427 119.926 33.4489 111.64 33.4489H103.244L102.721 33.9729C101.97 34.7238 101.988 36.0288 102.759 36.635C103.303 37.0632 103.565 37.0779 110.923 37.0894C116.236 37.098 117.269 46.6991 117.928 47.1008C118.892 47.6888 119.345 48.6621 119.21 49.8581C119.121 50.6467 118.938 50.9804 118.234 51.6371L117.368 52.4454H108.598C98.9653 52.4454 98.8808 52.4559 98.359 53.7161C98.1419 54.2396 98.1419 54.4932 98.359 55.0168C98.8751 56.2631 99.0529 56.2874 107.649 56.2874C114.507 56.2874 115.544 56.3305 116.062 56.6366C116.879 57.119 117.351 58.0044 117.351 59.0524C117.351 60.3138 116.841 61.1584 115.79 61.6357C114.992 61.9975 114.344 62.0415 109.752 62.0457L104.607 62.0504L104.042 62.5738C103.285 63.2754 103.267 64.4209 104.001 65.155C104.524 65.6779 104.534 65.679 108.991 65.679C111.446 65.679 113.767 65.7413 114.147 65.8173C115.132 66.0143 116.209 67.1677 116.386 68.2151C116.692 70.0245 118.977 72.3531 121.074 72.9922C121.743 73.1962 128.318 73.2562 150.008 73.2562C182.384 73.2562 179.408 73.4558 181.737 71.1284C182.845 70.0204 183.119 69.5908 183.497 68.3656C183.744 67.5675 183.945 66.5645 183.943 66.1368C183.942 65.7088 183.602 62.7654 183.188 59.5958C182.383 53.4384 182.226 52.1897 181.708 47.8564C181.525 46.3303 181.16 43.3527 180.896 41.2396L180.416 37.3976L159.822 37.2892L139.229 37.181L159.773 37.1291L180.317 37.0775V36.4604C180.317 36.121 180.082 33.984 179.795 31.7113C179.508 29.4387 179.121 26.1865 178.935 24.4843C178.749 22.7821 178.547 20.9909 178.487 20.504C178.358 19.4712 177.423 17.9619 176.48 17.2644C175.295 16.3886 174.251 16.16 171.432 16.16H168.791L168.788 15.0394C168.781 12.0397 167.431 8.12062 165.521 5.54926C162.458 1.42766 156.581 -0.80368 151.609 0.266528ZM151.374 4.18344C146.936 5.45407 143.946 9.38635 143.476 14.5718L143.332 16.16H154.254H165.175L165.043 14.7192C164.742 11.4104 163.724 8.9601 161.822 6.96675C159.204 4.22143 155.079 3.12284 151.374 4.18344ZM147.393 26.1385C152.823 26.1701 161.707 26.1701 167.137 26.1385C172.567 26.1067 168.124 26.0808 157.265 26.0808C146.406 26.0808 141.964 26.1067 147.393 26.1385ZM177.708 26.6196C178.614 27.172 178.911 27.1713 178.076 26.6187C177.724 26.3854 177.34 26.1944 177.222 26.194C177.105 26.1938 177.323 26.3852 177.708 26.6196ZM159.464 30.1408C158.494 30.8201 158.668 32.7172 159.744 33.2077C161.086 33.8195 162.388 33.0449 162.388 31.6347C162.388 30.1557 160.685 29.2857 159.464 30.1408ZM165.971 30.1113C165.05 30.8116 165.079 32.7339 166.019 33.2372C167.255 33.8984 168.791 33.0319 168.791 31.6731C168.791 30.5894 168.094 29.8187 167.121 29.8272C166.69 29.8308 166.172 29.9587 165.971 30.1113ZM172.282 30.3262C171.065 31.3732 171.831 33.4489 173.434 33.4489C174.272 33.4489 175.408 32.4812 175.408 31.7678C175.408 30.0964 173.547 29.2381 172.282 30.3262ZM128.718 41.2127C128.512 41.3248 128.273 41.521 128.187 41.6484C127.887 42.0911 128.026 43.0565 128.45 43.4808C128.831 43.8614 129.162 43.9077 131.504 43.9077H134.131L136.651 51.645C138.037 55.9007 139.309 59.6031 139.479 59.8728C139.648 60.1424 140.093 60.5503 140.468 60.7791C141.118 61.1757 141.613 61.1951 151.075 61.1951C160.527 61.1951 161.033 61.1753 161.681 60.7804C162.055 60.5522 162.468 60.1646 162.6 59.919C162.731 59.6733 163.638 56.8161 164.616 53.5696C166.127 48.5469 166.36 47.574 166.175 47.0449C165.749 45.8229 165.82 45.8287 151.126 45.8287H137.716L137.143 44.0678C136.417 41.8396 136.112 41.4142 135.031 41.1231C134.007 40.8475 129.263 40.915 128.718 41.2127ZM139.21 50.3644C139.474 51.2156 140.159 53.3231 140.731 55.048C141.648 57.8106 141.834 58.1999 142.301 58.3171C143.258 58.5572 159.81 58.3753 160.139 58.1211C160.304 57.9931 160.792 56.6876 161.223 55.2202C161.654 53.7528 162.236 51.8028 162.517 50.8869C162.798 49.971 163.028 49.1307 163.028 49.0192C163.028 48.8942 158.395 48.8169 150.878 48.8169H138.729L139.21 50.3644ZM142.792 63.7509C142.403 63.9947 141.935 64.5522 141.751 64.99C140.834 67.1739 143.407 69.2887 145.459 68.0375C146.394 67.467 146.66 66.8757 146.54 65.6288C146.408 64.2529 145.727 63.5349 144.43 63.4028C143.736 63.3319 143.318 63.4207 142.792 63.7509ZM156.859 63.8805C155.943 64.651 155.632 65.7863 156.058 66.8051C156.429 67.6951 157.503 68.4518 158.396 68.4529C160.854 68.4563 161.863 65.0297 159.779 63.7588C158.791 63.1567 157.663 63.2036 156.859 63.8805Z" fill="#3C77C3"/>
-                          <path d="M128.644 29.2416L127.363 35.0046H135.474C137.144 34.9122 137.833 35.454 138.783 37.139H180.191L178.91 28.1743C178.621 27.0979 178.04 26.7687 176.562 26.4668H131.952C129.712 26.719 129.042 27.3728 128.644 29.2416Z" fill="black" stroke="white" stroke-width="0.640332"/>
-                          <circle cx="161.194" cy="31.9086" r="2.02772" fill="#D9D9D9"/>
-                          <circle cx="166.744" cy="31.9086" r="2.02772" fill="#D9D9D9"/>
-                          <circle cx="172.292" cy="31.9086" r="2.02772" fill="#D9D9D9"/>
-                          <circle cx="132.779" cy="79.8652" r="6.60545" fill="#D9D9D9"/>
-                          <circle cx="132.78" cy="79.8658" r="3.00248" fill="black"/>
-                          <circle cx="168.209" cy="79.8652" r="6.60545" fill="#D9D9D9"/>
-                          <circle cx="168.209" cy="79.8658" r="3.00248" fill="black"/>
-                          <path d="M69.1792 151.022L62.9284 175H55.8578L52.0322 159.219L48.0699 175H40.9994L34.9194 151.022H41.1702L44.6201 168.476L48.8897 151.022H55.3113L59.4102 168.476L62.8942 151.022H69.1792ZM83.4145 155.701V160.551H91.2366V165.06H83.4145V170.32H92.2613V175H77.5736V151.022H92.2613V155.701H83.4145ZM116.035 162.703C117.424 162.999 118.54 163.694 119.383 164.787C120.225 165.857 120.647 167.087 120.647 168.476C120.647 170.48 119.941 172.074 118.529 173.258C117.14 174.419 115.193 175 112.688 175H101.518V151.022H112.312C114.749 151.022 116.65 151.579 118.016 152.695C119.406 153.811 120.1 155.325 120.1 157.238C120.1 158.65 119.724 159.823 118.973 160.756C118.244 161.69 117.265 162.339 116.035 162.703ZM107.359 160.722H111.185C112.141 160.722 112.87 160.517 113.371 160.107C113.895 159.675 114.157 159.049 114.157 158.229C114.157 157.409 113.895 156.783 113.371 156.35C112.87 155.917 112.141 155.701 111.185 155.701H107.359V160.722ZM111.663 170.286C112.642 170.286 113.394 170.07 113.918 169.637C114.464 169.182 114.737 168.533 114.737 167.69C114.737 166.848 114.453 166.187 113.883 165.709C113.337 165.231 112.574 164.992 111.595 164.992H107.359V170.286H111.663Z" fill="black"/>
-                          <path d="M135.716 170.218H146.032V175H129.09V170.56L139.337 155.804H129.09V151.022H146.032V155.462L135.716 170.218ZM161.529 170.218H171.844V175H154.902V170.56L165.15 155.804H154.902V151.022H171.844V155.462L161.529 170.218Z" fill="#3C77C3"/>
-                          <path d="M13.9434 163.318H34.0181" stroke="#3C77C3" stroke-width="2.50935"/>
-                          <path d="M172.868 163.318H192.943" stroke="#3C77C3" stroke-width="2.50935"/>
-                        </svg>
+              {bulkPrintOrders.map((order) => {
+                const isPaid = order.payment_status?.toLowerCase() === 'paid' || order.status?.toLowerCase() === 'delivered' || order.status?.toLowerCase() === 'completed';
+                const paymentStatus = isPaid ? 'Paid' : 'Unpaid';
+                const dueBalance = isPaid ? '0 INR' : `${Number(order.total_amount).toLocaleString()} INR`;
+
+                return (
+                  <div 
+                    key={order.id} 
+                    className="bg-white text-black p-10 border border-border rounded-xl shadow-sm print:shadow-none print:border-none print:p-8 print:bg-white print-invoice-sheet"
+                    style={{ pageBreakAfter: 'always', breakAfter: 'page' }}
+                  >
+                    {/* Invoice Header */}
+                    <div className="flex justify-between items-start border-b border-gray-200 pb-6 mb-6 text-left">
+                      <div>
+                        <h1 className="text-xl font-bold text-[#e11d48] sm:text-2xl font-sans tracking-tight">
+                          {store.store_name}
+                        </h1>
+                        <p className="text-[10px] font-bold text-gray-800 uppercase tracking-wide mt-1.5 font-sans">
+                          SANKAKIRI SALEM TAMILNADU INDIA 637301
+                        </p>
+                        <p className="text-[10px] text-gray-700 font-medium font-sans mt-0.5">
+                          Phone: {store.contact_phone || '084893 71766'}
+                        </p>
                       </div>
-                      <h1 className="text-2xl font-bold text-gray-900">{store.store_name}</h1>
-                      <p className="text-sm text-gray-500 mt-1">{store.contact_email}</p>
-                      <p className="text-sm text-gray-500">{store.contact_phone}</p>
+                      <div className="text-right font-sans">
+                        <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight mb-2">INVOICE</h2>
+                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Invoice No: <span className="font-mono font-bold text-gray-900 text-xs ml-1">{getInvoiceNumber(order.id)}</span></p>
+                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">Invoice Date: <span className="text-gray-900 text-xs ml-1">{formatDate(order.created_at)}</span></p>
+                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">Payment Status: <span className={`text-xs ml-1 font-black ${isPaid ? 'text-[#0fbd5d]' : 'text-red-500'}`}>{paymentStatus}</span></p>
+                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">Payment Method: <span className="text-gray-900 text-xs ml-1">{order.payment_method || 'Bank Transfer'}</span></p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <h2 className="text-3xl font-light text-gray-300 uppercase tracking-widest mb-4">Invoice</h2>
-                      <p className="text-sm text-gray-500 font-medium">Invoice No:</p>
-                      <p className="font-mono text-sm text-gray-900 mb-2">INV-{order.id.substring(0, 8).toUpperCase()}</p>
-                      <p className="text-sm text-gray-500 font-medium">Date:</p>
-                      <p className="text-sm text-gray-900">{new Date(order.created_at).toLocaleDateString()}</p>
+
+                    {/* BILL TO / SHIP TO Title Band */}
+                    <div className="bg-[#0fbd5d] text-white px-4 py-2 text-[10px] font-black tracking-widest uppercase text-left mb-4 rounded-sm font-sans">
+                      BILL TO / SHIP TO
                     </div>
-                  </div>
 
-                  {/* Customer Info */}
-                  <div className="mb-10">
-                    <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Billed To</p>
-                    <h3 className="text-lg font-bold text-gray-900">{order.customer_name}</h3>
-                    <p className="text-gray-650 font-medium mt-0.5">WhatsApp: {order.customer_phone}</p>
-                    {order.shipping_address && (
-                      <p className="text-gray-600 mt-1 max-w-xs">{order.shipping_address}</p>
-                    )}
-                  </div>
+                    {/* Customer Info Billing / Shipping */}
+                    <div className="flex justify-between text-xs text-left mb-6 font-sans gap-8">
+                      {/* Bill To Column */}
+                      <div className="w-1/2 space-y-1">
+                        <p className="font-bold text-sm text-gray-900">Bill To:</p>
+                        <p className="text-gray-850 font-bold">{order.customer_name}</p>
+                        <p className="text-gray-700 leading-relaxed">{order.shipping_address || 'No address provided'}</p>
+                        <p className="text-gray-700">Pin: {order.shipping_address?.match(/\b\d{6}\b/)?.[0] || '637301'}</p>
+                        <p className="text-gray-700">Phone: {order.customer_phone}</p>
+                        <p className="text-gray-700">Place of Supply: 33 - Tamil Nadu</p>
+                      </div>
 
-                  {/* Order Items */}
-                  <table className="w-full text-left mb-10">
-                    <thead>
-                      <tr className="border-b-2 border-gray-900 text-sm">
-                        <th className="pb-3 font-bold text-gray-900">Description</th>
-                        <th className="pb-3 font-bold text-gray-900 text-center">Qty</th>
-                        <th className="pb-3 font-bold text-gray-900 text-right">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {order.order_items && order.order_items.length > 0 ? (
-                        order.order_items.map((item: any, idx: number) => (
-                          <tr key={idx} className="border-b border-gray-200 text-xs">
-                            <td className="py-4 text-gray-800">
-                              <div className="font-bold">{item.products?.name || 'Unknown Product'}</div>
-                              <div className="text-[10px] text-gray-500 mt-1">{currencySymbol}{Number(item.price_at_purchase).toLocaleString()} per item</div>
-                            </td>
-                            <td className="py-4 text-gray-900 font-medium text-center">{item.quantity}</td>
-                            <td className="py-4 text-gray-900 font-bold text-right">{currencySymbol}{(Number(item.price_at_purchase) * item.quantity).toLocaleString()}</td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr className="border-b border-gray-200 text-xs">
-                          <td className="py-4 text-gray-800">
-                            <div className="font-bold">Total WhatsApp Order</div>
-                            <div className="text-[10px] text-gray-500 mt-1">Order processed via WhatsApp checkout. Itemized list available in chat history.</div>
-                          </td>
-                          <td className="py-4 text-gray-900 font-medium text-center">-</td>
-                          <td className="py-4 text-gray-900 font-bold text-right">{currencySymbol}{Number(order.total_amount).toLocaleString()}</td>
+                      {/* Ship To Column */}
+                      <div className="w-1/2 space-y-1 text-right">
+                        <p className="font-bold text-sm text-gray-900">Ship To:</p>
+                        <p className="text-gray-850 font-bold">{order.customer_name}</p>
+                        <p className="text-gray-700 leading-relaxed ml-auto max-w-[280px]">{order.shipping_address || 'No address provided'}</p>
+                        <p className="text-gray-700">Pin: {order.shipping_address?.match(/\b\d{6}\b/)?.[0] || '637301'}</p>
+                        <p className="text-gray-700">Place of Supply: 33 - Tamil Nadu</p>
+                      </div>
+                    </div>
+
+                    {/* ITEMS Title Band */}
+                    <div className="bg-[#0fbd5d] text-white px-4 py-2 text-[10px] font-black tracking-widest uppercase text-left mb-4 rounded-sm font-sans">
+                      Items ({order.order_items?.length || 1})
+                    </div>
+
+                    {/* Order Items Table */}
+                    <table className="w-full border-collapse border border-black mb-6 text-xs text-left font-sans">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-black text-center font-bold">
+                          <th className="border border-black px-4 py-2 text-left font-bold text-gray-900 w-1/2">Items</th>
+                          <th className="border border-black px-4 py-2 font-bold text-gray-900 w-[15%]">Quantity</th>
+                          <th className="border border-black px-4 py-2 font-bold text-gray-900 w-[18%]">Price per Unit</th>
+                          <th className="border border-black px-4 py-2 font-bold text-gray-900 w-[17%]">Amount</th>
                         </tr>
-                      )}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {order.order_items && order.order_items.length > 0 ? (
+                          order.order_items.map((item: any, idx: number) => (
+                            <tr key={idx} className="text-center font-medium">
+                              <td className="border border-black px-4 py-2.5 text-left text-gray-800 uppercase font-bold">
+                                {item.products?.name || 'Unknown Item'}
+                              </td>
+                              <td className="border border-black px-4 py-2.5 text-gray-900">
+                                {item.quantity} piece
+                              </td>
+                              <td className="border border-black px-4 py-2.5 text-gray-900">
+                                {Number(item.price_at_purchase).toLocaleString()} INR
+                              </td>
+                              <td className="border border-black px-4 py-2.5 text-gray-900 font-bold">
+                                {(Number(item.price_at_purchase) * item.quantity).toLocaleString()} INR
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr className="text-center font-medium">
+                            <td className="border border-black px-4 py-2.5 text-left text-gray-800 uppercase font-bold">
+                              Total WhatsApp Order
+                            </td>
+                            <td className="border border-black px-4 py-2.5 text-gray-900">
+                              1 piece
+                            </td>
+                            <td className="border border-black px-4 py-2.5 text-gray-900">
+                              {Number(order.total_amount).toLocaleString()} INR
+                            </td>
+                            <td className="border border-black px-4 py-2.5 text-gray-900 font-bold">
+                              {Number(order.total_amount).toLocaleString()} INR
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
 
-                  {/* Total Calculation */}
-                  <div className="flex justify-end">
-                    <div className="w-1/2">
-                      <div className="flex justify-between py-2 border-b border-gray-200 text-sm">
-                        <span className="text-gray-500 font-medium">Subtotal</span>
-                        <span className="font-bold text-gray-950">{currencySymbol}{Number(order.total_amount).toLocaleString()}</span>
+                    {/* Total Calculations, Note, Terms, and Bank Details */}
+                    <div className="flex justify-between items-start text-xs font-sans gap-8 text-left">
+                      {/* Left Column: Bank details, Note, Terms, Words */}
+                      <div className="w-[60%] space-y-4">
+                        <div className="space-y-0.5 text-gray-850">
+                          <h4 className="font-bold text-gray-900 text-sm mb-1 uppercase tracking-wide">Bank Details</h4>
+                          <p><span className="font-normal text-gray-500">Account Number:</span> <span className="font-bold">8489371766</span></p>
+                          <p><span className="font-normal text-gray-500">IFSC Code:</span> <span className="font-bold">AIRP0000001</span></p>
+                          <p><span className="font-normal text-gray-500">Beneficiary Name:</span> <span className="font-bold">Mani Kuppusamy</span></p>
+                          <p><span className="font-normal text-gray-500">Bank Name:</span> <span className="font-bold">Airtel payment bank</span></p>
+                          <p><span className="font-normal text-gray-500">Branch Name:</span> <span className="font-bold">Tamilnadu</span></p>
+                          <p><span className="font-normal text-gray-500">Account Type:</span> <span className="font-bold">Savings account</span></p>
+                        </div>
+
+                        <div className="space-y-0.5 text-gray-850">
+                          <h4 className="font-bold text-gray-900 text-sm mb-1 uppercase tracking-wide">UPI ID</h4>
+                          <p className="font-bold font-mono bg-gray-50 border border-dashed border-gray-300 px-2.5 py-1 rounded w-fit text-gray-900">7871775584@okbizaxis</p>
+                        </div>
+
+                        <div>
+                          <h4 className="font-bold text-gray-900 text-sm mb-1 uppercase tracking-wide">Notes:</h4>
+                          <p className="text-gray-700 font-medium">1. No return deal</p>
+                        </div>
+
+                        <div>
+                          <h4 className="font-bold text-gray-900 text-sm mb-1 uppercase tracking-wide">Terms & Conditions:</h4>
+                          <ol className="list-decimal pl-4 text-gray-700 space-y-0.5 font-medium">
+                            <li>Customer will pay the GST</li>
+                            <li>Customer will pay the Delivery charges</li>
+                            <li>Pay due amount within 15 days</li>
+                          </ol>
+                        </div>
+
+                        <div>
+                          <h4 className="font-bold text-gray-900 text-sm mb-1 uppercase tracking-wide">Amount in Words:</h4>
+                          <p className="text-gray-800 font-bold capitalize italic">{numberToWords(Number(order.total_amount))} INR</p>
+                        </div>
                       </div>
-                      <div className="flex justify-between py-4 text-lg font-bold">
-                        <span className="text-gray-900">Total Due</span>
-                        <span style={{ color: store.primary_color || '#3C77C3' }}>{currencySymbol}{Number(order.total_amount).toLocaleString()}</span>
+
+                      {/* Right Column: Pricing Subtotals and Totals */}
+                      <div className="w-[40%] space-y-1.5 pt-2 text-right">
+                        <div className="flex justify-between py-1 border-b border-gray-100">
+                          <span className="text-gray-500 font-medium">Subtotal:</span>
+                          <span className="font-bold text-gray-900">{Number(order.total_amount).toLocaleString()} INR</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-gray-100">
+                          <span className="text-gray-500 font-medium">Delivery Charges:</span>
+                          <span className="font-bold text-gray-900">0 INR</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-gray-100">
+                          <span className="text-gray-500 font-medium">COD Charges:</span>
+                          <span className="font-bold text-gray-900">0 INR</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-gray-100">
+                          <span className="text-gray-500 font-medium">Discount:</span>
+                          <span className="font-bold text-gray-900">- 0.00 INR</span>
+                        </div>
+                        <div className="flex justify-between py-2 border-y border-gray-300 font-bold text-sm">
+                          <span className="text-gray-950">Total Amount:</span>
+                          <span className="text-gray-950">{Number(order.total_amount).toLocaleString()} INR</span>
+                        </div>
+                        <div className="flex justify-between py-2 font-bold text-sm">
+                          <span className="text-gray-950">Due Balance:</span>
+                          <span className="text-red-600 font-black">{dueBalance}</span>
+                        </div>
                       </div>
                     </div>
+
+                    {/* Signature Area */}
+                    <div className="flex justify-between items-end mt-16 pt-8 text-xs font-sans">
+                      <div className="text-left border-t border-black pt-2 w-[180px]">
+                        <p className="text-center font-bold text-gray-700">Customer Signature</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Authorised Signatory For</p>
+                        <p className="font-black text-gray-900 mt-1">{store.store_name}</p>
+                      </div>
+                    </div>
+
+                    {/* Store Subdomain URL at bottom */}
+                    <div className="text-center mt-12 text-[10px] text-gray-400 font-medium font-sans">
+                      https://{store.subdomain || 'admire-hand-made-soaps'}.crevasolution.in
+                    </div>
                   </div>
-                  
-                  <div className="mt-16 pt-8 border-t border-gray-200 text-center text-xs text-gray-400 font-medium">
-                    <p>Thank you for shopping with {store.store_name}!</p>
-                    <p className="mt-1 font-mono text-[9px]">Verified Creva Websz Billing Invoice</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
