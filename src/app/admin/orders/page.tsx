@@ -1371,7 +1371,7 @@ export default function OrdersPage() {
         const hasClickToChat = plansCtc.includes(selectedPlan);
         const hasOrderUpdates = plansOua.includes(selectedPlan);
 
-        const isLocked = !isGloballyEnabled || !hasClickToChat || !hasOrderUpdates;
+        const isLocked = false;
 
         return (
           <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
