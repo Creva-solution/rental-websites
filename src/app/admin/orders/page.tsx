@@ -18,8 +18,18 @@ export default function OrdersPage() {
   const [bulkPrintOrders, setBulkPrintOrders] = useState<any[]>([]);
   
   const invoiceRef = useRef<HTMLDivElement>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const filterStatus = params.get('status');
+      if (filterStatus === 'completed') {
+        setStatusFilter('completed');
+      } else {
+        setStatusFilter('all');
+      }
+    }
     fetchOrders();
   }, []);
 
@@ -93,6 +103,11 @@ export default function OrdersPage() {
   };
 
   if (loading && !store) return <div className="flex justify-center p-10"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+
+  const filteredOrders = orders.filter(order => {
+    if (statusFilter === 'all') return true;
+    return (order.status || 'pending') === statusFilter;
+  });
 
   const currencySymbol = store?.currency === 'USD' ? '$' : '₹';
 
@@ -182,6 +197,23 @@ export default function OrdersPage() {
         </button>
       </div>
 
+      {/* Status Filter Tabs */}
+      <div className="flex gap-2 border-b border-border pb-px print:hidden">
+        {['all', 'pending', 'processing', 'completed', 'cancelled'].map((status) => (
+          <button
+            key={status}
+            onClick={() => setStatusFilter(status)}
+            className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all ${
+              statusFilter === status 
+                ? 'border-primary text-primary font-black' 
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {status === 'all' ? 'All Orders' : status === 'completed' ? 'Shipped / Completed' : status}
+          </button>
+        ))}
+      </div>
+
       <div className="bg-card text-card-foreground rounded-xl border border-border shadow-sm flex flex-col print:hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
@@ -213,18 +245,17 @@ export default function OrdersPage() {
             <tbody className="divide-y divide-border">
               {loading ? (
                 <tr><td colSpan={8} className="px-6 py-12 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" /></td></tr>
-              ) : orders.length === 0 ? (
+              ) : filteredOrders.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <ReceiptText className="w-12 h-12 mb-3 opacity-20" />
-                      <p>No orders yet.</p>
-                      <p className="text-sm">When customers checkout via WhatsApp, orders will appear here.</p>
+                      <p>No {statusFilter === 'all' ? '' : statusFilter} orders found.</p>
                     </div>
                   </td>
                 </tr>
               ) : (
-                orders.map((order) => (
+                filteredOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-6 py-4 w-12 text-center">
                       <input 

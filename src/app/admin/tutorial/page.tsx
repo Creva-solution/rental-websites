@@ -1,14 +1,62 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 import { 
   PlayCircle, BookOpen, Package, Palette, Globe, ShoppingBag, 
-  ChevronRight, Sparkles, CheckCircle2, ArrowRight
+  ChevronRight, Sparkles, CheckCircle2, ArrowRight, Phone
 } from 'lucide-react';
+
+const getYouTubeEmbedUrl = (url: string) => {
+  if (!url) return 'https://www.youtube.com/embed/7V2eS8W1cCc';
+  if (url.includes('youtube.com/embed/')) return url;
+  
+  // Handle shorts e.g. youtube.com/shorts/ID
+  const shortsMatch = url.match(/youtube\.com\/shorts\/([^/?#]+)/);
+  if (shortsMatch && shortsMatch[1]) {
+    return `https://www.youtube.com/embed/${shortsMatch[1]}`;
+  }
+  
+  // Handle watch?v=ID
+  const watchMatch = url.match(/[?&]v=([^&#]+)/);
+  if (watchMatch && watchMatch[1]) {
+    return `https://www.youtube.com/embed/${watchMatch[1]}`;
+  }
+  
+  // Handle youtu.be/ID
+  const beMatch = url.match(/youtu\.be\/([^/?#]+)/);
+  if (beMatch && beMatch[1]) {
+    return `https://www.youtube.com/embed/${beMatch[1]}`;
+  }
+  
+  return url;
+};
 
 export default function TutorialsPage() {
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
+  const [videoUrl, setVideoUrl] = useState('https://www.youtube.com/embed/7V2eS8W1cCc');
+
+  useEffect(() => {
+    const fetchGlobalSettings = async () => {
+      try {
+        const { data } = await supabase
+          .from('stores')
+          .select('description')
+          .eq('subdomain', '__creva_saas_global_settings__')
+          .maybeSingle();
+        if (data && data.description) {
+          const parsed = JSON.parse(data.description);
+          if (parsed.onboardVideoUrl) {
+            setVideoUrl(getYouTubeEmbedUrl(parsed.onboardVideoUrl));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load global SaaS onboarding video:", err);
+      }
+    };
+    fetchGlobalSettings();
+  }, []);
 
   const toggleStep = (stepId: string) => {
     if (completedSteps.includes(stepId)) {
@@ -94,7 +142,7 @@ export default function TutorialsPage() {
             <div className="relative w-full aspect-video bg-black shadow-inner">
               <iframe 
                 className="absolute inset-0 w-full h-full border-none"
-                src="https://www.youtube.com/embed/7V2eS8W1cCc"
+                src={videoUrl}
                 title="Creva Merchant Storefront Setup Tutorial Guide"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                 allowFullScreen
@@ -202,6 +250,35 @@ export default function TutorialsPage() {
                   🎉 Ready to Launch!
                 </p>
               )}
+            </div>
+
+            {/* High-Fidelity DNS Support Quick-Action Buttons */}
+            <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl space-y-3.5 text-left shadow-sm mt-4">
+              <div>
+                <h5 className="text-[10px] font-black text-emerald-950 uppercase tracking-widest flex items-center gap-1.5">
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping shrink-0" />
+                  Stuck with custom DNS?
+                </h5>
+                <p className="text-[10px] text-emerald-800 leading-relaxed mt-1">
+                  Our dedicated DNS setup team will link your custom GoDaddy or Namecheap domain for you. Contact us!
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <a 
+                  href="tel:+919876543210" 
+                  className="inline-flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-800 bg-white hover:bg-slate-50 border border-slate-200 py-2 rounded-lg transition-all shadow-sm hover:scale-[1.02] w-full"
+                >
+                  Call DNS Support
+                </a>
+                <a 
+                  href="https://wa.me/919876543210?text=Hi%20Creva%20Support!%20I%20need%20help%20setting%20up%20my%20custom%20domain%20DNS%20records." 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="inline-flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-white bg-emerald-600 hover:bg-emerald-700 py-2 rounded-lg transition-all shadow-md hover:scale-[1.02] w-full"
+                >
+                  WhatsApp DNS Desk
+                </a>
+              </div>
             </div>
           </div>
         </div>

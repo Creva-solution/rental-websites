@@ -5,7 +5,8 @@ import { supabase } from '@/lib/supabase';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  LayoutDashboard, Package, ShoppingCart, Settings, Palette, ExternalLink, Loader2, AlertCircle, CreditCard, Menu, X, PlayCircle
+  LayoutDashboard, Package, ShoppingCart, Settings, Palette, ExternalLink, Loader2, AlertCircle, CreditCard, Menu, X, PlayCircle,
+  Truck, Users, FolderTree, Video, FileText, Layout, BarChart3, Tag, HelpCircle, LogOut
 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -70,22 +71,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/login');
-        return;
-      }
-      setUser(user);
-      
-      const { data: storeData } = await supabase
-        .from('stores')
-        .select('*')
-        .eq('owner_id', user.id)
-        .neq('subdomain', '__creva_saas_global_settings__')
-        .single();
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          router.push('/login');
+          return;
+        }
+        setUser(user);
         
-      setStore(storeData);
-      setLoading(false);
+        const { data: storeData } = await supabase
+          .from('stores')
+          .select('*')
+          .eq('owner_id', user.id)
+          .neq('subdomain', '__creva_saas_global_settings__')
+          .maybeSingle();
+          
+        setStore(storeData || null);
+      } catch (err) {
+        console.error("Auth check failed:", err);
+      } finally {
+        setLoading(false);
+      }
     };
     checkUser();
   }, [router]);
@@ -273,24 +279,51 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link href="/admin" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
             <LayoutDashboard className="w-[18px] h-[18px]" /> Dashboard
           </Link>
+          <Link href="/admin/orders" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/orders' && !window.location.search.includes('status=completed') ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <ShoppingCart className="w-[18px] h-[18px]" /> Orders
+          </Link>
+          <Link href="/admin/orders?status=completed" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/orders' && window.location.search.includes('status=completed') ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <Truck className="w-[18px] h-[18px]" /> Shipped Orders
+          </Link>
+          <Link href="/admin/customers" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/customers' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <Users className="w-[18px] h-[18px]" /> Customers
+          </Link>
           <Link href="/admin/products" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/products' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
             <Package className="w-[18px] h-[18px]" /> Products
           </Link>
-          <Link href="/admin/orders" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/orders' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
-            <ShoppingCart className="w-[18px] h-[18px]" /> Orders
+          <Link href="/admin/categories" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/categories' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <FolderTree className="w-[18px] h-[18px]" /> Product Categories
+          </Link>
+          <Link href="/admin/video-commerce" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/video-commerce' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <Video className="w-[18px] h-[18px]" /> Video Commerce
           </Link>
           <Link href="/admin/appearance" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/appearance' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
-            <Palette className="w-[18px] h-[18px]" /> Appearance
+            <Palette className="w-[18px] h-[18px]" /> Banners & Style
+          </Link>
+          <Link href="/admin/blog" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/blog' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <FileText className="w-[18px] h-[18px]" /> Blog
+          </Link>
+          <Link href="/admin/pages" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/pages' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <Layout className="w-[18px] h-[18px]" /> Pages
+          </Link>
+          <Link href="/admin/reports" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/reports' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <BarChart3 className="w-[18px] h-[18px]" /> Reports
+          </Link>
+          <Link href="/admin/discounts" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/discounts' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <Tag className="w-[18px] h-[18px]" /> Discounts
+          </Link>
+          <Link href="/admin/subscription" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/subscription' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <CreditCard className="w-[18px] h-[18px]" /> Upgrade Plan
           </Link>
           <Link href="/admin/settings" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/settings' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
             <Settings className="w-[18px] h-[18px]" /> Settings
           </Link>
-          <Link href="/admin/subscription" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/subscription' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
-            <CreditCard className="w-[18px] h-[18px]" /> Subscription
-          </Link>
           <Link href="/admin/tutorial" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/tutorial' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
             <PlayCircle className="w-[18px] h-[18px] text-amber-500" /> Tutorial Video
           </Link>
+          <a href="https://wa.me/919876543210?text=Hi%20Creva%20Support!%20I%20need%20assistance%2520with%2520my%2520merchant%2520storefront." target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm text-emerald-600 hover:bg-emerald-50/50 transition-colors">
+            <HelpCircle className="w-[18px] h-[18px]" /> Support Help
+          </a>
         </nav>
         <div className="p-4 border-t border-border bg-muted/20">
           <div className="flex items-center gap-3 min-w-0">
@@ -341,24 +374,51 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link href="/admin" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
             <LayoutDashboard className="w-[18px] h-[18px]" /> Dashboard
           </Link>
+          <Link href="/admin/orders" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/orders' && !window.location.search.includes('status=completed') ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <ShoppingCart className="w-[18px] h-[18px]" /> Orders
+          </Link>
+          <Link href="/admin/orders?status=completed" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/orders' && window.location.search.includes('status=completed') ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <Truck className="w-[18px] h-[18px]" /> Shipped Orders
+          </Link>
+          <Link href="/admin/customers" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/customers' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <Users className="w-[18px] h-[18px]" /> Customers
+          </Link>
           <Link href="/admin/products" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/products' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
             <Package className="w-[18px] h-[18px]" /> Products
           </Link>
-          <Link href="/admin/orders" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/orders' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
-            <ShoppingCart className="w-[18px] h-[18px]" /> Orders
+          <Link href="/admin/categories" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/categories' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <FolderTree className="w-[18px] h-[18px]" /> Product Categories
+          </Link>
+          <Link href="/admin/video-commerce" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/video-commerce' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <Video className="w-[18px] h-[18px]" /> Video Commerce
           </Link>
           <Link href="/admin/appearance" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/appearance' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
-            <Palette className="w-[18px] h-[18px]" /> Appearance
+            <Palette className="w-[18px] h-[18px]" /> Banners & Style
+          </Link>
+          <Link href="/admin/blog" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/blog' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <FileText className="w-[18px] h-[18px]" /> Blog
+          </Link>
+          <Link href="/admin/pages" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/pages' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <Layout className="w-[18px] h-[18px]" /> Pages
+          </Link>
+          <Link href="/admin/reports" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/reports' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <BarChart3 className="w-[18px] h-[18px]" /> Reports
+          </Link>
+          <Link href="/admin/discounts" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/discounts' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <Tag className="w-[18px] h-[18px]" /> Discounts
+          </Link>
+          <Link href="/admin/subscription" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/subscription' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <CreditCard className="w-[18px] h-[18px]" /> Upgrade Plan
           </Link>
           <Link href="/admin/settings" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/settings' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
             <Settings className="w-[18px] h-[18px]" /> Settings
           </Link>
-          <Link href="/admin/subscription" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/subscription' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
-            <CreditCard className="w-[18px] h-[18px]" /> Subscription
-          </Link>
           <Link href="/admin/tutorial" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/tutorial' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
             <PlayCircle className="w-[18px] h-[18px] text-amber-500" /> Tutorial Video
           </Link>
+          <a href="https://wa.me/919876543210?text=Hi%20Creva%20Support!%20I%20need%20assistance%2520with%2520my%2520merchant%2520storefront." target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm text-emerald-600 hover:bg-emerald-50/50 transition-colors">
+            <HelpCircle className="w-[18px] h-[18px]" /> Support Help
+          </a>
         </nav>
         <div className="p-4 border-t border-border">
           <div className="flex items-center justify-between">

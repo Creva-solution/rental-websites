@@ -15,7 +15,7 @@ export default function AppearancePage() {
     primary_color: '#3B82F6',
   });
 
-  const [selectedTemplate, setSelectedTemplate] = useState<'minimal' | 'artisan' | 'bold' | 'luxe' | 'retro'>('minimal');
+  const [selectedTemplate, setSelectedTemplate] = useState<'minimal' | 'artisan' | 'bold' | 'luxe' | 'retro' | 'admire'>('minimal');
 
   const [logoUrl, setLogoUrl] = useState('');
   const [description, setDescription] = useState('');
@@ -462,7 +462,7 @@ export default function AppearancePage() {
           <p className="text-xs text-muted-foreground mt-1">Select one of our five hand-crafted visual systems to instantly change the structure, colors, and layout of your customer storefront.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
           {[
             { 
               id: 'minimal', 
@@ -498,6 +498,13 @@ export default function AppearancePage() {
               desc: 'Space-grotesk flat shadow neon creative system. Bold grids, light pastel lavender colors, pop art elements, chunky buttons.',
               previewColor: '#8B5CF6',
               label: 'Template 5'
+            },
+            { 
+              id: 'admire', 
+              name: 'Admire Organic Essence', 
+              desc: 'Branded warm orange (#f2852a) and deep navy (#04113f) contrast. Soap-bar rounded contours, warm cream backgrounds, and premium aesthetics.',
+              previewColor: '#f2852a',
+              label: 'Template 6'
             }
           ].map((tpl) => (
             <button
@@ -737,6 +744,30 @@ export default function AppearancePage() {
               className="text-xs px-3 py-1.5 border border-border rounded hover:bg-muted font-medium transition-colors bg-background shadow-sm"
             >
               👗 Premium Fashion Presets
+            </button>
+            <button 
+              type="button"
+              onClick={() => {
+                setBanners([
+                  {
+                    id: 1,
+                    image: 'https://images.unsplash.com/photo-1607006342411-91f11f6d021c?auto=format&fit=crop&q=80&w=1920',
+                    title: 'Crafted by Hand, Perfected by Nature',
+                    subtitle: 'Indulge in our exquisite collection of cold-processed artisan organic soap bars.',
+                    cta: 'Browse Soaps'
+                  },
+                  {
+                    id: 2,
+                    image: 'https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&q=80&w=1920',
+                    title: 'Organic Essence for Radiant Skin',
+                    subtitle: 'Enriched with high-grade pure essential oils and nourishing botanicals.',
+                    cta: 'Shop Essentials'
+                  }
+                ]);
+              }}
+              className="text-xs px-3 py-1.5 border border-border rounded hover:bg-muted font-medium transition-colors bg-background shadow-sm"
+            >
+              🧼 Admire Handmade Soaps Presets
             </button>
           </div>
         </div>

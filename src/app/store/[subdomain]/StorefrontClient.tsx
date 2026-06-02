@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { 
   ShoppingCart, Menu, Search, X, Loader2, User, ChevronLeft, ChevronRight, 
   Truck, Shield, RefreshCw, ArrowRight, Heart, Star, Check, Eye, ArrowUpDown, 
-  Sparkles, Package, ShoppingBag, EyeOff, Clock, Instagram, Facebook, Twitter, Youtube, Linkedin
+  Sparkles, Package, ShoppingBag, EyeOff, Calendar, Clock, Instagram, Facebook, Twitter, Youtube, Linkedin
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -128,6 +128,31 @@ const renderBenefitIcon = (iconName: string) => {
   }
 };
 
+const getYouTubeEmbedUrl = (url: string) => {
+  if (!url) return '';
+  if (url.includes('youtube.com/embed/')) return url;
+  
+  // Handle shorts e.g. youtube.com/shorts/ID
+  const shortsMatch = url.match(/youtube\.com\/shorts\/([^/?#]+)/);
+  if (shortsMatch && shortsMatch[1]) {
+    return `https://www.youtube.com/embed/${shortsMatch[1]}`;
+  }
+  
+  // Handle watch?v=ID
+  const watchMatch = url.match(/[?&]v=([^&#]+)/);
+  if (watchMatch && watchMatch[1]) {
+    return `https://www.youtube.com/embed/${watchMatch[1]}`;
+  }
+  
+  // Handle youtu.be/ID
+  const beMatch = url.match(/youtu\.be\/([^/?#]+)/);
+  if (beMatch && beMatch[1]) {
+    return `https://www.youtube.com/embed/${beMatch[1]}`;
+  }
+  
+  return url;
+};
+
 export default function StorefrontClient({ store, products }: { store: any, products: any[] }) {
   const primaryColor = useMemo(() => {
     const raw = store.primary_color || '#3B82F6';
@@ -203,7 +228,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   let announcementText = `✨ EXCLUSIVE SPRING SALE: FREE SHIPPING ON ALL ORDERS OVER ${currencySymbol}500 ✨`;
   let socialLinks = { instagram: '', facebook: '', twitter: '', youtube: '', linkedin: '' };
   let flashAd: any = null;
-  let selectedTemplate: 'minimal' | 'artisan' | 'bold' | 'luxe' | 'retro' = 'minimal';
+  let selectedTemplate: 'minimal' | 'artisan' | 'bold' | 'luxe' | 'retro' | 'admire' = 'minimal';
   let benefits = {
     enabled: true,
     items: [
@@ -224,6 +249,11 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       }
     ]
   };
+
+  let activeCoupons: any[] = [];
+  let blogArticles: any[] = [];
+  let customPages: any[] = [];
+  let videoReels: any[] = [];
 
   try {
     if (store.description && store.description.startsWith('{')) {
@@ -254,6 +284,12 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           items: data.benefits.items || benefits.items
         };
       }
+
+      // Extract competitor features
+      activeCoupons = data.discounts || data.coupons || [];
+      blogArticles = data.articles || data.blogPosts || data.blog || [];
+      customPages = data.pages || data.staticPages || [];
+      videoReels = data.videoCommerce || data.reels || data.videos || [];
     }
   } catch (e) {
     console.error("Failed to parse store metadata:", e);
@@ -294,6 +330,15 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   const [showAdPopup, setShowAdPopup] = useState(false);
   const [artisanHeroError, setArtisanHeroError] = useState(false);
   const [luxeHeroError, setLuxeHeroError] = useState(false);
+
+  // Active Coupon & Discount Codes States
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [couponError, setCouponError] = useState('');
+
+  // Blog & Pages Overlay States
+  const [selectedArticle, setSelectedArticle] = useState<any>(null);
+  const [selectedPage, setSelectedPage] = useState<any>(null);
 
   // Automatically trigger the Flash Advertisement Pop-up Modal on load EXACTLY ONCE per session
   useEffect(() => {
@@ -648,6 +693,66 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   const totalAmount = cart.reduce((sum, item) => sum + (Number(item.product.price) * item.quantity), 0);
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
+  const discountAmount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    
+    const value = Number(appliedCoupon.value || 0);
+    const minLimit = Number(appliedCoupon.minPurchase || appliedCoupon.min_purchase || 0);
+    
+    // Re-validate threshold in case items were removed
+    if (totalAmount < minLimit) {
+      return 0;
+    }
+    
+    if (appliedCoupon.type === 'percentage') {
+      return Math.round((totalAmount * value) / 100);
+    } else {
+      // Fixed discount
+      return Math.min(value, totalAmount);
+    }
+  }, [appliedCoupon, totalAmount]);
+
+  const finalTotalAmount = Math.max(0, totalAmount - discountAmount);
+
+  const handleApplyCoupon = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCouponError('');
+    
+    if (!couponInput.trim()) {
+      setCouponError('Please enter a valid coupon code.');
+      return;
+    }
+    
+    const cleanCode = couponInput.trim().toUpperCase();
+    
+    // Find the coupon in our list
+    const found = activeCoupons.find(c => c.code.trim().toUpperCase() === cleanCode);
+    
+    if (!found) {
+      setCouponError('Invalid coupon code. Please try another one.');
+      setAppliedCoupon(null);
+      return;
+    }
+    
+    // Check minimum purchase limit
+    const minLimit = Number(found.minPurchase || found.min_purchase || 0);
+    if (totalAmount < minLimit) {
+      setCouponError(`This coupon requires a minimum purchase of ${currencySymbol}${minLimit.toLocaleString()}.`);
+      setAppliedCoupon(null);
+      return;
+    }
+    
+    // Applied successfully!
+    setAppliedCoupon(found);
+    setCouponError('');
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput('');
+    setCouponError('');
+  };
+
   // Live Order Tracking Search from Supabase
   const handleTrackOrders = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -715,7 +820,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         customer_email: customerPhone + '@whatsapp.com',
         customer_phone: customerPhone,
         shipping_address: customerAddress,
-        total_amount: totalAmount,
+        total_amount: finalTotalAmount,
         status: 'pending'
       }]).select().single();
       
@@ -748,7 +853,14 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         message += `${item.quantity}x ${item.product.name}${sizeInfo}${colorInfo} - ${currencySymbol}${Number(item.product.price) * item.quantity}\n`;
       });
       
-      message += `\n*Total Amount: ${currencySymbol}${totalAmount}*\n\n`;
+      if (appliedCoupon) {
+        message += `\nSubtotal: ${currencySymbol}${totalAmount}\n`;
+        message += `Discount Code: ${appliedCoupon.code} (-${appliedCoupon.type === 'percentage' ? `${appliedCoupon.value}%` : `${currencySymbol}${appliedCoupon.value}`})\n`;
+        message += `Discount Amount: -${currencySymbol}${discountAmount}\n`;
+        message += `*Total Amount: ${currencySymbol}${finalTotalAmount}*\n\n`;
+      } else {
+        message += `\n*Total Amount: ${currencySymbol}${totalAmount}*\n\n`;
+      }
       message += `Please confirm my order.`;
 
       const encodedMessage = encodeURIComponent(message);
@@ -1119,6 +1231,108 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           </header>
         );
 
+      case 'admire':
+        return (
+          <header className="header-theme sticky top-0 z-40 bg-white border-b border-orange-100/40 shadow-sm transition-all duration-300">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+              {/* Left: Mobile Menu Trigger & Desktop Navigation */}
+              <div className="flex items-center gap-6">
+                <button 
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  className="p-2 -ml-2 text-[#04113f] hover:bg-orange-50 rounded-full transition-all md:hidden"
+                >
+                  <Menu className="w-6 h-6" />
+                </button>
+                
+                {/* Desktop Left-side Navigation Link */}
+                <nav className="hidden md:flex items-center gap-6 font-bold uppercase text-[11px] tracking-wider text-[#04113f]">
+                  <button onClick={() => setIsAboutOpen(true)} className="hover:text-[#f2852a] transition-all">About Us</button>
+                  <a href="#catalog" className="hover:text-[#f2852a] transition-all">Store Catalog</a>
+                  <button onClick={() => { setIsTrackOpen(true); setIsCartOpen(false); }} className="hover:text-[#f2852a] transition-all">Track Order</button>
+                </nav>
+              </div>
+
+              {/* Center: Brand Logo */}
+              <div className="flex-1 md:flex-none flex items-center justify-center">
+                <Link href="/" className="flex items-center gap-2 group">
+                  {store.logo_url ? (
+                    <img src={store.logo_url} alt={store.store_name} className="h-11 w-auto object-contain transition-transform group-hover:scale-102" />
+                  ) : (
+                    <span className="font-extrabold text-xl md:text-2xl tracking-tight text-[#04113f] group-hover:text-[#f2852a] transition-all font-theme-title">
+                      🧼 {store.store_name}
+                    </span>
+                  )}
+                </Link>
+              </div>
+
+              {/* Right: Search Bar, Sky-100 Avatar, Emerald-100 Cart Bag */}
+              <div className="flex items-center gap-3">
+                {/* Desktop Integrated Search Bar */}
+                <div className="hidden lg:relative lg:flex items-center">
+                  <input 
+                    type="text" 
+                    placeholder="Search handmade soaps..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-56 h-9 pl-9 pr-8 bg-zinc-50 border border-orange-100/60 rounded-full text-xs outline-none focus:border-[#f2852a] focus:ring-1 focus:ring-[#f2852a] focus:bg-white transition-all font-theme-body"
+                  />
+                  <Search className="absolute left-3 w-3.5 h-3.5 text-zinc-400" />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery('')} className="absolute right-3 text-zinc-400 hover:text-zinc-600">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Mobile Search Button */}
+                <button onClick={() => setIsSearchOverlayOpen(!isSearchOverlayOpen)} className="p-2 text-[#04113f] hover:bg-orange-50 rounded-full transition-all lg:hidden">
+                  <Search className="w-5 h-5" />
+                </button>
+
+                {/* Sky-100 User Avatar Badge */}
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-sky-100 text-sky-800 text-xs font-black shadow-inner border border-sky-200 cursor-default select-none">
+                  {store.store_name?.charAt(0).toUpperCase() || 'S'}
+                </div>
+
+                {/* Emerald-100 Cart Bag Button */}
+                <button 
+                  onClick={() => setIsCartOpen(true)} 
+                  className="flex items-center justify-center w-9 h-9 rounded-full bg-emerald-100 hover:bg-emerald-200 text-emerald-800 transition-all relative border border-emerald-200 animate-in fade-in"
+                >
+                  <ShoppingBag className="w-4 h-4 stroke-[2]" />
+                  {cartItemCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-[#f2852a] text-white rounded-full text-[9px] font-black flex items-center justify-center font-bold border border-white animate-pulse">
+                      {cartItemCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Sliding Search Overlay for Mobile */}
+            {isSearchOverlayOpen && (
+              <div className="bg-[#FAF8F5] border-t border-orange-100/40 px-4 py-3 animate-in slide-in-from-top duration-300">
+                <div className="max-w-3xl mx-auto relative">
+                  <input 
+                    type="text" 
+                    placeholder="Search organic catalog..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full h-10 pl-10 pr-10 bg-white border border-orange-100/40 rounded-full text-xs outline-none focus:border-[#f2852a]"
+                    autoFocus
+                  />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600">
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </header>
+        );
+
       case 'minimal':
       default:
         return (
@@ -1444,6 +1658,56 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     </button>
                   </div>
                 </div>
+              </div>
+
+            </div>
+          </section>
+        );
+
+      case 'admire':
+        return (
+          <section className="relative px-4 sm:px-6 lg:px-8 py-10 max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center bg-white p-6 sm:p-10 border border-orange-100/40 rounded-[24px] shadow-sm">
+              
+              {/* Left Column: Storytelling warm text block */}
+              <div className="space-y-6 lg:pr-6 text-left order-2 lg:order-1">
+                <span className="text-[10px] tracking-[0.25em] font-black text-[#f2852a] uppercase block font-theme-body">
+                  ✨ Cold Processed • 100% Organic Essence
+                </span>
+                <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-[#04113f] leading-tight font-theme-title">
+                  {mainBanner?.title || "Nourish Your Skin with Pure Organic Soaps"}
+                </h2>
+                <p className="text-sm leading-relaxed text-[#04113f]/85 font-theme-body">
+                  {mainBanner?.subtitle || "Handcrafted in small batches using premium plant botanicals, nourishing cold-pressed organic oils, and pure therapeutic essential oils. Free from synthetic fragrances, palm oil, and harsh toxic chemicals."}
+                </p>
+                <div className="pt-2 flex flex-wrap gap-4">
+                  <a 
+                    href="#catalog"
+                    className="inline-block px-8 py-3.5 bg-[#f2852a] hover:bg-[#04113f] text-white hover:text-white text-xs font-bold uppercase tracking-wider rounded-[12px] transition-all duration-200 shadow-sm hover:scale-[1.02]"
+                  >
+                    {mainBanner?.cta || "🧼 Explore Handmade Soaps"}
+                  </a>
+                  <button 
+                    onClick={() => setIsAboutOpen(true)}
+                    className="inline-block px-8 py-3.5 bg-sky-100 hover:bg-sky-200 text-sky-900 text-xs font-bold uppercase tracking-wider rounded-[12px] transition-all duration-200 hover:scale-[1.02]"
+                  >
+                    Our Story
+                  </button>
+                </div>
+              </div>
+
+              {/* Right Column: Visual slideshow with soap-bar rounded corners */}
+              <div className="aspect-[4/3] w-full overflow-hidden rounded-[20px] border border-orange-100/30 bg-[#FAF8F5] relative order-1 lg:order-2">
+                <div className="absolute inset-0 bg-black/5 z-10 pointer-events-none" />
+                <img 
+                  src={mainBanner?.image || "https://images.unsplash.com/photo-1607006342411-91f11f6d021c?auto=format&fit=crop&q=80&w=1200"} 
+                  alt="Organic Handmade Soaps" 
+                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-103"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.parentElement?.classList.add('bg-gradient-to-br', 'from-amber-100', 'to-orange-50');
+                  }}
+                />
               </div>
 
             </div>
@@ -2403,6 +2667,8 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   return (
     <div className="font-theme-body bg-theme-main selection:bg-purple-600 selection:text-white min-h-screen flex flex-col transition-colors duration-300">
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,700;0,800;0,900;1,400&display=swap');
+
         :root {
           --store-primary: ${primaryColor};
           --store-primary-dark: ${darkColor};
@@ -2424,27 +2690,31 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         /* Dynamic Template Typography Overrides */
         .font-theme-body {
           font-family: ${
-            selectedTemplate === 'artisan' || selectedTemplate === 'luxe'
-              ? "'Georgia', Cambria, 'Times New Roman', Times, serif"
-              : selectedTemplate === 'retro'
-                ? "'Space Grotesk', 'Plus Jakarta Sans', monospace, sans-serif"
-                : selectedTemplate === 'bold'
-                  ? "'Plus Jakarta Sans', -apple-system, sans-serif"
-                  : "system-ui, -apple-system, sans-serif"
+            selectedTemplate === 'admire'
+              ? "'Outfit', system-ui, -apple-system, sans-serif"
+              : selectedTemplate === 'artisan' || selectedTemplate === 'luxe'
+                ? "'Georgia', Cambria, 'Times New Roman', Times, serif"
+                : selectedTemplate === 'retro'
+                  ? "'Space Grotesk', 'Plus Jakarta Sans', monospace, sans-serif"
+                  : selectedTemplate === 'bold'
+                    ? "'Plus Jakarta Sans', -apple-system, sans-serif"
+                    : "system-ui, -apple-system, sans-serif"
           } !important;
         }
         
         .font-theme-title {
           font-family: ${
-            selectedTemplate === 'artisan' || selectedTemplate === 'luxe'
-              ? "'Georgia', Cambria, 'Times New Roman', Times, serif"
-              : selectedTemplate === 'retro'
-                ? "'Space Grotesk', 'Plus Jakarta Sans', monospace, sans-serif"
-                : selectedTemplate === 'bold'
-                  ? "'Plus Jakarta Sans', -apple-system, sans-serif"
-                  : "system-ui, -apple-system, sans-serif"
+            selectedTemplate === 'admire'
+              ? "'Playfair Display', 'Georgia', serif"
+              : selectedTemplate === 'artisan' || selectedTemplate === 'luxe'
+                ? "'Georgia', Cambria, 'Times New Roman', Times, serif"
+                : selectedTemplate === 'retro'
+                  ? "'Space Grotesk', 'Plus Jakarta Sans', monospace, sans-serif"
+                  : selectedTemplate === 'bold'
+                    ? "'Plus Jakarta Sans', -apple-system, sans-serif"
+                    : "system-ui, -apple-system, sans-serif"
           } !important;
-          font-weight: ${selectedTemplate === 'bold' ? '900' : selectedTemplate === 'retro' ? '850' : selectedTemplate === 'artisan' ? '800' : selectedTemplate === 'luxe' ? '400' : '700'} !important;
+          font-weight: ${selectedTemplate === 'bold' ? '900' : selectedTemplate === 'retro' ? '850' : selectedTemplate === 'admire' ? '800' : selectedTemplate === 'artisan' ? '800' : selectedTemplate === 'luxe' ? '400' : '700'} !important;
           letter-spacing: ${selectedTemplate === 'minimal' ? '-0.03em' : selectedTemplate === 'luxe' ? '0.02em' : 'normal'} !important;
         }
 
@@ -2473,7 +2743,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               ? '#10B981'
               : selectedTemplate === 'luxe'
                 ? '#FFFFFF'
-                : '#111827'
+                : '#04113f'
           } !important;
           border-bottom: ${
             selectedTemplate === 'bold'
@@ -2484,7 +2754,9 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   ? '1px solid #1f2937'
                   : selectedTemplate === 'artisan'
                     ? '1px solid #E4DAC9'
-                    : '1px solid #F3F4F6'
+                    : selectedTemplate === 'admire'
+                      ? '1px solid rgba(242, 133, 42, 0.12)'
+                      : '1px solid #F3F4F6'
           } !important;
         }
 
@@ -2498,7 +2770,9 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   ? '#111111'
                   : selectedTemplate === 'artisan'
                     ? '#8B5A2B'
-                    : 'var(--store-primary)'
+                    : selectedTemplate === 'admire'
+                      ? '#f2852a'
+                      : 'var(--store-primary)'
           } !important;
           color: ${
             selectedTemplate === 'retro' || selectedTemplate === 'bold'
@@ -2518,7 +2792,9 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 ? '#0A0A0A'
                 : selectedTemplate === 'artisan'
                   ? '#FAF6F0'
-                  : '#FCFCFC'
+                  : selectedTemplate === 'admire'
+                    ? '#FAF8F5'
+                    : '#FCFCFC'
           } !important;
         }
 
@@ -2541,14 +2817,18 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   ? '1px solid #1c1c1e'
                   : selectedTemplate === 'artisan'
                     ? '1px solid #E4DAC9'
-                    : '1px solid #F3F4F6'
+                    : selectedTemplate === 'admire'
+                      ? '1px solid rgba(242, 133, 42, 0.12)'
+                      : '1px solid #F3F4F6'
           } !important;
           border-radius: ${
             selectedTemplate === 'artisan'
               ? '24px'
-              : selectedTemplate === 'minimal' || selectedTemplate === 'luxe'
-                ? '4px'
-                : '0px'
+              : selectedTemplate === 'admire'
+                ? '16px'
+                : selectedTemplate === 'minimal' || selectedTemplate === 'luxe'
+                  ? '4px'
+                  : '0px'
           } !important;
           box-shadow: ${
             selectedTemplate === 'bold'
@@ -2562,13 +2842,15 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         }
 
         .card-theme:hover {
-          border-color: ${selectedTemplate === 'luxe' ? '#D4AF37' : selectedTemplate === 'retro' ? '#10B981' : 'inherit'} !important;
+          border-color: ${selectedTemplate === 'luxe' ? '#D4AF37' : selectedTemplate === 'retro' ? '#10B981' : selectedTemplate === 'admire' ? '#f2852a' : 'inherit'} !important;
           box-shadow: ${
             selectedTemplate === 'bold'
               ? '6px 6px 0px 0px #E11D48'
               : selectedTemplate === 'retro'
                 ? '6px 6px 0px 0px #10B981'
-                : 'none'
+                : selectedTemplate === 'admire'
+                  ? '0 10px 25px -5px rgba(242, 133, 42, 0.2), 0 8px 10px -6px rgba(242, 133, 42, 0.2)'
+                  : 'none'
           } !important;
         }
 
@@ -2582,14 +2864,16 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   ? '#D4AF37'
                   : selectedTemplate === 'artisan'
                     ? '#8B5A2B'
-                    : 'var(--store-primary)'
+                    : selectedTemplate === 'admire'
+                      ? '#f2852a'
+                      : 'var(--store-primary)'
           } !important;
           color: ${
             selectedTemplate === 'retro' || selectedTemplate === 'luxe' || selectedTemplate === 'bold'
               ? '#000000'
               : '#FFFFFF'
           } !important;
-          font-weight: 900 !important;
+          font-weight: ${selectedTemplate === 'admire' ? '700' : '900'} !important;
           border: ${
             selectedTemplate === 'bold' || selectedTemplate === 'retro'
               ? '2px solid #000000'
@@ -2598,9 +2882,11 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           border-radius: ${
             selectedTemplate === 'artisan'
               ? '9999px'
-              : selectedTemplate === 'minimal' || selectedTemplate === 'luxe'
-                ? '2px'
-                : '0px'
+              : selectedTemplate === 'admire'
+                ? '12px'
+                : selectedTemplate === 'minimal' || selectedTemplate === 'luxe'
+                  ? '2px'
+                  : '0px'
           } !important;
           box-shadow: ${
             selectedTemplate === 'bold'
@@ -2614,7 +2900,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         }
 
         .btn-theme-primary:hover {
-          background-color: ${selectedTemplate === 'luxe' ? '#FFFFFF' : 'var(--store-primary-dark)'} !important;
+          background-color: ${selectedTemplate === 'luxe' ? '#FFFFFF' : selectedTemplate === 'admire' ? '#04113f' : 'var(--store-primary-dark)'} !important;
           color: ${selectedTemplate === 'luxe' ? '#000000' : 'inherit'} !important;
           transform: ${
             selectedTemplate === 'bold'
@@ -2731,8 +3017,130 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           {/* Dynamic Hero Banner */}
           {renderHero()}
 
+          {/* Dynamic Shoppable Video Reels Carousel */}
+          {videoReels.length > 0 && (
+            <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-gray-100">
+              <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 text-left">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#f2852a] bg-orange-50 px-3 py-1 rounded-full font-theme-body">
+                    🎥 Shop the Look
+                  </span>
+                  <h3 className="text-xl md:text-2xl font-black text-[#04113f] tracking-tight mt-2 font-theme-title">
+                    Shoppable Video Reels
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5 font-theme-body">Watch our latest handcrafted reels and buy tagged catalog products instantly!</p>
+                </div>
+              </div>
+
+              {/* Reels Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {videoReels.map((reel: any, idx: number) => {
+                  const embedUrl = getYouTubeEmbedUrl(reel.videoUrl || reel.url);
+                  const taggedProd = displayProducts.find(p => p.id === reel.productId);
+                  
+                  return (
+                    <div key={idx} className="card-theme overflow-hidden flex flex-col justify-between h-[450px] relative bg-white shadow-sm">
+                      {/* Video Player Frame */}
+                      <div className="relative w-full h-[320px] bg-black">
+                        <iframe 
+                          src={embedUrl}
+                          title={reel.title || `Reel ${idx + 1}`}
+                          className="absolute inset-0 w-full h-full border-none"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        ></iframe>
+                      </div>
+                      
+                      {/* Tagged Product Checkout Banner */}
+                      <div className="p-4 bg-white flex flex-col justify-between flex-grow border-t border-gray-100">
+                        <div className="text-left flex flex-col justify-between h-full">
+                          <h4 className="font-extrabold text-[#04113f] text-xs line-clamp-1 font-theme-title">{reel.title || "Organic Soap Story"}</h4>
+                          {taggedProd ? (
+                            <div className="mt-1.5 flex items-center justify-between gap-2 bg-orange-50/50 p-2 rounded-lg border border-orange-100/30">
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-bold text-gray-900 truncate font-theme-body">{taggedProd.name}</p>
+                                <p className="text-[10px] font-black text-[#f2852a] mt-0.5 font-theme-body">{currencySymbol}{Number(taggedProd.price).toLocaleString()}</p>
+                              </div>
+                              <button 
+                                onClick={() => addToCart(taggedProd, 1)}
+                                className="px-2.5 py-1 bg-[#f2852a] hover:bg-[#04113f] text-white text-[9px] font-black uppercase tracking-wider rounded transition-colors font-theme-body shrink-0"
+                              >
+                                Buy
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="text-[10px] text-gray-400 mt-2 font-theme-body">No product tagged</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
           {/* Dynamic Product Display Catalog */}
           {renderCatalog()}
+
+          {/* Dynamic Blog Storyteller Showcase */}
+          {blogArticles.length > 0 && (
+            <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-gray-100">
+              <div className="text-center max-w-3xl mx-auto space-y-3 mb-12">
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#f2852a] bg-orange-50 px-3 py-1 rounded-full font-theme-body">
+                  📖 The Storyteller
+                </span>
+                <h3 className="text-2xl sm:text-3xl font-black text-[#04113f] tracking-tight font-theme-title">
+                  Articles, Recipes, & Lore
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed max-w-md mx-auto font-theme-body">Read about our natural botanical harvests, cold process crafting methodologies, and healthy skin tips.</p>
+              </div>
+
+              {/* Story Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {blogArticles.map((article: any, idx: number) => (
+                  <div 
+                    key={idx} 
+                    className="card-theme group cursor-pointer flex flex-col h-full bg-white shadow-sm hover:scale-[1.01]"
+                    onClick={() => setSelectedArticle(article)}
+                  >
+                    <div className="aspect-[16/10] w-full overflow-hidden bg-gray-50 border-b border-gray-100 relative">
+                      {article.image ? (
+                        <img 
+                          src={article.image} 
+                          alt={article.title} 
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-tr from-orange-50 to-amber-50 flex items-center justify-center text-4xl">
+                          🌿
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="p-6 flex flex-col justify-between flex-grow text-left">
+                      <div className="space-y-2">
+                        <span className="text-[9px] font-black text-[#f2852a] uppercase tracking-widest block font-theme-body">
+                          {article.category || 'Lore & Harvest'}
+                        </span>
+                        <h4 className="font-bold text-gray-950 text-base line-clamp-2 leading-snug font-theme-title group-hover:text-[#f2852a] transition-all">
+                          {article.title}
+                        </h4>
+                        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3 font-theme-body">
+                          {article.content ? article.content.replace(/<[^>]*>/g, '') : ''}
+                        </p>
+                      </div>
+                      
+                      <div className="pt-5 border-t border-gray-50 mt-5 flex justify-between items-center text-[10px] font-black uppercase tracking-wider text-[#04113f] font-theme-body">
+                        <span>Read Story</span>
+                        <span>→</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       </div>
 
@@ -2830,18 +3238,66 @@ export default function StorefrontClient({ store, products }: { store: any, prod
             {/* Subtotals & Actions */}
             {cart.length > 0 && (
               <div className="border-t border-gray-100 p-6 bg-white space-y-4">
+                {/* Coupon Validation Form */}
+                <div className="border-b border-gray-100 pb-4">
+                  {appliedCoupon ? (
+                    <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3.5 flex items-center justify-between shadow-sm animate-in zoom-in-95">
+                      <div className="text-left">
+                        <span className="text-[10px] font-black text-emerald-800 uppercase tracking-widest block">Coupon Applied!</span>
+                        <span className="text-xs font-bold text-emerald-950 mt-0.5">{appliedCoupon.code} (-{appliedCoupon.type === 'percentage' ? `${appliedCoupon.value}%` : `${currencySymbol}${appliedCoupon.value}`})</span>
+                      </div>
+                      <button 
+                        onClick={handleRemoveCoupon}
+                        className="text-[10px] uppercase font-black tracking-wider text-rose-600 hover:text-rose-800 hover:bg-rose-50 px-2 py-1 rounded"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleApplyCoupon} className="flex gap-2">
+                      <div className="flex-1 relative">
+                        <input 
+                          type="text" 
+                          placeholder="PROMO CODE" 
+                          value={couponInput}
+                          onChange={e => {
+                            setCouponInput(e.target.value);
+                            setCouponError('');
+                          }}
+                          className="w-full h-10 px-3.5 border border-gray-200 rounded-lg text-xs outline-none focus:border-purple-600 uppercase font-bold tracking-wider"
+                        />
+                      </div>
+                      <button 
+                        type="submit"
+                        className="h-10 px-4 bg-gray-900 hover:bg-black text-white text-[10px] font-black uppercase tracking-wider rounded-lg transition-colors"
+                      >
+                        Apply
+                      </button>
+                    </form>
+                  )}
+                  {couponError && (
+                    <p className="text-[10px] font-bold text-rose-600 text-left mt-1.5 animate-in fade-in">{couponError}</p>
+                  )}
+                </div>
+
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between items-center text-gray-400">
                     <span>Subtotal</span>
                     <span className="font-bold text-gray-950">{currencySymbol}{totalAmount.toLocaleString()}</span>
                   </div>
+                  {appliedCoupon && (
+                    <div className="flex justify-between items-center text-emerald-600 font-medium">
+                      <span>Discount ({appliedCoupon.code})</span>
+                      <span>-${currencySymbol}{discountAmount.toLocaleString()}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center text-gray-400">
                     <span>Shipping</span>
                     <span className="text-green-600 font-extrabold uppercase text-[10px] tracking-widest">FREE</span>
                   </div>
                   <div className="flex justify-between items-center pt-3 border-t border-gray-100 text-gray-900 font-bold uppercase tracking-wider">
                     <span>Total Amount</span>
-                    <span className="font-black text-xl text-purple-700">{currencySymbol}{totalAmount.toLocaleString()}</span>
+                    <span className="font-black text-xl text-purple-700">{currencySymbol}{finalTotalAmount.toLocaleString()}</span>
                   </div>
                 </div>
 
@@ -3448,13 +3904,23 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               )}
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 text-left">
               <h4 className="text-xs font-bold tracking-[0.2em] uppercase text-gray-300">Quick Links</h4>
               <ul className="space-y-2.5 text-xs text-gray-400 font-light">
                 <li><a href="#" className="hover:text-white transition-colors">Home</a></li>
                 <li><a href="#catalog" className="hover:text-white transition-colors">Catalog Collection</a></li>
                 <li><button onClick={() => { setIsTrackOpen(true); setIsCartOpen(false); }} className="hover:text-white transition-colors">Order Tracking</button></li>
                 <li><button onClick={() => setIsAboutOpen(true)} className="hover:text-white text-left transition-colors">About Business</button></li>
+                {customPages.map((page: any, idx: number) => (
+                  <li key={idx}>
+                    <button 
+                      onClick={() => setSelectedPage(page)} 
+                      className="hover:text-white text-left transition-colors capitalize font-theme-body"
+                    >
+                      {page.title.toLowerCase()}
+                    </button>
+                  </li>
+                ))}
               </ul>
             </div>
 
@@ -3599,6 +4065,160 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 Start Shopping
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Premium Glassmorphic Blog Article Reader Modal */}
+      {selectedArticle && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white border border-orange-100/40 max-w-2xl w-full shadow-2xl rounded-3xl relative overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300 font-sans">
+            
+            {/* Cover Image or Gradient header */}
+            <div className="relative aspect-[21/9] w-full bg-gray-100 overflow-hidden shrink-0 border-b border-orange-50">
+              {selectedArticle.image ? (
+                <img 
+                  src={selectedArticle.image} 
+                  alt={selectedArticle.title} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-tr from-orange-100 to-amber-50 flex items-center justify-center text-5xl">
+                  🌿
+                </div>
+              )}
+              {/* Blur Overlay & Category Badge */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-6">
+                <span className="text-[10px] font-black text-white bg-[#f2852a] px-3 py-1.5 rounded-full uppercase tracking-wider shadow-sm font-theme-body">
+                  {selectedArticle.category || 'Lore & Harvest'}
+                </span>
+              </div>
+              
+              {/* Close Button on image */}
+              <button 
+                onClick={() => setSelectedArticle(null)} 
+                className="absolute top-4 right-4 p-2 bg-black/40 hover:bg-black/60 text-white rounded-full transition-all backdrop-blur-sm border border-white/20"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Scrollable Content Container */}
+            <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6 text-left">
+              {/* Meta details */}
+              <div className="flex items-center gap-4 text-[10px] text-gray-400 font-bold uppercase tracking-wider border-b border-gray-100 pb-4">
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-[#f2852a]" />
+                  <span>{selectedArticle.publishedAt ? new Date(selectedArticle.publishedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'June 2, 2026'}</span>
+                </div>
+                <span>•</span>
+                <div className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-[#f2852a]" />
+                  <span>{selectedArticle.readTime || '5 Min Read'}</span>
+                </div>
+                <span>•</span>
+                <span className="text-[#04113f]">BY CREVA BOTANICALS</span>
+              </div>
+
+              {/* Title */}
+              <h3 className="text-2xl sm:text-3xl font-black text-[#04113f] tracking-tight leading-tight font-theme-title">
+                {selectedArticle.title}
+              </h3>
+
+              {/* Content body */}
+              <div className="prose prose-sm max-w-none text-xs sm:text-sm text-gray-600 leading-relaxed font-medium space-y-4 font-theme-body">
+                {selectedArticle.content ? (
+                  // Map raw HTML/Text paragraphs cleanly
+                  selectedArticle.content.split('\n').map((para: string, idx: number) => {
+                    const cleanPara = para.trim();
+                    if (!cleanPara) return null;
+                    return (
+                      <p key={idx} className="mb-4" dangerouslySetInnerHTML={{ __html: cleanPara }} />
+                    );
+                  })
+                ) : (
+                  <p>No content available for this article.</p>
+                )}
+              </div>
+
+              {/* Storyteller Quote highlight banner */}
+              <div className="bg-orange-50/50 border-l-4 border-[#f2852a] rounded-r-2xl p-5 space-y-2 mt-6">
+                <span className="text-[9px] font-black text-[#f2852a] uppercase tracking-widest block font-theme-body">CREVA HOLISTIC HARVESTS</span>
+                <p className="text-xs italic text-gray-700 leading-relaxed font-theme-body">
+                  "Our handmade soap blends are cold-cured for a minimum of six weeks to retain natural botanical glycerin and wild organic wellness essences."
+                </p>
+              </div>
+            </div>
+
+            {/* Sticky Bottom Actions footer */}
+            <div className="p-4 bg-gray-50 border-t border-gray-100 flex gap-3 shrink-0">
+              <button 
+                onClick={() => setSelectedArticle(null)}
+                className="w-full py-3 bg-[#04113f] hover:bg-[#f2852a] text-white font-black uppercase tracking-[0.2em] text-[10px] rounded-xl active:scale-[0.99] transition-all text-center"
+              >
+                Close Story Reader
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Premium Glassmorphic Static Page Reader Modal */}
+      {selectedPage && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white border border-gray-100 max-w-xl w-full shadow-2xl rounded-3xl relative overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-300 font-sans">
+            
+            {/* Top Close Button */}
+            <button 
+              onClick={() => setSelectedPage(null)} 
+              className="absolute top-5 right-5 p-2 bg-gray-50 hover:bg-gray-100 text-gray-500 hover:text-gray-900 rounded-full transition-all z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header section with page title */}
+            <div className="px-8 pt-8 pb-5 border-b border-gray-100 text-left shrink-0">
+              <span className="text-[9px] font-black text-purple-600 tracking-[0.25em] uppercase bg-purple-50 px-3 py-1 rounded-full border border-purple-100 inline-block mb-3">
+                OFFICIAL STORE DOCUMENT
+              </span>
+              <h3 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight uppercase leading-tight font-theme-title">
+                {selectedPage.title}
+              </h3>
+            </div>
+
+            {/* Scrollable Page Content */}
+            <div className="flex-1 overflow-y-auto p-8 text-left space-y-5 leading-relaxed text-xs sm:text-sm text-gray-600 font-medium font-theme-body max-h-[50vh]">
+              {selectedPage.content ? (
+                selectedPage.content.split('\n').map((para: string, idx: number) => {
+                  const cleanPara = para.trim();
+                  if (!cleanPara) return null;
+                  return (
+                    <p key={idx} className="mb-4" dangerouslySetInnerHTML={{ __html: cleanPara }} />
+                  );
+                })
+              ) : (
+                <p>No content available for this page.</p>
+              )}
+            </div>
+
+            {/* Bottom Outlets / Terms Notice */}
+            <div className="px-8 py-5 bg-gray-50 border-t border-gray-100 shrink-0 text-left">
+              <p className="text-[10px] text-gray-400 leading-normal font-medium">
+                This document is officially binding for all digital orders placed on this storefront. Hand-packaged with utmost precision and care by your local artisan retailer.
+              </p>
+            </div>
+
+            {/* Close Button */}
+            <div className="p-4 bg-white border-t border-gray-50 flex gap-3 shrink-0">
+              <button 
+                onClick={() => setSelectedPage(null)}
+                className="w-full py-3 bg-gradient-to-r from-purple-700 to-rose-500 text-white font-black uppercase tracking-[0.2em] text-[10px] rounded-xl hover:opacity-90 active:scale-95 shadow-md transition-all text-center"
+              >
+                Accept & Close Page
+              </button>
+            </div>
+
           </div>
         </div>
       )}

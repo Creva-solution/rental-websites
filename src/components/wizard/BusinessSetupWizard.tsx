@@ -32,7 +32,7 @@ export default function BusinessSetupWizard() {
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
 
-  const [selectedTemplate, setSelectedTemplate] = useState<'minimal' | 'artisan' | 'bold' | 'luxe' | 'retro'>('minimal');
+  const [selectedTemplate, setSelectedTemplate] = useState<'minimal' | 'artisan' | 'bold' | 'luxe' | 'retro' | 'admire'>('minimal');
 
   const [formData, setFormData] = useState({
     businessName: '',
@@ -121,6 +121,9 @@ export default function BusinessSetupWizard() {
       } else if (tempParam === 'retro' || tempParam === '5') {
         setSelectedTemplate('retro');
         setFormData(prev => ({ ...prev, primaryColor: '#8B5CF6' }));
+      } else if (tempParam === 'admire' || tempParam === '6') {
+        setSelectedTemplate('admire');
+        setFormData(prev => ({ ...prev, primaryColor: '#f2852a' }));
       }
     }
   }, []);
@@ -788,13 +791,14 @@ export default function BusinessSetupWizard() {
               {/* Template Selection Section */}
               <div className="space-y-3">
                 <label className="block text-xs font-black text-muted-foreground uppercase tracking-wider">Choose Storefront Design Template</label>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
                   {[
                     { id: 'minimal', name: 'Minimal Elegance', defaultColor: '#000000', desc: 'Sleek luxury, high contrast, clean typography. Perfect for boutique brands.', defaultThumb: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=600' },
                     { id: 'artisan', name: 'Artisan Craft', defaultColor: '#8B5A2B', desc: 'Warm cream tones, classical serif accents, hand-crafted organic feel.', defaultThumb: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=600' },
                     { id: 'bold', name: 'Bold Commerce', defaultColor: '#E11D48', desc: 'Vibrant, thick-bordered grid layouts, chunky shadows, high-impact details.', defaultThumb: 'https://images.unsplash.com/photo-1540959733332-eab4deceeaf7?auto=format&fit=crop&q=80&w=600' },
                     { id: 'luxe', name: 'Dark Luxe', defaultColor: '#D4AF37', desc: 'Exclusive gold on pitch black premium layout. For luxury timepieces, jewelry and high-end accessories.', defaultThumb: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=600' },
-                    { id: 'retro', name: 'Retro Grid', defaultColor: '#8B5CF6', desc: 'Space-grotesk flat shadow neon theme. Heavy borders, nostalgic retro aesthetics.', defaultThumb: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=600' }
+                    { id: 'retro', name: 'Retro Grid', defaultColor: '#8B5CF6', desc: 'Space-grotesk flat shadow neon theme. Heavy borders, nostalgic retro aesthetics.', defaultThumb: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=600' },
+                    { id: 'admire', name: 'Admire Essence', defaultColor: '#f2852a', desc: 'Warm orange (#f2852a) and deep navy (#04113f) contrast with soft soap-bar rounded contours.', defaultThumb: 'https://images.unsplash.com/photo-1607006342411-91f11f6d021c?auto=format&fit=crop&q=80&w=600' }
                   ].map((tpl, idx) => {
                     const customThumbnail = globalSettings?.templateThumbnails?.[tpl.id];
                     const thumbnailUrl = customThumbnail || tpl.defaultThumb;
@@ -920,7 +924,7 @@ export default function BusinessSetupWizard() {
                       style={{ 
                         backgroundColor: formData.primaryColor,
                         color: selectedTemplate === 'luxe' || selectedTemplate === 'retro' ? '#000000' : '#FFFFFF',
-                        borderRadius: selectedTemplate === 'minimal' || selectedTemplate === 'retro' ? '0px' : selectedTemplate === 'luxe' ? '2px' : selectedTemplate === 'artisan' ? '9999px' : '8px',
+                        borderRadius: selectedTemplate === 'minimal' || selectedTemplate === 'retro' ? '0px' : selectedTemplate === 'luxe' ? '2px' : selectedTemplate === 'artisan' ? '9999px' : selectedTemplate === 'admire' ? '16px' : '8px',
                         border: selectedTemplate === 'retro' ? '3px solid #000000' : selectedTemplate === 'bold' ? '2px solid #000000' : 'none',
                         boxShadow: selectedTemplate === 'retro' || selectedTemplate === 'bold' ? '3px 3px 0px 0px #000000' : 'none'
                       }}
@@ -933,7 +937,9 @@ export default function BusinessSetupWizard() {
                             ? 'DISCOVER LUXE'
                             : selectedTemplate === 'retro'
                               ? 'GO RETRO ⚡'
-                              : 'ADD TO CART ⚡'
+                              : selectedTemplate === 'admire'
+                                ? '🧼 Shop Organic Essence'
+                                : 'ADD TO CART ⚡'
                       }
                     </button>
                   </div>

@@ -84,6 +84,7 @@ export default function SuperAdminDashboard() {
   const [planLifetimePrice, setPlanLifetimePrice] = useState<string>('9999');
   const [customDomainUnlockPrice, setCustomDomainUnlockPrice] = useState<string>('1499');
   const [invoiceNumber, setInvoiceNumber] = useState<string>('');
+  const [onboardVideoUrl, setOnboardVideoUrl] = useState<string>('https://www.youtube.com/embed/7V2eS8W1cCc');
   const [modalTab, setModalTab] = useState<'billing' | 'profile' | 'contract' | 'payment'>('billing');
   
   // Advanced filters and branding dashboard states
@@ -97,7 +98,8 @@ export default function SuperAdminDashboard() {
     artisan: '',
     bold: '',
     luxe: '',
-    retro: ''
+    retro: '',
+    admire: ''
   });
 
   // Custom subscription packages states
@@ -207,6 +209,10 @@ export default function SuperAdminDashboard() {
     }
     if (savedTemplate) {
       setAgreementTemplate(savedTemplate);
+    }
+    const savedVideoUrl = localStorage.getItem('saas_onboard_video_url');
+    if (savedVideoUrl) {
+      setOnboardVideoUrl(savedVideoUrl);
     }
     if (savedPlan30) setPlan30Price(savedPlan30);
     if (savedPlan365) setPlan365Price(savedPlan365);
@@ -423,6 +429,7 @@ export default function SuperAdminDashboard() {
         officers,
         agreementTemplate,
         agreementTemplates,
+        onboardVideoUrl,
         platformUpi,
         plan30Price,
         plan365Price,
@@ -517,6 +524,7 @@ export default function SuperAdminDashboard() {
       localStorage.setItem('saas_licensing_officers', JSON.stringify(officers));
       localStorage.setItem('saas_agreement_template', agreementTemplate);
       localStorage.setItem('saas_agreement_templates', JSON.stringify(agreementTemplates));
+      localStorage.setItem('saas_onboard_video_url', onboardVideoUrl);
       localStorage.setItem('saas_platform_upi', platformUpi);
       localStorage.setItem('saas_plan_30_price', plan30Price);
       localStorage.setItem('saas_plan_365_price', plan365Price);
@@ -532,6 +540,7 @@ export default function SuperAdminDashboard() {
         officers,
         agreementTemplate,
         agreementTemplates,
+        onboardVideoUrl,
         platformUpi,
         plan30Price,
         plan365Price,
@@ -769,6 +778,10 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
           if (parsed.agreementTemplate) {
             setAgreementTemplate(parsed.agreementTemplate);
             localStorage.setItem('saas_agreement_template', parsed.agreementTemplate);
+          }
+          if (parsed.onboardVideoUrl) {
+            setOnboardVideoUrl(parsed.onboardVideoUrl);
+            localStorage.setItem('saas_onboard_video_url', parsed.onboardVideoUrl);
           }
           if (parsed.platformUpi) {
             setPlatformUpi(parsed.platformUpi);
@@ -2851,6 +2864,18 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                         />
                       </div>
 
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Merchant Onboarding Training Video Link (YouTube Embed URL)</label>
+                        <input 
+                          type="text"
+                          value={onboardVideoUrl}
+                          onChange={(e) => setOnboardVideoUrl(e.target.value)}
+                          placeholder="e.g. https://www.youtube.com/embed/7V2eS8W1cCc"
+                          className="w-full bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2.5 text-sm text-white transition-all font-mono"
+                        />
+                        <p className="text-[10px] text-gray-500 mt-1">This video is embedded in the merchant tutorials dashboard checklist and the welcome dashboard splash guides.</p>
+                      </div>
+
                       <div className="space-y-3">
                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Agreement Top Logo</label>
                         <div className="flex flex-col gap-3">
@@ -3407,7 +3432,8 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                         { id: 'artisan', name: 'Artisan Craft', defaultThumb: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=600', desc: 'Warm organic pottery serif template.' },
                         { id: 'bold', name: 'Bold Commerce', defaultThumb: 'https://images.unsplash.com/photo-1540959733332-eab4deceeaf7?auto=format&fit=crop&q=80&w=600', desc: 'Vibrant grid design with chunky shadows.' },
                         { id: 'luxe', name: 'Dark Luxe', defaultThumb: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=600', desc: 'Premium gold on pitch black luxury design.' },
-                        { id: 'retro', name: 'Retro Grid', defaultThumb: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=600', desc: 'Grotesk neon shadows flat retro theme.' }
+                        { id: 'retro', name: 'Retro Grid', defaultThumb: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=600', desc: 'Grotesk neon shadows flat retro theme.' },
+                        { id: 'admire', name: 'Admire Organic Essence', defaultThumb: 'https://images.unsplash.com/photo-1607006342411-91f11f6d021c?auto=format&fit=crop&q=80&w=600', desc: 'Warm orange (#f2852a) and deep navy (#04113f) contrast with soft soap-bar rounded contours.' }
                       ].map((tpl) => {
                         const customThumb = templateThumbnails[tpl.id] || '';
                         const currentThumb = customThumb || tpl.defaultThumb;

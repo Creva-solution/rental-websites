@@ -5,12 +5,38 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { Plus, Loader2 } from 'lucide-react';
 
+const getYouTubeEmbedUrl = (url: string) => {
+  if (!url) return 'https://www.youtube.com/embed/7V2eS8W1cCc';
+  if (url.includes('youtube.com/embed/')) return url;
+  
+  // Handle shorts e.g. youtube.com/shorts/ID
+  const shortsMatch = url.match(/youtube\.com\/shorts\/([^/?#]+)/);
+  if (shortsMatch && shortsMatch[1]) {
+    return `https://www.youtube.com/embed/${shortsMatch[1]}`;
+  }
+  
+  // Handle watch?v=ID
+  const watchMatch = url.match(/[?&]v=([^&#]+)/);
+  if (watchMatch && watchMatch[1]) {
+    return `https://www.youtube.com/embed/${watchMatch[1]}`;
+  }
+  
+  // Handle youtu.be/ID
+  const beMatch = url.match(/youtu\.be\/([^/?#]+)/);
+  if (beMatch && beMatch[1]) {
+    return `https://www.youtube.com/embed/${beMatch[1]}`;
+  }
+  
+  return url;
+};
+
 export default function DashboardHome() {
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showTutorialModal, setShowTutorialModal] = useState(false);
+  const [videoUrl, setVideoUrl] = useState('https://www.youtube.com/embed/7V2eS8W1cCc');
 
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [addingProduct, setAddingProduct] = useState(false);
@@ -43,6 +69,25 @@ export default function DashboardHome() {
       const { data: ordData } = await supabase.from('orders').select('*').eq('store_id', storeData.id).order('created_at', { ascending: false });
       if (ordData) setOrders(ordData);
     }
+
+    // Fetch global onboarding video link
+    try {
+      const { data: globalData } = await supabase
+        .from('stores')
+        .select('description')
+        .eq('subdomain', '__creva_saas_global_settings__')
+        .maybeSingle();
+
+      if (globalData && globalData.description) {
+        const parsed = JSON.parse(globalData.description);
+        if (parsed.onboardVideoUrl) {
+          setVideoUrl(getYouTubeEmbedUrl(parsed.onboardVideoUrl));
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch global video URL:", err);
+    }
+
     setLoading(false);
   };
 
@@ -242,7 +287,7 @@ export default function DashboardHome() {
             <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-border shadow-inner bg-black">
               <iframe 
                 className="absolute inset-0 w-full h-full"
-                src="https://www.youtube.com/embed/7V2eS8W1cCc?autoplay=1"
+                src={`${videoUrl}${videoUrl.includes('?') ? '&' : '?'}autoplay=1`}
                 title="Creva Store Setup Tutorial"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                 allowFullScreen

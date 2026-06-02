@@ -727,6 +727,39 @@ export default function SettingsPage() {
                         <div className="bg-muted/40 p-4 rounded-xl text-[11px] text-muted-foreground border leading-relaxed text-left">
                           💡 <strong>Note on propagation:</strong> DNS propagation can take from 2 minutes to 24 hours depending on your registrar. Once configured correctly, Vercel will automatically obtain SSL certificates and active domain routing.
                         </div>
+
+                        {/* High-Fidelity DNS Support Quick-Action Buttons */}
+                        <div className="bg-emerald-50/50 border border-emerald-100 p-5 rounded-xl space-y-3.5 text-left mt-4 shadow-sm">
+                          <div className="flex items-start gap-2.5">
+                            <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping mt-1 shrink-0" />
+                            <div>
+                              <h5 className="text-xs font-black text-emerald-950 uppercase tracking-wider">Stuck with DNS Setup?</h5>
+                              <p className="text-[11px] text-emerald-800 leading-normal mt-0.5">
+                                DNS configurations can be tricky! Our dedicated technical team can set up your GoDaddy or Namecheap records for you for free. Get in touch via call or WhatsApp now.
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-3">
+                            <a 
+                              href="tel:+919876543210" 
+                              className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-800 bg-white hover:bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-lg transition-all shadow-sm hover:scale-[1.02]"
+                            >
+                              <Phone className="w-3.5 h-3.5 text-slate-600 animate-bounce" />
+                              Call DNS Desk
+                            </a>
+                            <a 
+                              href="https://wa.me/919876543210?text=Hi%20Creva%20Support!%20I%20need%20help%20setting%20up%20my%20custom%20domain%20DNS%20records." 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 rounded-lg transition-all shadow-md hover:scale-[1.02]"
+                            >
+                              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.248 8.477 3.517 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.746 1.451 5.436 0 9.86-4.413 9.863-9.852.002-2.636-1.023-5.113-2.885-6.978C16.45 1.91 13.976.883 11.344.883c-5.436 0-9.861 4.413-9.864 9.853-.001 1.862.486 3.679 1.412 5.283L1.879 22.062l6.236-1.636-.231-.132z"/>
+                              </svg>
+                              WhatsApp DNS Desk
+                            </a>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
