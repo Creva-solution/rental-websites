@@ -1172,7 +1172,7 @@ export default function OrdersPage() {
                     {/* Invoice Header */}
                     <div className="flex justify-between items-start border-b border-gray-200 pb-6 mb-6 text-left">
                       <div>
-                        <h1 className="text-xl font-bold text-[#e11d48] sm:text-2xl font-sans tracking-tight">
+                        <h1 className="text-xl font-bold text-[#3C77C3] sm:text-2xl font-sans tracking-tight">
                           {store.store_name}
                         </h1>
                         <p className="text-[10px] font-bold text-gray-800 uppercase tracking-wide mt-1.5 font-sans">
@@ -1186,13 +1186,13 @@ export default function OrdersPage() {
                         <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight mb-2">INVOICE</h2>
                         <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Invoice No: <span className="font-mono font-bold text-gray-900 text-xs ml-1">{getInvoiceNumber(order.id)}</span></p>
                         <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">Invoice Date: <span className="text-gray-900 text-xs ml-1">{formatDate(order.created_at)}</span></p>
-                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">Payment Status: <span className={`text-xs ml-1 font-black ${isPaid ? 'text-[#0fbd5d]' : 'text-red-500'}`}>{paymentStatus}</span></p>
+                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">Payment Status: <span className={`text-xs ml-1 font-black ${isPaid ? 'text-emerald-600' : 'text-red-500'}`}>{paymentStatus}</span></p>
                         <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">Payment Method: <span className="text-gray-900 text-xs ml-1">{order.payment_method || 'Bank Transfer'}</span></p>
                       </div>
                     </div>
 
                     {/* BILL TO / SHIP TO Title Band */}
-                    <div className="bg-[#0fbd5d] text-white px-4 py-2 text-[10px] font-black tracking-widest uppercase text-left mb-4 rounded-sm font-sans">
+                    <div className="bg-[#3C77C3] text-white px-4 py-2 text-[10px] font-black tracking-widest uppercase text-left mb-4 rounded-sm font-sans">
                       BILL TO / SHIP TO
                     </div>
 
@@ -1219,7 +1219,7 @@ export default function OrdersPage() {
                     </div>
 
                     {/* ITEMS Title Band */}
-                    <div className="bg-[#0fbd5d] text-white px-4 py-2 text-[10px] font-black tracking-widest uppercase text-left mb-4 rounded-sm font-sans">
+                    <div className="bg-[#3C77C3] text-white px-4 py-2 text-[10px] font-black tracking-widest uppercase text-left mb-4 rounded-sm font-sans">
                       Items ({order.order_items?.length || 1})
                     </div>
 
@@ -1338,19 +1338,8 @@ export default function OrdersPage() {
                       </div>
                     </div>
 
-                    {/* Signature Area */}
-                    <div className="flex justify-between items-end mt-16 pt-8 text-xs font-sans">
-                      <div className="text-left border-t border-black pt-2 w-[180px]">
-                        <p className="text-center font-bold text-gray-700">Customer Signature</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Authorised Signatory For</p>
-                        <p className="font-black text-gray-900 mt-1">{store.store_name}</p>
-                      </div>
-                    </div>
-
                     {/* Store Subdomain URL at bottom */}
-                    <div className="text-center mt-12 text-[10px] text-gray-400 font-medium font-sans">
+                    <div className="text-center mt-24 text-[10px] text-gray-400 font-medium font-sans">
                       https://{store.subdomain || 'admire-hand-made-soaps'}.crevasolution.in
                     </div>
                   </div>
