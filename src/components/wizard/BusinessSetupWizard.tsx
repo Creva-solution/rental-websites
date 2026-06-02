@@ -47,6 +47,58 @@ export default function BusinessSetupWizard() {
     authPassword: '',
   });
 
+  const defaultTemplates: Record<string, string> = {
+    en: `1. PROVISIONS OF SERVICE: The Creva E-Commerce SaaS platform grants the undersigned Merchant the license to operate an automated retail storefront website using our cloud architecture. Custom domain mappings are active permissions subject to the subscription plan level.
+
+2. PLAN RENEWALS & INQUIRY SYSTEM: The Merchant understands that platform billing utilizes an inquiry activation system. Upon plan expiration, storefront access may be suspended unless renewed by contacting the support sales team directly.
+
+3. ACCEPTABLE USAGE & LEGAL LIMITS: The Merchant agrees to list only legally compliant goods. Sales of prohibited, illegal, counterfeited, or unauthorized products will lead to instant termination of this license without refund.
+
+4. SECURITY & DATA PRIVACY: The platform will protect merchant database assets, catalog listings, and custom styling. The platform is not responsible for off-site customer disputes.`,
+    
+    ta: `1. சேவைகளின் விதிகள்: கிரெவா ஈ-காமர்ஸ் சாஸ் தளம், கையொப்பமிட்ட வணிகருக்கு எங்கள் கிளவுட் கட்டமைப்பைப் பயன்படுத்தி ஒரு தானியங்கி சில்லறை விற்பனை இணையதளத்தை இயக்க உரிமம் வழங்குகிறது. தனிப்பயன் டொமேன் இணைப்புகள் சந்தா திட்ட நிலைக்கு உட்பட்டது.
+
+2. புதுப்பித்தல் மற்றும் விசாரிக்கும் முறை: வணிகர் தளம் கட்டணம் செலுத்தும் விசாரணை முறையை பயன்படுத்துகிறது என்பதை புரிந்து கொள்கிறார். சந்தா காலம் முடிந்ததும், ஆதரவு விற்பனை குழுவை நேரடியாக தொடர்பு கொண்டு புதுப்பிக்காவிட்டால் அணுகல் நிறுத்தப்படலாம்.
+
+3. ஏற்கத்தக்க பயன்பாடு மற்றும் சட்ட வரம்புகள்: வணிகர் சட்டப்பூர்வமான பொருட்களை மட்டுமே பட்டியலிட ஒப்புக்கொள்கிறார். தடைசெய்யப்பட்ட, சட்டவிரோதமான அல்லது அங்கீகரிக்கப்படாத தயாரிப்புகளை விற்பனை செய்வது பணத்தைத் திரும்பப்பெறாமல் உடனடியாக இந்த உரிமத்தை ரத்து செய்ய வழிவகுக்கும்.
+
+4. பாதுகாப்பு மற்றும் தரவு தனியுரிமை: இந்த தளம் வணிகர் தரவுத்தள சொத்துக்கள், தயாரிப்பு பட்டியல்கள் மற்றும் தனிப்பயன் பாணிகளைப் பாதுகாக்கும். தளம் சாராத வாடிக்கையாளர் தகராறுகளுக்கு இந்த தளம் பொறுப்பல்ல.`,
+    
+    hi: `1. सेवा के प्रावधान: क्रेवा ई-कॉमर्स सास प्लेटफॉर्म हस्ताक्षरकर्ता मर्चेंट को हमारे क्लाउड आर्किटेक्चर का उपयोग करके एक स्वचालित खुदरा स्टोरफ्रंट वेबसाइट संचालित करने का लाइसेंस प्रदान करता है। कस्टम डोमेन मैपिंग सदस्यता योजना स्तर के अधीन है।
+
+2. योजना नवीनीकरण और पूछताछ प्रणाली: मर्चेंट समझता है कि प्लेटफॉर्म बिलिंग एक पूछताछ सक्रियण प्रणाली का उपयोग करती है। योजना की समाप्ति पर, सहायता बिक्री टीम से सीधे संपर्क करके नवीनीकरण न किए जाने तक स्टोरफ्रंट एक्सेस को निलंबित किया जा सकता है।
+
+3. स्वीकार्य उपयोग और कानूनी सीमाएं: मर्चेंट केवल कानूनी रूप से अनुपालन करने वाले सामानों को सूचीबद्ध करने के लिए सहमत है। प्रतिबंधित, अवैध या अनधिकृत उत्पादों की बिक्री से बिना किसी रिफंड के इस लाइसेंस को तत्काल समाप्त कर दिया जाएगा।
+
+4. सुरक्षा और गोपनीयता: प्लेटफॉर्म मर्चेंट डेटाबेस संपत्ति, कैटलॉग लिस्टिंग और कस्टम स्टाइलिंग की रक्षा करेगा। प्लेटफॉर्म ऑफ-साइट ग्राहक विवादों के लिए जिम्मेदार नहीं है।`,
+    
+    te: `1. సేవా నిబంధనలు: క్రెవా ఇ-కామర్స్ సాస్ ప్లాట్‌ఫారమ్ సంతకం చేసిన వ్యాపారికి మా క్లౌడ్ ఆర్కిటెక్చర్‌ని ఉపయోగించి స్వయంచాలక రిటైల్ స్టోర్‌ఫ్రంట్ వెబ్‌సైట్‌ను నిర్వహించడానికి లైసెన్స్ మంజూరు చేస్తుంది. కస్టమ్ డొమైన్ మ్యాపింగ్స్ సభ్యత్వ ప్లాన్ శాతం లోబడి ఉంటాయి.
+
+2. ప్లాన్ పునరుద్ధరణలు & విచారణ వ్యవస్థ: ప్లాట్‌ఫారమ్ బిల్లింగ్ ఒక విచారణ యాక్టివేషన్ సిస్టమ్‌ను ఉపయోగిస్తుందని వ్యాపారి అర్థం చేసుకున్నారు. ప్లాన్ గడువు ముగిసిన తర్వాత, సేల్స్ టీమ్‌ని సంప్రదించి పునరుద్ధరించకపోతే స్టోర్‌ఫ్రంట్ యాక్సెస్ నిలిపివేయబడవచ్చు.
+
+3. అనుమతించదగిన వినియోగం & చట్టపరమైన పరిమితులు: వ్యాపారి చట్టబద్ధమైన వస్తువులను మాత్రమే విక్రయించడానికి అంగీకరిస్తారు. నిషేధించబడిన, చట్టవిరుద్ధమైన లేదా అనధికారిక ఉత్పత్తుల విక్రయాలు ఎటువంటి రీఫండ్ లేకుండా ఈ లైసెన్స్‌ను వెంటనే రద్దు చేయడానికి దారితీస్తాయి.
+
+4. భద్రత & డేటా గోప్యత: ప్లాట్‌ఫారమ్ వ్యాపారి డేటాబేస్ ఆస్తులు, కేటలాగ్ జాబితాలు మరియు కస్టమ్ స్టైలింగ్‌ను రక్షిస్తుంది. ఆఫ్-సైట్ కస్టమర్ వివాదాలకు ప్లాట్‌ఫారమ్ బాధ్యత వహించదు.`,
+    
+    ml: `1. സേവന വ്യവസ്ഥകൾ: ക്രെവ ഇ-കൊമേഴ്‌സ് സാസ് പ്ലാറ്റ്‌ഫോം ഒപ്പിട്ട വ്യാപാരിക്ക് ഞങ്ങളുടെ ക്ലൗഡ് ആർക്കിടെക്ചർ ഉപയോഗിച്ച് ഒരു ഓട്ടോമേറ്റഡ് റീട്ടെയിൽ സ്റ്റോർഫ്രണ്ട് വെബ്‌സൈറ്റ് പ്രവർത്തിപ്പിക്കാൻ ലൈസൻസ് നൽകുന്നു. കസ്റ്റം ഡൊമെയ്ൻ മാപ്പിംഗുകൾ സബ്‌സ്‌ക്രിപ്‌ഷൻ പ്ലാൻ ലെവലിന് വിധേയമാണ്.
+
+2. പ്ലാൻ പുതുക്കലും അന്വേഷണ സംവിധാനവും: പ്ലാറ്റ്‌ഫോം ബില്ലിംഗ് ഒരു അന്വേഷണ സജീവമാക്കൽ സംവിധാനമാണ് ഉപയോഗിക്കുന്നതെന്ന് വ്യാപാരി മനസ്സിലാക്കുന്നു. പ്ലാൻ കാലഹരണപ്പെടുമ്പോൾ, സപ്പോർട്ട് ടീമുമായി നേരിട്ട് ബന്ധപ്പെട്ട് പുതുക്കിയില്ലെങ്കിൽ ആക്സസ് താൽക്കാലികമായി നിർത്താം.
+
+3. സ്വീകാര്യമായ ഉപയോഗവും നിയമപരമായ പരിധികളും: നിയമപരമായി അനുസരിക്കുന്ന സാധനങ്ങൾ മാത്രം ലിസ്റ്റ് ചെയ്യാൻ വ്യാപാരി സമ്മതിക്കുന്നു. നിരോധിതമോ നിയമവിരുദ്ധമോ അനധികൃതമോ ആയ ഉൽപ്പന്നങ്ങളുടെ വിൽപ്പന റീഫണ്ട് ഇല്ലാതെ ഈ ലൈസൻസ് ഉടനടി റദ്ദാക്കാൻ ഇടയാക്കും.
+
+4. സുരക്ഷയും ഡാറ്റാ സ്വകാര്യതയും: പ്ലാറ്റ്‌ഫോം വ്യാപാരിയുടെ ഡാറ്റാബേസ് അസറ്റുകൾ, ഉൽപ്പന്ന ലിസ്റ്റിംഗുകൾ, കസ്റ്റം സ്റ്റൈലിംഗ് എന്നിവ സംരക്ഷിക്കും. ഓഫ്-സൈറ്റ് ഉപഭോക്തൃ തർക്കങ്ങൾക്ക് പ്ലാറ്റ്‌ഫോം ഉത്തരവാദിയല്ല.`,
+    
+    kn: `1. ಸೇವಾ ನಿಬಂಧನೆಗಳು: ಕ್ರೆವಾ ಇ-ಕಾಮರ್ಸ್ ಸಾಸ್ ಪ್ಲಾಟ್‌ಫಾರ್ಮ್ ಸಹಿ ಮಾಡಿದ ವ್ಯಾಪಾರಿಗೆ ನಮ್ಮ ಕೃತಕ ಬುದ್ಧಿಮತ್ತೆ ಕ್ಲೌಡ್ ಆರ್ಕಿಟೆಕ್ಚರ್ ಬಳಸಿ ಸ್ವಯಂಚಾಲಿತ ಚಿಲ್ಲರೆ ಸ್ಟೋರ್‌ಫ್ರಂಟ್ ವೆಬ್‌ಸೈಟ್ ನಿರ್ವಹಿಸಲು ಪರವานಗಿ ನೀಡುತ್ತದೆ. ಕಸ್ಟಮ್ ಡೊಮೇನ್ ಮ್ಯಾಪಿಂಗ್‌ಗಳು ಚಂದಾದಾರಿಕೆ ಯೋಜನೆ ಮಟ್ಟಕ್ಕೆ ಒಳಪಟ್ಟಿರುತ್ತವೆ.
+
+2. ಯೋಜನೆ ನವೀಕರಣಗಳು ಮತ್ತು ವಿಚಾರಣಾ ವ್ಯವಸ್ಥೆ: ಪ್ಲಾಟ್‌ಫಾರ್ಮ್ ಬಿಲ್ಲಿಂಗ್ ವಿಚಾರಣಾ ಸಕ್ರಿಯಗೊಳಿಸುವ ವ್ಯವಸ್ಥೆಯನ್ನು ಬಳಸುತ್ತದೆ ಎಂದು ವ್ಯಾపಾರಿ ಅರ್ಥಮಾಡಿಕೊಳ್ಳುತ್ತಾರೆ. ಯೋಜನೆ ಅವಧಿ ಮುಗಿದ ನಂತರ, ಸಪೋರ್ಟ್ ಸೇಲ್ಸ್ ತಂಡವನ್ನು ನೇರವಾಗಿ ಸಂಪర్కಿಸಿ ನವೀಕರಿಸದಿದ್ದರೆ ಪ್ರವೇಶವನ್ನು ಅಮಾನತುಗೊಳಿಸಬಹುದು.
+
+3. ಸ್ವೀಕಾರಾರ್ಹ ಬಳಕೆ ಮತ್ತು ಕಾನೂನು ಮಿತಿಗಳು: ವ್ಯಾಪಾರಿ ಕಾನೂನುಬದ್ಧ ಸರകുಗಳನ್ನು ಮಾತ್ರ ಪಟ್ಟಿ ಮಾಡಲು ಒಪ್ಪಿಕೊಳ್ಳುತ್ತಾರೆ. ನಿಷೇಧಿತ, ಅಕ್ರಮ ಅಥವಾ ಅನಧಿಕೃತ ಉತ್ಪನ್ನಗಳ ಮಾರಾಟವು ಯಾವುದೇ ಮರುಪಾವತಿ ಇಲ್ಲದೆ ಈ ಪರವಾನಗಿಯನ್ನು ತಕ್ಷಣವೇ ರದ್ದುಗೊಳಿಸಲು ಕಾರಣವಾಗುತ್ತದೆ.
+
+4. ಸುರಕ್ಷತೆ ಮತ್ತು ಡೇಟಾ ಗೌಪ್ಯತೆ: ಪ್ಲಾಟ್‌ಫಾರ್ಮ್ ವ್ಯಾಪಾರಿಯ ಡೇಟಾಬೇಸ್ ಆಸ್ತಿಗಳು, ಕ್ಯಾಟಲಾಗ್ ಪಟ್ಟಿಗಳು ಮತ್ತು ಕಸ್ಟಮ್ ಶೈಲಿಯನ್ನು ರಕ್ಷಿಸುತ್ತದೆ. ಆಫ್-ಸೈಟ್ ಗ್ರಾಹಕ ವಿವಾದಗಳಿಗೆ ಪ್ಲಾಟ್‌ಫಾರ್ಮ್ ಜವಾಬ್ದಾರನಾಗಿರುವುದಿಲ್ಲ.`
+  };
+
+  const [agreementTemplates, setAgreementTemplates] = useState<Record<string, string>>(defaultTemplates);
+  const [selectedAgreementLang, setSelectedAgreementLang] = useState<string>('en');
   const [globalSettings, setGlobalSettings] = useState<any>(null);
 
   // Pre-select template from URL query parameters if present
@@ -86,6 +138,15 @@ export default function BusinessSetupWizard() {
         if (data && data.description) {
           const parsed = JSON.parse(data.description);
           setGlobalSettings(parsed);
+
+          if (parsed.agreementTemplates) {
+            setAgreementTemplates(parsed.agreementTemplates);
+            localStorage.setItem('saas_agreement_templates', JSON.stringify(parsed.agreementTemplates));
+          } else if (parsed.agreementTemplate) {
+            const migrated = { ...defaultTemplates, en: parsed.agreementTemplate };
+            setAgreementTemplates(migrated);
+            localStorage.setItem('saas_agreement_templates', JSON.stringify(migrated));
+          }
 
           // Seed local storage with these global settings so print/agreement windows can access them
           if (parsed.brandName) localStorage.setItem('saas_brand_name', parsed.brandName);
@@ -421,6 +482,7 @@ export default function BusinessSetupWizard() {
 
   const handlePrintContract = () => {
     if (typeof window === 'undefined') return;
+    const activeTerms = agreementTemplates[selectedAgreementLang] || defaultTemplates[selectedAgreementLang];
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
@@ -496,12 +558,12 @@ export default function BusinessSetupWizard() {
           </div>
 
           <div class="section">
-            <div class="section-title">Terms &amp; Conditions of Service</div>
+            <div class="section-title">Terms &amp; Conditions of Service (${selectedAgreementLang.toUpperCase()})</div>
             <div class="terms">
-              ${(localStorage.getItem('saas_agreement_template') || '1. PROVISIONS OF SERVICE: The Creva E-Commerce SaaS platform grants the undersigned Merchant the license to operate an automated retail storefront website using our cloud architecture.\n2. PLAN RENEWALS: The Merchant understands that platform billing utilizes an inquiry activation system.')
+              ${activeTerms
                 .split('\n')
                 .filter((line: string) => line.trim())
-                .map((para: string) => `<p>${para.trim()}</p>`)
+                .map((para: string) => `<p>${para.trim().replace(/&/g, '&amp;')}</p>`)
                 .join('')
               }
             </div>
@@ -571,6 +633,8 @@ export default function BusinessSetupWizard() {
         contractSigned: true,
         contractSignedAt: new Date().toISOString(),
         contractSignature: signature,
+        selectedLanguage: selectedAgreementLang,
+        signedAgreementTerms: agreementTemplates[selectedAgreementLang] || defaultTemplates[selectedAgreementLang],
         selectedPlan: selectedPlan,
         assignedOfficer: assignedOfficer,
         paymentScreenshotUrl: paymentScreenshotUrl,
@@ -1023,14 +1087,45 @@ export default function BusinessSetupWizard() {
 
               {/* Legal Merchant Agreement Content */}
               <div className="space-y-2.5">
-                <label className="block text-xs font-black text-muted-foreground uppercase tracking-wider">Creva merchant licensing agreement</label>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <label className="block text-xs font-black text-muted-foreground uppercase tracking-wider">
+                    Creva merchant licensing agreement
+                  </label>
+                  
+                  {/* Language Selector Dropdown/Tabs */}
+                  <div className="flex gap-1 p-0.5 bg-muted rounded-lg border border-border self-start sm:self-auto">
+                    {[
+                      { code: 'en', label: 'EN' },
+                      { code: 'ta', label: 'TA' },
+                      { code: 'hi', label: 'HI' },
+                      { code: 'te', label: 'TE' },
+                      { code: 'ml', label: 'ML' },
+                      { code: 'kn', label: 'KN' }
+                    ].map((lang) => (
+                      <button
+                        key={lang.code}
+                        type="button"
+                        onClick={() => setSelectedAgreementLang(lang.code)}
+                        className={`px-2 py-1 text-[10px] font-black rounded transition-all ${
+                          selectedAgreementLang === lang.code
+                            ? 'bg-background text-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        {lang.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="h-44 bg-muted/40 border border-border rounded-xl p-4 overflow-y-auto text-xs space-y-3 font-mono leading-relaxed text-muted-foreground text-justify shadow-inner">
-                  <p className="font-bold text-foreground uppercase">1. SCOPE OF THE MERCHANT LICENSE</p>
-                  <p>The Creva Platform grants the signing Merchant the right to operate an e-commerce storefront utilizing Creva's software architecture. Subscription activations are confirmed manually via our support verification team.</p>
-                  <p className="font-bold text-foreground uppercase">2. COMPLIANCE & ACCEPTABLE USE POLICY</p>
-                  <p>Merchant agrees to sell only products that comply with local guidelines. Selling illegal, counterfeit, or prohibited materials will result in immediate shop termination without any refunds.</p>
-                  <p className="font-bold text-foreground uppercase">3. SUBSCRIPTION INQUIRY PAYMENT POLICY</p>
-                  <p>Merchant agrees to pay the respective fees for the chosen tier. Expiry of the plan limits custom domains and features until renewed.</p>
+                  {(agreementTemplates[selectedAgreementLang] || defaultTemplates[selectedAgreementLang] || '')
+                    .split('\n')
+                    .filter((line: string) => line.trim())
+                    .map((para: string, i: number) => (
+                      <p key={i}>{para.trim()}</p>
+                    ))
+                  }
                 </div>
               </div>
 
