@@ -45,6 +45,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         .from('stores')
         .select('*')
         .eq('owner_id', user.id)
+        .neq('subdomain', '__creva_saas_global_settings__')
         .single();
         
       setStore(storeData);

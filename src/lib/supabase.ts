@@ -6,6 +6,7 @@ const API_BASE_URL = 'https://rentalwebsite-backend-vn40.onrender.com/api';
 class MockSupabaseQueryBuilder {
   private tableName: string;
   private filters: Record<string, any> = {};
+  private excludeFilters: { field: string; value: any }[] = [];
   private sortField: string | null = null;
   private sortAscending: boolean = true;
   private selectFields: string = '*';
@@ -27,6 +28,11 @@ class MockSupabaseQueryBuilder {
 
   eq(field: string, value: any) {
     this.filters[field] = value;
+    return this;
+  }
+
+  neq(field: string, value: any) {
+    this.excludeFilters.push({ field, value });
     return this;
   }
 
@@ -171,8 +177,16 @@ class MockSupabaseQueryBuilder {
       const data = await response.json();
       
       let finalData = data;
+      if (this.action === 'select' && Array.isArray(data)) {
+        let filtered = [...data];
+        this.excludeFilters.forEach(({ field, value }) => {
+          filtered = filtered.filter(item => item[field] !== value);
+        });
+        finalData = filtered;
+      }
+
       if (this.action === 'select' && this.isSingle) {
-        finalData = Array.isArray(data) ? (data[0] || null) : data;
+        finalData = Array.isArray(finalData) ? (finalData[0] || null) : finalData;
       }
 
       const result = { data: finalData, error: null };

@@ -65,6 +65,7 @@ export default function SettingsPage() {
       .from('stores')
       .select('*')
       .eq('owner_id', user.id)
+      .neq('subdomain', '__creva_saas_global_settings__')
       .single();
       
     if (storeData) {

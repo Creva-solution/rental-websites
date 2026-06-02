@@ -173,7 +173,12 @@ export default function ProductsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     
-    const { data: storeData } = await supabase.from('stores').select('*').eq('owner_id', user.id).single();
+    const { data: storeData } = await supabase
+      .from('stores')
+      .select('*')
+      .eq('owner_id', user.id)
+      .neq('subdomain', '__creva_saas_global_settings__')
+      .single();
     if (storeData) {
       setStore(storeData);
       const { data: prodData } = await supabase
