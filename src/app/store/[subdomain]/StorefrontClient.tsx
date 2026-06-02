@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { 
   ShoppingCart, Menu, Search, X, Loader2, User, ChevronLeft, ChevronRight, 
   Truck, Shield, RefreshCw, ArrowRight, Heart, Star, Check, Eye, ArrowUpDown, 
-  Sparkles, Package, ShoppingBag, EyeOff, Calendar, Clock, Instagram, Facebook, Twitter, Youtube, Linkedin
+  Sparkles, Package, ShoppingBag, EyeOff, Calendar, Clock, Instagram, Facebook, Twitter, Youtube, Linkedin, MessageCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -221,6 +221,26 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   }, [primaryColor]);
 
   const currencySymbol = store.currency === 'USD' ? '$' : '₹';
+
+  const [globalSettings, setGlobalSettings] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchGlobalSettings = async () => {
+      try {
+        const { data } = await supabase
+          .from('stores')
+          .select('description')
+          .eq('subdomain', '__creva_saas_global_settings__')
+          .maybeSingle();
+        if (data && data.description) {
+          setGlobalSettings(JSON.parse(data.description));
+        }
+      } catch (e) {
+        console.error("Failed to load global settings:", e);
+      }
+    };
+    fetchGlobalSettings();
+  }, []);
 
   // Parse custom metadata for banner slideshow & announcement bar message
   let parsedDesc = store.description || '';
@@ -4222,6 +4242,58 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           </div>
         </div>
       )}
+      {/* Floating Click-to-Chat WhatsApp Widget */}
+      {(() => {
+        // WhatsApp settings parsing
+        let whatsappNumber = '';
+        let whatsappEnabled = true;
+        let whatsappWelcomeMessage = '';
+        let selectedPlan = '30';
+
+        try {
+          if (store.description && store.description.startsWith('{')) {
+            const data = JSON.parse(store.description);
+            whatsappNumber = data.whatsappNumber || '';
+            whatsappEnabled = data.whatsappEnabled !== false;
+            whatsappWelcomeMessage = data.whatsappWelcomeMessage || '';
+            selectedPlan = data.selectedPlan || '30';
+          }
+        } catch (e) {}
+
+        const isGloballyEnabled = globalSettings?.whatsappEnabledGlobal !== false;
+        const plansCtc = globalSettings?.whatsappPlansEnabled || ['30', '365', 'lifetime'];
+        const hasClickToChat = isGloballyEnabled && plansCtc.includes(selectedPlan);
+        const isWidgetVisible = hasClickToChat && whatsappEnabled && whatsappNumber.trim().length > 0;
+
+        if (!isWidgetVisible) return null;
+
+        const cleanNumber = whatsappNumber.replace(/\D/g, '');
+        const messageToSend = whatsappWelcomeMessage.trim() || globalSettings?.whatsappDefaultWelcome || "Hi! I would like to query about your products.";
+        const whatsappUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(messageToSend)}`;
+
+        return (
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Chat with us on WhatsApp"
+            className="fixed bottom-6 right-6 z-40 bg-emerald-500 hover:bg-emerald-600 text-white p-4 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group overflow-hidden border border-emerald-400/20"
+            style={{
+              boxShadow: '0 10px 25px -5px rgba(16, 185, 129, 0.4), 0 8px 10px -6px rgba(16, 185, 129, 0.4)'
+            }}
+          >
+            {/* Pulsing glow spot */}
+            <span className="absolute inset-0 rounded-full bg-emerald-400 opacity-0 group-hover:animate-ping group-hover:opacity-20 pointer-events-none" />
+            
+            <MessageCircle className="w-6 h-6 animate-pulse" />
+            
+            {/* Tooltip */}
+            <span className="absolute right-16 bg-slate-900 text-white font-bold tracking-wider text-[9px] uppercase px-3 py-1.5 rounded-lg opacity-0 translate-x-3 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 whitespace-nowrap shadow-md pointer-events-none">
+              Chat with us
+            </span>
+          </a>
+        );
+      })()}
 
     </div>
   );

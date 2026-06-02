@@ -21,6 +21,14 @@ export default function OrdersPage() {
   // Bulk Actions Selection
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [bulkPrintOrders, setBulkPrintOrders] = useState<any[]>([]);
+
+  // WhatsApp Action Dialog States
+  const [globalSettings, setGlobalSettings] = useState<any>(null);
+  const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = useState<boolean>(false);
+  const [whatsappDialogOrder, setWhatsappDialogOrder] = useState<any>(null);
+  const [whatsappUpdateStatus, setWhatsappUpdateStatus] = useState<'accepted' | 'shipped' | 'delivered'>('accepted');
+  const [whatsappCustomMessage, setWhatsappCustomMessage] = useState<string>('');
+  const [copiedPhoneOrderId, setCopiedPhoneOrderId] = useState<string | null>(null);
   
   // Extra Fields states for Edit/drawer
   const [editingOrder, setEditingOrder] = useState<any>(null);
@@ -77,6 +85,22 @@ export default function OrdersPage() {
         .order('created_at', { ascending: false });
       if (ordData) setOrders(ordData);
     }
+    
+    // Fetch global SaaS settings
+    try {
+      const { data: globalData } = await supabase
+        .from('stores')
+        .select('description')
+        .eq('subdomain', '__creva_saas_global_settings__')
+        .maybeSingle();
+
+      if (globalData && globalData.description) {
+        setGlobalSettings(JSON.parse(globalData.description));
+      }
+    } catch (err) {
+      console.error("Failed to fetch global settings:", err);
+    }
+
     setLoading(false);
     setRefreshing(false);
   };
@@ -253,6 +277,38 @@ export default function OrdersPage() {
   };
 
   // WhatsApp Redirect Text Generator
+  const generateUpdateMessage = (order: any, status: 'accepted' | 'shipped' | 'delivered') => {
+    if (!order) return '';
+    const storeName = store?.store_name || 'Our Store';
+    const customerName = order.customer_name || 'Valued Customer';
+    const orderId = order.id.substring(0, 6).toUpperCase();
+    const amount = `${currencySymbol}${Number(order.total_amount).toLocaleString()}`;
+    const extra = getExtraFields(order.id);
+
+    if (status === 'accepted') {
+      return `Hi ${customerName}! Your order #${orderId} at ${storeName} has been accepted. Total amount: ${amount}. Thank you for shopping with us!`;
+    } else if (status === 'shipped') {
+      const tracking = extra.tracking_number ? `Tracking number: ${extra.tracking_number}` : 'It will be shipped via local courier shortly.';
+      return `Hi ${customerName}! Good news! Your order #${orderId} at ${storeName} has been shipped. ${tracking} Thank you for shopping with us!`;
+    } else {
+      return `Hi ${customerName}! Your order #${orderId} at ${storeName} has been successfully delivered. We hope you love your products! Please let us know if you have any feedback.`;
+    }
+  };
+
+  const handleOpenWhatsAppDialog = (order: any) => {
+    setWhatsappDialogOrder(order);
+    setWhatsappUpdateStatus('accepted');
+    const defaultMsg = generateUpdateMessage(order, 'accepted');
+    setWhatsappCustomMessage(defaultMsg);
+    setIsWhatsAppDialogOpen(true);
+  };
+
+  const handleCopyPhone = (phone: string) => {
+    navigator.clipboard.writeText(phone);
+    setCopiedPhoneOrderId(phone);
+    setTimeout(() => setCopiedPhoneOrderId(null), 2500);
+  };
+
   const handleWhatsAppRedirect = (order: any) => {
     const cleanPhone = order.customer_phone.replace(/[^0-9]/g, '');
     const storeName = store?.store_name || 'Our Store';
@@ -728,7 +784,7 @@ export default function OrdersPage() {
                               </button>
 
                               <button 
-                                onClick={() => handleWhatsAppRedirect(order)}
+                                onClick={() => handleOpenWhatsAppDialog(order)}
                                 className="p-1 hover:bg-emerald-50 rounded text-emerald-600 transition-all flex items-center justify-center"
                                 title="WhatsApp Customer"
                               >
@@ -912,7 +968,7 @@ export default function OrdersPage() {
                     <Printer className="w-3.5 h-3.5" /> PDF Invoice
                   </button>
                   <button
-                    onClick={() => handleWhatsAppRedirect(selectedOrder)}
+                    onClick={() => handleOpenWhatsAppDialog(selectedOrder)}
                     className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase tracking-wider text-[10px] py-3 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer shadow-md shadow-emerald-600/10"
                   >
                     <MessageSquare className="w-3.5 h-3.5" /> Ping Customer
@@ -1163,6 +1219,195 @@ export default function OrdersPage() {
           </div>
         </div>
       )}
+
+      {/* Premium WhatsApp Integration Modal */}
+      {isWhatsAppDialogOpen && whatsappDialogOrder && (() => {
+        const order = whatsappDialogOrder;
+        const cleanPhone = order.customer_phone ? order.customer_phone.replace(/[^0-9]/g, '') : '';
+        const whatsappNumberToUse = cleanPhone.startsWith('91') ? cleanPhone : '91' + cleanPhone;
+
+        const isGloballyEnabled = globalSettings?.whatsappEnabledGlobal !== false;
+        let selectedPlan = '30';
+        try {
+          if (store?.description && store.description.startsWith('{')) {
+            const parsed = JSON.parse(store.description);
+            selectedPlan = parsed.selectedPlan || '30';
+          }
+        } catch (e) {}
+
+        const plansCtc = globalSettings?.whatsappPlansEnabled || ['30', '365', 'lifetime'];
+        const plansOua = globalSettings?.whatsappPlansOrderUpdatesEnabled || ['365', 'lifetime'];
+
+        const hasClickToChat = plansCtc.includes(selectedPlan);
+        const hasOrderUpdates = plansOua.includes(selectedPlan);
+
+        const isLocked = !isGloballyEnabled || !hasClickToChat || !hasOrderUpdates;
+
+        return (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-background border border-border max-w-lg w-full shadow-2xl rounded-3xl relative overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 font-sans text-left">
+              
+              {/* Header */}
+              <div className="p-6 border-b border-border flex items-center justify-between bg-muted/10 shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-emerald-500/10 text-emerald-600 rounded-xl">
+                    <MessageSquare className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm text-foreground uppercase tracking-wider">WhatsApp Contact Actions</h3>
+                    <p className="text-[10px] text-muted-foreground">Order #{order.id.substring(0, 8).toUpperCase()}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsWhatsAppDialogOpen(false)}
+                  className="p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground rounded-full transition-all"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Scrollable Body */}
+              <div className="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
+                {/* Customer Summary Card */}
+                <div className="p-4 bg-muted/20 border rounded-2xl flex items-center justify-between">
+                  <div>
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Customer Details</span>
+                    <strong className="text-sm font-black text-foreground block mt-0.5">{order.customer_name}</strong>
+                    <span className="text-xs text-muted-foreground mt-0.5 font-mono">{order.customer_phone}</span>
+                  </div>
+                  <button
+                    onClick={() => handleCopyPhone(order.customer_phone)}
+                    className="flex items-center gap-1 bg-background hover:bg-muted text-foreground border px-3 py-2 rounded-xl font-bold uppercase tracking-wider text-[9px] transition-all shadow-sm shrink-0"
+                  >
+                    {copiedPhoneOrderId === order.customer_phone ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-600" /> Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" /> Copy Number
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Lock Status Banner */}
+                {isLocked && (
+                  <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl p-4 flex gap-3 text-left">
+                    <span className="text-base shrink-0">🔒</span>
+                    <div>
+                      <strong className="block font-bold">Premium Subscription Feature</strong>
+                      {!isGloballyEnabled ? (
+                        "WhatsApp integration is globally deactivated by the platform super-administrator."
+                      ) : !hasClickToChat ? (
+                        "WhatsApp Integration is not unlocked in your current subscription plan. Upgrade your package to enable customer chat features."
+                      ) : (
+                        "Outgoing Order Updates require a Premium Plan. Your current plan only supports storefront Click-to-Chat queries. Upgrade now to enable automated and manual alerts."
+                      )}
+                      <div className="mt-3">
+                        <a 
+                          href="/admin/subscription"
+                          className="inline-block px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
+                        >
+                          Upgrade Now
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* WhatsApp Actions (Disabled if locked) */}
+                <div className={`space-y-6 ${isLocked ? 'opacity-40 pointer-events-none' : ''}`}>
+                  
+                  {/* Action 1: Instant Quick Chat */}
+                  <div className="space-y-2">
+                    <h4 className="font-bold text-[10px] text-muted-foreground uppercase tracking-widest block">1. Instant Customer Chat</h4>
+                    <p className="text-[10px] text-muted-foreground">Open a blank WhatsApp chat instantly with the customer without sending status-specific alerts.</p>
+                    <button
+                      onClick={() => {
+                        const welcomeText = store?.whatsappWelcomeMessage || globalSettings?.whatsappDefaultWelcome || "Hi, I am reaching out regarding your order.";
+                        window.open(`https://wa.me/${whatsappNumberToUse}?text=${encodeURIComponent(welcomeText)}`, '_blank');
+                      }}
+                      disabled={isLocked}
+                      className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase tracking-widest text-[9px] rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-emerald-600/10 cursor-pointer"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" /> Start Instant WhatsApp Chat
+                    </button>
+                  </div>
+
+                  {/* Action 2: Order Alert Campaign */}
+                  <div className="space-y-3 pt-2 border-t border-border">
+                    <h4 className="font-bold text-[10px] text-muted-foreground uppercase tracking-widest block">2. Send Custom Order Alert Update</h4>
+                    <p className="text-[10px] text-muted-foreground">Select a fulfillment status to load the correct message template, modify the text below manually if needed, and send.</p>
+                    
+                    {/* Status Tabs */}
+                    <div className="grid grid-cols-3 gap-2 bg-muted/20 p-1.5 rounded-xl border border-border/80">
+                      {(['accepted', 'shipped', 'delivered'] as const).map((status) => {
+                        const isActive = whatsappUpdateStatus === status;
+                        return (
+                          <button
+                            key={status}
+                            type="button"
+                            onClick={() => {
+                              setWhatsappUpdateStatus(status);
+                              const msg = generateUpdateMessage(order, status);
+                              setWhatsappCustomMessage(msg);
+                            }}
+                            disabled={isLocked}
+                            className={`py-2 px-1 text-center font-bold uppercase tracking-wider text-[9px] rounded-lg transition-all ${
+                              isActive 
+                                ? 'bg-background text-foreground shadow-sm' 
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            {status}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Preview Message Textarea */}
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Manual Message Preview (Editable)</label>
+                      <textarea
+                        value={whatsappCustomMessage}
+                        onChange={(e) => setWhatsappCustomMessage(e.target.value)}
+                        rows={4}
+                        disabled={isLocked}
+                        className="w-full bg-background border rounded-xl p-3 text-xs leading-normal focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none font-sans"
+                        placeholder="Customize message here..."
+                      />
+                      <p className="text-[9px] text-muted-foreground">Edit this message manually if you want to add customized shipping links or notes.</p>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        window.open(`https://wa.me/${whatsappNumberToUse}?text=${encodeURIComponent(whatsappCustomMessage)}`, '_blank');
+                      }}
+                      disabled={isLocked || !whatsappCustomMessage.trim()}
+                      className="w-full py-3 bg-[#3C77C3] hover:bg-[#3C77C3]/90 text-white font-bold uppercase tracking-widest text-[9px] rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-[#3C77C3]/15 cursor-pointer"
+                    >
+                      <Send className="w-3.5 h-3.5" /> Send Order {whatsappUpdateStatus.toUpperCase()} Update
+                    </button>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-border bg-muted/10 flex justify-end shrink-0">
+                <button
+                  onClick={() => setIsWhatsAppDialogOpen(false)}
+                  className="px-4 py-2 bg-background hover:bg-muted text-foreground border rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all"
+                >
+                  Close Actions
+                </button>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

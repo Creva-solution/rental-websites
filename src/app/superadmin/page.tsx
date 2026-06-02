@@ -5,7 +5,8 @@ import { supabase } from '@/lib/supabase';
 import { 
   Building2, Globe, ShieldAlert, ShieldCheck, Play, Pause, 
   Search, RefreshCw, Copy, Check, Database, HelpCircle,
-  Infinity, Calendar, Clock, Zap, Plus, FileText, X, Printer, Send, Upload, Trash2, Smartphone, Layers
+  Infinity, Calendar, Clock, Zap, Plus, FileText, X, Printer, Send, Upload, Trash2, Smartphone, Layers,
+  ToggleLeft, ToggleRight, MessageSquare
 } from 'lucide-react';
 
 export default function SuperAdminDashboard() {
@@ -90,7 +91,11 @@ export default function SuperAdminDashboard() {
   // Advanced filters and branding dashboard states
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [isBrandingOpen, setIsBrandingOpen] = useState<boolean>(false);
-  const [activeSettingTab, setActiveSettingTab] = useState<'branding' | 'pricing' | 'officers' | 'agreement' | 'templates'>('branding');
+  const [activeSettingTab, setActiveSettingTab] = useState<'branding' | 'pricing' | 'officers' | 'agreement' | 'templates' | 'whatsapp'>('branding');
+  const [whatsappEnabledGlobal, setWhatsappEnabledGlobal] = useState<boolean>(true);
+  const [whatsappPlansEnabled, setWhatsappPlansEnabled] = useState<string[]>(['30', '365', 'lifetime']);
+  const [whatsappPlansOrderUpdatesEnabled, setWhatsappPlansOrderUpdatesEnabled] = useState<string[]>(['365', 'lifetime']);
+  const [whatsappDefaultWelcome, setWhatsappDefaultWelcome] = useState<string>('Hi, I would like to query about your products!');
 
   // Custom storefront templates thumbnail state
   const [templateThumbnails, setTemplateThumbnails] = useState<Record<string, string>>({
@@ -227,6 +232,19 @@ export default function SuperAdminDashboard() {
     if (savedDisabledDefaultPlans) {
       try { setDisabledDefaultPackages(JSON.parse(savedDisabledDefaultPlans)); } catch (e) {}
     }
+
+    const savedWaGlobal = localStorage.getItem('saas_wa_enabled_global');
+    const savedWaPlans = localStorage.getItem('saas_wa_plans_enabled');
+    const savedWaOrderUpdates = localStorage.getItem('saas_wa_plans_order_updates_enabled');
+    const savedWaWelcome = localStorage.getItem('saas_wa_default_welcome');
+    if (savedWaGlobal) setWhatsappEnabledGlobal(savedWaGlobal === 'true');
+    if (savedWaPlans) {
+      try { setWhatsappPlansEnabled(JSON.parse(savedWaPlans)); } catch(e) {}
+    }
+    if (savedWaOrderUpdates) {
+      try { setWhatsappPlansOrderUpdatesEnabled(JSON.parse(savedWaOrderUpdates)); } catch(e) {}
+    }
+    if (savedWaWelcome) setWhatsappDefaultWelcome(savedWaWelcome);
   }, []);
 
   // Handle officer stamp image upload
@@ -437,7 +455,11 @@ export default function SuperAdminDashboard() {
         customDomainUnlockPrice,
         templateThumbnails,
         customPackages: updatedPackages,
-        disabledDefaultPackages: updatedDisabledDefaults
+        disabledDefaultPackages: updatedDisabledDefaults,
+        whatsappEnabledGlobal,
+        whatsappPlansEnabled,
+        whatsappPlansOrderUpdatesEnabled,
+        whatsappDefaultWelcome
       };
 
       // Check if global settings row exists in Supabase
@@ -533,6 +555,10 @@ export default function SuperAdminDashboard() {
       localStorage.setItem('saas_template_thumbnails', JSON.stringify(templateThumbnails));
       localStorage.setItem('saas_custom_packages', JSON.stringify(customPackages));
       localStorage.setItem('saas_disabled_default_packages', JSON.stringify(disabledDefaultPackages));
+      localStorage.setItem('saas_wa_enabled_global', String(whatsappEnabledGlobal));
+      localStorage.setItem('saas_wa_plans_enabled', JSON.stringify(whatsappPlansEnabled));
+      localStorage.setItem('saas_wa_plans_order_updates_enabled', JSON.stringify(whatsappPlansOrderUpdatesEnabled));
+      localStorage.setItem('saas_wa_default_welcome', whatsappDefaultWelcome);
 
       const settingsData = {
         brandName,
@@ -548,7 +574,11 @@ export default function SuperAdminDashboard() {
         customDomainUnlockPrice,
         templateThumbnails,
         customPackages,
-        disabledDefaultPackages
+        disabledDefaultPackages,
+        whatsappEnabledGlobal,
+        whatsappPlansEnabled,
+        whatsappPlansOrderUpdatesEnabled,
+        whatsappDefaultWelcome
       };
 
       // Check if global settings row exists
@@ -814,6 +844,22 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
           if (parsed.disabledDefaultPackages) {
             setDisabledDefaultPackages(parsed.disabledDefaultPackages);
             localStorage.setItem('saas_disabled_default_packages', JSON.stringify(parsed.disabledDefaultPackages));
+          }
+          if (parsed.whatsappEnabledGlobal !== undefined) {
+            setWhatsappEnabledGlobal(parsed.whatsappEnabledGlobal);
+            localStorage.setItem('saas_wa_enabled_global', String(parsed.whatsappEnabledGlobal));
+          }
+          if (parsed.whatsappPlansEnabled) {
+            setWhatsappPlansEnabled(parsed.whatsappPlansEnabled);
+            localStorage.setItem('saas_wa_plans_enabled', JSON.stringify(parsed.whatsappPlansEnabled));
+          }
+          if (parsed.whatsappPlansOrderUpdatesEnabled) {
+            setWhatsappPlansOrderUpdatesEnabled(parsed.whatsappPlansOrderUpdatesEnabled);
+            localStorage.setItem('saas_wa_plans_order_updates_enabled', JSON.stringify(parsed.whatsappPlansOrderUpdatesEnabled));
+          }
+          if (parsed.whatsappDefaultWelcome) {
+            setWhatsappDefaultWelcome(parsed.whatsappDefaultWelcome);
+            localStorage.setItem('saas_wa_default_welcome', parsed.whatsappDefaultWelcome);
           }
         } catch (e) {
           console.error("Failed to parse global settings from DB:", e);
@@ -2839,6 +2885,19 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                   <Layers className="w-4 h-4" />
                   Template Thumbnails
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveSettingTab('whatsapp')}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-bold transition-all w-full text-left ${
+                    activeSettingTab === 'whatsapp'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-850'
+                  }`}
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  WhatsApp Integration
+                </button>
               </div>
 
               {/* Tab Panels Content */}
@@ -3552,6 +3611,137 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                           </div>
                         );
                       })}
+                    </div>
+                  </div>
+                )}
+
+                {/* 6. WHATSAPP INTEGRATION TAB */}
+                {activeSettingTab === 'whatsapp' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                        <MessageSquare className="w-4 h-4 text-emerald-450" />
+                        WhatsApp Integration Settings
+                      </h3>
+                      <p className="text-xs text-gray-400 mt-0.5">Globally configure storefront click-to-chat widgets, order alert campaigns, and subscription plan limits.</p>
+                    </div>
+
+                    <div className="border border-gray-800 p-5 rounded-xl bg-gray-950/40 space-y-5 text-left">
+                      {/* Global Enable Switch */}
+                      <div className="flex items-center justify-between pb-4 border-b border-gray-850">
+                        <div>
+                          <h4 className="text-xs font-bold text-white">Global WhatsApp Module Activation</h4>
+                          <p className="text-[10px] text-gray-500 mt-0.5">Activate or deactivate the WhatsApp suite (storefront widgets and admin triggers) platform-wide.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setWhatsappEnabledGlobal(!whatsappEnabledGlobal)}
+                          className="focus:outline-none transition-all"
+                        >
+                          {whatsappEnabledGlobal ? (
+                            <ToggleRight className="w-10 h-10 text-emerald-500" strokeWidth={1.5} />
+                          ) : (
+                            <ToggleLeft className="w-10 h-10 text-gray-600" strokeWidth={1.5} />
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Default Welcome Message Input */}
+                      <div className="space-y-2 pb-4 border-b border-gray-850">
+                        <div>
+                          <h4 className="text-xs font-bold text-white">Default Storefront Welcome Message</h4>
+                          <p className="text-[10px] text-gray-500 mt-0.5">This greeting message is automatically loaded when a storefront customer clicks the WhatsApp widget if the store owner hasn't customized their message.</p>
+                        </div>
+                        <input
+                          type="text"
+                          value={whatsappDefaultWelcome}
+                          onChange={(e) => setWhatsappDefaultWelcome(e.target.value)}
+                          className="w-full bg-gray-900 border border-gray-850 focus:border-emerald-500 focus:outline-none rounded-lg px-3 py-2 text-xs text-white transition-all font-medium placeholder:text-gray-700"
+                          placeholder="e.g. Hi, I would like to query about your products!"
+                        />
+                      </div>
+
+                      {/* Plan Permissions List */}
+                      <div className="space-y-3">
+                        <div>
+                          <h4 className="text-xs font-bold text-white">Subscription Plans Permission Settings</h4>
+                          <p className="text-[10px] text-gray-500 mt-0.5">Check plans authorized to display the storefront chat widget and process outgoing order status notifications.</p>
+                        </div>
+
+                        <div className="overflow-hidden border border-gray-850 rounded-lg">
+                          <table className="w-full text-[11px] text-left">
+                            <thead className="bg-gray-900 text-gray-400 uppercase text-[9px] font-black tracking-wider border-b border-gray-850">
+                              <tr>
+                                <th className="px-4 py-3">Plan Name</th>
+                                <th className="px-4 py-3 text-center">Click-To-Chat Widget</th>
+                                <th className="px-4 py-3 text-center">Order Update Alerts</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-850">
+                              {(() => {
+                                const defaultPlans = [
+                                  { id: '30', name: '1 Month Plan (Basic)' },
+                                  { id: '365', name: '1 Year Plan (Standard)' },
+                                  { id: 'lifetime', name: 'Lifetime Plan (Premium)' }
+                                ].filter(plan => !disabledDefaultPackages.includes(plan.id));
+
+                                const customPlans = customPackages.map(pkg => ({
+                                  id: pkg.id,
+                                  name: `${pkg.name} (Custom)`
+                                }));
+
+                                const allPlans = [...defaultPlans, ...customPlans];
+
+                                if (allPlans.length === 0) {
+                                  return (
+                                    <tr>
+                                      <td colSpan={3} className="px-4 py-6 text-center text-gray-500">
+                                        No subscription packages created yet.
+                                      </td>
+                                    </tr>
+                                  );
+                                }
+
+                                return allPlans.map(plan => {
+                                  const isCtcEnabled = whatsappPlansEnabled.includes(plan.id);
+                                  const isOuaEnabled = whatsappPlansOrderUpdatesEnabled.includes(plan.id);
+
+                                  return (
+                                    <tr key={plan.id} className="hover:bg-gray-900/40">
+                                      <td className="px-4 py-3 font-bold text-white">{plan.name}</td>
+                                      <td className="px-4 py-3 text-center">
+                                        <input
+                                          type="checkbox"
+                                          checked={isCtcEnabled}
+                                          onChange={() => setWhatsappPlansEnabled(prev =>
+                                            prev.includes(plan.id)
+                                              ? prev.filter(x => x !== plan.id)
+                                              : [...prev, plan.id]
+                                          )}
+                                          className="w-4 h-4 rounded border-gray-800 text-emerald-650 bg-gray-950 focus:ring-emerald-500/20 accent-emerald-500 cursor-pointer"
+                                        />
+                                      </td>
+                                      <td className="px-4 py-3 text-center">
+                                        <input
+                                          type="checkbox"
+                                          checked={isOuaEnabled}
+                                          onChange={() => setWhatsappPlansOrderUpdatesEnabled(prev =>
+                                            prev.includes(plan.id)
+                                              ? prev.filter(x => x !== plan.id)
+                                              : [...prev, plan.id]
+                                          )}
+                                          className="w-4 h-4 rounded border-gray-800 text-emerald-650 bg-gray-950 focus:ring-emerald-500/20 accent-emerald-500 cursor-pointer"
+                                        />
+                                      </td>
+                                    </tr>
+                                  );
+                                });
+                              })()}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
                     </div>
                   </div>
                 )}

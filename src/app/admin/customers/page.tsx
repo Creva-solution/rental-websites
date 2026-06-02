@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Users, Search, MessageSquare, PhoneCall, Sparkles, UserCheck } from 'lucide-react';
+import { Loader2, Users, Search, MessageSquare, PhoneCall, Sparkles, UserCheck, Lock, X } from 'lucide-react';
 
 export default function CustomersPage() {
   const [store, setStore] = useState<any>(null);
   const [customers, setCustomers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [globalSettings, setGlobalSettings] = useState<any>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
 
   useEffect(() => {
     fetchCustomers();
@@ -69,6 +71,21 @@ export default function CustomersPage() {
           setCustomers(Array.from(custMap.values()).sort((a, b) => b.totalSpend - a.totalSpend));
         }
       }
+      
+      // Fetch global SaaS settings
+      try {
+        const { data: globalData } = await supabase
+          .from('stores')
+          .select('description')
+          .eq('subdomain', '__creva_saas_global_settings__')
+          .maybeSingle();
+
+        if (globalData && globalData.description) {
+          setGlobalSettings(JSON.parse(globalData.description));
+        }
+      } catch (err) {
+        console.error("Failed to fetch global settings:", err);
+      }
     } catch (err) {
       console.error("Failed to load customer profiles:", err);
     } finally {
@@ -83,6 +100,24 @@ export default function CustomersPage() {
   );
 
   const currencySymbol = store?.currency === 'USD' ? '$' : '₹';
+
+  // Determine WhatsApp permissions
+  const isGloballyEnabled = globalSettings?.whatsappEnabledGlobal !== false;
+  let selectedPlan = '30';
+  try {
+    if (store?.description && store.description.startsWith('{')) {
+      const parsed = JSON.parse(store.description);
+      selectedPlan = parsed.selectedPlan || '30';
+    }
+  } catch (e) {}
+
+  const plansCtc = globalSettings?.whatsappPlansEnabled || ['30', '365', 'lifetime'];
+  const plansOua = globalSettings?.whatsappPlansOrderUpdatesEnabled || ['365', 'lifetime'];
+
+  const hasClickToChat = plansCtc.includes(selectedPlan);
+  const hasOrderUpdates = plansOua.includes(selectedPlan);
+
+  const isLocked = !isGloballyEnabled || !hasClickToChat || !hasOrderUpdates;
 
   if (loading) return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
@@ -201,14 +236,23 @@ export default function CustomersPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <a
-                          href={`https://wa.me/${cust.phone.replace(/\D/g, '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[9px] uppercase tracking-wider px-3 py-2 rounded-xl transition-all shadow-sm shadow-emerald-500/10"
-                        >
-                          <MessageSquare className="w-3 h-3" /> WhatsApp
-                        </a>
+                        {isLocked ? (
+                          <button
+                            onClick={() => setShowUpgradeModal(true)}
+                            className="inline-flex items-center gap-1 bg-gray-200 hover:bg-gray-300 text-gray-500 font-bold text-[9px] uppercase tracking-wider px-3 py-2 rounded-xl transition-all shadow-sm"
+                          >
+                            <Lock className="w-3 h-3 text-gray-400" /> WhatsApp
+                          </button>
+                        ) : (
+                          <a
+                            href={`https://wa.me/${cust.phone.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[9px] uppercase tracking-wider px-3 py-2 rounded-xl transition-all shadow-sm shadow-emerald-500/10"
+                          >
+                            <MessageSquare className="w-3 h-3" /> WhatsApp
+                          </a>
+                        )}
                         <a
                           href={`tel:${cust.phone}`}
                           className="p-2 hover:bg-muted text-foreground border border-border/80 rounded-xl transition-all"
@@ -224,6 +268,40 @@ export default function CustomersPage() {
           </table>
         </div>
       </div>
+
+      {/* Premium Upgrade Modal */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-background border border-border max-w-sm w-full shadow-2xl rounded-3xl relative overflow-hidden flex flex-col p-6 animate-in zoom-in-95 duration-200 text-center font-sans">
+            
+            <div className="mx-auto w-12 h-12 bg-amber-500/10 text-amber-600 rounded-full flex items-center justify-center mb-4">
+              <Lock className="w-6 h-6" />
+            </div>
+
+            <h3 className="font-black text-sm text-foreground uppercase tracking-wider">Premium Feature Locked</h3>
+            
+            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+              Outgoing WhatsApp customer alerts and quick-contact actions require a **Premium Plan**. Your current plan only supports storefront Click-to-Chat query widgets.
+            </p>
+
+            <div className="grid grid-cols-2 gap-3 mt-6">
+              <button
+                onClick={() => setShowUpgradeModal(false)}
+                className="px-4 py-2.5 bg-muted hover:bg-muted/80 text-foreground border rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all"
+              >
+                Close
+              </button>
+              <a 
+                href="/admin/subscription"
+                className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all text-center flex items-center justify-center"
+              >
+                Upgrade Plan
+              </a>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

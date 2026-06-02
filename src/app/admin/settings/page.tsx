@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Globe, Save, Upload, Building, Phone, Mail, Palette, Check, X, ShieldAlert, ShieldCheck, Smartphone } from 'lucide-react';
+import { Loader2, Globe, Save, Upload, Building, Phone, Mail, Palette, Check, X, ShieldAlert, ShieldCheck, Smartphone, ToggleLeft, ToggleRight } from 'lucide-react';
 
 export default function SettingsPage() {
   const [store, setStore] = useState<any>(null);
@@ -25,6 +25,9 @@ export default function SettingsPage() {
     twitter: '',
     youtube: '',
     linkedin: '',
+    whatsapp_number: '',
+    whatsapp_enabled: true,
+    whatsapp_welcome: '',
   });
 
   const [verifyingDomain, setVerifyingDomain] = useState(false);
@@ -78,6 +81,9 @@ export default function SettingsPage() {
       let twitterUrl = '';
       let youtubeUrl = '';
       let linkedinUrl = '';
+      let waNum = '';
+      let waEnabled = true;
+      let waWelcome = '';
 
       try {
         if (storeData.description && storeData.description.startsWith('{')) {
@@ -88,6 +94,9 @@ export default function SettingsPage() {
           twitterUrl = parsed.twitter || '';
           youtubeUrl = parsed.youtube || '';
           linkedinUrl = parsed.linkedin || '';
+          waNum = parsed.whatsappNumber || '';
+          waEnabled = parsed.whatsappEnabled !== undefined ? parsed.whatsappEnabled : true;
+          waWelcome = parsed.whatsappWelcomeMessage || '';
         }
       } catch (e) {
         console.error("Failed to parse description JSON:", e);
@@ -107,6 +116,9 @@ export default function SettingsPage() {
         twitter: twitterUrl,
         youtube: youtubeUrl,
         linkedin: linkedinUrl,
+        whatsapp_number: waNum,
+        whatsapp_enabled: waEnabled,
+        whatsapp_welcome: waWelcome,
       });
 
       if (storeData.custom_domain) {
@@ -277,8 +289,17 @@ export default function SettingsPage() {
           twitter: formData.twitter,
           youtube: formData.youtube,
           linkedin: formData.linkedin,
+          whatsappNumber: formData.whatsapp_number,
+          whatsappEnabled: formData.whatsapp_enabled,
+          whatsappWelcomeMessage: formData.whatsapp_welcome,
         };
         finalDescription = JSON.stringify(merged);
+        
+        // Update local store state description also
+        setStore((prev: any) => ({
+          ...prev,
+          description: finalDescription
+        }));
       } catch (e) {
         console.error("Failed to construct merged description JSON:", e);
       }
@@ -500,6 +521,143 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+
+        {/* WhatsApp Integration Settings */}
+        {(() => {
+          // Determine WhatsApp permissions
+          const isGloballyEnabled = globalSettings?.whatsappEnabledGlobal !== false;
+          let selectedPlan = '30';
+          try {
+            if (store?.description && store.description.startsWith('{')) {
+              const parsed = JSON.parse(store.description);
+              selectedPlan = parsed.selectedPlan || '30';
+            }
+          } catch (e) {}
+
+          const plansCtc = globalSettings?.whatsappPlansEnabled || ['30', '365', 'lifetime'];
+          const plansOua = globalSettings?.whatsappPlansOrderUpdatesEnabled || ['365', 'lifetime'];
+
+          const hasClickToChat = plansCtc.includes(selectedPlan);
+          const hasOrderUpdates = plansOua.includes(selectedPlan);
+
+          return (
+            <div className="p-6 border-b border-border space-y-6 bg-emerald-50/5">
+              <h3 className="text-lg font-semibold flex items-center gap-2 text-foreground">
+                <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                WhatsApp Integration Module
+              </h3>
+              
+              <p className="text-sm text-muted-foreground mt-1">
+                Configure your storefront floating WhatsApp widget to receive customer queries directly on your phone.
+              </p>
+
+              {/* Status Banner */}
+              {!isGloballyEnabled ? (
+                <div className="bg-red-50 border border-red-200 text-red-800 rounded-xl p-4 text-xs flex gap-3 text-left">
+                  <span className="text-base">⚠️</span>
+                  <div>
+                    <strong className="block font-bold">Globally Deactivated</strong>
+                    The platform administrator has globally disabled WhatsApp Integration features. Please contact support.
+                  </div>
+                </div>
+              ) : !hasClickToChat ? (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-4 text-xs flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
+                  <div className="flex gap-3">
+                    <span className="text-base">🔒</span>
+                    <div>
+                      <strong className="block font-bold">Feature Locked in Your Plan</strong>
+                      WhatsApp integration is not enabled for your subscription plan. Upgrade your package in the subscription hub to unlock this feature.
+                    </div>
+                  </div>
+                  <a 
+                    href="/admin/subscription"
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider shrink-0 transition-all text-center"
+                  >
+                    Upgrade Plan
+                  </a>
+                </div>
+              ) : !hasOrderUpdates ? (
+                <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-xl p-4 text-xs flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
+                  <div className="flex gap-3">
+                    <span className="text-base">⚡</span>
+                    <div>
+                      <strong className="block font-bold">Basic Click-to-Chat Active</strong>
+                      Storefront chat widget is unlocked. Premium outgoing order status updates are locked. Upgrade to premium plan to alert customers directly via WhatsApp.
+                    </div>
+                  </div>
+                  <a 
+                    href="/admin/subscription"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider shrink-0 transition-all text-center"
+                  >
+                    Get Premium
+                  </a>
+                </div>
+              ) : (
+                <div className="bg-emerald-50 border border-emerald-250 text-emerald-850 rounded-xl p-4 text-xs flex gap-3 text-left">
+                  <span className="text-base">🌟</span>
+                  <div>
+                    <strong className="block font-bold">Premium WhatsApp Features Active</strong>
+                    You have full access to storefront Click-to-Chat widget and order status templates broadcasts.
+                  </div>
+                </div>
+              )}
+
+              {/* Form Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-90">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Business WhatsApp Number</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-3 text-xs text-muted-foreground font-bold font-mono">+</span>
+                    <input 
+                      type="tel" 
+                      placeholder="919876543210"
+                      disabled={!isGloballyEnabled || !hasClickToChat}
+                      value={formData.whatsapp_number} 
+                      onChange={e => setFormData({...formData, whatsapp_number: e.target.value.replace(/[^0-9]/g, '')})}
+                      className="w-full h-10 pl-7 pr-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-mono disabled:opacity-50 disabled:bg-muted"
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Provide digits with country code, without + or spaces (e.g. 919876543210 for India).</p>
+                </div>
+
+                <div className="space-y-2 flex flex-col justify-end">
+                  <div className="flex items-center justify-between h-10 px-3 bg-muted/15 rounded-md border">
+                    <span className="text-xs font-semibold">Enable Storefront WhatsApp Button</span>
+                    <button
+                      type="button"
+                      disabled={!isGloballyEnabled || !hasClickToChat}
+                      onClick={() => setFormData({...formData, whatsapp_enabled: !formData.whatsapp_enabled})}
+                      className="focus:outline-none transition-all disabled:opacity-50"
+                    >
+                      {formData.whatsapp_enabled ? (
+                        <ToggleRight className="w-9 h-9 text-emerald-600" strokeWidth={1.5} />
+                      ) : (
+                        <ToggleLeft className="w-9 h-9 text-muted-foreground" strokeWidth={1.5} />
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">If enabled, a floating WhatsApp icon will show up in the storefront corner.</p>
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-sm font-medium">Custom WhatsApp Welcome Message</label>
+                  <textarea 
+                    placeholder="Hi, I would like to query about your products!"
+                    rows={3}
+                    disabled={!isGloballyEnabled || !hasClickToChat}
+                    value={formData.whatsapp_welcome} 
+                    onChange={e => setFormData({...formData, whatsapp_welcome: e.target.value})}
+                    className="w-full p-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-emerald-500 outline-none text-sm disabled:opacity-50 disabled:bg-muted"
+                  />
+                  <p className="text-[10px] text-muted-foreground">Leave blank to use the default greeting configured by the system super-administrator.</p>
+                </div>
+              </div>
+
+            </div>
+          );
+        })()}
 
         {/* Domain Settings */}
         <div className="p-6 space-y-6 bg-muted/10">
