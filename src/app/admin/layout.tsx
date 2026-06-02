@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  LayoutDashboard, Package, ShoppingCart, Settings, Palette, ExternalLink, Loader2, AlertCircle, CreditCard, Menu, X
+  LayoutDashboard, Package, ShoppingCart, Settings, Palette, ExternalLink, Loader2, AlertCircle, CreditCard, Menu, X, PlayCircle
 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -288,6 +288,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link href="/admin/subscription" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/subscription' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
             <CreditCard className="w-[18px] h-[18px]" /> Subscription
           </Link>
+          <Link href="/admin/tutorial" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/tutorial' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <PlayCircle className="w-[18px] h-[18px] text-amber-500" /> Tutorial Video
+          </Link>
         </nav>
         <div className="p-4 border-t border-border bg-muted/20">
           <div className="flex items-center gap-3 min-w-0">
@@ -352,6 +355,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
           <Link href="/admin/subscription" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/subscription' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
             <CreditCard className="w-[18px] h-[18px]" /> Subscription
+          </Link>
+          <Link href="/admin/tutorial" className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${pathname === '/admin/tutorial' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
+            <PlayCircle className="w-[18px] h-[18px] text-amber-500" /> Tutorial Video
           </Link>
         </nav>
         <div className="p-4 border-t border-border">

@@ -10,6 +10,7 @@ export default function DashboardHome() {
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showTutorialModal, setShowTutorialModal] = useState(false);
 
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [addingProduct, setAddingProduct] = useState(false);
@@ -17,6 +18,12 @@ export default function DashboardHome() {
 
   useEffect(() => {
     fetchData();
+    if (typeof window !== 'undefined') {
+      const dismissed = localStorage.getItem('creva_merchant_onboarded_v1');
+      if (!dismissed) {
+        setShowTutorialModal(true);
+      }
+    }
   }, []);
 
   const fetchData = async () => {
@@ -204,6 +211,65 @@ export default function DashboardHome() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Onboarding YouTube Tutorial Flash Screen Modal */}
+      {showTutorialModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+          <div className="bg-card text-card-foreground rounded-2xl border border-border/80 shadow-2xl w-full max-w-2xl p-6 md:p-8 space-y-6 text-center animate-in zoom-in-95 duration-300 flex flex-col">
+            <div className="flex items-center justify-between border-b pb-4 border-border/40 text-left">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-2.5 py-1 rounded-full">🚀 Getting Started</span>
+                <h2 className="text-xl md:text-2xl font-black tracking-tight mt-2 flex items-center gap-2">
+                  🎥 Welcome to Creva Webzz!
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Let's watch this quick 2-minute tutorial video to set up your online storefront.</p>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowTutorialModal(false);
+                  localStorage.setItem('creva_merchant_onboarded_v1', 'true');
+                }}
+                className="text-muted-foreground hover:text-foreground text-2xl font-bold p-1 leading-none"
+              >
+                &times;
+              </button>
+            </div>
+            
+            {/* Embedded Responsive YouTube Video */}
+            <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-border shadow-inner bg-black">
+              <iframe 
+                className="absolute inset-0 w-full h-full"
+                src="https://www.youtube.com/embed/7V2eS8W1cCc?autoplay=1"
+                title="Creva Store Setup Tutorial"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowFullScreen
+              ></iframe>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <button 
+                onClick={() => {
+                  setShowTutorialModal(false);
+                  localStorage.setItem('creva_merchant_onboarded_v1', 'true');
+                }}
+                className="flex-1 bg-muted hover:bg-muted/80 text-muted-foreground py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all cursor-pointer"
+              >
+                Skip Tutorial
+              </button>
+              <Link 
+                href="/admin/tutorial" 
+                onClick={() => {
+                  setShowTutorialModal(false);
+                  localStorage.setItem('creva_merchant_onboarded_v1', 'true');
+                }}
+                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all text-center shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              >
+                Go to Tutorial Page & Guides
+              </Link>
+            </div>
           </div>
         </div>
       )}
