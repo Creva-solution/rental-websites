@@ -8,6 +8,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Settings, Palette, ExternalLink, Loader2, AlertCircle, CreditCard, Menu, X, PlayCircle,
   Truck, Users, FolderTree, Video, FileText, Layout, BarChart3, Tag, HelpCircle, LogOut, Sparkles, Megaphone, Plug
 } from 'lucide-react';
+import StoreAssistant from '@/components/StoreAssistant';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -580,6 +581,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {children}
         </div>
       </main>
+      <StoreAssistant />
     </div>
   );
 }
