@@ -5,24 +5,147 @@ import { Sparkles, Brain, Copy, RotateCw, Check, Compass, MessageSquare, Megapho
 
 export default function AIContentStudioPage() {
   const [tone, setTone] = useState('premium');
-  const [prompt, setPrompt] = useState('');
+  const [prompt, setPrompt] = useState('"Admire Handmade Organic Lavender Soaps", handmade, raw citrus extracts, highly moisturizing');
+  const [activePreset, setActivePreset] = useState('Product Description');
   const [generating, setGenerating] = useState(false);
   const [generatedText, setGeneratedText] = useState('');
   const [copied, setCopied] = useState(false);
+
+  const parsePrompt = (text: string) => {
+    let name = '';
+    let features: string[] = [];
+
+    // Try to find text in quotes
+    const quoteMatch = text.match(/["']([^"']+)["']/);
+    if (quoteMatch) {
+      name = quoteMatch[1];
+    }
+
+    // Clean the text to find product name / features
+    let cleanText = text
+      .replace(/write a (highly )?compelling (product description|whatsapp broadcast|social ad copy|seo meta tags) for/gi, '')
+      .replace(/listing\.\.\./gi, '')
+      .replace(/listing/gi, '')
+      .trim();
+
+    // If no quote match, try to get the first sentence or first few words before comma as name
+    if (!name) {
+      const commaIndex = cleanText.indexOf(',');
+      const newlineIndex = cleanText.indexOf('\n');
+      const splitIndex = Math.min(
+        commaIndex > -1 ? commaIndex : Infinity,
+        newlineIndex > -1 ? newlineIndex : Infinity
+      );
+      
+      if (splitIndex !== Infinity) {
+        name = cleanText.substring(0, splitIndex).trim();
+        cleanText = cleanText.substring(splitIndex + 1).trim();
+      } else {
+        const words = cleanText.split(/\s+/);
+        if (words.length > 4) {
+          name = words.slice(0, 3).join(' ');
+          cleanText = words.slice(3).join(' ');
+        } else {
+          name = cleanText;
+          cleanText = '';
+        }
+      }
+    }
+
+    // Clean name
+    name = name.replace(/^(a|an|the)\s+/gi, '').trim();
+    // Capitalize name
+    if (name) {
+      name = name.charAt(0).toUpperCase() + name.slice(1);
+    }
+
+    if (!name || name.toLowerCase().includes('write a')) {
+      name = 'Premium Retail Item';
+    }
+
+    // Extract features
+    if (cleanText) {
+      features = cleanText
+        .split(/[,\n.]+/)
+        .map(f => f.trim())
+        .filter(f => f.length > 2 && !f.toLowerCase().includes('write a') && !f.toLowerCase().includes('compelling'));
+    }
+
+    // Fallback/Default features if none are specified
+    if (features.length === 0) {
+      if (name.toLowerCase().includes('soap') || name.toLowerCase().includes('admire')) {
+        features = [
+          '100% organic cold-cured botanical formula',
+          'Rich moisturizing lather from lavender & coconut oil extracts',
+          'Naturally harvested with zero chemicals or parabens',
+          'Fully eco-friendly, zero-waste packaging'
+        ];
+      } else {
+        features = [
+          'Premium hand-curated ingredients & design',
+          'Meticulous quality control & craftsmanship',
+          'Sustainably sourced & eco-friendly packaging',
+          'Designed to elevate your everyday rituals'
+        ];
+      }
+    }
+
+    return { name, features };
+  };
 
   const handleGenerate = () => {
     if (!prompt.trim()) return;
     setGenerating(true);
     setTimeout(() => {
+      const { name, features } = parsePrompt(prompt);
       let result = '';
-      if (prompt.toLowerCase().includes('soap') || prompt.toLowerCase().includes('admire')) {
-        result = `**Experience Pure botanical wellness with our handmade soaps.**\n\nIndulge in a premium cold-cured recipe crafted to retain raw botanical oils and organic wellness essences. Naturally scented with fresh lavender, raw citrus peels, and creamy coconut cream to deliver an incredibly soft, moisturized soap-glow. Ideal for sensitive skin types seeking raw luxury.\n\n*Key Benefits: 100% natural harvesting, 6-week cure duration, fully zero waste, chemical-free.*`;
-      } else {
-        result = `**Elevate your everyday rituals with Creva Websz.**\n\nIntroducing our newest hand-curated addition, crafted meticulously with raw ingredients and modern sustainability. Every purchase is verified, packaged carefully by local artisan hands, and shipped in full eco-friendly luxury packaging.\n\n*Buy now to experience a truly timeless, beautiful lifestyle upgrade.*`;
+
+      if (activePreset === 'Product Description') {
+        if (tone === 'premium') {
+          result = `**Experience pure sensory luxury with ${name}.**\n\nCrafted for those who appreciate the finer things in life, ${name} is curated using exceptional methods to deliver unmatched satisfaction.\n\n*Key Benefits:*\n${features.map(f => `• ${f}`).join('\n')}\n\nElevate your rituals today with an investment in timeless quality.`;
+        } else if (tone === 'friendly') {
+          result = `**Say hello to your new favorite: ${name}!**\n\nWe are so excited to introduce ${name}! Designed to bring a little extra joy and ease to your everyday routine, it is crafted with love and care.\n\n*Why you'll love it:*\n${features.map(f => `✨ ${f}`).join('\n')}\n\nGive it a try today and feel the difference!`;
+        } else if (tone === 'persuasive') {
+          result = `**Unlock the full benefits of ${name} starting today.**\n\nWhy settle for average? ${name} is specifically designed to solve your everyday challenges while offering premium results that last. Do not miss out on the upgrade you deserve.\n\n*Why it is a must-have:*\n${features.map(f => `🔥 ${f}`).join('\n')}\n\nJoin our community of happy customers and order yours now!`;
+        } else {
+          result = `**Meet ${name} — the upgrade your daily routine didn't know it needed.**\n\nWe won't say ${name} will solve all your life's problems, but it definitely makes this part look effortless. Smart, sleek, and exceptionally good at its job.\n\n*The cool stuff:*\n${features.map(f => `😎 ${f}`).join('\n')}\n\nGo on, treat yourself. We promise not to tell anyone.`;
+        }
+      } else if (activePreset === 'WhatsApp Broadcast') {
+        if (tone === 'premium') {
+          result = `✨ *EXCLUSIVE PREVIEW* ✨\n\nDiscover the art of refined quality with *${name}*.\n\nHand-curated with:\n${features.map(f => `▫️ ${f}`).join('\n')}\n\nExperience luxury retail. Tap the link below to view our curated collection and claim complimentary shipping today.\n\n👉 [Link to Store]`;
+        } else if (tone === 'friendly') {
+          result = `Hey there! 👋\n\nExciting news! Our highly requested *${name}* is officially available! 🎉\n\nHere's what makes it so special:\n${features.map(f => `✅ ${f}`).join('\n')}\n\nWe have very limited stock, so grab yours today! Let us know if you need any help.\n\n👉 [Link to Store]`;
+        } else if (tone === 'persuasive') {
+          result = `🚨 *ALERT: Upgrade Your Everyday* 🚨\n\nReady for a better experience? Meet *${name}*!\n\nHere is why it is a complete game-changer:\n${features.map(f => `⚡ ${f}`).join('\n')}\n\nGet an exclusive *10% OFF* if you order within the next 24 hours. Use code: *UPGRADE10* at checkout.\n\n👉 Tap here to shop now: [Link to Store]`;
+        } else {
+          result = `Spotted: The legendary *${name}* is finally here! 🔎\n\nWarning: Side effects of owning this include increased happiness and extreme satisfaction.\n\nWhy it's awesome:\n${features.map(f => `🎯 ${f}`).join('\n')}\n\nBe the cool friend. Tap below to buy yours now.\n\n👉 [Link to Store]`;
+        }
+      } else if (activePreset === 'Social Ad Copy') {
+        if (tone === 'premium') {
+          result = `Define your standard. ✨\n\nIntroducing the all-new ${name}. Engineered for the discerning individual, designed to inspire.\n\n✔️ ${features.join('\n✔️ ')}\n\nIndulge in timeless design and exceptional performance. Shop the official collection today.\n\n#LuxuryLiving #PremiumQuality #Craftsmanship #Design`;
+        } else if (tone === 'friendly') {
+          result = `Looking for something special? We got you! 🥰\n\nMeet the ${name} – your absolute new go-to. Whether you're upgrading or treating a loved one, this is guaranteed to put a smile on your face.\n\n💖 Featuring:\n${features.map(f => `• ${f}`).join('\n')}\n\nSwipe up or click the link in bio to shop the drop! 🛍️\n\n#MustHave #EverydayEssentials #ShopLocal #HappyVibes`;
+        } else if (tone === 'persuasive') {
+          result = `THE WAIT IS OVER. 🔥\n\nIf you've been waiting for the perfect moment to upgrade, this is it. ${name} is here to deliver high performance without compromises.\n\nWhat are you waiting for?\n🚀 ${features.join('\n🚀 ')}\n\n👉 Click "Shop Now" and claim yours before stock runs out!\n\n#UpgradeNow #BestInClass #SmartShopping #NoCompromises`;
+        } else {
+          result = `Yes, you need this. No, we're not biased (okay, maybe a little). 😉\n\nSay hello to ${name}. It's basically the superhero of your daily routine, minus the cape.\n\nWhy you'll love it:\n⚡ ${features.join('\n⚡ ')}\n\nHit that link and thank us later. 👇\n\n#Unboxing #CoolProducts #TreatYourself #ShoppingSpree`;
+        }
+      } else { // SEO Meta Tags
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        if (tone === 'premium') {
+          result = `🔍 **SEO Meta Tags for ${name}**\n\n**Meta Title:**\n${name} | Premium & Handcrafted Luxury Online\n\n**Meta Description (155 chars):**\nShop ${name}. Featuring ${features.slice(0, 2).join(' & ')}. Indulge in premium quality and fast shipping today.\n\n**Focus Keywords:**\n${name.toLowerCase()}, ${features.map(f => f.toLowerCase()).slice(0, 3).join(', ')}, buy online\n\n**Suggested URL Slug:**\n/products/${slug}`;
+        } else if (tone === 'friendly') {
+          result = `🔍 **SEO Meta Tags for ${name}**\n\n**Meta Title:**\n${name} | Shop Friendly & Cozy Quality\n\n**Meta Description (152 chars):**\nDiscover the friendly design of ${name}. Enjoy ${features.slice(0, 2).join(' & ')} at great prices with fast home delivery.\n\n**Focus Keywords:**\n${name.toLowerCase()}, ${features.map(f => f.toLowerCase()).slice(0, 3).join(', ')}, retail store\n\n**Suggested URL Slug:**\n/products/${slug}`;
+        } else if (tone === 'persuasive') {
+          result = `🔍 **SEO Meta Tags for ${name}**\n\n**Meta Title:**\n${name} | Buy High-Performance & Quality Now\n\n**Meta Description (158 chars):**\nGet the best deals on ${name}! Engineered with ${features.slice(0, 2).join(' & ')}. Direct shipping & satisfaction guaranteed.\n\n**Focus Keywords:**\n${name.toLowerCase()}, ${features.map(f => f.toLowerCase()).slice(0, 3).join(', ')}, shop online\n\n**Suggested URL Slug:**\n/products/${slug}`;
+        } else {
+          result = `🔍 **SEO Meta Tags for ${name}**\n\n**Meta Title:**\n${name} | The Upgrade You Actually Need\n\n**Meta Description (154 chars):**\nMeet ${name}. Loaded with ${features.slice(0, 2).join(' & ')}. It won't solve all your problems, but it sure makes shopping fun.\n\n**Focus Keywords:**\n${name.toLowerCase()}, ${features.map(f => f.toLowerCase()).slice(0, 3).join(', ')}, coolest item\n\n**Suggested URL Slug:**\n/products/${slug}`;
+        }
       }
+
       setGeneratedText(result);
       setGenerating(false);
-    }, 1500);
+    }, 1200);
   };
 
   const handleCopy = () => {
@@ -65,10 +188,20 @@ export default function AIContentStudioPage() {
               ].map((p, idx) => (
                 <button
                   key={idx}
-                  onClick={() => setPrompt(`Write a highly compelling ${p.label.toLowerCase()} for "Admire Handmade Organic Lavender Soaps" listing...`)}
-                  className="p-4 border rounded-xl hover:border-[#3C77C3]/40 hover:bg-[#3C77C3]/5 text-left transition-all space-y-2 group"
+                  onClick={() => {
+                    setActivePreset(p.label);
+                    // Only fill placeholder value if the user hasn't typed anything yet or it is the default soap
+                    if (!prompt.trim() || prompt.includes('Lavender Soaps')) {
+                      setPrompt(`Write a highly compelling ${p.label.toLowerCase()} for "Admire Handmade Organic Lavender Soaps" listing, handmade, raw citrus extracts, highly moisturizing`);
+                    }
+                  }}
+                  className={`p-4 border rounded-xl text-left transition-all space-y-2 group ${
+                    activePreset === p.label
+                      ? 'border-[#3C77C3] bg-[#3C77C3]/5 ring-1 ring-[#3C77C3]/30'
+                      : 'border-border hover:border-[#3C77C3]/40 hover:bg-[#3C77C3]/5'
+                  }`}
                 >
-                  <p.icon className="w-5 h-5 text-muted-foreground group-hover:text-[#3C77C3]" />
+                  <p.icon className={`w-5 h-5 transition-colors ${activePreset === p.label ? 'text-[#3C77C3]' : 'text-muted-foreground group-hover:text-[#3C77C3]'}`} />
                   <p className="font-bold text-xs text-foreground mt-1">{p.label}</p>
                   <p className="text-[10px] text-muted-foreground leading-normal">{p.desc}</p>
                 </button>
@@ -144,7 +277,7 @@ export default function AIContentStudioPage() {
             </div>
 
             {generatedText ? (
-              <div className="text-xs sm:text-sm text-gray-700 leading-relaxed space-y-3 bg-muted/20 p-4 rounded-xl border border-dashed whitespace-pre-line shadow-inner max-h-[300px] overflow-y-auto">
+              <div className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed space-y-3 bg-muted/20 p-4 rounded-xl border border-dashed whitespace-pre-line shadow-inner max-h-[300px] overflow-y-auto">
                 {generatedText}
               </div>
             ) : (
