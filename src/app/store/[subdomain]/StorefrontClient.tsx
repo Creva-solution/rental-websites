@@ -286,7 +286,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       }
 
       // Extract competitor features
-      activeCoupons = data.discounts || data.coupons || [];
+      activeCoupons = data.discountCoupons || data.discounts || data.coupons || [];
       blogArticles = data.articles || data.blogPosts || data.blog || [];
       customPages = data.pages || data.staticPages || [];
       videoReels = data.videoCommerce || data.reels || data.videos || [];
@@ -728,7 +728,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
     // Find the coupon in our list
     const found = activeCoupons.find(c => c.code.trim().toUpperCase() === cleanCode);
     
-    if (!found) {
+    if (!found || found.isActive === false) {
       setCouponError('Invalid coupon code. Please try another one.');
       setAppliedCoupon(null);
       return;
