@@ -29,13 +29,16 @@ export default function BusinessSetupWizard() {
   const [isUpiSimulating, setIsUpiSimulating] = useState(false);
   const [upiSimulationStep, setUpiSimulationStep] = useState<number>(0);
 
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+
   const [selectedTemplate, setSelectedTemplate] = useState<'minimal' | 'artisan' | 'bold' | 'luxe' | 'retro'>('minimal');
 
   const [formData, setFormData] = useState({
     businessName: '',
     businessDescription: '',
     category: '',
-    logo: null,
+    logo: null as string | null,
     primaryColor: '#3B82F6',
     email: '',
     phone: '',
@@ -242,6 +245,78 @@ export default function BusinessSetupWizard() {
     }
     setSignature(null);
     setIsSignatureConfirmed(false);
+  };
+
+  const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert("⚠️ Logo image is too large! Please choose a file under 2MB.");
+        return;
+      }
+      await uploadLogo(file);
+    }
+  };
+
+  const uploadLogo = async (file: File) => {
+    setLogoUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      const filePath = `store-logos/${fileName}`;
+
+      let publicUrl = '';
+      
+      const { data, error } = await supabase.storage
+        .from('assets')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.warn("Upload logo to 'assets' bucket failed, attempting 'products'...", error);
+        
+        const { data: dataAlt, error: errorAlt } = await supabase.storage
+          .from('products')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (errorAlt) throw errorAlt;
+        
+        if (dataAlt && dataAlt.path && (dataAlt.path.startsWith('http://') || dataAlt.path.startsWith('https://'))) {
+          publicUrl = dataAlt.path;
+        } else {
+          const { data: { publicUrl: url } } = supabase.storage
+            .from('products')
+            .getPublicUrl(filePath);
+          publicUrl = url;
+        }
+      } else {
+        if (data && data.path && (data.path.startsWith('http://') || data.path.startsWith('https://'))) {
+          publicUrl = data.path;
+        } else {
+          const { data: { publicUrl: url } } = supabase.storage
+            .from('assets')
+            .getPublicUrl(filePath);
+          publicUrl = url;
+        }
+      }
+
+      setFormData(prev => ({ ...prev, logo: publicUrl }));
+
+    } catch (err: any) {
+      console.error("Storage logo upload failed, falling back to base64 encoding", err);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, logo: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setLogoUploading(false);
+    }
   };
 
   const handleScreenshotFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -512,6 +587,7 @@ export default function BusinessSetupWizard() {
           business_category: formData.category,
           description: JSON.stringify(contractDetails),
           primary_color: formData.primaryColor,
+          logo_url: formData.logo,
           currency: formData.currency,
           contact_email: formData.email,
           contact_phone: formData.phone,
@@ -708,13 +784,49 @@ export default function BusinessSetupWizard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-3">
                 <div>
                   <label className="block text-sm font-medium mb-2">Logo</label>
-                  <div className="border-2 border-dashed border-input rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/50 transition-colors">
-                    <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                  <input 
+                    type="file" 
+                    ref={logoInputRef}
+                    onChange={handleLogoFileChange}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  
+                  {formData.logo ? (
+                    <div className="relative border-2 border-border rounded-xl p-6 flex flex-col items-center justify-center bg-muted/20">
+                      <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-white border border-border flex items-center justify-center p-2">
+                        <img 
+                          src={formData.logo} 
+                          alt="Store Logo Preview" 
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, logo: null }))}
+                        className="mt-3 text-xs text-destructive hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" /> Remove Logo
+                      </button>
                     </div>
-                    <p className="text-sm font-medium mb-1">Click to upload logo</p>
-                    <p className="text-xs text-muted-foreground">PNG, JPG up to 2MB. Square recommended.</p>
-                  </div>
+                  ) : (
+                    <div 
+                      onClick={() => logoInputRef.current?.click()}
+                      className="border-2 border-dashed border-input rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
+                        {logoUploading ? (
+                          <span className="animate-spin text-primary">⚡</span>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                        )}
+                      </div>
+                      <p className="text-sm font-medium mb-1">
+                        {logoUploading ? 'Uploading...' : 'Click to upload logo'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">PNG, JPG up to 2MB. Square recommended.</p>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Primary Color</label>

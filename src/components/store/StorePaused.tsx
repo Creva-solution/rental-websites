@@ -60,7 +60,7 @@ export default function StorePaused({ storeName, isExpired = false, paymentStatu
         </span>
 
         {/* Friendly explanation */}
-        <p className="mt-6 text-gray-405 text-sm leading-relaxed">
+        <p className="mt-6 text-gray-300 text-sm leading-relaxed">
           {isExpired 
             ? "This store's subscription plan has expired. If you are the store owner, please log in and renew your subscription plan to reactivate your storefront."
             : paymentStatus === 'rejected'
