@@ -1557,7 +1557,38 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
                 {processedProducts.map((product, idx) => {
                   const isLiked = favorites.includes(product.id);
-                  let displayPrice = Number(product.price);
+                  let originalPrice = Number(product.price);
+                  let displayPrice = originalPrice;
+                  let hasActiveOffer = false;
+                  let offerPercent = 0;
+                  let timeLeftText = '';
+
+                  try {
+                    if (product.description && product.description.startsWith('{')) {
+                      const parsed = JSON.parse(product.description);
+                      if (parsed.offer_ends_at && parsed.offer_price) {
+                        const endTime = new Date(parsed.offer_ends_at).getTime();
+                        const now = Date.now();
+                        if (endTime > now) {
+                          hasActiveOffer = true;
+                          displayPrice = Number(parsed.offer_price);
+                          offerPercent = Number(parsed.offer_percent) || 50;
+                          
+                          const diffMs = endTime - now;
+                          const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+                          const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                          const diffSecs = Math.floor((diffMs % (1000 * 60)) / 1000);
+                          if (diffHrs > 0) {
+                            timeLeftText = `${diffHrs}h ${diffMins}m`;
+                          } else if (diffMins > 0) {
+                            timeLeftText = `${diffMins}m ${diffSecs}s`;
+                          } else {
+                            timeLeftText = `${diffSecs}s`;
+                          }
+                        }
+                      }
+                    }
+                  } catch (e) {}
 
                   return (
                     <div key={product.id} className="border-4 border-black bg-zinc-900 rounded overflow-hidden flex flex-col justify-between shadow-[4px_4px_0px_#8B5CF6] hover:shadow-[6px_6px_0px_#10B981] transition-all hover:translate-x-[-1px] hover:translate-y-[-1px]">
@@ -1585,7 +1616,12 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                         )}
                         
                         {/* Neon retro badges */}
-                        {product.is_new && (
+                        {hasActiveOffer && (
+                          <span className="absolute top-2 left-2 bg-[#10B981] text-black border-2 border-black font-black uppercase text-[8px] px-2 py-0.5 shadow-[2px_2px_0px_#000] animate-pulse">
+                            PROMO: -{offerPercent}%
+                          </span>
+                        )}
+                        {product.is_new && !hasActiveOffer && (
                           <span className="absolute top-2 left-2 bg-yellow-300 text-black border-2 border-black font-black uppercase text-[8px] px-2 py-0.5 shadow-[2px_2px_0px_#000]">
                             HOT!
                           </span>
@@ -1610,9 +1646,25 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                           </div>
 
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
-                            <span className="font-extrabold text-white text-sm">
-                              {currencySymbol}{displayPrice.toLocaleString()}
-                            </span>
+                            <div className="flex flex-col">
+                              {hasActiveOffer ? (
+                                <div className="space-y-0.5">
+                                  <span className="font-extrabold text-[#10B981] text-sm block">
+                                    {currencySymbol}{displayPrice.toLocaleString()}
+                                  </span>
+                                  <span className="text-[10px] text-zinc-500 line-through block font-bold leading-none">
+                                    {currencySymbol}{originalPrice.toLocaleString()}
+                                  </span>
+                                  <span className="text-[8px] text-red-500 font-extrabold block uppercase tracking-wider animate-pulse leading-none mt-0.5">
+                                    ⚡ PROMO: {timeLeftText}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="font-extrabold text-white text-sm">
+                                  {currencySymbol}{displayPrice.toLocaleString()}
+                                </span>
+                              )}
+                            </div>
                             <button 
                               onClick={() => addToCart(product, 1)}
                               className="w-full sm:w-auto text-center px-3 py-1.5 bg-[#10B981] hover:bg-[#8B5CF6] hover:text-black text-black border-2 border-black font-black uppercase text-[8px] shadow-[2px_2px_0px_rgba(16,185,129,0.3)] transition-all"
@@ -1703,7 +1755,38 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-8">
                 {processedProducts.map((product, idx) => {
                   const isLiked = favorites.includes(product.id);
-                  let displayPrice = Number(product.price);
+                  let originalPrice = Number(product.price);
+                  let displayPrice = originalPrice;
+                  let hasActiveOffer = false;
+                  let offerPercent = 0;
+                  let timeLeftText = '';
+
+                  try {
+                    if (product.description && product.description.startsWith('{')) {
+                      const parsed = JSON.parse(product.description);
+                      if (parsed.offer_ends_at && parsed.offer_price) {
+                        const endTime = new Date(parsed.offer_ends_at).getTime();
+                        const now = Date.now();
+                        if (endTime > now) {
+                          hasActiveOffer = true;
+                          displayPrice = Number(parsed.offer_price);
+                          offerPercent = Number(parsed.offer_percent) || 50;
+                          
+                          const diffMs = endTime - now;
+                          const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+                          const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                          const diffSecs = Math.floor((diffMs % (1000 * 60)) / 1000);
+                          if (diffHrs > 0) {
+                            timeLeftText = `${diffHrs}h ${diffMins}m`;
+                          } else if (diffMins > 0) {
+                            timeLeftText = `${diffMins}m ${diffSecs}s`;
+                          } else {
+                            timeLeftText = `${diffSecs}s`;
+                          }
+                        }
+                      }
+                    }
+                  } catch (e) {}
                   
                   // Introduce dynamic height class for true staggered layout look
                   const isStaggered = idx % 3 === 1;
@@ -1725,9 +1808,15 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                         )}
                         
                         {/* Organic Badge */}
-                        <span className="absolute top-3 left-3 bg-[#FAF6F0] text-[#8B5A2B] border border-[#E4DAC9] text-[7.5px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-full">
-                          🌱 100% ORGANIC STONEWARE
-                        </span>
+                        {hasActiveOffer ? (
+                          <span className="absolute top-3 left-3 bg-[#8B5A2B] text-[#FAF6F0] border border-[#E4DAC9] text-[7.5px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-full">
+                            🏺 SAVE {offerPercent}% NOW
+                          </span>
+                        ) : (
+                          <span className="absolute top-3 left-3 bg-[#FAF6F0] text-[#8B5A2B] border border-[#E4DAC9] text-[7.5px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-full">
+                            🌱 100% ORGANIC STONEWARE
+                          </span>
+                        )}
 
                         {/* Heart Button */}
                         <button 
@@ -1753,9 +1842,25 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                         </div>
 
                         <div className="pt-2 border-t border-[#E4DAC9]/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                          <span className="font-bold text-[#8B5A2B] font-serif text-base">
-                            {currencySymbol}{displayPrice.toLocaleString()}
-                          </span>
+                          <div className="flex flex-col">
+                            {hasActiveOffer ? (
+                              <div className="space-y-0.5">
+                                <span className="font-bold text-[#8B5A2B] font-serif text-base block">
+                                  {currencySymbol}{displayPrice.toLocaleString()}
+                                </span>
+                                <span className="text-xs text-zinc-400 font-serif line-through block leading-none">
+                                  {currencySymbol}{originalPrice.toLocaleString()}
+                                </span>
+                                <span className="text-[9px] text-[#8B5A2B] font-serif italic block mt-0.5">
+                                  * Ends in {timeLeftText}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="font-bold text-[#8B5A2B] font-serif text-base">
+                                {currencySymbol}{displayPrice.toLocaleString()}
+                              </span>
+                            )}
+                          </div>
                           <button 
                             onClick={() => addToCart(product, 1)}
                             className="w-full sm:w-auto text-center px-5 py-2 bg-[#8B5A2B] hover:bg-[#6e4620] text-white text-[9px] font-black uppercase tracking-[0.15em] rounded-full transition-colors"
@@ -1848,7 +1953,38 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
                     {processedProducts.map((product) => {
                       const isLiked = favorites.includes(product.id);
-                      let displayPrice = Number(product.price);
+                      let originalPrice = Number(product.price);
+                      let displayPrice = originalPrice;
+                      let hasActiveOffer = false;
+                      let offerPercent = 0;
+                      let timeLeftText = '';
+
+                      try {
+                        if (product.description && product.description.startsWith('{')) {
+                          const parsed = JSON.parse(product.description);
+                          if (parsed.offer_ends_at && parsed.offer_price) {
+                            const endTime = new Date(parsed.offer_ends_at).getTime();
+                            const now = Date.now();
+                            if (endTime > now) {
+                              hasActiveOffer = true;
+                              displayPrice = Number(parsed.offer_price);
+                              offerPercent = Number(parsed.offer_percent) || 50;
+                              
+                              const diffMs = endTime - now;
+                              const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+                              const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                              const diffSecs = Math.floor((diffMs % (1000 * 60)) / 1000);
+                              if (diffHrs > 0) {
+                                timeLeftText = `${diffHrs}h ${diffMins}m`;
+                              } else if (diffMins > 0) {
+                                timeLeftText = `${diffMins}m ${diffSecs}s`;
+                              } else {
+                                timeLeftText = `${diffSecs}s`;
+                              }
+                            }
+                          }
+                        }
+                      } catch (e) {}
 
                       return (
                         <div key={product.id} className="border-4 border-black bg-white rounded-none flex flex-col justify-between group shadow-[4px_4px_0px_#000] hover:shadow-[6px_6px_0px_#E11D48] transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] overflow-hidden">
@@ -1864,9 +2000,15 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                             )}
 
                             {/* Heavy Bold Tags */}
-                            <span className="absolute top-2 left-2 bg-[#E11D48] text-white border-2 border-black font-black uppercase text-[8px] px-2 py-0.5 tracking-wider">
-                              FAST RELEASE
-                            </span>
+                            {hasActiveOffer ? (
+                              <span className="absolute top-2 left-2 bg-yellow-300 text-black border-2 border-black font-black uppercase text-[8px] px-2 py-0.5 tracking-wider shadow-[2px_2px_0px_#000]">
+                                FLASH: -{offerPercent}%
+                              </span>
+                            ) : (
+                              <span className="absolute top-2 left-2 bg-[#E11D48] text-white border-2 border-black font-black uppercase text-[8px] px-2 py-0.5 tracking-wider">
+                                FAST RELEASE
+                              </span>
+                            )}
 
                             <button 
                               onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
@@ -1888,9 +2030,25 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                             </div>
 
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
-                              <span className="font-black text-black text-sm sm:text-base">
-                                {currencySymbol}{displayPrice.toLocaleString()}
-                              </span>
+                              <div className="flex flex-col">
+                                {hasActiveOffer ? (
+                                  <div className="space-y-1">
+                                    <span className="font-black text-[#E11D48] text-sm sm:text-base block">
+                                      {currencySymbol}{displayPrice.toLocaleString()}
+                                    </span>
+                                    <span className="text-[10px] text-zinc-500 line-through block font-black leading-none border-b-2 border-dashed border-zinc-300 w-fit">
+                                      {currencySymbol}{originalPrice.toLocaleString()}
+                                    </span>
+                                    <span className="text-[7.5px] font-black uppercase tracking-widest text-[#E11D48] block leading-none">
+                                      🔥 -{offerPercent}% OFF (ENDS: {timeLeftText})
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="font-black text-black text-sm sm:text-base">
+                                    {currencySymbol}{displayPrice.toLocaleString()}
+                                  </span>
+                                )}
+                              </div>
                               <button 
                                 onClick={() => addToCart(product, 1)}
                                 className="w-full sm:w-auto text-center px-3.5 py-2 bg-black text-white hover:bg-[#E11D48] border-2 border-black font-black text-[8px] uppercase tracking-widest shadow-[2px_2px_0_0_#fff]"
@@ -1968,7 +2126,38 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-8">
                 {processedProducts.map((product) => {
                   const isLiked = favorites.includes(product.id);
-                  let displayPrice = Number(product.price);
+                  let originalPrice = Number(product.price);
+                  let displayPrice = originalPrice;
+                  let hasActiveOffer = false;
+                  let offerPercent = 0;
+                  let timeLeftText = '';
+
+                  try {
+                    if (product.description && product.description.startsWith('{')) {
+                      const parsed = JSON.parse(product.description);
+                      if (parsed.offer_ends_at && parsed.offer_price) {
+                        const endTime = new Date(parsed.offer_ends_at).getTime();
+                        const now = Date.now();
+                        if (endTime > now) {
+                          hasActiveOffer = true;
+                          displayPrice = Number(parsed.offer_price);
+                          offerPercent = Number(parsed.offer_percent) || 50;
+                          
+                          const diffMs = endTime - now;
+                          const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+                          const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                          const diffSecs = Math.floor((diffMs % (1000 * 60)) / 1000);
+                          if (diffHrs > 0) {
+                            timeLeftText = `${diffHrs}h ${diffMins}m`;
+                          } else if (diffMins > 0) {
+                            timeLeftText = `${diffMins}m ${diffSecs}s`;
+                          } else {
+                            timeLeftText = `${diffSecs}s`;
+                          }
+                        }
+                      }
+                    }
+                  } catch (e) {}
 
                   return (
                     <div key={product.id} className="bg-[#0E0E0E] border border-zinc-900 rounded-[4px] overflow-hidden flex flex-col justify-between group hover:border-[#D4AF37] transition-all duration-300 shadow-md">
@@ -1983,9 +2172,15 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                           <div className="absolute inset-0 flex items-center justify-center text-zinc-800 font-serif text-3xl">L</div>
                         )}
                         
-                        <span className="absolute top-3 left-3 bg-[#0A0A0A] border border-[#D4AF37]/50 text-[#D4AF37] text-[7px] font-black uppercase tracking-[0.25em] px-2.5 py-1">
-                          AURELIA CLASSIC
-                        </span>
+                        {hasActiveOffer ? (
+                          <span className="absolute top-3 left-3 bg-black border border-[#D4AF37] text-[#D4AF37] text-[7px] font-black uppercase tracking-[0.25em] px-2.5 py-1 shadow-[0_2px_10px_rgba(212,175,55,0.2)]">
+                            EXCLUSIVE: -{offerPercent}%
+                          </span>
+                        ) : (
+                          <span className="absolute top-3 left-3 bg-[#0A0A0A] border border-[#D4AF37]/50 text-[#D4AF37] text-[7px] font-black uppercase tracking-[0.25em] px-2.5 py-1">
+                            AURELIA CLASSIC
+                          </span>
+                        )}
 
                         <button 
                           onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
@@ -2010,9 +2205,25 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                         </div>
 
                         <div className="pt-4 border-t border-zinc-900 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                          <span className="font-bold text-[#D4AF37] font-serif text-sm">
-                            {currencySymbol}{displayPrice.toLocaleString()}
-                          </span>
+                          <div className="flex flex-col">
+                            {hasActiveOffer ? (
+                              <div className="space-y-0.5">
+                                <span className="font-bold text-[#D4AF37] font-serif text-sm block">
+                                  {currencySymbol}{displayPrice.toLocaleString()}
+                                </span>
+                                <span className="text-xs text-zinc-500 font-serif line-through block leading-none">
+                                  {currencySymbol}{originalPrice.toLocaleString()}
+                                </span>
+                                <span className="text-[8px] text-[#D4AF37] font-serif uppercase tracking-widest block mt-0.5 opacity-90">
+                                  👑 FLASH CURATION ({timeLeftText})
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="font-bold text-[#D4AF37] font-serif text-sm">
+                                {currencySymbol}{displayPrice.toLocaleString()}
+                              </span>
+                            )}
+                          </div>
                           <button 
                             onClick={() => addToCart(product, 1)}
                             className="w-full sm:w-auto text-center px-5 py-2 bg-[#D4AF37] text-black hover:bg-white text-[8px] font-black uppercase tracking-[0.2em] transition-all duration-300 rounded-[2px] border border-transparent"
@@ -2080,7 +2291,38 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-8">
                 {processedProducts.map((product) => {
                   const isLiked = favorites.includes(product.id);
-                  let displayPrice = Number(product.price);
+                  let originalPrice = Number(product.price);
+                  let displayPrice = originalPrice;
+                  let hasActiveOffer = false;
+                  let offerPercent = 0;
+                  let timeLeftText = '';
+
+                  try {
+                    if (product.description && product.description.startsWith('{')) {
+                      const parsed = JSON.parse(product.description);
+                      if (parsed.offer_ends_at && parsed.offer_price) {
+                        const endTime = new Date(parsed.offer_ends_at).getTime();
+                        const now = Date.now();
+                        if (endTime > now) {
+                          hasActiveOffer = true;
+                          displayPrice = Number(parsed.offer_price);
+                          offerPercent = Number(parsed.offer_percent) || 50;
+                          
+                          const diffMs = endTime - now;
+                          const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+                          const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                          const diffSecs = Math.floor((diffMs % (1000 * 60)) / 1000);
+                          if (diffHrs > 0) {
+                            timeLeftText = `${diffHrs}h ${diffMins}m`;
+                          } else if (diffMins > 0) {
+                            timeLeftText = `${diffMins}m ${diffSecs}s`;
+                          } else {
+                            timeLeftText = `${diffSecs}s`;
+                          }
+                        }
+                      }
+                    }
+                  } catch (e) {}
 
                   return (
                     <div key={product.id} className="flex flex-col group relative bg-white border border-gray-100 p-3 hover:border-gray-300 transition-all">
@@ -2093,6 +2335,12 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                           />
                         ) : (
                           <div className="absolute inset-0 flex items-center justify-center text-gray-300 text-3xl font-light">M</div>
+                        )}
+
+                        {hasActiveOffer && (
+                          <span className="absolute top-2.5 left-2.5 bg-black text-white text-[7.5px] font-black uppercase tracking-[0.2em] px-2.5 py-1">
+                            SALE: -{offerPercent}%
+                          </span>
                         )}
 
                         <button 
@@ -2115,9 +2363,25 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                         </div>
 
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 border-t border-gray-100 pt-2.5">
-                          <span className="font-extrabold text-black text-xs md:text-sm">
-                            {currencySymbol}{displayPrice.toLocaleString()}
-                          </span>
+                          <div className="flex flex-col">
+                            {hasActiveOffer ? (
+                              <div className="space-y-0.5">
+                                <span className="font-extrabold text-black text-xs md:text-sm block">
+                                  {currencySymbol}{displayPrice.toLocaleString()}
+                                </span>
+                                <span className="text-[10px] text-gray-400 line-through block leading-none font-medium">
+                                  {currencySymbol}{originalPrice.toLocaleString()}
+                                </span>
+                                <span className="text-[8px] text-red-500 font-black uppercase tracking-[0.1em] block leading-none mt-1">
+                                  🔥 SALE ({timeLeftText})
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="font-extrabold text-black text-xs md:text-sm">
+                                {currencySymbol}{displayPrice.toLocaleString()}
+                              </span>
+                            )}
+                          </div>
                           <button 
                             onClick={() => addToCart(product, 1)}
                             className="w-full sm:w-auto text-center px-3.5 py-2 bg-black hover:opacity-85 text-white text-[8.5px] font-black uppercase tracking-[0.15em] rounded-none transition-all"
