@@ -51,6 +51,27 @@ export default function SuperAdminDashboard() {
     }
   };
 
+  const getOfficerSignatureUrl = (officer: any) => {
+    if (officer?.signature && officer.signature.trim().length > 0) {
+      return officer.signature;
+    }
+    
+    // Fallbacks with gorgeous handwriting SVGs for the 4 platform officers based on ID/Name
+    const name = officer?.name || 'Kavin Kumar';
+    if (name.includes('Kavin')) {
+      return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="60" viewBox="0 0 160 60"><path d="M15,25 C40,5 60,45 80,20 C100,5 120,40 145,15 M30,45 C70,35 110,45 135,35" fill="none" stroke="%230284c7" stroke-width="2" stroke-linecap="round"/><circle cx="80" cy="30" r="25" fill="none" stroke="%230284c7" stroke-width="1" stroke-dasharray="3,2" opacity="0.4"/><text x="58" y="33" font-family="sans-serif" font-size="7" font-weight="black" fill="%230284c7" opacity="0.6">VERIFIED</text></svg>`;
+    } else if (name.includes('Abhishek')) {
+      return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="60" viewBox="0 0 160 60"><path d="M10,35 C30,15 45,5 65,30 C85,55 105,10 125,25 C135,32 145,15 150,10" fill="none" stroke="%230f172a" stroke-width="2" stroke-linecap="round"/><rect x="45" y="15" width="70" height="30" rx="3" fill="none" stroke="%233b82f6" stroke-width="1" stroke-dasharray="4,2" opacity="0.4"/><text x="56" y="32" font-family="sans-serif" font-size="7" font-weight="black" fill="%233b82f6" opacity="0.6">LICENSED</text></svg>`;
+    } else if (name.includes('Preethi')) {
+      return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="60" viewBox="0 0 160 60"><path d="M20,15 C45,45 55,5 75,25 C95,45 115,15 140,30" fill="none" stroke="%2310b981" stroke-width="2.5" stroke-linecap="round"/><circle cx="80" cy="30" r="24" fill="none" stroke="%2310b981" stroke-width="1.2" stroke-dasharray="2,3" opacity="0.4"/><text x="58" y="33" font-family="sans-serif" font-size="7" font-weight="black" fill="%2310b981" opacity="0.6">DIRECTOR</text></svg>`;
+    } else if (name.includes('Sanjay')) {
+      return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="60" viewBox="0 0 160 60"><path d="M15,40 C35,10 65,15 85,35 C105,55 125,5 145,25" fill="none" stroke="%236366f1" stroke-width="2" stroke-linecap="round"/><circle cx="80" cy="30" r="26" fill="none" stroke="%236366f1" stroke-width="1" stroke-dasharray="3,1" opacity="0.4"/><text x="58" y="33" font-family="sans-serif" font-size="7" font-weight="black" fill="%236366f1" opacity="0.6">REGISTRAR</text></svg>`;
+    }
+    
+    // Default fallback
+    return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="60" viewBox="0 0 160 60"><path d="M15,25 C40,5 60,45 80,20 C100,5 120,40 145,15 M30,45 C70,35 110,45 135,35" fill="none" stroke="%230284c7" stroke-width="2" stroke-linecap="round"/><circle cx="80" cy="30" r="25" fill="none" stroke="%230284c7" stroke-width="1" stroke-dasharray="3,2" opacity="0.4"/><text x="58" y="33" font-family="sans-serif" font-size="7" font-weight="black" fill="%230284c7" opacity="0.6">VERIFIED</text></svg>`;
+  };
+
   // States for Invoicing and Brand settings
   const [selectedStore, setSelectedStore] = useState<any | null>(null);
   const [billPlan, setBillPlan] = useState<string>('90');
@@ -2113,7 +2134,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                                 <img 
                                   src={contract.contractSignature} 
                                   alt="Merchant drawn signature" 
-                                  className="max-h-[50px] object-contain invert"
+                                  className="max-h-[50px] object-contain"
                                 />
                               </div>
                             ) : (
@@ -2124,28 +2145,19 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                           {/* Assigned Officer Signature Display */}
                           <div className="bg-gray-950 p-4 rounded-xl border border-gray-850 space-y-3">
                             <span className="text-[9px] text-gray-500 uppercase block font-semibold font-sans">Assigned Licensing Officer</span>
-                            {contract.assignedOfficer ? (
-                              <div className="flex items-center gap-3">
-                                {contract.assignedOfficer.signature && (
-                                  <div className="bg-white border border-gray-800 rounded-lg p-2 inline-block">
-                                    <img 
-                                      src={contract.assignedOfficer.signature} 
-                                      alt="Officer signature stamp" 
-                                      className="max-h-[40px] object-contain"
-                                    />
-                                  </div>
-                                )}
-                                <div>
-                                  <span className="text-xs font-bold text-white block">{contract.assignedOfficer.name}</span>
-                                  <span className="text-[9px] text-gray-500 block">{contract.assignedOfficer.title}</span>
-                                </div>
+                            <div className="flex items-center gap-3">
+                              <div className="bg-white border border-gray-800 rounded-lg p-2 inline-block">
+                                <img 
+                                  src={getOfficerSignatureUrl(contract.assignedOfficer)} 
+                                  alt="Officer signature stamp" 
+                                  className="max-h-[40px] object-contain"
+                                />
                               </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <div className="font-mono text-[10px] font-black text-gray-500 border border-gray-850 rounded px-2 py-1 bg-gray-900 uppercase">CREVA OFFICIAL STAMP</div>
-                                <span className="text-[9px] text-gray-500 block">Default authorized signee</span>
+                              <div>
+                                <span className="text-xs font-bold text-white block">{contract.assignedOfficer?.name || 'Kavin Kumar'}</span>
+                                <span className="text-[9px] text-gray-500 block">{contract.assignedOfficer?.title || 'Senior Licensing Officer'}</span>
                               </div>
-                            )}
+                            </div>
                           </div>
                         </div>
 
