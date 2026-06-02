@@ -163,27 +163,61 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-muted/20 flex w-full relative">
       {/* Flash Screen Overlay Alert for New Orders */}
       {newOrderAlert && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-          <div className="bg-card text-card-foreground rounded-2xl border-2 border-primary shadow-2xl w-full max-w-sm p-6 space-y-6 text-center animate-in scale-in duration-300">
-            <div className="w-14 h-14 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto animate-bounce">
-              <ShoppingCart className="w-6 h-6" />
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+          {/* Glowing subtle background spots */}
+          <div className="absolute w-72 h-72 bg-blue-500/10 rounded-full blur-3xl -translate-x-16 -translate-y-16 pointer-events-none" />
+          <div className="absolute w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl translate-x-16 translate-y-16 pointer-events-none" />
+          
+          <div className="relative bg-slate-900/95 text-slate-100 rounded-3xl border border-slate-800 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] w-full max-w-sm p-6 space-y-6 text-center animate-in zoom-in-95 duration-300">
+            {/* Top glowing success badge */}
+            <div className="relative w-16 h-16 bg-gradient-to-tr from-emerald-500 to-teal-400 text-white rounded-2xl flex items-center justify-center mx-auto shadow-[0_8px_20px_rgba(16,185,129,0.35)] rotate-3 hover:rotate-0 transition-transform duration-350 cursor-default">
+              <ShoppingCart className="w-7 h-7" />
+              {/* Outer pulsing ring */}
+              <div className="absolute -inset-1.5 rounded-2xl border-2 border-emerald-500/35 animate-ping pointer-events-none" />
             </div>
-            <div className="space-y-1">
-              <span className="text-[9px] font-black uppercase tracking-widest text-primary">REAL-TIME NOTIFICATION</span>
-              <h2 className="text-xl font-black tracking-tight text-foreground">🎉 New Order Received!</h2>
-              <p className="text-xs text-muted-foreground">Order details loaded from live cloud sync.</p>
+            
+            <div className="space-y-1.5">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                Live Cloud Sync
+              </span>
+              <h2 className="text-xl font-black tracking-tight text-white mt-2">🎉 New Order Received!</h2>
+              <p className="text-xs text-slate-400">Order details loaded from live cloud sync.</p>
             </div>
-            <div className="bg-muted/50 p-4 rounded-xl space-y-1.5 text-left border border-border">
-              <p className="text-[9.5px] font-black text-muted-foreground uppercase">Customer Details</p>
-              <p className="text-xs font-bold text-foreground truncate">{newOrderAlert.customer_name || 'Anonymous Customer'}</p>
-              <div className="flex justify-between items-center pt-2 border-t border-border mt-2">
-                <span className="text-[9.5px] font-black text-muted-foreground uppercase">Order Total</span>
-                <span className="text-sm font-black text-primary">{store.currency === 'USD' ? '$' : '₹'}{Number(newOrderAlert.total_amount || 0).toLocaleString()}</span>
+            
+            <div className="bg-slate-950/70 p-5 rounded-2xl space-y-3 text-left border border-slate-800/80 shadow-inner">
+              <div>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Customer Details</p>
+                <p className="text-xs font-black text-slate-200 mt-1 truncate">{newOrderAlert.customer_name || 'Anonymous Customer'}</p>
+              </div>
+              <div className="h-px bg-slate-800/60 w-full" />
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Order Total</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Includes local taxes</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-base font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">
+                    {store.currency === 'USD' ? '$' : '₹'}{Number(newOrderAlert.total_amount || 0).toLocaleString()}
+                  </span>
+                </div>
               </div>
             </div>
+            
             <div className="flex gap-3">
-              <button onClick={() => setNewOrderAlert(null)} className="flex-1 bg-muted hover:bg-muted/80 text-muted-foreground px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all">Dismiss</button>
-              <Link href="/admin/orders" onClick={() => setNewOrderAlert(null)} className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest text-center transition-all shadow-md">View</Link>
+              <button 
+                onClick={() => setNewOrderAlert(null)} 
+                className="flex-1 bg-slate-800 hover:bg-slate-750 border border-slate-750 text-slate-300 hover:text-white px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all duration-200 cursor-pointer shadow-sm"
+              >
+                Dismiss
+              </button>
+              <Link 
+                href="/admin/orders" 
+                onClick={() => setNewOrderAlert(null)} 
+                className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-650 hover:from-blue-500 hover:to-indigo-600 text-white shadow-[0_4px_15px_rgba(37,99,235,0.35)] px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-widest text-center transition-all duration-200 hover:scale-[1.02]"
+              >
+                View
+              </Link>
             </div>
           </div>
         </div>

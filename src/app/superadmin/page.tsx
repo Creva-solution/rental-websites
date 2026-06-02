@@ -1427,27 +1427,45 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
     <div className="min-h-screen bg-gray-900 text-gray-100 font-sans p-6 sm:p-8">
       {/* Brutalist Flash Screen Alert for New Verification Requests */}
       {newStoreAlert && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 p-4 font-mono">
-          <div className="bg-zinc-950 text-indigo-400 border-4 border-indigo-500 shadow-[8px_8px_0px_#000] w-full max-w-md p-6 space-y-6 text-center animate-in scale-in duration-300">
-            <div className="w-16 h-16 bg-indigo-950/60 border-2 border-indigo-500 rounded-none flex items-center justify-center mx-auto animate-bounce text-indigo-400">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4 font-mono select-none">
+          {/* Cyan/indigo neon ambient behind */}
+          <div className="absolute w-80 h-80 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="relative bg-zinc-950 text-indigo-400 border-4 border-indigo-500 shadow-[10px_10px_0px_#4f46e5] w-full max-w-md p-6 space-y-6 text-center animate-in zoom-in-95 duration-300">
+            {/* Corner retro brackets */}
+            <div className="absolute top-2 left-2 text-[10px] text-indigo-600 font-black">&lt;SYS_ALERT&gt;</div>
+            <div className="absolute top-2 right-2 text-[10px] text-indigo-600 font-black">&lt;ONLINE&gt;</div>
+            
+            <div className="w-16 h-16 bg-indigo-950/80 border-2 border-indigo-400 rounded-none flex items-center justify-center mx-auto text-indigo-400 shadow-[4px_4px_0px_rgba(79,70,229,0.3)] animate-pulse">
               <Building2 className="w-8 h-8" />
             </div>
+            
             <div className="space-y-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400 block">&gt;&gt; SYSTEM_ALERT_INCOMING</span>
-              <h2 className="text-xl font-black uppercase tracking-tight text-white">🏪 NEW VERIFICATION DETECTED!</h2>
-              <p className="text-xs text-gray-400">Store payment screenshot is ready for audit review.</p>
+              <div className="inline-block bg-indigo-950 border border-indigo-800 text-indigo-300 text-[9px] font-black uppercase tracking-widest px-3 py-1">
+                &gt;&gt; DETECTED_NEW_REQUEST_SECURE
+              </div>
+              <h2 className="text-xl font-black uppercase tracking-tight text-white mt-1">🏪 NEW VERIFICATION FOUND</h2>
+              <p className="text-2xs text-zinc-400 uppercase tracking-wider">Store uploaded a payment receipt for audit verification.</p>
             </div>
-            <div className="bg-black/50 p-4 border border-zinc-800 space-y-2 text-left">
-              <p className="text-[9px] font-black text-gray-500 uppercase">Store Information</p>
-              <p className="text-sm font-black text-white">{newStoreAlert.store_name}</p>
-              <p className="text-xs text-indigo-400 select-all">{newStoreAlert.subdomain}.crevasolution.in</p>
+            
+            <div className="bg-zinc-900 border-2 border-zinc-800 p-4 space-y-3 text-left shadow-inner">
+              <div>
+                <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">&gt;&gt; REGISTERED_STORE_NAME</p>
+                <p className="text-sm font-black text-white mt-0.5">{newStoreAlert.store_name}</p>
+              </div>
+              <div className="h-0.5 bg-zinc-800 w-full" />
+              <div>
+                <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">&gt;&gt; SUBDOMAIN_ADDRESS</p>
+                <p className="text-xs font-black text-indigo-400 select-all mt-0.5">{newStoreAlert.subdomain}.crevasolution.in</p>
+              </div>
             </div>
-            <div className="flex gap-3 pt-2">
+            
+            <div className="flex gap-4 pt-2">
               <button 
                 onClick={() => setNewStoreAlert(null)} 
-                className="bg-zinc-900 hover:bg-zinc-800 text-gray-400 border-2 border-zinc-800 hover:border-zinc-700 px-4 py-2 font-black text-xs uppercase tracking-widest transition-all cursor-pointer flex-1"
+                className="bg-zinc-900 hover:bg-zinc-800 border-2 border-zinc-700 text-zinc-400 hover:text-white px-4 py-2.5 font-black text-xs uppercase tracking-widest transition-all duration-150 cursor-pointer shadow-[3px_3px_0px_#27272a] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 flex-1"
               >
-                Acknowledge
+                [ ACK ]
               </button>
               <button 
                 onClick={() => {
@@ -1455,14 +1473,15 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                   setSelectedStore(newStoreAlert);
                   setModalTab('payment');
                 }} 
-                className="bg-indigo-650 hover:bg-indigo-750 text-white border-2 border-indigo-500 px-4 py-2 font-black text-xs uppercase tracking-widest transition-all shadow-md cursor-pointer flex-1"
+                className="bg-indigo-650 hover:bg-indigo-700 text-white border-2 border-indigo-400 px-4 py-2.5 font-black text-xs uppercase tracking-widest transition-all duration-150 cursor-pointer shadow-[3px_3px_0px_#4f46e5] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 flex-1"
               >
-                Review & Approve
+                [ AUDIT_NOW ]
               </button>
             </div>
           </div>
         </div>
       )}
+
       {/* Upper header */}
       <div className="max-w-7xl mx-auto mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
