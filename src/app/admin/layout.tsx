@@ -16,6 +16,42 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [user, setUser] = useState<any>(null);
   const [storeUrl, setStoreUrl] = useState<string>('');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [newOrderAlert, setNewOrderAlert] = useState<any>(null);
+  const [knownOrdersCount, setKnownOrdersCount] = useState<number | null>(null);
+
+  const playNotificationChime = () => {
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      
+      // First note: E5 (659.25 Hz)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(659.25, ctx.currentTime);
+      gain1.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
+      osc1.start(ctx.currentTime);
+      osc1.stop(ctx.currentTime + 0.12);
+      
+      // Second note: A5 (880.00 Hz) - slightly delayed
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(880.00, ctx.currentTime + 0.1);
+      gain2.gain.setValueAtTime(0.12, ctx.currentTime + 0.1);
+      gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+      osc2.start(ctx.currentTime + 0.1);
+      osc2.stop(ctx.currentTime + 0.4);
+    } catch (e) {
+      console.warn("Audio Context failed to play chime:", e);
+    }
+  };
 
   useEffect(() => {
     if (!store) return;
@@ -55,6 +91,49 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [router]);
 
   useEffect(() => {
+    if (!store) return;
+    
+    // Initial fetch to seed known orders count
+    const seedOrders = async () => {
+      try {
+        const { data } = await supabase
+          .from('orders')
+          .select('id')
+          .eq('store_id', store.id);
+        if (data) {
+          setKnownOrdersCount(data.length);
+        }
+      } catch (e) {}
+    };
+    seedOrders();
+
+    // Auto-refresh order polling interval (every 10 seconds)
+    const interval = setInterval(async () => {
+      try {
+        const { data: latestOrders } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('store_id', store.id)
+          .order('created_at', { ascending: false });
+
+        if (latestOrders && Array.isArray(latestOrders)) {
+          if (knownOrdersCount !== null && latestOrders.length > knownOrdersCount) {
+            // New order received!
+            const newOrder = latestOrders[0];
+            setNewOrderAlert(newOrder);
+            playNotificationChime();
+          }
+          setKnownOrdersCount(latestOrders.length);
+        }
+      } catch (err) {
+        console.warn("Real-time orders sync check failed:", err);
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [store, knownOrdersCount]);
+
+  useEffect(() => {
     setIsMobileOpen(false);
   }, [pathname]);
 
@@ -82,6 +161,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-muted/20 flex w-full relative">
+      {/* Flash Screen Overlay Alert for New Orders */}
+      {newOrderAlert && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+          <div className="bg-card text-card-foreground rounded-2xl border-2 border-primary shadow-2xl w-full max-w-sm p-6 space-y-6 text-center animate-in scale-in duration-300">
+            <div className="w-14 h-14 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto animate-bounce">
+              <ShoppingCart className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <span className="text-[9px] font-black uppercase tracking-widest text-primary">REAL-TIME NOTIFICATION</span>
+              <h2 className="text-xl font-black tracking-tight text-foreground">🎉 New Order Received!</h2>
+              <p className="text-xs text-muted-foreground">Order details loaded from live cloud sync.</p>
+            </div>
+            <div className="bg-muted/50 p-4 rounded-xl space-y-1.5 text-left border border-border">
+              <p className="text-[9.5px] font-black text-muted-foreground uppercase">Customer Details</p>
+              <p className="text-xs font-bold text-foreground truncate">{newOrderAlert.customer_name || 'Anonymous Customer'}</p>
+              <div className="flex justify-between items-center pt-2 border-t border-border mt-2">
+                <span className="text-[9.5px] font-black text-muted-foreground uppercase">Order Total</span>
+                <span className="text-sm font-black text-primary">{store.currency === 'USD' ? '$' : '₹'}{Number(newOrderAlert.total_amount || 0).toLocaleString()}</span>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setNewOrderAlert(null)} className="flex-1 bg-muted hover:bg-muted/80 text-muted-foreground px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all">Dismiss</button>
+              <Link href="/admin/orders" onClick={() => setNewOrderAlert(null)} className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest text-center transition-all shadow-md">View</Link>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Mobile Drawer Overlay */}
       {isMobileOpen && (
         <div 

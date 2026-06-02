@@ -14,6 +14,42 @@ export default function SuperAdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedSql, setCopiedSql] = useState(false);
   const [actionStatus, setActionStatus] = useState<string | null>(null);
+  const [newStoreAlert, setNewStoreAlert] = useState<any>(null);
+  const [knownPendingCount, setKnownPendingCount] = useState<number | null>(null);
+
+  const playNotificationChime = () => {
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      
+      // First note: G5 (783.99 Hz)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.type = 'triangle';
+      osc1.frequency.setValueAtTime(783.99, ctx.currentTime);
+      gain1.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+      osc1.start(ctx.currentTime);
+      osc1.stop(ctx.currentTime + 0.15);
+      
+      // Second note: C6 (1046.50 Hz) - delayed
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.12);
+      gain2.gain.setValueAtTime(0.12, ctx.currentTime + 0.12);
+      gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.45);
+      osc2.start(ctx.currentTime + 0.12);
+      osc2.stop(ctx.currentTime + 0.45);
+    } catch (e) {
+      console.warn("Audio Context failed to play chime:", e);
+    }
+  };
 
   // States for Invoicing and Brand settings
   const [selectedStore, setSelectedStore] = useState<any | null>(null);
@@ -681,7 +717,19 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
         }
       }
 
-      setStores(allRows.filter((s: any) => s.subdomain !== '__creva_saas_global_settings__'));
+      const activeMerchantStores = allRows.filter((s: any) => s.subdomain !== '__creva_saas_global_settings__');
+      setStores(activeMerchantStores);
+      
+      const pendingStoresCount = activeMerchantStores.filter((s: any) => {
+        try {
+          if (s.description && s.description.trim().startsWith('{')) {
+            const parsed = JSON.parse(s.description);
+            return parsed.paymentStatus === 'pending';
+          }
+        } catch (e) {}
+        return false;
+      }).length;
+      setKnownPendingCount(pendingStoresCount);
     } catch (err: any) {
       console.error('Error loading stores:', err.message);
     } finally {
@@ -692,6 +740,47 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
   useEffect(() => {
     fetchStores();
   }, []);
+
+  useEffect(() => {
+    // Polling interval to auto-refresh stores and check for pending verifications
+    const interval = setInterval(async () => {
+      try {
+        const { data: latestStores } = await supabase
+          .from('stores')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (latestStores && Array.isArray(latestStores)) {
+          const merchantStores = latestStores.filter((s: any) => s.subdomain !== '__creva_saas_global_settings__');
+          
+          // Count pending verifications
+          const pendingStores = merchantStores.filter((s: any) => {
+            try {
+              if (s.description && s.description.trim().startsWith('{')) {
+                const parsed = JSON.parse(s.description);
+                return parsed.paymentStatus === 'pending';
+              }
+            } catch (e) {}
+            return false;
+          });
+
+          if (knownPendingCount !== null && pendingStores.length > knownPendingCount) {
+            // New pending verification request!
+            const newPendingStore = pendingStores[0];
+            setNewStoreAlert(newPendingStore);
+            playNotificationChime();
+          }
+
+          setKnownPendingCount(pendingStores.length);
+          setStores(merchantStores);
+        }
+      } catch (err) {
+        console.warn("Real-time stores sync check failed:", err);
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [knownPendingCount]);
 
   const handleTogglePause = async (storeId: string, currentStatus: boolean) => {
     setActionStatus(`Updating store...`);
@@ -1336,6 +1425,44 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 font-sans p-6 sm:p-8">
+      {/* Brutalist Flash Screen Alert for New Verification Requests */}
+      {newStoreAlert && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 p-4 font-mono">
+          <div className="bg-zinc-950 text-indigo-400 border-4 border-indigo-500 shadow-[8px_8px_0px_#000] w-full max-w-md p-6 space-y-6 text-center animate-in scale-in duration-300">
+            <div className="w-16 h-16 bg-indigo-950/60 border-2 border-indigo-500 rounded-none flex items-center justify-center mx-auto animate-bounce text-indigo-400">
+              <Building2 className="w-8 h-8" />
+            </div>
+            <div className="space-y-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400 block">&gt;&gt; SYSTEM_ALERT_INCOMING</span>
+              <h2 className="text-xl font-black uppercase tracking-tight text-white">🏪 NEW VERIFICATION DETECTED!</h2>
+              <p className="text-xs text-gray-400">Store payment screenshot is ready for audit review.</p>
+            </div>
+            <div className="bg-black/50 p-4 border border-zinc-800 space-y-2 text-left">
+              <p className="text-[9px] font-black text-gray-500 uppercase">Store Information</p>
+              <p className="text-sm font-black text-white">{newStoreAlert.store_name}</p>
+              <p className="text-xs text-indigo-400 select-all">{newStoreAlert.subdomain}.crevasolution.in</p>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button 
+                onClick={() => setNewStoreAlert(null)} 
+                className="bg-zinc-900 hover:bg-zinc-800 text-gray-400 border-2 border-zinc-800 hover:border-zinc-700 px-4 py-2 font-black text-xs uppercase tracking-widest transition-all cursor-pointer flex-1"
+              >
+                Acknowledge
+              </button>
+              <button 
+                onClick={() => {
+                  setNewStoreAlert(null);
+                  setSelectedStore(newStoreAlert);
+                  setModalTab('payment');
+                }} 
+                className="bg-indigo-650 hover:bg-indigo-750 text-white border-2 border-indigo-500 px-4 py-2 font-black text-xs uppercase tracking-widest transition-all shadow-md cursor-pointer flex-1"
+              >
+                Review & Approve
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Upper header */}
       <div className="max-w-7xl mx-auto mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
