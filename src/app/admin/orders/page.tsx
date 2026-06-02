@@ -396,7 +396,7 @@ export default function OrdersPage() {
             <ShoppingCart className="w-3.5 h-3.5" /> Order Operations Dashboard
           </span>
           <h2 className="text-2xl md:text-3xl font-black tracking-tight mt-3 text-gray-950">
-            📦 Orders & Billing Center
+            Orders & Billing Center
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Manage incoming WhatsApp checkouts, update tracking details, bulk print invoices, and view AI operations metrics.
@@ -950,7 +950,7 @@ export default function OrdersPage() {
               </div>
 
               <div className="space-y-4 pt-2">
-                <h4 className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">🏆 Top Performing VIP Buyers</h4>
+                <h4 className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Top Performing VIP Buyers</h4>
                 {customerLeaderboard.slice(0, 3).map((vip, idx) => (
                   <div key={idx} className="bg-muted/15 border p-2.5 rounded-lg flex justify-between items-center text-xs">
                     <div>

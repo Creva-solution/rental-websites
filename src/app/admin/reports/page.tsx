@@ -340,7 +340,7 @@ export default function ReportsPage() {
             <Sparkles className="w-3.5 h-3.5" /> Core Analytics Suite
           </span>
           <h2 className="text-2xl md:text-3xl font-black tracking-tight mt-3 text-gray-950">
-            📊 Executive Sales & Performance Reports
+            Executive Sales & Performance Reports
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1.5">
             Review detailed financial summaries, product performance grids, and customer retention stats.
@@ -503,7 +503,7 @@ export default function ReportsPage() {
             )}
           </div>
           <p className="text-[10px] text-muted-foreground leading-relaxed leading-normal">
-            💡 Dynamic revenue columns calculate verified orders placed in chronological order. Custom range automatically resets index thresholds.
+            Dynamic revenue columns calculate verified orders placed in chronological order. Custom range automatically resets index thresholds.
           </p>
         </div>
 
@@ -693,10 +693,10 @@ export default function ReportsPage() {
       {/* Additional business analytics insights grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-left">
         {[
-          { label: '⭐ Best Selling Product', val: insights.best, icon: Award, desc: 'Highest unit volume checkout' },
-          { label: '⚠️ Lowest Selling Product', val: insights.lowest, icon: CalendarDays, desc: 'Needs active bundle promotions' },
-          { label: '📅 Peak Sales Day', val: insights.peakDay, icon: Calendar, desc: 'Highest gross day of week' },
-          { label: '🔁 Repeat Customer Rate', val: `${insights.repeatRate}%`, icon: Users, desc: 'Loyal client retention ratio' }
+          { label: 'Best Selling Product', val: insights.best, icon: Award, desc: 'Highest unit volume checkout' },
+          { label: 'Lowest Selling Product', val: insights.lowest, icon: CalendarDays, desc: 'Needs active bundle promotions' },
+          { label: 'Peak Sales Day', val: insights.peakDay, icon: Calendar, desc: 'Highest gross day of week' },
+          { label: 'Repeat Customer Rate', val: `${insights.repeatRate}%`, icon: Users, desc: 'Loyal client retention ratio' }
         ].map((item, idx) => (
           <div key={idx} className="bg-card border rounded-2xl p-5 shadow-sm space-y-4 hover:border-[#3C77C3]/15 transition-all">
             <div className="flex items-center gap-2.5">

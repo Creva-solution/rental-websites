@@ -221,7 +221,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
                 Live Cloud Sync
               </span>
-              <h2 className="text-xl font-black tracking-tight text-white mt-2">🎉 New Order Received!</h2>
+              <h2 className="text-xl font-black tracking-tight text-white mt-2">New Order Received!</h2>
               <p className="text-xs text-slate-400">Order details loaded from live cloud sync.</p>
             </div>
             

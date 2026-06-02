@@ -16,9 +16,9 @@ export default function AIContentStudioPage() {
     setTimeout(() => {
       let result = '';
       if (prompt.toLowerCase().includes('soap') || prompt.toLowerCase().includes('admire')) {
-        result = `🧼 **Experience Pure botanical wellness with our handmade soaps.**\n\nIndulge in a premium cold-cured recipe crafted to retain raw botanical oils and organic wellness essences. Naturally scented with fresh lavender, raw citrus peels, and creamy coconut cream to deliver an incredibly soft, moisturized soap-glow. Ideal for sensitive skin types seeking raw luxury.\n\n✨ *Key Benefits: 100% natural harvesting, 6-week cure duration, fully zero waste, chemical-free.*`;
+        result = `**Experience Pure botanical wellness with our handmade soaps.**\n\nIndulge in a premium cold-cured recipe crafted to retain raw botanical oils and organic wellness essences. Naturally scented with fresh lavender, raw citrus peels, and creamy coconut cream to deliver an incredibly soft, moisturized soap-glow. Ideal for sensitive skin types seeking raw luxury.\n\n*Key Benefits: 100% natural harvesting, 6-week cure duration, fully zero waste, chemical-free.*`;
       } else {
-        result = `✨ **Elevate your everyday rituals with Creva Websz.**\n\nIntroducing our newest hand-curated addition, crafted meticulously with raw ingredients and modern sustainability. Every purchase is verified, packaged carefully by local artisan hands, and shipped in full eco-friendly luxury packaging.\n\n🌿 *Buy now to experience a truly timeless, beautiful lifestyle upgrade.*`;
+        result = `**Elevate your everyday rituals with Creva Websz.**\n\nIntroducing our newest hand-curated addition, crafted meticulously with raw ingredients and modern sustainability. Every purchase is verified, packaged carefully by local artisan hands, and shipped in full eco-friendly luxury packaging.\n\n*Buy now to experience a truly timeless, beautiful lifestyle upgrade.*`;
       }
       setGeneratedText(result);
       setGenerating(false);
@@ -40,7 +40,7 @@ export default function AIContentStudioPage() {
             <Sparkles className="w-3.5 h-3.5" /> Creva Websz AI Studio
           </span>
           <h2 className="text-2xl md:text-3xl font-black tracking-tight mt-3">
-            🤖 AI Content Generation Studio
+            AI Content Generation Studio
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
             Write high-converting product descriptions, WhatsApp copy, and SEO meta tags in seconds.
@@ -157,7 +157,7 @@ export default function AIContentStudioPage() {
           </div>
 
           <div className="bg-[#3C77C3]/5 rounded-xl border border-[#3C77C3]/10 p-4 text-[10px] text-muted-foreground leading-normal text-left">
-            🤖 Generative text utilizes customized retail NLP templates mapped precisely to Creva storefront visual layouts.
+            Generative text utilizes customized retail NLP templates mapped precisely to Creva storefront visual layouts.
           </div>
         </div>
       </div>

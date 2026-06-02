@@ -30,7 +30,7 @@ export default function MarketingHubPage() {
             <Megaphone className="w-3.5 h-3.5" /> Creva Marketing Suite
           </span>
           <h2 className="text-2xl md:text-3xl font-black tracking-tight mt-3">
-            📣 Marketing Hub & Broadcasts
+            Marketing Hub & Broadcasts
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
             Grow your store sales using automated WhatsApp campaigns, abandoned cart triggers, and discount broadcasts.
@@ -136,9 +136,9 @@ export default function MarketingHubPage() {
 
             <div className="space-y-4 text-left">
               {[
-                { title: '🛒 Abandoned Cart Recovery', desc: 'Auto-sends WhatsApp discount reminder 2 hours after cart exit.', enabled: true },
-                { title: '📦 Shipping Confirmation Alert', desc: 'Auto-sends tracking number WhatsApp when order status hits Shipped.', enabled: true },
-                { title: '🎂 Birthday Loyalty Banners', desc: 'Automates voucher code releases to customers during birthday month.', enabled: false }
+                { title: 'Abandoned Cart Recovery', desc: 'Auto-sends WhatsApp discount reminder 2 hours after cart exit.', enabled: true },
+                { title: 'Shipping Confirmation Alert', desc: 'Auto-sends tracking number WhatsApp when order status hits Shipped.', enabled: true },
+                { title: 'Birthday Loyalty Banners', desc: 'Automates voucher code releases to customers during birthday month.', enabled: false }
               ].map((auto, idx) => (
                 <div key={idx} className="p-3 bg-muted/20 border rounded-xl flex items-start gap-3 shadow-inner">
                   <div className="pt-0.5">
