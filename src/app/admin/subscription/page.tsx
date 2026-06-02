@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  CreditCard, Loader2, Phone, Calendar, Clock, Infinity, ShieldCheck, FileText, Printer, ShieldAlert, Upload, Trash2, Lock
+  CreditCard, Loader2, Phone, Calendar, Clock, Infinity, ShieldCheck, FileText, Printer, ShieldAlert, Upload, Trash2, Lock, X
 } from 'lucide-react';
 
 export default function SubscriptionPage() {
@@ -12,6 +12,158 @@ export default function SubscriptionPage() {
   const [uploading, setUploading] = useState(false);
   const [reuploadSuccess, setReuploadSuccess] = useState(false);
   const [customPackages, setCustomPackages] = useState<any[]>([]);
+
+  // Interactive Merchant Signature States
+  const sigCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [isSignModalOpen, setIsSignModalOpen] = useState(false);
+  const [isDrawingSig, setIsDrawingSig] = useState(false);
+  const [signature, setSignature] = useState<string | null>(null);
+  const [isSignatureConfirmed, setIsSignatureConfirmed] = useState(false);
+
+  const startDrawingSig = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const canvas = sigCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    setIsDrawingSig(true);
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    
+    const rect = canvas.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    
+    const x = ((clientX - rect.left) / rect.width) * canvas.width;
+    const y = ((clientY - rect.top) / rect.height) * canvas.height;
+    
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const drawSig = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawingSig) return;
+    e.preventDefault();
+    const canvas = sigCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+    const x = ((clientX - rect.left) / rect.width) * canvas.width;
+    const y = ((clientY - rect.top) / rect.height) * canvas.height;
+
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const stopDrawingSig = () => {
+    setIsDrawingSig(false);
+  };
+
+  const clearSig = () => {
+    const canvas = sigCanvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+    setSignature(null);
+    setIsSignatureConfirmed(false);
+  };
+
+  const handleConfirmSignature = () => {
+    const canvas = sigCanvasRef.current;
+    if (canvas) {
+      const dataUrl = canvas.toDataURL();
+      setSignature(dataUrl);
+      setIsSignatureConfirmed(true);
+    } else {
+      alert("⚠️ Error capturing signature. Please try drawing again.");
+    }
+  };
+
+  const handleSubmitSignedAgreement = async () => {
+    if (!signature || !isSignatureConfirmed) {
+      alert("⚠️ Please digitally sign the SaaS agreement and click 'Confirm & Lock Signature' below the canvas first!");
+      return;
+    }
+
+    try {
+      setUploading(true);
+
+      const officersList = [
+        { id: 1, name: 'Kavin Kumar', title: 'Senior Licensing Officer', signature: '' },
+        { id: 2, name: 'Abhishek Sharma', title: 'Executive Officer - Creva', signature: '' },
+        { id: 3, name: 'Preethi Rajan', title: 'Licensing Director', signature: '' },
+        { id: 4, name: 'Sanjay Sen', title: 'Registrar of Merchants', signature: '' }
+      ];
+      
+      const savedOfficers = typeof window !== 'undefined' ? localStorage.getItem('saas_licensing_officers') : null;
+      let chosenOfficer = officersList[0];
+      if (savedOfficers) {
+        try {
+          const parsed = JSON.parse(savedOfficers);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            chosenOfficer = parsed[Math.floor(Math.random() * parsed.length)];
+          }
+        } catch(e) {}
+      }
+
+      let currentScreenshotUrl = null;
+      let currentPaymentStatus = 'pending';
+      
+      if (store.description && store.description.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(store.description);
+          currentScreenshotUrl = parsed.paymentScreenshotUrl || null;
+          currentPaymentStatus = parsed.paymentStatus || 'pending';
+        } catch(e) {}
+      }
+
+      const contractDetails = {
+        description: store.description && !store.description.startsWith('{') ? store.description : '',
+        contractSigned: true,
+        contractSignedAt: new Date().toISOString(),
+        contractSignature: signature,
+        selectedPlan: '30',
+        assignedOfficer: chosenOfficer,
+        paymentScreenshotUrl: currentScreenshotUrl,
+        paymentStatus: currentPaymentStatus,
+        selectedTemplate: 'minimal'
+      };
+
+      const { error } = await supabase
+        .from('stores')
+        .update({
+          description: JSON.stringify(contractDetails)
+        })
+        .eq('id', store.id);
+
+      if (error) throw error;
+
+      setStore({
+        ...store,
+        description: JSON.stringify(contractDetails)
+      });
+
+      setIsSignModalOpen(false);
+      alert("🎉 Success: Your merchant storefront licensing agreement has been digitally signed and registered successfully!");
+    } catch (err: any) {
+      console.error(err);
+      alert(`⚠️ Failed to submit signature: ${err.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   useEffect(() => {
     fetchStore();
@@ -634,9 +786,16 @@ export default function SubscriptionPage() {
                 </div>
               </div>
             ) : (
-              <div className="bg-muted/30 p-4 rounded-xl border border-border text-center space-y-2">
-                <FileText className="w-8 h-8 text-muted-foreground mx-auto" />
+              <div className="bg-muted/30 p-4 rounded-xl border border-border text-center space-y-3">
+                <FileText className="w-8 h-8 text-muted-foreground mx-auto animate-pulse" />
                 <p className="text-xs text-muted-foreground font-medium">No signed agreement found on your storefront record.</p>
+                <button
+                  type="button"
+                  onClick={() => setIsSignModalOpen(true)}
+                  className="mx-auto mt-1 flex items-center gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-black px-4 py-2.5 rounded-xl transition-all shadow-md cursor-pointer uppercase tracking-widest"
+                >
+                  ✍️ Sign Licensing Agreement Now
+                </button>
               </div>
             )}
           </div>
@@ -755,7 +914,7 @@ export default function SubscriptionPage() {
             </div>
 
             {/* Document Footer Verification Seal */}
-            <div className="mt-8 text-center text-[9px] text-slate-450 font-mono border-t border-slate-100 pt-4 flex items-center justify-center gap-1.5">
+            <div className="mt-8 text-center text-[9px] text-slate-400 font-mono border-t border-slate-100 pt-4 flex items-center justify-center gap-1.5">
               <span className="flex items-center gap-1">
                 <Lock className="w-2.5 h-2.5 text-slate-400" />
                 Cryptographically Signed & Secured via Creva SaaS Engine
@@ -763,6 +922,119 @@ export default function SubscriptionPage() {
               <span>•</span>
               <span className="font-bold text-slate-500 uppercase tracking-widest">ID: store_{store.id.slice(0,8)}</span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Interactive Licensing Agreement Signature Modal */}
+      {isSignModalOpen && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-card text-card-foreground rounded-2xl border border-border shadow-2xl w-full max-w-2xl p-6 md:p-8 space-y-6 animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b pb-4 border-border/40">
+              <div>
+                <h3 className="font-bold text-lg flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-primary" />
+                  Sign Merchant Licensing Contract
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Please review terms and sign digitally inside the canvas.</p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setIsSignModalOpen(false)}
+                className="p-1.5 hover:bg-muted rounded-full transition-colors cursor-pointer text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content / Scrollable Agreement */}
+            <div className="space-y-4 overflow-y-auto pr-2 flex-1 scrollbar-thin">
+              <div className="bg-muted/40 border border-border rounded-xl p-4 text-xs leading-relaxed text-muted-foreground max-h-[160px] overflow-y-auto select-text">
+                <p className="font-bold text-foreground mb-3 uppercase tracking-wider text-[10px]">Merchant Storefront Licensing Terms:</p>
+                <div className="whitespace-pre-line text-left">
+                  {localStorage.getItem('saas_agreement_template') || `1. PROVISIONS OF SERVICE: The Creva E-Commerce SaaS platform grants the undersigned Merchant the license to operate an automated retail storefront website using our cloud architecture. Custom domain mappings are active permissions subject to the subscription plan level.
+
+2. PLAN RENEWALS & INQUIRY SYSTEM: The Merchant understands that platform billing utilizes an inquiry activation system. Upon plan expiration, storefront access may be suspended unless renewed by contacting the support sales team directly.
+
+3. ACCEPTABLE USAGE & LEGAL LIMITS: The Merchant agrees to list only legally compliant goods. Sales of prohibited, illegal, counterfeited, or unauthorized products will lead to instant termination of this license without refund.
+
+4. SECURITY & DATA PRIVACY: The platform will protect merchant database assets, catalog listings, and custom styling. The platform is not responsible for off-site customer disputes.`}
+                </div>
+              </div>
+
+              {/* Signature Canvas Drawing Area */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground text-left">Digitized Signature Canvas *</label>
+                <div className="border border-border rounded-xl p-3 bg-muted/20 relative">
+                  <canvas
+                    ref={sigCanvasRef}
+                    width={500}
+                    height={150}
+                    onMouseDown={startDrawingSig}
+                    onMouseMove={drawSig}
+                    onMouseUp={stopDrawingSig}
+                    onMouseLeave={stopDrawingSig}
+                    onTouchStart={startDrawingSig}
+                    onTouchMove={drawSig}
+                    onTouchEnd={stopDrawingSig}
+                    className="w-full bg-white border border-border/80 rounded-lg cursor-crosshair touch-none"
+                    style={{ height: '150px' }}
+                  />
+                  {isSignatureConfirmed && (
+                    <div className="absolute inset-0 bg-emerald-500/10 backdrop-blur-[1px] rounded-xl flex items-center justify-center border-2 border-emerald-500/30">
+                      <span className="bg-emerald-600 text-white font-black uppercase tracking-widest text-[10px] px-3.5 py-1.5 rounded-full shadow-md flex items-center gap-1.5 animate-bounce">
+                        <ShieldCheck className="w-4 h-4" /> Signature Locked
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground text-left">
+                  👉 Use your finger (on mobile) or mouse drag to sign in the white box above, then click <strong>Confirm & Lock Signature</strong>.
+                </p>
+              </div>
+
+              {/* Signature Confirm/Reset Actions */}
+              <div className="flex justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={clearSig}
+                  className="bg-muted hover:bg-muted/80 text-muted-foreground border px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+                >
+                  Clear Pad
+                </button>
+                {!isSignatureConfirmed && (
+                  <button
+                    type="button"
+                    onClick={handleConfirmSignature}
+                    className="bg-primary hover:bg-primary/95 text-primary-foreground px-4.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-md"
+                  >
+                    Confirm & Lock Signature
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer Submit */}
+            <div className="border-t pt-4 border-border/40 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsSignModalOpen(false)}
+                className="bg-muted hover:bg-muted/80 text-muted-foreground px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!isSignatureConfirmed || uploading}
+                onClick={handleSubmitSignedAgreement}
+                className="bg-success hover:bg-success/95 text-white disabled:opacity-40 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all cursor-pointer shadow-md"
+              >
+                {uploading ? 'Registering...' : 'Lock & Register Signature'}
+              </button>
+            </div>
+
           </div>
         </div>
       )}
