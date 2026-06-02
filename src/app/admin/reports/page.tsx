@@ -307,7 +307,7 @@ export default function ReportsPage() {
   if (loading) return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto pb-16 px-2 sm:px-0">
+    <div className="space-y-8 w-full pb-16">
       {/* Print Specific Inline Styling */}
       <style>{`
         @media print {

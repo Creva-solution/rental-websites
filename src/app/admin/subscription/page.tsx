@@ -639,7 +639,7 @@ export default function SubscriptionPage() {
   };
 
   return (
-    <div className="space-y-8 max-w-4xl">
+    <div className="space-y-8 w-full">
       {/* Expiry Header Banner */}
       {isExpired ? (
         <div className="bg-destructive/10 border border-destructive/20 text-destructive rounded-xl p-5 flex items-start gap-4">

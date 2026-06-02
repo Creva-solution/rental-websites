@@ -361,7 +361,7 @@ export default function OrdersPage() {
   }, [processedOrders]);
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto pb-16 px-2 sm:px-0">
+    <div className="space-y-8 w-full pb-16">
       
       <style>{`
         @media print {

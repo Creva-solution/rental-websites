@@ -366,7 +366,7 @@ export default function SettingsPage() {
   if (loading) return <div className="flex justify-center p-10"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-12">
+    <div className="w-full space-y-8 pb-12">
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Store Settings</h2>
         <p className="text-muted-foreground">Manage your store's configuration and preferences.</p>

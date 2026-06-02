@@ -32,7 +32,7 @@ export default function IntegrationsPage() {
   };
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto pb-12">
+    <div className="space-y-8 w-full pb-12">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6 border-border/45">
         <div>
