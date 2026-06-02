@@ -200,7 +200,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   return (
-    <div className="min-h-screen bg-muted/20 flex w-full relative">
+    <div className="h-screen bg-muted/20 flex w-full relative overflow-hidden">
       {/* Flash Screen Overlay Alert for New Orders */}
       {newOrderAlert && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
@@ -376,7 +376,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Desktop Sidebar */}
-      <aside className="w-64 bg-background border-r border-border hidden md:flex flex-col flex-shrink-0">
+      <aside className="w-64 bg-background border-r border-border hidden md:flex flex-col flex-shrink-0 h-full">
         <div className="h-16 flex items-center px-6 border-b border-border">
           <Link href="/" className="font-bold text-xl text-primary flex items-center gap-2">
             <svg width="24" height="22" viewBox="0 0 206 189" fill="none" xmlns="http://www.w3.org/2000/svg" className="select-none flex-shrink-0">
@@ -475,7 +475,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden h-full">
         <header className="h-16 flex items-center justify-between px-4 sm:px-6 border-b border-border bg-background flex-shrink-0">
           <div className="flex items-center gap-3">
             <button 
