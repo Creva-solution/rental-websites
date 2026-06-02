@@ -1,13 +1,49 @@
 'use client';
 
-import { useState } from 'react';
-import { Megaphone, Users, Target, Send, Smartphone, Tag, ArrowUpRight, BarChart3, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Megaphone, Users, Target, Send, Smartphone, Tag, ArrowUpRight, BarChart3, AlertCircle, Loader2, Lock } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export default function MarketingHubPage() {
+  const [store, setStore] = useState<any>(null);
+  const [globalSettings, setGlobalSettings] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+
   const [broadcastTarget, setBroadcastTarget] = useState('all');
   const [msgText, setMsgText] = useState('');
   const [sending, setSending] = useState(false);
   const [sentCount, setSentCount] = useState(0);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: storeData } = await supabase
+            .from('stores')
+            .select('*')
+            .eq('owner_id', user.id)
+            .neq('subdomain', '__creva_saas_global_settings__')
+            .maybeSingle();
+          if (storeData) setStore(storeData);
+        }
+
+        const { data: globalData } = await supabase
+          .from('stores')
+          .select('description')
+          .eq('subdomain', '__creva_saas_global_settings__')
+          .maybeSingle();
+        if (globalData && globalData.description) {
+          setGlobalSettings(JSON.parse(globalData.description));
+        }
+      } catch (e) {
+        console.error("Failed to load marketing-hub data:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   const handleBroadcast = (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,6 +56,58 @@ export default function MarketingHubPage() {
       alert("WhatsApp Broadcast sent successfully to 248 customers!");
     }, 2000);
   };
+
+  // Determine WhatsApp permissions
+  const isGloballyEnabled = globalSettings?.whatsappEnabledGlobal !== false;
+  let selectedPlan = '30';
+  try {
+    if (store?.description && store.description.startsWith('{')) {
+      const parsed = JSON.parse(store.description);
+      selectedPlan = parsed.selectedPlan || '30';
+    }
+  } catch (e) {}
+
+  const plansCtc = globalSettings?.whatsappPlansEnabled || ['30', '365', 'lifetime'];
+  const plansOua = globalSettings?.whatsappPlansOrderUpdatesEnabled || ['365', 'lifetime'];
+
+  const hasClickToChat = plansCtc.includes(selectedPlan);
+  const hasOrderUpdates = plansOua.includes(selectedPlan);
+
+  const isWhatsAppEnabled = isGloballyEnabled && (hasClickToChat || hasOrderUpdates);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-[60vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#3C77C3]" />
+      </div>
+    );
+  }
+
+  if (!isWhatsAppEnabled) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center h-[70vh] max-w-md mx-auto space-y-6">
+        <div className="w-16 h-16 bg-amber-500/10 text-amber-600 rounded-full flex items-center justify-center shadow-inner border border-amber-500/20">
+          <Lock className="w-8 h-8" />
+        </div>
+        <div>
+          <h2 className="text-xl font-black text-foreground uppercase tracking-wider">Marketing Hub Locked</h2>
+          <p className="text-xs text-muted-foreground mt-2 leading-relaxed font-medium">
+            {!isGloballyEnabled ? (
+              "WhatsApp integration is globally deactivated by the platform super-administrator. Campaign features are currently unavailable."
+            ) : (
+              "WhatsApp broadcasts and automated marketing campaigns are not enabled for your subscription plan. Please upgrade your plan in the subscription hub to unlock the Marketing Hub."
+            )}
+          </p>
+        </div>
+        <a
+          href="/admin/subscription"
+          className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md transition-all text-center"
+        >
+          Upgrade Plan
+        </a>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 w-full pb-12">

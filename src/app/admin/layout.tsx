@@ -19,6 +19,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [newOrderAlert, setNewOrderAlert] = useState<any>(null);
   const [knownOrdersCount, setKnownOrdersCount] = useState<number | null>(null);
+  const [globalSettings, setGlobalSettings] = useState<any>(null);
 
   const playNotificationChime = () => {
     try {
@@ -87,6 +88,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           .maybeSingle();
           
         setStore(storeData || null);
+
+        // Fetch global SaaS settings
+        const { data: globalData } = await supabase
+          .from('stores')
+          .select('description')
+          .eq('subdomain', '__creva_saas_global_settings__')
+          .maybeSingle();
+        if (globalData && globalData.description) {
+          setGlobalSettings(JSON.parse(globalData.description));
+        }
       } catch (err) {
         console.error("Auth check failed:", err);
       } finally {
@@ -165,6 +176,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
+  // Determine WhatsApp permissions to show/hide Marketing Hub
+  const isGloballyEnabled = globalSettings?.whatsappEnabledGlobal !== false;
+  let selectedPlan = '30';
+  try {
+    if (store?.description && store.description.startsWith('{')) {
+      const parsed = JSON.parse(store.description);
+      selectedPlan = parsed.selectedPlan || '30';
+    }
+  } catch (e) {}
+
+  const plansCtc = globalSettings?.whatsappPlansEnabled || ['30', '365', 'lifetime'];
+  const plansOua = globalSettings?.whatsappPlansOrderUpdatesEnabled || ['365', 'lifetime'];
+
+  const hasClickToChat = plansCtc.includes(selectedPlan);
+  const hasOrderUpdates = plansOua.includes(selectedPlan);
+
+  const isWhatsAppEnabled = !globalSettings || (isGloballyEnabled && (hasClickToChat || hasOrderUpdates));
+
   const navigationGroups = [
     {
       title: "Catalog & Sales",
@@ -184,7 +213,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { href: "/admin/pages", label: "Content", icon: Layout },
         { href: "/admin/discounts", label: "Offers & Coupons", icon: Tag },
         { href: "/admin/ai-content-studio", label: "AI Content Studio", icon: Sparkles },
-        { href: "/admin/marketing-hub", label: "Marketing Hub", icon: Megaphone }
+        ...(isWhatsAppEnabled ? [{ href: "/admin/marketing-hub", label: "Marketing Hub", icon: Megaphone }] : [])
       ]
     },
     {
