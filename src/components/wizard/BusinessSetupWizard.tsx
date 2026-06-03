@@ -13,7 +13,7 @@ export default function BusinessSetupWizard() {
   const [error, setError] = useState<string | null>(null);
   
   // Subscription Plan & Signature states
-  const [selectedPlan, setSelectedPlan] = useState<'30' | '365' | 'lifetime'>('30');
+  const [selectedPlan, setSelectedPlan] = useState<string>('30');
   const [signature, setSignature] = useState<string | null>(null);
   const [isDrawingSig, setIsDrawingSig] = useState(false);
   const [isSignatureConfirmed, setIsSignatureConfirmed] = useState(false);
@@ -168,6 +168,53 @@ export default function BusinessSetupWizard() {
     };
     loadGlobalSettings();
   }, []);
+
+  // Helper to resolve plan amounts dynamically (strips currency/commas for UPI)
+  const getSelectedPlanAmount = (): string => {
+    let amount = '0';
+    if (selectedPlan === '30') {
+      amount = (globalSettings?.plan30Price || '499').toString();
+    } else if (selectedPlan === '365') {
+      amount = (globalSettings?.plan365Price || '3999').toString();
+    } else if (selectedPlan === 'lifetime') {
+      amount = (globalSettings?.planLifetimePrice || '9999').toString();
+    } else {
+      const customPkg = (globalSettings?.customPackages || []).find((pkg: any) => pkg.id === selectedPlan);
+      amount = customPkg ? (customPkg.price || '0').toString() : '0';
+    }
+    return amount.replace(/[^0-9.]/g, '');
+  };
+
+  // Helper to resolve plan label dynamically
+  const getSelectedPlanLabel = (): string => {
+    if (selectedPlan === '30') return '1 Month (30 Days)';
+    if (selectedPlan === '365') return '1 Year (365 Days)';
+    if (selectedPlan === 'lifetime') return 'Lifetime Subscription';
+    const customPkg = (globalSettings?.customPackages || []).find((pkg: any) => pkg.id === selectedPlan);
+    return customPkg ? `${customPkg.name} (${customPkg.days} Days)` : 'Custom Subscription';
+  };
+
+  // Auto-select the first available plan when settings load (especially if '30' is disabled)
+  useEffect(() => {
+    if (globalSettings) {
+      const defaultPlans = [
+        { id: '30' },
+        { id: '365' },
+        { id: 'lifetime' }
+      ].filter(plan => !(globalSettings?.disabledDefaultPackages || []).includes(plan.id));
+      
+      const customPlans = (globalSettings?.customPackages || []).map((pkg: any) => ({
+        id: pkg.id
+      }));
+      
+      const allAvailable = [...defaultPlans, ...customPlans];
+      if (allAvailable.length > 0) {
+        if (!allAvailable.some(p => p.id === selectedPlan)) {
+          setSelectedPlan(allAvailable[0].id);
+        }
+      }
+    }
+  }, [globalSettings, selectedPlan]);
 
   // Randomly assign one of 4 licensing officers when step 5 is active
   useEffect(() => {
@@ -468,7 +515,7 @@ export default function BusinessSetupWizard() {
   const handleSimulateUpiApp = (appName: 'gpay' | 'phonepe' | 'paytm' | 'bhim') => {
     // 1. Generate real UPI deep link!
     const upiId = globalSettings?.platformUpi || 'creva@ybl';
-    const planAmount = selectedPlan === '30' ? '499' : selectedPlan === '365' ? '3999' : '9999';
+    const planAmount = getSelectedPlanAmount();
     const merchantName = globalSettings?.brandName || 'StoreBuilder';
     const upiIntent = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${planAmount}&cu=INR`;
 
@@ -489,8 +536,7 @@ export default function BusinessSetupWizard() {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const planLabel = selectedPlan === '30' ? '1 Month (30 Days)' :
-                      selectedPlan === '365' ? '1 Year (365 Days)' : 'Lifetime Subscription';
+    const planLabel = getSelectedPlanLabel();
 
     const logoUrl = localStorage.getItem('saas_brand_logo') || '';
     const logoHtml = logoUrl 
@@ -1237,19 +1283,8 @@ export default function BusinessSetupWizard() {
                       </div>
                       <div className="text-right">
                         <span className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Setup Price</span>
-                        <span className="block text-xl font-black text-primary mt-0.5">
-                          {(() => {
-                            if (selectedPlan === '30') {
-                              return `₹${globalSettings?.plan30Price || '499'}`;
-                            } else if (selectedPlan === '365') {
-                              return `₹${Number(globalSettings?.plan365Price || 3999).toLocaleString()}`;
-                            } else if (selectedPlan === 'lifetime') {
-                              return `₹${Number(globalSettings?.planLifetimePrice || 9999).toLocaleString()}`;
-                            } else {
-                              const customPkg = (globalSettings?.customPackages || []).find((pkg: any) => pkg.id === selectedPlan);
-                              return customPkg ? `₹${Number(customPkg.price || 0).toLocaleString()}` : '₹0';
-                            }
-                          })()}
+                        <span className="block text-xl font-black text-primary mt-0.5 font-mono">
+                          ₹{Number(getSelectedPlanAmount()).toLocaleString()}
                         </span>
                       </div>
                     </div>
@@ -1288,16 +1323,7 @@ export default function BusinessSetupWizard() {
                         <div className="flex flex-col items-center gap-3 shrink-0">
                           {(() => {
                             const upiId = globalSettings?.platformUpi || 'creva@ybl';
-                            const planAmount = selectedPlan === '30' 
-                              ? (globalSettings?.plan30Price || '499') 
-                              : selectedPlan === '365' 
-                                ? (globalSettings?.plan365Price || '3999') 
-                                : selectedPlan === 'lifetime'
-                                  ? (globalSettings?.planLifetimePrice || '9999')
-                                  : (() => {
-                                      const customPkg = (globalSettings?.customPackages || []).find((pkg: any) => pkg.id === selectedPlan);
-                                      return customPkg?.price || '0';
-                                    })();
+                            const planAmount = getSelectedPlanAmount();
                             const merchantName = globalSettings?.brandName || 'StoreBuilder';
                             const upiIntent = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${planAmount}&cu=INR`;
                             const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiIntent)}&margin=10`;
@@ -1328,18 +1354,7 @@ export default function BusinessSetupWizard() {
                           <ol className="text-xs text-muted-foreground list-decimal pl-4 space-y-1.5 leading-relaxed text-left">
                             <li>Open Google Pay, PhonePe, Paytm, or any banking App on your mobile.</li>
                             <li>Scan the QR code displayed on the left or send to VPA ID: <strong className="text-primary font-mono select-all bg-muted/60 px-1.5 py-0.5 rounded border border-border">{globalSettings?.platformUpi || 'creva@ybl'}</strong></li>
-                            <li>Pay the designated plan amount (<strong className="text-primary font-mono">{
-                                selectedPlan === '30'
-                                  ? `₹${globalSettings?.plan30Price || '499'}`
-                                  : selectedPlan === '365'
-                                    ? `₹${Number(globalSettings?.plan365Price || 3999).toLocaleString()}`
-                                    : selectedPlan === 'lifetime'
-                                      ? `₹${Number(globalSettings?.planLifetimePrice || 9999).toLocaleString()}`
-                                      : (() => {
-                                          const customPkg = (globalSettings?.customPackages || []).find((pkg: any) => pkg.id === selectedPlan);
-                                          return `₹${Number(customPkg?.price || 0).toLocaleString()}`;
-                                        })()
-                             }</strong>).</li>
+                            <li>Pay the designated plan amount (<strong className="text-primary font-mono">₹{Number(getSelectedPlanAmount()).toLocaleString()}</strong>).</li>
                             <li>Take a clear screenshot of the transaction success page.</li>
                             <li>Upload the screenshot in the dropzone below to proceed.</li>
                           </ol>
