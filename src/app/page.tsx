@@ -3,214 +3,287 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { X } from 'lucide-react';
+import { 
+  X, ArrowRight, Store, Layout, CreditCard, 
+  ShoppingBag, MessageSquare, ShieldCheck, Zap, Globe, Sparkles 
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Home() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const router = useRouter();
 
+  const features = [
+    {
+      icon: Layout,
+      title: "Stunning Layout Templates",
+      desc: "Select from five hand-crafted visual systems to instantly change the structure, colors, and layout of your customer storefront."
+    },
+    {
+      icon: CreditCard,
+      title: "Seamless UPI & Card Payments",
+      desc: "Connect UPI QR codes, direct wire transfers, or integrate card processing gateways in seconds to receive payments directly."
+    },
+    {
+      icon: ShoppingBag,
+      title: "Fulfillment & Blue Invoices",
+      desc: "Track orders dynamically and generate beautiful blue-themed PDF invoices with automatically calculated amounts in words."
+    },
+    {
+      icon: MessageSquare,
+      title: "WhatsApp Alerts & Live Chat",
+      desc: "Send pre-filled status updates directly to customers' WhatsApp and engage storefront users with a dynamic floating chat widget."
+    }
+  ];
+
+  const templates = [
+    { id: 'minimal', name: 'Minimal Elegance', desc: 'Clean, modern black & white design for premium boutique brands', path: '/templates/preview?template=minimal', image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=800' },
+    { id: 'artisan', name: 'Artisan Craft', desc: 'Warm, hand-crafted organic classic serif aesthetic for natural goods', path: '/templates/preview?template=artisan', image: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&q=80&w=800' },
+    { id: 'bold', name: 'Bold Commerce', desc: 'Vibrant, high-contrast flat grid layout design that demands attention', path: '/templates/preview?template=bold', image: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=800' },
+    { id: 'luxe', name: 'Dark Luxe', desc: 'Exclusive gold details on a pitch black premium luxury storefront', path: '/templates/preview?template=luxe', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=800' },
+    { id: 'retro', name: 'Retro Grid', desc: 'Space-grotesk flat shadow neon creative layout with pop art details', path: '/templates/preview?template=retro', image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=800' }
+  ];
+
   return (
-    <div className="flex flex-col min-h-screen">
-      <header className="px-6 lg:px-14 h-20 flex items-center border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <Link className="flex items-center gap-2" href="#">
-          <svg width="28" height="26" viewBox="0 0 206 189" fill="none" xmlns="http://www.w3.org/2000/svg" className="select-none flex-shrink-0">
-            <rect width="41.0051" height="41.0051" transform="translate(0 86)" fill="#3C77C3"/>
-            <path d="M11.5973 106.619C11.5973 104.889 11.9876 103.336 12.7681 101.962C13.5486 100.57 14.6091 99.4844 15.9496 98.7039C17.307 97.9234 18.8086 97.5331 20.4545 97.5331C22.3888 97.5331 24.0771 97.9997 25.5194 98.933C26.9616 99.8662 28.0136 101.19 28.6754 102.903H25.9012C25.4091 101.834 24.6964 101.012 23.7632 100.435C22.847 99.8577 21.7441 99.5692 20.4545 99.5692C19.2159 99.5692 18.1045 99.8577 17.1203 100.435C16.1362 101.012 15.3642 101.834 14.8043 102.903C14.2443 103.955 13.9643 105.194 13.9643 106.619C13.9643 108.028 14.2443 109.266 14.8043 110.335C15.3642 111.387 16.1362 112.202 17.1203 112.779C18.1045 113.356 19.2159 113.644 20.4545 113.644C21.7441 113.644 22.847 113.364 23.7632 112.804C24.6964 112.227 25.4091 111.404 25.9012 110.335H28.6754C28.0136 112.032 26.9616 113.347 25.5194 114.28C24.0771 115.197 22.3888 115.655 20.4545 115.655C18.8086 115.655 17.307 115.273 15.9496 114.509C14.6091 113.729 13.5486 112.651 12.7681 111.277C11.9876 109.903 11.5973 108.35 11.5973 106.619Z" fill="white"/>
-            <rect width="41.0051" height="41.0051" transform="translate(41.0039 98.7246)" fill="#3C77C3"/>
-            <path d="M64.8074 128.227L60.5824 120.973H57.7827V128.227H55.4666V110.487H61.1932C62.5337 110.487 63.662 110.716 64.5783 111.174C65.5115 111.632 66.2072 112.251 66.6653 113.032C67.1234 113.812 67.3525 114.703 67.3525 115.704C67.3525 116.926 66.9962 118.003 66.2835 118.937C65.5879 119.87 64.5359 120.489 63.1275 120.795L67.5816 128.227H64.8074ZM57.7827 119.115H61.1932C62.4488 119.115 63.3905 118.809 64.0184 118.199C64.6462 117.571 64.9601 116.739 64.9601 115.704C64.9601 114.652 64.6462 113.838 64.0184 113.261C63.4075 112.684 62.4658 112.396 61.1932 112.396H57.7827V119.115Z" fill="white"/>
-            <rect width="41.0051" height="41.0051" transform="translate(82.0088 86)" fill="#3C77C3"/>
-            <path d="M99.7876 99.6456V105.576H106.252V107.485H99.7876V113.593H107.016V115.502H97.4715V97.7367H107.016V99.6456H99.7876Z" fill="white"/>
-            <rect width="41.0051" height="41.0051" transform="translate(123.015 98.7246)" fill="#3C77C3"/>
-            <path d="M151.137 110.487L144.444 128.227H141.771L135.078 110.487H137.546L143.12 125.783L148.694 110.487H151.137Z" fill="white"/>
-            <rect width="41.0051" height="41.0051" transform="translate(164.021 86)" fill="#3C77C3"/>
-            <path d="M187.969 111.557H180.232L178.807 115.502H176.363L182.777 97.864H185.45L191.838 115.502H189.395L187.969 111.557ZM187.308 109.674L184.101 100.715L180.894 109.674H187.308Z" fill="white"/>
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M151.609 0.266528C150.787 0.443259 149.224 1.0234 148.136 1.5553C143.392 3.87416 140.27 8.63054 139.851 14.1765L139.703 16.1346L134.13 16.2005L128.557 16.2667L127.436 16.888C125.665 17.869 124.797 19.2248 124.416 21.6028C123.447 27.6533 122.677 31.4413 122.315 31.9388C122.095 32.241 121.492 32.7046 120.975 32.9687C120.048 33.4427 119.926 33.4489 111.64 33.4489H103.244L102.721 33.9729C101.97 34.7238 101.988 36.0288 102.759 36.635C103.303 37.0632 103.565 37.0779 110.923 37.0894C116.236 37.098 118.744 37.1782 119.252 37.3562C120.232 37.6997 120.807 38.5396 120.915 39.7831C121.029 41.1126 120.459 42.0699 119.214 42.6347C118.354 43.0255 117.653 43.0447 104.101 43.0492L89.8914 43.0539L89.4272 43.5478C88.7141 44.3072 88.7984 45.4387 89.6199 46.1298L90.2765 46.6825L103.761 46.6833C116.758 46.684 117.269 46.6991 117.928 47.1008C118.892 47.6888 119.345 48.6621 119.21 49.8581C119.121 50.6467 118.938 50.9804 118.234 51.6371L117.368 52.4454H108.598C98.9653 52.4454 98.8808 52.4559 98.359 53.7161C98.1419 54.2396 98.1419 54.4932 98.359 55.0168C98.8751 56.2631 99.0529 56.2874 107.649 56.2874C114.507 56.2874 115.544 56.3305 116.062 56.6366C116.879 57.119 117.351 58.0044 117.351 59.0524C117.351 60.3138 116.841 61.1584 115.79 61.6357C114.992 61.9975 114.344 62.0415 109.752 62.0457L104.607 62.0504L104.042 62.5738C103.285 63.2754 103.267 64.4209 104.001 65.155C104.524 65.6779 104.534 65.679 108.991 65.679C111.446 65.679 113.767 65.7413 114.147 65.8173C115.132 66.0143 116.209 67.1677 116.386 68.2151C116.692 70.0245 118.977 72.3531 121.074 72.9922C121.743 73.1962 128.318 73.2562 150.008 73.2562C182.384 73.2562 179.408 73.4558 181.737 71.1284C182.845 70.0204 183.119 69.5908 183.497 68.3656C183.744 67.5675 183.945 66.5645 183.943 66.1368C183.942 65.7088 183.602 62.7654 183.188 59.5958C182.383 53.4384 182.226 52.1897 181.708 47.8564C181.525 46.3303 181.16 43.3527 180.896 41.2396L180.416 37.3976L159.822 37.2892L139.229 37.181L159.773 37.1291L180.317 37.0775V36.4604C180.317 36.121 180.082 33.984 179.795 31.7113C179.508 29.4387 179.121 26.1865 178.935 24.4843C178.749 22.7821 178.547 20.9909 178.487 20.504C178.358 19.4712 177.423 17.9619 176.48 17.2644C175.295 16.3886 174.251 16.16 171.432 16.16H168.791L168.788 15.0394C168.781 12.0397 167.431 8.12062 165.521 5.54926C162.458 1.42766 156.581 -0.80368 151.609 0.266528ZM151.374 4.18344C146.936 5.45407 143.946 9.38635 143.476 14.5718L143.332 16.16H154.254H165.175L165.043 14.7192C164.742 11.4104 163.724 8.9601 161.822 6.96675C159.204 4.22143 155.079 3.12284 151.374 4.18344ZM147.393 26.1385C152.823 26.1701 161.707 26.1701 167.137 26.1385C172.567 26.1067 168.124 26.0808 157.265 26.0808C146.406 26.0808 141.964 26.1067 147.393 26.1385ZM177.708 26.6196C178.614 27.172 178.911 27.1713 178.076 26.6187C177.724 26.3854 177.34 26.1944 177.222 26.194C177.105 26.1938 177.323 26.3852 177.708 26.6196ZM159.464 30.1408C158.494 30.8201 158.668 32.7172 159.744 33.2077C161.086 33.8195 162.388 33.0449 162.388 31.6347C162.388 30.1557 160.685 29.2857 159.464 30.1408ZM165.971 30.1113C165.05 30.8116 165.079 32.7339 166.019 33.2372C167.255 33.8984 168.791 33.0319 168.791 31.6731C168.791 30.5894 168.094 29.8187 167.121 29.8272C166.69 29.8308 166.172 29.9587 165.971 30.1113ZM172.282 30.3262C171.065 31.3732 171.831 33.4489 173.434 33.4489C174.272 33.4489 175.408 32.4812 175.408 31.7678C175.408 30.0964 173.547 29.2381 172.282 30.3262ZM128.718 41.2127C128.512 41.3248 128.273 41.521 128.187 41.6484C127.887 42.0911 128.026 43.0565 128.45 43.4808C128.831 43.8614 129.162 43.9077 131.504 43.9077H134.131L136.651 51.645C138.037 55.9007 139.309 59.6031 139.479 59.8728C139.648 60.1424 140.093 60.5503 140.468 60.7791C141.118 61.1757 141.613 61.1951 151.075 61.1951C160.527 61.1951 161.033 61.1753 161.681 60.7804C162.055 60.5522 162.468 60.1646 162.6 59.919C162.731 59.6733 163.638 56.8161 164.616 53.5696C166.127 48.5469 166.36 47.574 166.175 47.0449C165.749 45.8229 165.82 45.8287 151.126 45.8287H137.716L137.143 44.0678C136.417 41.8396 136.112 41.4142 135.031 41.1231C134.007 40.8475 129.263 40.915 128.718 41.2127ZM139.21 50.3644C139.474 51.2156 140.159 53.3231 140.731 55.048C141.648 57.8106 141.834 58.1999 142.301 58.3171C143.258 58.5572 159.81 58.3753 160.139 58.1211C160.304 57.9931 160.792 56.6876 161.223 55.2202C161.654 53.7528 162.236 51.8028 162.517 50.8869C162.798 49.971 163.028 49.1307 163.028 49.0192C163.028 48.8942 158.395 48.8169 150.878 48.8169H138.729L139.21 50.3644ZM142.792 63.7509C142.403 63.9947 141.935 64.5522 141.751 64.99C140.834 67.1739 143.407 69.2887 145.459 68.0375C146.394 67.467 146.66 66.8757 146.54 65.6288C146.408 64.2529 145.727 63.5349 144.43 63.4028C143.736 63.3319 143.318 63.4207 142.792 63.7509ZM156.859 63.8805C155.943 64.651 155.632 65.7863 156.058 66.8051C156.429 67.6951 157.503 68.4518 158.396 68.4529C160.854 68.4563 161.863 65.0297 159.779 63.7588C158.791 63.1567 157.663 63.2036 156.859 63.8805Z" fill="#3C77C3"/>
-            <path d="M128.644 29.2416L127.363 35.0046H135.474C137.144 34.9122 137.833 35.454 138.783 37.139H180.191L178.91 28.1743C178.621 27.0979 178.04 26.7687 176.562 26.4668H131.952C129.712 26.719 129.042 27.3728 128.644 29.2416Z" fill="black" stroke="white" stroke-width="0.640332"/>
-            <circle cx="161.194" cy="31.9086" r="2.02772" fill="#D9D9D9"/>
-            <circle cx="166.744" cy="31.9086" r="2.02772" fill="#D9D9D9"/>
-            <circle cx="172.292" cy="31.9086" r="2.02772" fill="#D9D9D9"/>
-            <circle cx="132.779" cy="79.8652" r="6.60545" fill="#D9D9D9"/>
-            <circle cx="132.78" cy="79.8658" r="3.00248" fill="black"/>
-            <circle cx="168.209" cy="79.8652" r="6.60545" fill="#D9D9D9"/>
-            <circle cx="168.209" cy="79.8658" r="3.00248" fill="black"/>
-            <path d="M69.1792 151.022L62.9284 175H55.8578L52.0322 159.219L48.0699 175H40.9994L34.9194 151.022H41.1702L44.6201 168.476L48.8897 151.022H55.3113L59.4102 168.476L62.8942 151.022H69.1792ZM83.4145 155.701V160.551H91.2366V165.06H83.4145V170.32H92.2613V175H77.5736V151.022H92.2613V155.701H83.4145ZM116.035 162.703C117.424 162.999 118.54 163.694 119.383 164.787C120.225 165.857 120.647 167.087 120.647 168.476C120.647 170.48 119.941 172.074 118.529 173.258C117.14 174.419 115.193 175 112.688 175H101.518V151.022H112.312C114.749 151.022 116.65 151.579 118.016 152.695C119.406 153.811 120.1 155.325 120.1 157.238C120.1 158.65 119.724 159.823 118.973 160.756C118.244 161.69 117.265 162.339 116.035 162.703ZM107.359 160.722H111.185C112.141 160.722 112.87 160.517 113.371 160.107C113.895 159.675 114.157 159.049 114.157 158.229C114.157 157.409 113.895 156.783 113.371 156.35C112.87 155.917 112.141 155.701 111.185 155.701H107.359V160.722ZM111.663 170.286C112.642 170.286 113.394 170.07 113.918 169.637C114.464 169.182 114.737 168.533 114.737 167.69C114.737 166.848 114.453 166.187 113.883 165.709C113.337 165.231 112.574 164.992 111.595 164.992H107.359V170.286H111.663Z" fill="black"/>
-            <path d="M135.716 170.218H146.032V175H129.09V170.56L139.337 155.804H129.09V151.022H146.032V155.462L135.716 170.218ZM161.529 170.218H171.844V175H154.902V170.56L165.15 155.804H154.902V151.022H171.844V155.462L161.529 170.218Z" fill="#3C77C3"/>
-            <path d="M13.9434 163.318H34.0181" stroke="#3C77C3" stroke-width="2.50935"/>
-            <path d="M172.868 163.318H192.943" stroke="#3C77C3" stroke-width="2.50935"/>
-          </svg>
-          <span className="font-bold text-2xl tracking-tighter text-primary">Creva Webzz</span>
+    <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden antialiased">
+      {/* Decorative Background Elements */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[350px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-[600px] right-0 w-[400px] h-[300px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
+
+      {/* Header */}
+      <header className="px-6 lg:px-14 h-20 flex items-center border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
+        <Link className="flex items-center gap-2 group" href="#">
+          <div className="p-2 bg-blue-600 rounded-xl group-hover:scale-105 transition-transform shadow-lg shadow-blue-500/20">
+            <Store className="w-5 h-5 text-white" />
+          </div>
+          <span className="font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
+            Creva Webzz
+          </span>
         </Link>
-        <nav className="ml-auto flex gap-2.5 sm:gap-6 items-center">
-          <Link className="hidden md:inline-block text-sm font-medium hover:text-primary transition-colors" href="#features">
+        <nav className="ml-auto flex gap-4 sm:gap-8 items-center">
+          <Link className="hidden md:inline-block text-xs uppercase tracking-widest font-black text-slate-400 hover:text-white transition-colors" href="#features">
             Features
           </Link>
-          <Link className="hidden md:inline-block text-sm font-medium hover:text-primary transition-colors" href="#templates">
+          <Link className="hidden md:inline-block text-xs uppercase tracking-widest font-black text-slate-400 hover:text-white transition-colors" href="#templates">
             Templates
           </Link>
-          <Link className="hidden md:inline-block text-sm font-medium hover:text-primary transition-colors" href="#pricing">
-            Pricing
-          </Link>
-          <Link className="text-sm font-medium hover:text-primary transition-colors px-2" href="/login">
+          <Link className="text-xs uppercase tracking-widest font-black text-slate-400 hover:text-white transition-colors px-2" href="/login">
             Login
           </Link>
           <Link
-            className="text-xs sm:text-sm font-medium bg-primary text-primary-foreground shadow hover:bg-primary/90 h-8 sm:h-9 px-3 sm:px-4 flex items-center rounded-md transition-colors"
+            className="text-xs font-black uppercase tracking-widest bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 h-10 px-5 flex items-center rounded-xl transition-all hover:scale-102"
             href="/register"
           >
             Start Free Trial
           </Link>
         </nav>
       </header>
-      <main className="flex-1">
-        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 flex justify-center bg-gradient-to-b from-background to-muted/20">
+
+      {/* Hero Section */}
+      <main className="flex-1 relative z-10">
+        <section className="w-full py-16 md:py-28 lg:py-36 flex justify-center">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center space-y-8 text-center">
-              <div className="space-y-4 max-w-3xl">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl/none bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-500 dark:from-white dark:to-gray-500">
-                  Build Your Online Store in 10 Minutes
+              {/* Dynamic Tag */}
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 text-xs font-semibold animate-pulse">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Next-Gen Store Builder</span>
+              </div>
+
+              <div className="space-y-4 max-w-4xl">
+                <h1 className="text-4xl font-black tracking-tight sm:text-6xl md:text-7xl/none bg-clip-text text-transparent bg-gradient-to-b from-white via-slate-100 to-slate-500">
+                  Build Your Online Store <br className="hidden sm:inline" /> in 10 Minutes
                 </h1>
-                <p className="mx-auto max-w-[700px] text-muted-foreground text-sm sm:text-base md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  No coding required. Launch your beautiful e-commerce website, manage products, and accept payments instantly. Perfect for artisans, boutique owners, and small businesses.
+                <p className="mx-auto max-w-[750px] text-slate-400 text-sm sm:text-base md:text-lg leading-relaxed">
+                  No coding required. Launch your beautiful e-commerce storefront website, manage products, accept payments instantly, and coordinate with clients directly via WhatsApp integration.
                 </p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto px-4 sm:px-0">
+
+              <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto px-4 sm:px-0">
                 <Link
-                  className="inline-flex h-11 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground shadow-lg hover:bg-primary/90 hover:scale-105 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+                  className="inline-flex h-12 items-center justify-center rounded-xl bg-blue-600 px-8 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-blue-500/25 hover:bg-blue-500 hover:scale-105 transition-all"
                   href="/register"
                 >
-                  Start Free Trial →
+                  Start Free Trial <ArrowRight className="w-4 h-4 ml-2" />
                 </Link>
                 <Link
-                  className="inline-flex h-11 items-center justify-center rounded-md border border-input bg-background px-8 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground hover:scale-105 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+                  className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur-sm px-8 text-sm font-black uppercase tracking-widest text-slate-300 shadow-sm hover:bg-slate-800 hover:text-white hover:scale-105 transition-all"
                   href="#templates"
                 >
                   View Templates
                 </Link>
               </div>
-              <div className="pt-4 flex flex-wrap justify-center gap-4 sm:gap-6 text-xs sm:text-sm text-muted-foreground">
+
+              <div className="pt-8 flex flex-wrap justify-center gap-6 sm:gap-10 text-xs text-slate-400 font-medium">
                 <div className="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-success"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                  No coding required
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                  No Coding Required
                 </div>
                 <div className="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-success"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                  14-day free trial
+                  <Zap className="w-4 h-4 text-amber-500" />
+                  Instant Activation
                 </div>
                 <div className="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-success"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                  Custom domain support
+                  <Globe className="w-4 h-4 text-blue-500" />
+                  Custom Domain Support
                 </div>
               </div>
             </div>
           </div>
         </section>
-        
+
+        {/* Features Section */}
+        <section id="features" className="w-full py-16 md:py-24 border-t border-slate-900 bg-slate-950/40 relative">
+          <div className="container px-4 md:px-6 mx-auto max-w-7xl">
+            <div className="text-center space-y-3 mb-16">
+              <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                Everything You Need To Sell Online
+              </h2>
+              <p className="text-slate-400 text-sm max-w-xl mx-auto">
+                Power your boutique, store, or artisanal brand with an elegant SaaS storefront platform.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {features.map((f, i) => (
+                <div 
+                  key={i} 
+                  className="p-6 bg-slate-900/40 border border-slate-900 rounded-2xl flex flex-col items-start gap-4 hover:border-slate-800 transition-all group"
+                >
+                  <div className="p-3 bg-blue-500/10 text-blue-400 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                    <f.icon className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-bold text-base text-white">{f.title}</h3>
+                  <p className="text-xs text-slate-400 leading-relaxed text-left">{f.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Templates Preview Section */}
-        <section id="templates" className="w-full py-12 md:py-24 lg:py-32 flex justify-center bg-background">
-           <div className="container px-4 md:px-6">
-             <div className="flex flex-col items-center justify-center space-y-4 text-center">
-               <div className="space-y-2">
-                 <h2 className="text-2xl sm:text-3xl font-bold tracking-tighter md:text-4xl">Stunning Pre-built Templates</h2>
-                 <p className="max-w-[900px] text-muted-foreground text-xs sm:text-sm md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                   Choose from our professionally designed templates that look great on any device.
-                 </p>
-               </div>
-             </div>
-             <div className="mx-auto grid max-w-7xl items-stretch gap-6 py-12 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-                {[
-                  { id: '1', name: 'Minimal Elegance', desc: 'Clean, modern design for premium boutique brands', path: '/templates/preview?template=minimal', image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=800' },
-                  { id: '2', name: 'Artisan Craft', desc: 'Warm, hand-crafted organic classic serif aesthetic', path: '/templates/preview?template=artisan', image: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&q=80&w=800' },
-                  { id: '3', name: 'Bold Commerce', desc: 'Vibrant, high-impact flat grid layout design', path: '/templates/preview?template=bold', image: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=800' },
-                  { id: '4', name: 'Dark Luxe', desc: 'Exclusive gold on pitch black luxury storefront', path: '/templates/preview?template=luxe', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=800' },
-                  { id: '5', name: 'Retro Grid', desc: 'Space-grotesk flat shadow neon creative layout', path: '/templates/preview?template=retro', image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=800' }
-                ].map((template, i) => (
-                  <div 
-                    key={i} 
-                    onClick={() => {
-                      setPreviewUrl(template.path);
-                      setSelectedTemplateId(template.id);
-                    }}
-                    className="group relative overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md hover:-translate-y-1 flex flex-col justify-between cursor-pointer"
-                  >
-                    <div className="aspect-[4/3] relative overflow-hidden">
-                       <img 
-                         src={template.image} 
-                         alt={template.name}
-                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                       />
-                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                         <span className="text-white font-bold bg-primary px-4 py-2 rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform">Preview Template</span>
-                       </div>
-                    </div>
-                    <div className="p-6">
-                      <h3 className="font-bold text-sm mb-1">{template.name}</h3>
-                      <p className="text-[11px] text-muted-foreground leading-normal">{template.desc}</p>
-                      <span className="text-[10px] font-black text-primary tracking-wider uppercase mt-3 block">Template {template.id}</span>
+        <section id="templates" className="w-full py-16 md:py-24 border-t border-slate-900">
+          <div className="container px-4 md:px-6 mx-auto max-w-7xl">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center mb-16">
+              <div className="space-y-2">
+                <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                  Stunning Hand-Crafted Visual Templates
+                </h2>
+                <p className="max-w-[700px] text-slate-400 text-xs sm:text-sm">
+                  Select a template that represents your brand aesthetic. Click any card to preview the full layout live.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 items-stretch">
+              {templates.map((template) => (
+                <div 
+                  key={template.id} 
+                  onClick={() => {
+                    setPreviewUrl(template.path);
+                    setSelectedTemplateId(template.id);
+                  }}
+                  className="group relative overflow-hidden rounded-2xl border border-slate-900 bg-slate-900/20 text-slate-100 shadow-sm transition-all hover:border-slate-800 hover:-translate-y-1 flex flex-col justify-between cursor-pointer"
+                >
+                  <div className="aspect-[4/3] relative overflow-hidden bg-slate-950">
+                    <img 
+                      src={template.image} 
+                      alt={template.name}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 opacity-80 group-hover:opacity-100"
+                    />
+                    <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="text-white text-xs font-black uppercase tracking-widest bg-blue-600 px-4 py-2.5 rounded-xl shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform">
+                        Preview Layout
+                      </span>
                     </div>
                   </div>
-                ))}
-             </div>
-           </div>
+                  <div className="p-5 flex-1 flex flex-col justify-between">
+                    <div>
+                      <span className="text-[9px] font-black text-blue-400 tracking-wider uppercase mb-1.5 block">Template {template.id === 'minimal' ? '1' : template.id === 'artisan' ? '2' : template.id === 'bold' ? '3' : template.id === 'luxe' ? '4' : '5'}</span>
+                      <h3 className="font-bold text-sm mb-2 text-white">{template.name}</h3>
+                      <p className="text-[11px] text-slate-400 leading-normal text-left">{template.desc}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
       </main>
-      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-muted-foreground">
+
+      {/* Footer */}
+      <footer className="flex flex-col gap-4 sm:flex-row py-8 w-full shrink-0 items-center px-6 lg:px-14 border-t border-slate-900 bg-slate-950 z-10 relative">
+        <p className="text-xs text-slate-500">
           © 2026 Creva Webzz Inc. All rights reserved.
         </p>
-        <nav className="sm:ml-auto flex gap-4 sm:gap-6">
-          <Link className="text-xs hover:underline underline-offset-4 text-muted-foreground" href="#">
+        <nav className="sm:ml-auto flex gap-6">
+          <Link className="text-xs text-slate-500 hover:text-white transition-colors" href="#">
             Terms of Service
           </Link>
-          <Link className="text-xs hover:underline underline-offset-4 text-muted-foreground" href="#">
-            Privacy
+          <Link className="text-xs text-slate-500 hover:text-white transition-colors" href="#">
+            Privacy Policy
           </Link>
         </nav>
       </footer>
 
       {/* Preview Modal */}
-      {previewUrl && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative w-full max-w-6xl h-full max-h-[90vh] bg-background rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="font-semibold">Template Preview</h3>
-              <button 
-                onClick={() => {
-                  setPreviewUrl(null);
-                  setSelectedTemplateId(null);
-                }}
-                className="p-2 hover:bg-muted rounded-full transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="flex-1 bg-muted/20 relative">
-              <iframe 
-                src={previewUrl} 
-                className="w-full h-full border-none"
-                title="Template Preview"
-              />
-            </div>
-            <div className="p-4 border-t flex justify-end gap-3 bg-background">
-              <button 
-                onClick={() => {
-                  setPreviewUrl(null);
-                  setSelectedTemplateId(null);
-                }}
-                className="px-6 py-2 rounded-md border border-input bg-background hover:bg-muted font-medium transition-colors"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={() => router.push(`/register?template=${selectedTemplateId || '1'}`)}
-                className="px-6 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 font-medium shadow-sm transition-colors"
-              >
-                Start Now
-              </button>
-            </div>
+      <AnimatePresence>
+        {previewUrl && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-slate-950/80 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="relative w-full max-w-6xl h-full max-h-[85vh] bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-slate-850 bg-slate-900/50 backdrop-blur-sm shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-red-500/80" />
+                  <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                  <span className="w-3 h-3 rounded-full bg-green-500/80" />
+                  <span className="text-xs text-slate-400 font-bold ml-2 font-mono">Store Preview</span>
+                </div>
+                <button 
+                  onClick={() => {
+                    setPreviewUrl(null);
+                    setSelectedTemplateId(null);
+                  }}
+                  className="p-2 hover:bg-slate-800 text-slate-400 hover:text-white rounded-xl transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex-1 bg-slate-950 relative">
+                <iframe 
+                  src={previewUrl} 
+                  className="w-full h-full border-none bg-slate-950"
+                  title="Template Preview"
+                />
+              </div>
+              <div className="p-4 border-t border-slate-850 flex justify-end gap-3 bg-slate-900 shrink-0">
+                <button 
+                  onClick={() => {
+                    setPreviewUrl(null);
+                    setSelectedTemplateId(null);
+                  }}
+                  className="px-6 py-2.5 rounded-xl border border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white font-bold text-xs uppercase tracking-wider transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => router.push(`/register?template=${selectedTemplateId || '1'}`)}
+                  className="px-6 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-500 font-bold text-xs uppercase tracking-wider shadow-lg shadow-blue-500/20 transition-all hover:scale-102"
+                >
+                  Use This Template
+                </button>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }
