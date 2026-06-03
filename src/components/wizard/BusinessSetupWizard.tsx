@@ -1349,7 +1349,11 @@ export default function BusinessSetupWizard() {
 
                     {/* UPI App Selection Area */}
                     {paymentMethod === 'app' && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-4 w-full">
+                        <div className="bg-amber-500/5 border border-amber-500/10 text-amber-800 rounded-2xl p-4 text-xs text-left leading-relaxed">
+                          <strong>💡 Mobile UPI App Tip:</strong> If your banking app displays a <em>"Bank limit exceeded"</em> error, this is a standard bank security restriction on direct browser intent links for personal UPI accounts. Simply copy the UPI VPA ID: <strong className="font-mono bg-muted/60 px-1 rounded select-all text-amber-900 border border-amber-500/15">{globalSettings?.platformUpi || 'creva@ybl'}</strong> and pay manually inside GPay/PhonePe!
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {[
                           { 
                             id: 'gpay', 
@@ -1404,7 +1408,8 @@ export default function BusinessSetupWizard() {
                           </button>
                         ))}
                       </div>
-                    )}
+                    </div>
+                  )}
 
                     {/* Screenshot Upload Dropzone */}
                     <div className="space-y-2.5">
