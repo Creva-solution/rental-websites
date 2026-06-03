@@ -1365,8 +1365,13 @@ export default function BusinessSetupWizard() {
                     {/* UPI App Selection Area */}
                     {paymentMethod === 'app' && (
                       <div className="space-y-4 w-full">
-                        <div className="bg-amber-500/5 border border-amber-500/10 text-amber-800 rounded-2xl p-4 text-xs text-left leading-relaxed">
-                          <strong>💡 Mobile UPI App Tip:</strong> If your banking app displays a <em>"Bank limit exceeded"</em> error, this is a standard bank security restriction on direct browser intent links for personal UPI accounts. Simply copy the UPI VPA ID: <strong className="font-mono bg-muted/60 px-1 rounded select-all text-amber-900 border border-amber-500/15">{globalSettings?.platformUpi || 'creva@ybl'}</strong> and pay manually inside GPay/PhonePe!
+                        <div className="bg-amber-500/5 border border-amber-500/10 text-amber-800 rounded-2xl p-4 text-xs text-left leading-relaxed space-y-2">
+                          <p>
+                            <strong>💡 Mobile UPI App Tip:</strong> If your app shows a <em>"Bank limit exceeded"</em> or a Google Pay security warning like <em>"This payment cannot be verified as safe" / "Unverified Merchant"</em>, do not worry! This is a standard Google/NPCI security warning for direct browser links when paying a new or personal UPI account.
+                          </p>
+                          <p>
+                            <strong>👉 Simple Fix:</strong> Click on the UPI ID below to copy it: <strong className="font-mono bg-muted/60 px-1.5 py-0.5 rounded select-all text-amber-900 border border-amber-500/15 cursor-pointer inline-flex items-center gap-1" title="Click to copy" onClick={() => { navigator.clipboard.writeText(globalSettings?.platformUpi || 'creva@ybl'); alert('Copied VPA ID: ' + (globalSettings?.platformUpi || 'creva@ybl')); }}>{globalSettings?.platformUpi || 'creva@ybl'} 📋</strong>. Then open your GPay, PhonePe, or Paytm app directly and pay manually by pasting this UPI ID!
+                          </p>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {[
