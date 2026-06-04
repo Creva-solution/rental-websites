@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import { 
   Plug, ExternalLink, Settings, Shield, ToggleLeft, ToggleRight, Check,
-  CreditCard, Package, Truck, MessageSquare, BarChart3, X
+  CreditCard, Package, Truck, MessageSquare, BarChart3, X, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -16,30 +17,109 @@ const iconMap: Record<string, any> = {
 };
 
 export default function IntegrationsPage() {
+  const [store, setStore] = useState<any>(null);
+  const [loadingStore, setLoadingStore] = useState(true);
+
   const [integrations, setIntegrations] = useState([
-    { id: 'razorpay', name: 'Razorpay PG', category: 'Payments', desc: 'Secure online card & netbanking gateway integration.', connected: true, logo: 'creditcard' },
-    { id: 'shiprocket', name: 'Shiprocket logistics', category: 'Shipping', desc: 'Sync orders, print labels, and coordinate automatic courier dispatches.', connected: true, logo: 'package' },
+    { id: 'razorpay', name: 'Razorpay PG', category: 'Payments', desc: 'Secure online card & netbanking gateway integration.', connected: false, logo: 'creditcard' },
+    { id: 'shiprocket', name: 'Shiprocket logistics', category: 'Shipping', desc: 'Sync orders, print labels, and coordinate automatic courier dispatches.', connected: false, logo: 'package' },
     { id: 'delhivery', name: 'Delhivery Shipping', category: 'Shipping', desc: 'Fast local express shipping API with automated status webhooks.', connected: false, logo: 'truck' },
-    { id: 'whatsapp_api', name: 'Creva WhatsApp Bot', category: 'Automations', desc: 'Real-time automatic order confirmation & UPI screenshot verification bot.', connected: true, logo: 'message' },
+    { id: 'whatsapp_api', name: 'Creva WhatsApp Bot', category: 'Automations', desc: 'Real-time automatic order confirmation & UPI screenshot verification bot.', connected: false, logo: 'message' },
     { id: 'ga4', name: 'Google Analytics 4', category: 'Analytics', desc: 'Track customer funnel dropoffs and product checkout conversion rates.', connected: false, logo: 'barchart' }
   ]);
 
   const [activeSetupIntegration, setActiveSetupIntegration] = useState<any | null>(null);
   
   const [settingsData, setSettingsData] = useState<Record<string, Record<string, string>>>({
-    razorpay: { keyId: 'rzp_live_8f0a2839d', keySecret: '••••••••••••' },
-    shiprocket: { email: 'creva-shipping@solution.com', password: '••••••••••••' },
+    razorpay: { keyId: '', keySecret: '' },
+    shiprocket: { email: '', password: '' },
     delhivery: { apiKey: '', clientName: '' },
-    whatsapp_api: { phone: '+918489371766', alertType: 'all' },
+    whatsapp_api: { phone: '', alertType: 'all' },
     ga4: { measurementId: '' }
   });
 
-  const handleToggle = (id: string) => {
-    setIntegrations(prev => prev.map(integration => 
-      integration.id === id 
-        ? { ...integration, connected: !integration.connected }
-        : integration
-    ));
+  useEffect(() => {
+    const fetchStore = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        
+        const { data: storeData } = await supabase
+          .from('stores')
+          .select('*')
+          .eq('owner_id', user.id)
+          .neq('subdomain', '__creva_saas_global_settings__')
+          .single();
+          
+        if (storeData) {
+          setStore(storeData);
+          if (storeData.description && storeData.description.trim().startsWith('{')) {
+            const parsed = JSON.parse(storeData.description);
+            if (parsed.integrations) {
+              setIntegrations(prev => prev.map(integration => {
+                const saved = parsed.integrations.find((i: any) => i.id === integration.id);
+                return saved ? { ...integration, connected: saved.connected } : integration;
+              }));
+            }
+            if (parsed.integrationSettings) {
+              setSettingsData(prev => ({
+                ...prev,
+                ...parsed.integrationSettings
+              }));
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load integrations:", err);
+      } finally {
+        setLoadingStore(false);
+      }
+    };
+    fetchStore();
+  }, []);
+
+  const saveIntegrationsToDb = async (updatedIntegrations: any[], updatedSettings: any) => {
+    if (!store) return;
+    try {
+      let existingData = {};
+      if (store.description && store.description.trim().startsWith('{')) {
+        existingData = JSON.parse(store.description);
+      }
+      const merged = {
+        ...existingData,
+        integrations: updatedIntegrations,
+        integrationSettings: updatedSettings
+      };
+      const finalDescription = JSON.stringify(merged);
+      
+      const { error } = await supabase
+        .from('stores')
+        .update({ description: finalDescription })
+        .eq('id', store.id);
+
+      if (error) throw error;
+      setStore((prev: any) => ({ ...prev, description: finalDescription }));
+    } catch (err) {
+      console.error("Failed to save integrations:", err);
+    }
+  };
+
+  const handleToggle = async (id: string) => {
+    let nextIntegrations: any[] = [];
+    setIntegrations(prev => {
+      const updated = prev.map(integration => 
+        integration.id === id 
+          ? { ...integration, connected: !integration.connected }
+          : integration
+      );
+      nextIntegrations = updated;
+      return updated;
+    });
+    setTimeout(() => {
+      if (nextIntegrations.length > 0) {
+        saveIntegrationsToDb(nextIntegrations, settingsData);
+      }
+    }, 50);
   };
 
   const updateSettings = (integrationId: string, field: string, value: string) => {
@@ -52,17 +132,27 @@ export default function IntegrationsPage() {
     }));
   };
 
-  const handleSaveSettings = (e: React.FormEvent) => {
+  const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeSetupIntegration) return;
 
-    // Simulate saving settings and auto-connecting
     const id = activeSetupIntegration.id;
-    setIntegrations(prev => prev.map(integration => 
-      integration.id === id 
-        ? { ...integration, connected: true }
-        : integration
-    ));
+    let nextIntegrations: any[] = [];
+    setIntegrations(prev => {
+      const updated = prev.map(integration => 
+        integration.id === id 
+          ? { ...integration, connected: true }
+          : integration
+      );
+      nextIntegrations = updated;
+      return updated;
+    });
+
+    setTimeout(async () => {
+      if (nextIntegrations.length > 0) {
+        await saveIntegrationsToDb(nextIntegrations, settingsData);
+      }
+    }, 50);
 
     alert(`Saved successfully! Connected ${activeSetupIntegration.name} integration.`);
     setActiveSetupIntegration(null);

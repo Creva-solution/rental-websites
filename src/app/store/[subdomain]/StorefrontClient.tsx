@@ -5,7 +5,7 @@ import {
   ShoppingCart, Menu, Search, X, Loader2, User, ChevronLeft, ChevronRight, 
   Truck, Shield, RefreshCw, ArrowRight, Heart, Star, Check, Eye, ArrowUpDown, 
   Sparkles, Package, ShoppingBag, EyeOff, Calendar, Clock, Instagram, Facebook, Twitter, Youtube, Linkedin, MessageCircle,
-  CreditCard, Coins
+  CreditCard, Coins, Smartphone, QrCode, CheckCircle2, Lock
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -613,6 +613,38 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   const [customerPaymentMethod, setCustomerPaymentMethod] = useState<'cod' | 'online' | ''>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Online Payment flow states
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [simulatedPaymentSuccess, setSimulatedPaymentSuccess] = useState(false);
+  const [selectedSimulatedPG, setSelectedSimulatedPG] = useState<'gpay' | 'phonepe' | 'paytm' | 'card'>('gpay');
+  const [copiedPhone, setCopiedPhone] = useState(false);
+  const [paymentStageText, setPaymentStageText] = useState('Initiating secure gateway...');
+
+  // Simulated Card payment inputs
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [cardName, setCardName] = useState('');
+
+  // Extract Razorpay connected status from store description JSON
+  const razorpayConnected = useMemo(() => {
+    try {
+      if (store.description && store.description.startsWith('{')) {
+        const data = JSON.parse(store.description);
+        if (data.integrations) {
+          const rp = data.integrations.find((int: any) => int.id === 'razorpay');
+          if (rp && rp.connected) {
+            return true;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Failed to parse Razorpay connection status", e);
+    }
+    return false;
+  }, [store.description]);
+
   // Customer User Authentication States (Flipkart style)
   const [customerUser, setCustomerUser] = useState<{ name: string; email: string; phone: string; address: string } | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -1152,8 +1184,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
     });
   };
 
-  const handleWhatsAppCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitFinalOrder = async (paymentStatus: 'paid' | 'unpaid', actualMethod: string, extraNote: string = '') => {
     setIsSubmitting(true);
 
     try {
@@ -1167,8 +1198,8 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         shipping_address: readableAddr,
         total_amount: finalTotalAmount,
         status: 'pending',
-        payment_method: customerPaymentMethod === 'cod' ? 'Cash on Delivery (COD)' : 'Online Payment',
-        payment_status: 'unpaid'
+        payment_method: actualMethod,
+        payment_status: paymentStatus
       }]).select().single();
       
       if (error) throw error;
@@ -1192,8 +1223,10 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       message += `Name: ${customerName}\n`;
       message += `Phone: ${customerPhone}\n`;
       message += `Address: ${readableAddr}\n`;
-      if (customerPaymentMethod) {
-        message += `Payment Method: ${customerPaymentMethod === 'cod' ? 'Cash on Delivery (COD)' : 'Online Payment'}\n`;
+      message += `Payment Method: ${actualMethod}\n`;
+      message += `Payment Status: ${paymentStatus === 'paid' ? 'PAID / SUCCESS' : 'UNPAID / PENDING'}\n`;
+      if (extraNote) {
+        message += `Payment Info: ${extraNote}\n`;
       }
       message += `\n`;
       message += `*Order Summary:*\n`;
@@ -1219,6 +1252,12 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       setCart([]);
       setIsCartOpen(false);
       setIsCheckout(false);
+      setIsPaymentModalOpen(false);
+      setSimulatedPaymentSuccess(false);
+      setCardNumber('');
+      setCardExpiry('');
+      setCardCvv('');
+      setCardName('');
       
       if (storePhone) {
         window.open(`https://wa.me/${storePhone}?text=${encodedMessage}`, '_blank');
@@ -1231,6 +1270,15 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       alert("Failed to process order.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleWhatsAppCheckout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (customerPaymentMethod === 'online') {
+      setIsPaymentModalOpen(true);
+    } else {
+      await submitFinalOrder('unpaid', 'Cash on Delivery (COD)');
     }
   };
 
@@ -3841,6 +3889,265 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Online Payment Modal */}
+      {isPaymentModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 font-sans animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 flex flex-col transition-all duration-300 relative text-left">
+            
+            {/* Payment Processing View */}
+            {paymentProcessing && (
+              <div className="p-8 flex flex-col items-center justify-center text-center space-y-6 min-h-[400px]">
+                <Loader2 className="w-12 h-12 text-purple-600 animate-spin stroke-[1.5]" />
+                <div className="space-y-2">
+                  <h3 className="font-extrabold text-sm text-gray-900 uppercase tracking-widest animate-pulse">Processing Payment</h3>
+                  <p className="text-xs text-gray-500 max-w-[280px] leading-relaxed">{paymentStageText}</p>
+                </div>
+                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden max-w-[200px]">
+                  <div className="bg-gradient-to-r from-purple-600 to-rose-500 h-full w-2/3 rounded-full animate-pulse" />
+                </div>
+              </div>
+            )}
+
+            {/* Payment Success View */}
+            {simulatedPaymentSuccess && !paymentProcessing && (
+              <div className="p-8 flex flex-col items-center justify-center text-center space-y-5 min-h-[400px] animate-in zoom-in-95">
+                <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 animate-bounce">
+                  <CheckCircle2 className="w-10 h-10 stroke-[2]" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-black text-emerald-600 text-sm uppercase tracking-[0.2em]">Transaction Success</h3>
+                  <p className="text-xs text-gray-500 max-w-[260px] leading-relaxed">Your order has been successfully paid. Redirecting to WhatsApp to send details...</p>
+                </div>
+                <div className="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                  <Lock className="w-3 h-3 text-emerald-600" /> Secure Sandbox Gateway
+                </div>
+              </div>
+            )}
+
+            {/* Standard Options View */}
+            {!paymentProcessing && !simulatedPaymentSuccess && (
+              <>
+                <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+                  <div>
+                    <h3 className="font-black text-gray-950 text-xs uppercase tracking-widest">Online Secure Pay</h3>
+                    <p className="text-[10px] text-gray-400 font-medium mt-0.5">Order Total: {currencySymbol}{finalTotalAmount.toLocaleString()}</p>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => setIsPaymentModalOpen(false)}
+                    className="p-1.5 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 hover:text-slate-700"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {razorpayConnected ? (
+                  /* SIMULATED GATEWAY OPTIONS */
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    setPaymentProcessing(true);
+                    setPaymentStageText('Connecting to simulated payment server...');
+                    setTimeout(() => {
+                      setPaymentStageText('Authenticating secure transaction...');
+                      setTimeout(() => {
+                        setPaymentStageText('Finalizing payment authorization...');
+                        setTimeout(async () => {
+                          setPaymentProcessing(false);
+                          setSimulatedPaymentSuccess(true);
+                          setTimeout(async () => {
+                            await submitFinalOrder(
+                              'paid', 
+                              `Online Payment (Simulated - ${selectedSimulatedPG.toUpperCase()})`,
+                              selectedSimulatedPG === 'card' ? `Paid via Card Ending in ${cardNumber.slice(-4) || '1234'}` : `Paid via ${selectedSimulatedPG.toUpperCase()} UPI`
+                            );
+                          }, 1500);
+                        }, 1000);
+                      }, 1000);
+                    }, 1000);
+                  }} className="p-6 flex-1 overflow-y-auto space-y-5">
+                    
+                    {/* Method Selector Tabs */}
+                    <div className="grid grid-cols-4 gap-2">
+                      {(['gpay', 'phonepe', 'paytm', 'card'] as const).map((method) => (
+                        <button
+                          key={method}
+                          type="button"
+                          onClick={() => setSelectedSimulatedPG(method)}
+                          className={`py-2 px-1 text-center border rounded-xl flex flex-col items-center justify-center gap-1.5 transition-all ${
+                            selectedSimulatedPG === method
+                              ? 'border-purple-600 bg-purple-50/10 text-purple-700 shadow-sm'
+                              : 'border-slate-200 hover:border-slate-300 text-slate-500'
+                          }`}
+                        >
+                          {method === 'card' ? (
+                            <CreditCard className="w-4 h-4 text-purple-600" />
+                          ) : (
+                            <Smartphone className="w-4 h-4 text-purple-600" />
+                          )}
+                          <span className="text-[9px] font-bold uppercase tracking-wider block">
+                            {method === 'gpay' ? 'GPay' : method === 'phonepe' ? 'PhonePe' : method === 'paytm' ? 'Paytm' : 'Card'}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Method Content */}
+                    <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100">
+                      {selectedSimulatedPG !== 'card' ? (
+                        <div className="space-y-3 text-center py-2">
+                          <p className="text-[10px] text-slate-500 leading-relaxed max-w-[260px] mx-auto font-medium">
+                            We will simulate a secure UPI direct callback flow. Click pay below to authenticate.
+                          </p>
+                          <div className="w-full text-center">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-100 rounded-full text-[9px] font-bold uppercase tracking-wider">
+                              UPI Target: {customerPhone}@upi
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-[8px] font-bold text-gray-500 uppercase tracking-widest mb-1">Card Number *</label>
+                            <input 
+                              required 
+                              type="text" 
+                              maxLength={19}
+                              value={cardNumber}
+                              onChange={e => {
+                                const val = e.target.value.replace(/\D/g, '');
+                                const formatted = val.match(/.{1,4}/g)?.join(' ') || val;
+                                setCardNumber(formatted);
+                              }}
+                              placeholder="4111 2222 3333 4444" 
+                              className="w-full h-9 px-3 border border-gray-200 bg-white outline-none rounded-xl text-xs focus:border-purple-600 transition-colors placeholder:text-gray-300 font-mono" 
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[8px] font-bold text-gray-500 uppercase tracking-widest mb-1">Expiry Date *</label>
+                              <input 
+                                required 
+                                type="text"
+                                maxLength={5}
+                                value={cardExpiry}
+                                onChange={e => {
+                                  const val = e.target.value.replace(/\D/g, '');
+                                  if (val.length >= 2) {
+                                    setCardExpiry(val.slice(0,2) + '/' + val.slice(2,4));
+                                  } else {
+                                    setCardExpiry(val);
+                                  }
+                                }}
+                                placeholder="MM/YY" 
+                                className="w-full h-9 px-3 border border-gray-200 bg-white outline-none rounded-xl text-xs focus:border-purple-600 transition-colors placeholder:text-gray-300 font-mono" 
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[8px] font-bold text-gray-500 uppercase tracking-widest mb-1">CVV / CVC *</label>
+                              <input 
+                                required 
+                                type="password" 
+                                maxLength={3}
+                                value={cardCvv}
+                                onChange={e => setCardCvv(e.target.value.replace(/\D/g, ''))}
+                                placeholder="•••" 
+                                className="w-full h-9 px-3 border border-gray-200 bg-white outline-none rounded-xl text-xs focus:border-purple-600 transition-colors placeholder:text-gray-300 font-mono" 
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-[8px] font-bold text-gray-500 uppercase tracking-widest mb-1">Cardholder Name *</label>
+                            <input 
+                              required 
+                              type="text" 
+                              value={cardName}
+                              onChange={e => setCardName(e.target.value)}
+                              placeholder="JOHN DOE" 
+                              className="w-full h-9 px-3 border border-gray-200 bg-white outline-none rounded-xl text-xs focus:border-purple-600 transition-colors placeholder:text-gray-300 uppercase font-semibold" 
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-3.5 bg-gradient-to-r from-purple-700 to-rose-500 hover:opacity-95 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-lg transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Lock className="w-3.5 h-3.5" /> Pay {currencySymbol}{finalTotalAmount.toLocaleString()}
+                    </button>
+                  </form>
+                ) : (
+                  /* MANUAL UPI QR FALLBACK OPTIONS */
+                  <div className="p-6 flex-1 overflow-y-auto space-y-5 text-center">
+                    
+                    {/* Amount Card */}
+                    <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl">
+                      <span className="text-[9px] text-gray-400 font-black uppercase tracking-wider block">Amount to Transfer</span>
+                      <h4 className="font-extrabold text-xl text-purple-700 mt-1">{currencySymbol}{finalTotalAmount.toLocaleString()}</h4>
+                    </div>
+
+                    {/* QR Code Container */}
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="p-3 bg-white border border-slate-200 rounded-3xl shadow-sm relative overflow-hidden flex items-center justify-center w-48 h-48">
+                        <img 
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                            `upi://pay?pa=${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi&pn=${store.store_name}&am=${finalTotalAmount}&cu=INR`
+                          )}`} 
+                          alt="UPI Payment QR Code" 
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <span className="text-[8.5px] font-black text-gray-400 uppercase tracking-widest mt-2 flex items-center gap-1 justify-center">
+                        <QrCode className="w-3.5 h-3.5 text-purple-600" /> SCAN TO PAY VIA ANY UPI APP
+                      </span>
+                    </div>
+
+                    {/* Phone Transfer Details */}
+                    <div className="bg-purple-50/10 border border-purple-100/50 rounded-2xl p-4 text-left space-y-2">
+                      <span className="text-[8px] font-bold text-purple-600 uppercase tracking-wider block">GPay / PhonePe / Paytm Transfer</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold text-gray-900 select-all">{store.contact_phone || '9876543210'}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(store.contact_phone || '9876543210');
+                            setCopiedPhone(true);
+                            setTimeout(() => setCopiedPhone(false), 2000);
+                          }}
+                          className="text-[9px] font-bold text-purple-700 uppercase tracking-wider hover:underline"
+                        >
+                          {copiedPhone ? 'Copied!' : 'Copy Number'}
+                        </button>
+                      </div>
+                      <p className="text-[9.5px] text-gray-400 leading-normal mt-1 font-medium">
+                        If you cannot scan, transfer the exact amount to the number above manually using GPay, PhonePe, or Paytm.
+                      </p>
+                    </div>
+
+                    {/* Submit Button */}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await submitFinalOrder(
+                          'unpaid', 
+                          'Manual UPI Transfer', 
+                          `UPI Transfer initiated to ${store.contact_phone || 'Store Number'}`
+                        );
+                      }}
+                      className="w-full py-3.5 bg-gradient-to-r from-purple-700 to-rose-500 hover:opacity-95 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-lg transition-all flex items-center justify-center gap-1.5 animate-pulse"
+                    >
+                      Confirm Payment & Send Order via WhatsApp
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+
           </div>
         </div>
       )}
