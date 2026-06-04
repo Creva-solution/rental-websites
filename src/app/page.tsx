@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   X, ArrowRight, Store, Layout, CreditCard, 
-  ShoppingBag, MessageSquare, ShieldCheck, Zap, Globe, Sparkles 
+  ShoppingBag, MessageSquare, ShieldCheck, Zap, Globe, Sparkles,
+  HelpCircle, Bot, Smartphone, CheckCircle2, FileText, Landmark, Clipboard, AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -159,6 +160,254 @@ export default function Home() {
                   <p className="text-xs text-slate-500 leading-relaxed text-left">{f.desc}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* How It Works Section */}
+        <section className="w-full py-16 md:py-24 border-t border-slate-100 bg-blue-50/20 relative">
+          <div className="container px-4 md:px-6 mx-auto max-w-7xl">
+            <div className="text-center space-y-3 mb-16">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider">
+                Simple Setup
+              </div>
+              <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl text-slate-900">
+                How Creva Webzz Works
+              </h2>
+              <p className="text-slate-500 text-sm max-w-xl mx-auto">
+                Follow our step-by-step setup wizard to customize, license, pay, and go live instantly.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Step 1 */}
+              <div className="bg-white border border-slate-200 p-6 rounded-2xl space-y-4 shadow-sm relative">
+                <span className="absolute -top-4 left-6 w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center shadow-md">1</span>
+                <div className="pt-2">
+                  <h3 className="font-bold text-base text-slate-800">Branding & Store Setup</h3>
+                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                    Enter your shop details, set custom brand colors, and upload your business logo. Choose from five modern visual templates tailored for your catalog.
+                  </p>
+                </div>
+              </div>
+
+              {/* Step 2 */}
+              <div className="bg-white border border-slate-200 p-6 rounded-2xl space-y-4 shadow-sm relative">
+                <span className="absolute -top-4 left-6 w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center shadow-md">2</span>
+                <div className="pt-2">
+                  <h3 className="font-bold text-base text-slate-800">Plan & Digital Contract</h3>
+                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                    Select a trial or annual subscription plan. Draw your digital signature on the screen to instantly lock your merchant licensing agreement in your local language.
+                  </p>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="bg-white border border-slate-200 p-6 rounded-2xl space-y-4 shadow-sm relative">
+                <span className="absolute -top-4 left-6 w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center shadow-md">3</span>
+                <div className="pt-2">
+                  <h3 className="font-bold text-base text-slate-800">UPI Payment & Activation</h3>
+                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                    Scan the dynamic merchant QR code or trigger mobile app UPI intents. Upload a screenshot to activate your store, set your credentials, and access the admin dashboard.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* AI Store Assistant Feature Highlight */}
+        <section className="w-full py-16 md:py-24 border-t border-slate-100 bg-white relative">
+          <div className="container px-4 md:px-6 mx-auto max-w-7xl">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+              {/* Feature Text */}
+              <div className="lg:col-span-7 space-y-6 text-left">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider">
+                  Dashboard Helper
+                </div>
+                <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl text-slate-900 leading-tight">
+                  Meet Your AI Store Assistant
+                </h2>
+                <p className="text-slate-650 text-sm leading-relaxed">
+                  Inside the store owner admin panel, you'll find our dynamic, floating <strong>Store Assistant</strong> chatbot designed to guide you step-by-step through catalog creation and shop operations.
+                </p>
+                
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-1 bg-blue-50 text-blue-600 rounded-lg shrink-0 mt-0.5">
+                      <Bot className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs text-slate-800">Interactive Setup Guidance</h4>
+                      <p className="text-xs text-slate-500 mt-0.5">Instant directions on how to add products, configure discount coupons, manage order fulfillment, customize banners, or link custom subdomains.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="p-1 bg-blue-50 text-blue-600 rounded-lg shrink-0 mt-0.5">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs text-slate-800">Smart Sales Suggestions</h4>
+                      <p className="text-xs text-slate-500 mt-0.5">Get automatic recommendations on setting up discount campaigns, featuring best-selling products, or tweaking homepage sections for higher conversion.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="p-1 bg-blue-50 text-blue-600 rounded-lg shrink-0 mt-0.5">
+                      <HelpCircle className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs text-slate-800">Human Escalation & Support Tickets</h4>
+                      <p className="text-xs text-slate-500 mt-0.5">If the AI helper cannot address your query, submit support tickets directly or access active platform hotlines and click-to-chat WhatsApp links.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Chatbot Interface Mockup Graphic */}
+              <div className="lg:col-span-5">
+                <div className="border border-slate-200 rounded-3xl bg-white shadow-xl shadow-blue-500/5 overflow-hidden flex flex-col h-[400px]">
+                  {/* Mock Chatbot Header */}
+                  <div className="p-4 border-b border-slate-100 bg-blue-50/40 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 bg-blue-600 rounded-xl flex items-center justify-center text-white">
+                        <Bot className="w-4 h-4" />
+                      </div>
+                      <div className="text-left">
+                        <span className="block font-bold text-xs text-slate-800">Store Assistant</span>
+                        <span className="text-[9px] text-blue-600 font-bold uppercase tracking-wider block">AI Agent Online</span>
+                      </div>
+                    </div>
+                    <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
+                  </div>
+
+                  {/* Mock Chatbot Tabs */}
+                  <div className="flex border-b border-slate-100 text-[10px] font-bold text-slate-500">
+                    <span className="flex-1 py-2 text-center bg-white border-b-2 border-blue-500 text-blue-600">AI Assistant</span>
+                    <span className="flex-1 py-2 text-center hover:bg-slate-50">Setup Guide</span>
+                    <span className="flex-1 py-2 text-center hover:bg-slate-50">Escalate</span>
+                  </div>
+
+                  {/* Mock Chatbot Body */}
+                  <div className="flex-1 p-4 bg-slate-50/40 space-y-3.5 overflow-y-auto text-left">
+                    <div className="flex gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
+                        <Bot className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="bg-white border border-blue-50/80 rounded-2xl rounded-tl-none p-3 text-[11px] text-slate-650 leading-relaxed shadow-sm max-w-[85%]">
+                        Hello! I am your Store Assistant. I can show you how to list your products, configure coupons, or link UPI accounts. What would you like to set up first?
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <div className="bg-blue-600 text-white rounded-2xl rounded-tr-none p-3 text-[11px] leading-relaxed shadow-sm max-w-[80%]">
+                        How do I configure coupons?
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 pl-8">
+                      <span className="block text-[9px] uppercase font-bold text-slate-400">Quick Actions</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        <span className="px-2.5 py-1 text-[10px] bg-white border border-slate-200 rounded-lg font-semibold text-slate-600 cursor-default">Add Product</span>
+                        <span className="px-2.5 py-1 text-[10px] bg-white border border-blue-200 rounded-lg font-semibold text-blue-600 cursor-default">Create Coupon</span>
+                        <span className="px-2.5 py-1 text-[10px] bg-white border border-slate-200 rounded-lg font-semibold text-slate-600 cursor-default">View Orders</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* UPI Payments & Verification Warning Solution Section */}
+        <section className="w-full py-16 md:py-24 border-t border-slate-100 bg-blue-50/20 relative">
+          <div className="container px-4 md:px-6 mx-auto max-w-7xl">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+              {/* Device Graphic Mockup */}
+              <div className="lg:col-span-5 order-last lg:order-first">
+                <div className="border border-slate-200 rounded-3xl bg-white shadow-xl shadow-blue-500/5 p-5 space-y-4 text-left">
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <Smartphone className="w-5 h-5 text-blue-600" />
+                    <span className="font-bold text-xs text-slate-800">Simulated UPI App / Intent</span>
+                  </div>
+
+                  {/* Warning dialog simulation */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-[11px] leading-relaxed text-amber-900 space-y-2">
+                    <p className="flex items-start gap-1.5 font-bold">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <span>Security & Safety Check</span>
+                    </p>
+                    <p className="text-[10px] text-amber-800 font-medium">
+                      Google Pay or PhonePe may display a warning such as <em>"This payment cannot be verified as safe" / "Unverified Merchant"</em> when paying a newly created direct VPA link. This is a normal standard security notification for custom browser redirections.
+                    </p>
+                    <div className="pt-1.5 border-t border-amber-200/50 flex justify-between items-center text-[9px] font-bold text-amber-900">
+                      <span>NPCI Standard Guidelines</span>
+                      <span className="px-2 py-0.5 bg-amber-100 border border-amber-300 rounded-lg">Verified Link</span>
+                    </div>
+                  </div>
+
+                  {/* VPA copy clipboard box helper */}
+                  <div className="space-y-1.5">
+                    <span className="text-[9px] font-bold uppercase text-slate-500 tracking-wider">Simple Fix: Copy Merchant VPA ID</span>
+                    <div className="flex items-center">
+                      <span className="font-mono text-[11px] bg-slate-100 border border-slate-200 border-r-0 rounded-l-xl px-3 py-2 text-slate-700 flex-1 overflow-hidden text-ellipsis shadow-inner">
+                        creva@ybl
+                      </span>
+                      <button type="button" className="font-bold text-[10px] bg-blue-600 hover:bg-blue-500 text-white rounded-r-xl px-3.5 py-2 flex items-center gap-1 shadow-sm">
+                        <Clipboard className="w-3.5 h-3.5" /> Copy VPA
+                      </button>
+                    </div>
+                    <span className="text-[9px] text-slate-400 block">Copy the VPA ID and pay manually inside your UPI app to avoid app verification limits.</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Explanatory text */}
+              <div className="lg:col-span-7 space-y-6 text-left">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider">
+                  Safe Checkout
+                </div>
+                <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl text-slate-900 leading-tight">
+                  Verified Offline Payments & Simple Fixes
+                </h2>
+                <p className="text-slate-650 text-sm leading-relaxed">
+                  To keep platform setup costs low, we utilize direct UPI merchant settlement transfers. We provide both <strong>Scan to Pay</strong> dynamic codes and mobile deep-link triggers.
+                </p>
+
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-1 bg-blue-50 text-blue-600 rounded-lg shrink-0 mt-0.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs text-slate-800">Dynamic Scan-To-Pay QR Codes</h4>
+                      <p className="text-xs text-slate-500 mt-0.5">Displays a real-time QR code configured with your exact subscription amount. Open any banking app, scan, pay, and take a screenshot to upload.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="p-1 bg-blue-50 text-blue-600 rounded-lg shrink-0 mt-0.5">
+                      <Smartphone className="w-4 h-4 text-indigo-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs text-slate-800">UPI App Deep Linking</h4>
+                      <p className="text-xs text-slate-500 mt-0.5">If you register from a mobile phone, click GPay, BHIM, or Paytm keys to instantly open the corresponding payment app containing pre-filled merchant codes.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="p-1 bg-blue-50 text-blue-600 rounded-lg shrink-0 mt-0.5">
+                      <HelpCircle className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs text-slate-800">Standard NPCI Guidelines Clarification</h4>
+                      <p className="text-xs text-slate-500 mt-0.5">GPay occasionally throws a warning check for custom URLs to ensure the payer reviews the VPA destination. Use our one-click **Copy VPA ID** tool, paste it directly in your app, and complete payments seamlessly.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
