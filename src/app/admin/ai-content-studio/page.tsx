@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { Sparkles, Brain, Copy, RotateCw, Check, Compass, MessageSquare, Megaphone, FileText } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { Sparkles, Brain, Copy, RotateCw, Check, Compass, MessageSquare, Megaphone, FileText, Loader2 } from 'lucide-react';
 
 export default function AIContentStudioPage() {
   const [tone, setTone] = useState('premium');
@@ -10,6 +11,71 @@ export default function AIContentStudioPage() {
   const [generating, setGenerating] = useState(false);
   const [generatedText, setGeneratedText] = useState('');
   const [copied, setCopied] = useState(false);
+  
+  const [products, setProducts] = useState<any[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState<string>('custom');
+  const [loadingProducts, setLoadingProducts] = useState(true);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      setLoadingProducts(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data: storeData } = await supabase
+        .from('stores')
+        .select('*')
+        .eq('owner_id', user.id)
+        .neq('subdomain', '__creva_saas_global_settings__')
+        .single();
+
+      if (storeData) {
+        const { data: prodData } = await supabase
+          .from('products')
+          .select('*')
+          .eq('store_id', storeData.id)
+          .order('created_at', { ascending: false });
+
+        if (prodData) {
+          setProducts(prodData);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load products for AI Content Studio:', err);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+  const getPromptForProduct = (product: any, preset: string) => {
+    let descText = '';
+    try {
+      if (product.description && product.description.startsWith('{')) {
+        const parsed = JSON.parse(product.description);
+        descText = parsed.description || '';
+        
+        // Append category, sizes, and colors if they exist
+        const extraFeatures = [];
+        if (parsed.category) extraFeatures.push(`Category: ${parsed.category}`);
+        if (parsed.sizes && parsed.sizes.length > 0) extraFeatures.push(`Sizes: ${parsed.sizes.join(', ')}`);
+        if (parsed.colors && parsed.colors.length > 0) extraFeatures.push(`Colors: ${parsed.colors.join(', ')}`);
+        
+        if (extraFeatures.length > 0) {
+          descText += `, ${extraFeatures.join(', ')}`;
+        }
+      } else {
+        descText = product.description || '';
+      }
+    } catch (e) {
+      descText = product.description || '';
+    }
+    
+    return `Write a highly compelling ${preset.toLowerCase()} for "${product.name}" listing, ${descText}`;
+  };
 
   const parsePrompt = (text: string) => {
     let name = '';
@@ -190,8 +256,12 @@ export default function AIContentStudioPage() {
                   key={idx}
                   onClick={() => {
                     setActivePreset(p.label);
-                    // Only fill placeholder value if the user hasn't typed anything yet or it is the default soap
-                    if (!prompt.trim() || prompt.includes('Lavender Soaps')) {
+                    if (selectedProductId !== 'custom') {
+                      const selectedProd = products.find(prod => prod.id === selectedProductId);
+                      if (selectedProd) {
+                        setPrompt(getPromptForProduct(selectedProd, p.label));
+                      }
+                    } else if (!prompt.trim() || prompt.includes('Lavender Soaps')) {
                       setPrompt(`Write a highly compelling ${p.label.toLowerCase()} for "Admire Handmade Organic Lavender Soaps" listing, handmade, raw citrus extracts, highly moisturizing`);
                     }
                   }}
@@ -206,6 +276,43 @@ export default function AIContentStudioPage() {
                   <p className="text-[10px] text-muted-foreground leading-normal">{p.desc}</p>
                 </button>
               ))}
+            </div>
+
+            {/* Product Selector Dropdown */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-wider block">
+                Select product from your inventory (Optional)
+              </label>
+              {loadingProducts ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground h-11 px-3 bg-muted/20 border rounded-xl">
+                  <Loader2 className="w-4 h-4 animate-spin text-[#3C77C3]" />
+                  Loading your products...
+                </div>
+              ) : (
+                <select
+                  value={selectedProductId}
+                  onChange={(e) => {
+                    const prodId = e.target.value;
+                    setSelectedProductId(prodId);
+                    if (prodId === 'custom') {
+                      setPrompt('');
+                    } else {
+                      const selectedProd = products.find(p => p.id === prodId);
+                      if (selectedProd) {
+                        setPrompt(getPromptForProduct(selectedProd, activePreset));
+                      }
+                    }
+                  }}
+                  className="w-full bg-background border rounded-xl h-11 px-3 text-xs outline-none focus:border-[#3C77C3] focus:ring-1 focus:ring-[#3C77C3]"
+                >
+                  <option value="custom">Custom / Type Manually...</option>
+                  {products.map(prod => (
+                    <option key={prod.id} value={prod.id}>
+                      📦 {prod.name} (Price: {prod.price})
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div className="space-y-2">
