@@ -636,6 +636,16 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   // Helper to parse combined address back into parts
   const parseAddress = (combined: string) => {
     if (!combined) return { doorNo: '', street: '', city: '', pincode: '' };
+    if (combined.includes(' || ')) {
+      const parts = combined.split(' || ');
+      return {
+        doorNo: parts[0] || '',
+        street: parts[1] || '',
+        city: parts[2] || '',
+        pincode: parts[3] || ''
+      };
+    }
+    // Fallback for old comma-separated address format
     if (!combined.includes(',')) {
       return { doorNo: '', street: combined, city: '', pincode: '' };
     }
@@ -658,6 +668,15 @@ export default function StorefrontClient({ store, products }: { store: any, prod
     return { doorNo, street: finalStreet, city, pincode };
   };
 
+  // Helper to format a combined address with " || " delimiter into a readable comma-separated string
+  const getReadableAddress = (combined: string) => {
+    if (!combined) return '';
+    if (combined.includes(' || ')) {
+      return combined.split(' || ').map(p => p.trim()).filter(Boolean).join(', ');
+    }
+    return combined;
+  };
+
   // Checkout Address Split States
   const [checkoutDoorNo, setCheckoutDoorNo] = useState('');
   const [checkoutStreet, setCheckoutStreet] = useState('');
@@ -678,34 +697,32 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
   // Synchronize customerAddress string for Checkout
   useEffect(() => {
-    const parts = [];
-    if (checkoutDoorNo.trim()) parts.push(checkoutDoorNo.trim());
-    if (checkoutStreet.trim()) parts.push(checkoutStreet.trim());
-    
-    let lastPart = '';
-    if (checkoutCity.trim()) lastPart += checkoutCity.trim();
-    if (checkoutPincode.trim()) {
-      lastPart += (lastPart ? ' - ' : '') + checkoutPincode.trim();
+    if (!checkoutDoorNo.trim() && !checkoutStreet.trim() && !checkoutCity.trim() && !checkoutPincode.trim()) {
+      setCustomerAddress('');
+      return;
     }
-    if (lastPart) parts.push(lastPart);
-    
-    setCustomerAddress(parts.join(', '));
+    const combined = [
+      checkoutDoorNo.trim(),
+      checkoutStreet.trim(),
+      checkoutCity.trim(),
+      checkoutPincode.trim()
+    ].join(' || ');
+    setCustomerAddress(combined);
   }, [checkoutDoorNo, checkoutStreet, checkoutCity, checkoutPincode]);
 
   // Synchronize regAddress string for Registration
   useEffect(() => {
-    const parts = [];
-    if (regDoorNo.trim()) parts.push(regDoorNo.trim());
-    if (regStreet.trim()) parts.push(regStreet.trim());
-    
-    let lastPart = '';
-    if (regCity.trim()) lastPart += regCity.trim();
-    if (regPincode.trim()) {
-      lastPart += (lastPart ? ' - ' : '') + regPincode.trim();
+    if (!regDoorNo.trim() && !regStreet.trim() && !regCity.trim() && !regPincode.trim()) {
+      setRegAddress('');
+      return;
     }
-    if (lastPart) parts.push(lastPart);
-    
-    setRegAddress(parts.join(', '));
+    const combined = [
+      regDoorNo.trim(),
+      regStreet.trim(),
+      regCity.trim(),
+      regPincode.trim()
+    ].join(' || ');
+    setRegAddress(combined);
   }, [regDoorNo, regStreet, regCity, regPincode]);
 
   // Load split profile address states when profile modal is opened
@@ -721,18 +738,32 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
   // Profile Address Change Sync Handler
   const handleProfileAddressChange = (door: string, street: string, city: string, pin: string) => {
-    const parts = [];
-    if (door.trim()) parts.push(door.trim());
-    if (street.trim()) parts.push(street.trim());
-    
-    let lastPart = '';
-    if (city.trim()) lastPart += city.trim();
-    if (pin.trim()) {
-      lastPart += (lastPart ? ' - ' : '') + pin.trim();
+    if (!door.trim() && !street.trim() && !city.trim() && !pin.trim()) {
+      if (customerUser) {
+        const updated = { ...customerUser, address: '' };
+        setCustomerUser(updated);
+        localStorage.setItem(`creva_customer_user_${store.id}`, JSON.stringify(updated));
+        setCustomerAddress('');
+        try {
+          const accountsKey = `creva_customer_accounts_${store.id}`;
+          const accounts = JSON.parse(localStorage.getItem(accountsKey) || '[]');
+          const updatedAccounts = accounts.map((acc: any) => 
+            (acc.email === customerUser.email || acc.phone === customerUser.phone) 
+              ? { ...acc, address: '' } 
+              : acc
+          );
+          localStorage.setItem(accountsKey, JSON.stringify(updatedAccounts));
+        } catch (err) {}
+      }
+      return;
     }
-    if (lastPart) parts.push(lastPart);
-    
-    const combined = parts.join(', ');
+
+    const combined = [
+      door.trim(),
+      street.trim(),
+      city.trim(),
+      pin.trim()
+    ].join(' || ');
     
     if (customerUser) {
       const updated = { ...customerUser, address: combined };
@@ -1126,13 +1157,14 @@ export default function StorefrontClient({ store, products }: { store: any, prod
     setIsSubmitting(true);
 
     try {
+      const readableAddr = getReadableAddress(customerAddress);
       // Place actual order in Supabase
       const { data: orderData, error } = await supabase.from('orders').insert([{
         store_id: store.id,
         customer_name: customerName,
         customer_email: customerPhone + '@whatsapp.com',
         customer_phone: customerPhone,
-        shipping_address: customerAddress,
+        shipping_address: readableAddr,
         total_amount: finalTotalAmount,
         status: 'pending',
         payment_method: customerPaymentMethod === 'cod' ? 'Cash on Delivery (COD)' : 'Online Payment',
@@ -1159,7 +1191,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       message += `*Customer Details:*\n`;
       message += `Name: ${customerName}\n`;
       message += `Phone: ${customerPhone}\n`;
-      message += `Address: ${customerAddress}\n`;
+      message += `Address: ${readableAddr}\n`;
       if (customerPaymentMethod) {
         message += `Payment Method: ${customerPaymentMethod === 'cod' ? 'Cash on Delivery (COD)' : 'Online Payment'}\n`;
       }
