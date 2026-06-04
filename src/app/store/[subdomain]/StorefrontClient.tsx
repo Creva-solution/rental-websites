@@ -5447,7 +5447,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
         const isGloballyEnabled = globalSettings?.whatsappEnabledGlobal !== false;
         const plansCtc = globalSettings?.whatsappPlansEnabled || ['30', '365', 'lifetime'];
-        const hasClickToChat = isGloballyEnabled && plansCtc.includes(selectedPlan);
+        const hasClickToChat = isGloballyEnabled;
         const isWidgetVisible = hasClickToChat && whatsappEnabled && whatsappNumber.trim().length > 0;
 
         if (!isWidgetVisible) return null;

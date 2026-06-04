@@ -547,8 +547,8 @@ export default function SettingsPage() {
           const plansCtc = globalSettings?.whatsappPlansEnabled || ['30', '365', 'lifetime'];
           const plansOua = globalSettings?.whatsappPlansOrderUpdatesEnabled || ['365', 'lifetime'];
 
-          const hasClickToChat = plansCtc.includes(selectedPlan);
-          const hasOrderUpdates = plansOua.includes(selectedPlan);
+          const hasClickToChat = true;
+          const hasOrderUpdates = true;
 
           return (
             <div className="p-6 border-b border-border space-y-6 bg-emerald-50/5">

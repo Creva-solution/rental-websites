@@ -70,8 +70,8 @@ export default function MarketingHubPage() {
   const plansCtc = globalSettings?.whatsappPlansEnabled || ['30', '365', 'lifetime'];
   const plansOua = globalSettings?.whatsappPlansOrderUpdatesEnabled || ['365', 'lifetime'];
 
-  const hasClickToChat = plansCtc.includes(selectedPlan);
-  const hasOrderUpdates = plansOua.includes(selectedPlan);
+  const hasClickToChat = true;
+  const hasOrderUpdates = true;
 
   const isWhatsAppEnabled = isGloballyEnabled && (hasClickToChat || hasOrderUpdates);
 
