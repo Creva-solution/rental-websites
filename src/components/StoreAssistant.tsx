@@ -166,7 +166,7 @@ export default function StoreAssistant() {
       {/* Floating Chat Panel */}
       {isOpen && (
         <div 
-          className={`fixed z-50 bg-slate-900 border border-slate-800 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden flex flex-col font-sans transition-all duration-300 
+          className={`fixed z-50 bg-white border border-blue-100 shadow-[0_20px_50px_rgba(37,99,235,0.15)] rounded-2xl overflow-hidden flex flex-col font-sans transition-all duration-300 
             ${isMinimized 
               ? 'bottom-6 right-6 w-72 h-16 shrink-0' 
               : 'bottom-6 right-6 w-[380px] sm:w-[400px] h-[550px] max-h-[85vh] max-w-[95vw]'
@@ -207,7 +207,7 @@ export default function StoreAssistant() {
           {!isMinimized && (
             <>
               {/* Tab Navigation */}
-              <div className="flex border-b border-slate-800 bg-slate-900/50 shrink-0 text-[10px] font-black uppercase tracking-wider text-slate-400 select-none">
+              <div className="flex border-b border-blue-100 bg-blue-50/40 shrink-0 text-[10px] font-black uppercase tracking-wider text-slate-500 select-none">
                 {[
                   { id: 'chat', label: 'AI Chat', icon: MessageSquare },
                   { id: 'knowledge', label: 'Guides', icon: BookOpen },
@@ -222,8 +222,8 @@ export default function StoreAssistant() {
                     }}
                     className={`flex-1 py-3 flex flex-col sm:flex-row items-center justify-center gap-1.5 border-b-2 transition-all cursor-pointer ${
                       activeTab === tab.id 
-                        ? 'border-blue-500 text-blue-400 bg-slate-900' 
-                        : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/30'
+                        ? 'border-blue-600 text-blue-600 bg-white font-bold' 
+                        : 'border-transparent text-slate-500 hover:text-blue-600 hover:bg-blue-50/20'
                     }`}
                   >
                     <tab.icon className="w-3.5 h-3.5" />
@@ -233,7 +233,7 @@ export default function StoreAssistant() {
               </div>
 
               {/* Scrollable Container */}
-              <div className="flex-1 overflow-y-auto p-4 bg-slate-950/30 min-h-0">
+              <div className="flex-1 overflow-y-auto p-4 bg-slate-50/40 min-h-0">
                 {activeTab === 'chat' && (
                   <div className="space-y-4">
                     {/* Message stream */}
@@ -247,14 +247,14 @@ export default function StoreAssistant() {
                         <div className={`w-6 h-6 rounded-full shrink-0 flex items-center justify-center font-bold text-[10px] ${
                           m.sender === 'user' 
                             ? 'bg-blue-600 text-white' 
-                            : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            : 'bg-blue-50 text-blue-650 border border-blue-150'
                         }`}>
                           {m.sender === 'user' ? 'ME' : 'AI'}
                         </div>
                         <div className={`p-3 rounded-2xl text-[11px] sm:text-xs leading-relaxed text-left whitespace-pre-line shadow-sm border ${
                           m.sender === 'user' 
                             ? 'bg-blue-600 text-white border-blue-600' 
-                            : 'bg-slate-900 text-slate-100 border-slate-800'
+                            : 'bg-white text-slate-800 border-blue-100/80 shadow-sm shadow-blue-500/2'
                         }`}>
                           {m.text}
                         </div>
@@ -264,13 +264,13 @@ export default function StoreAssistant() {
                     {/* Typing status */}
                     {isTyping && (
                       <div className="flex gap-2.5 mr-auto max-w-[85%]">
-                        <div className="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0 flex items-center justify-center font-bold text-[10px]">
+                        <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 border border-blue-150 shrink-0 flex items-center justify-center font-bold text-[10px]">
                           AI
                         </div>
-                        <div className="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex items-center gap-1 shadow-sm">
-                          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" />
-                          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce delay-100" />
-                          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce delay-200" />
+                        <div className="bg-white border border-blue-100/80 p-3 rounded-2xl flex items-center gap-1 shadow-sm">
+                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" />
+                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce delay-100" />
+                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce delay-200" />
                         </div>
                       </div>
                     )}
@@ -280,7 +280,7 @@ export default function StoreAssistant() {
                     {/* Starter Prompts / FAQ Buttons */}
                     {messages.length === 1 && (
                       <div className="space-y-1.5 pt-2 text-left">
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest pl-1">Suggested Questions</span>
+                        <span className="text-[9px] font-black text-slate-450 uppercase tracking-widest pl-1">Suggested Questions</span>
                         <div className="flex flex-col gap-1">
                           {[
                             { text: 'How to add products?', icon: ShoppingBag },
@@ -292,13 +292,13 @@ export default function StoreAssistant() {
                             <button
                               key={idx}
                               onClick={() => handleSend(q.text)}
-                              className="text-left text-xs bg-slate-900 hover:bg-slate-800/80 border border-slate-800 rounded-xl px-3.5 py-2.5 flex items-center justify-between group transition-all cursor-pointer font-medium text-slate-300"
+                              className="text-left text-xs bg-white hover:bg-blue-50/30 border border-blue-100/85 rounded-xl px-3.5 py-2.5 flex items-center justify-between group transition-all cursor-pointer font-medium text-slate-700 hover:text-slate-900 shadow-sm shadow-blue-500/2"
                             >
                               <span className="flex items-center gap-2">
-                                <q.icon className="w-3.5 h-3.5 text-blue-400 group-hover:text-blue-300" />
+                                <q.icon className="w-3.5 h-3.5 text-blue-600 group-hover:text-blue-500" />
                                 {q.text}
                               </span>
-                              <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-300 group-hover:translate-x-0.5 transition-all" />
+                              <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-650 group-hover:translate-x-0.5 transition-all" />
                             </button>
                           ))}
                         </div>
@@ -309,13 +309,13 @@ export default function StoreAssistant() {
 
                 {activeTab === 'knowledge' && (
                   <div className="space-y-3 text-left">
-                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest pl-1">Knowledge Base Guides</span>
+                    <span className="text-[9px] font-black text-slate-450 uppercase tracking-widest pl-1">Knowledge Base Guides</span>
                     {knowledgeBase.map((kb) => (
-                      <div key={kb.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm hover:border-blue-500/30 transition-all">
-                        <h4 className="font-bold text-xs text-white flex items-center gap-1.5 mb-1.5">
-                          <BookOpen className="w-4 h-4 text-blue-400" /> {kb.title}
+                      <div key={kb.id} className="bg-white border border-blue-100 rounded-2xl p-4 shadow-sm hover:border-blue-300 hover:shadow-md transition-all">
+                        <h4 className="font-bold text-xs text-slate-800 flex items-center gap-1.5 mb-1.5">
+                          <BookOpen className="w-4 h-4 text-blue-600" /> {kb.title}
                         </h4>
-                        <p className="text-[11px] text-slate-400 leading-relaxed">{kb.content}</p>
+                        <p className="text-[11px] text-slate-655 leading-relaxed">{kb.content}</p>
                       </div>
                     ))}
                   </div>
@@ -323,18 +323,18 @@ export default function StoreAssistant() {
 
                 {activeTab === 'suggestions' && (
                   <div className="space-y-3 text-left">
-                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest pl-1">Smart Suggestions</span>
+                    <span className="text-[9px] font-black text-slate-450 uppercase tracking-widest pl-1">Smart Suggestions</span>
                     {suggestions.map((s, idx) => (
-                      <div key={idx} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col justify-between h-fit hover:border-blue-500/30 transition-all gap-3">
+                      <div key={idx} className="bg-white border border-blue-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between h-fit hover:border-blue-300 hover:shadow-md transition-all gap-3">
                         <div>
-                          <h4 className="font-bold text-xs text-white flex items-center gap-1.5">
-                            <Sparkles className="w-4 h-4 text-amber-400" /> {s.title}
+                          <h4 className="font-bold text-xs text-slate-800 flex items-center gap-1.5">
+                            <Sparkles className="w-4 h-4 text-amber-500" /> {s.title}
                           </h4>
-                          <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">{s.desc}</p>
+                          <p className="text-[11px] text-slate-655 mt-1.5 leading-relaxed">{s.desc}</p>
                         </div>
                         <Link
                           href={`/admin/${s.action}`}
-                          className="self-end text-[9px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-all"
+                          className="self-end text-[9px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-500 flex items-center gap-1 transition-all"
                         >
                           Launch Action <ChevronRight className="w-3.5 h-3.5" />
                         </Link>
@@ -346,16 +346,16 @@ export default function StoreAssistant() {
                 {activeTab === 'ticket' && (
                   <div className="space-y-4 text-left">
                     {ticketStatus === 'success' ? (
-                      <div className="text-center py-8 space-y-3">
+                      <div className="text-center py-8 space-y-3 bg-white border border-blue-100 rounded-2xl p-4 shadow-sm">
                         <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto" />
-                        <h4 className="font-bold text-sm text-white">Ticket Submitted!</h4>
-                        <p className="text-xs text-slate-400 max-w-xs mx-auto">Your support request has been logged. We will get back to you shortly.</p>
+                        <h4 className="font-bold text-sm text-slate-800">Ticket Submitted!</h4>
+                        <p className="text-xs text-slate-500 max-w-xs mx-auto">Your support request has been logged. We will get back to you shortly.</p>
                         <button
                           onClick={() => {
                             setTicketStatus('idle');
                             setActiveTab('chat');
                           }}
-                          className="px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                          className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
                         >
                           Return to Chat
                         </button>
@@ -363,41 +363,45 @@ export default function StoreAssistant() {
                     ) : (
                       <>
                         {/* Direct Contacts */}
-                        <div className="bg-blue-500/5 border border-blue-500/10 p-4 rounded-2xl space-y-2">
-                          <h4 className="font-bold text-xs text-white flex items-center gap-1">
-                            <Phone className="w-4 h-4 text-blue-400" /> Platform Support Hotlines
+                        <div className="bg-blue-50/40 border border-blue-100 p-4 rounded-2xl space-y-2">
+                          <h4 className="font-bold text-xs text-slate-800 flex items-center gap-1">
+                            <Phone className="w-4 h-4 text-blue-600" /> Platform Support Hotlines
                           </h4>
-                          <div className="text-[11px] text-slate-450 space-y-1">
-                            <p>📞 Phone support: <span className="font-bold text-slate-200">084893 71766</span></p>
-                            <p>💬 WhatsApp support: <a href="https://wa.me/9108489371766" target="_blank" rel="noopener noreferrer" className="font-bold text-blue-400 hover:underline">Click to chat</a></p>
+                          <div className="text-[11px] text-slate-600 space-y-1.5">
+                            <p className="flex items-center gap-1.5">
+                              <span className="font-semibold text-slate-700">Phone Support:</span> <span className="font-bold text-slate-800">084893 71766</span>
+                            </p>
+                            <p className="flex items-center gap-1.5">
+                              <span className="font-semibold text-slate-700">WhatsApp:</span> <a href="https://wa.me/9108489371766" target="_blank" rel="noopener noreferrer" className="font-bold text-blue-600 hover:underline">Click to chat</a>
+                            </p>
                           </div>
                         </div>
 
                         {/* Ticket form */}
-                        <form onSubmit={handleSubmitTicket} className="space-y-3 bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-sm">
-                          <h4 className="font-bold text-xs text-white flex items-center gap-1.5 mb-1">
-                            <FileText className="w-4 h-4 text-blue-400" /> Submit Tech Support Ticket
+                        <form onSubmit={handleSubmitTicket} className="space-y-3 bg-white border border-blue-100 p-4 rounded-2xl shadow-sm">
+                          <h4 className="font-bold text-xs text-slate-800 flex items-center gap-1.5 mb-1">
+                            <FileText className="w-4 h-4 text-blue-600" /> Submit Tech Support Ticket
                           </h4>
                           <div className="space-y-1">
-                            <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Subject</label>
+                            <label className="text-[9px] font-bold uppercase text-slate-500 tracking-wider">Subject</label>
                             <input 
                               type="text"
                               value={ticketSubject}
                               onChange={e => setTicketSubject(e.target.value)}
                               placeholder="e.g. Domain setup issue"
                               required
-                              className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-500 text-slate-200"
+                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-500 text-slate-800 transition-colors placeholder:text-slate-400"
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Describe issue details</label>
+                            <label className="text-[9px] font-bold uppercase text-slate-500 tracking-wider">Describe issue details</label>
                             <textarea 
                               rows={3}
                               value={ticketMessage}
                               onChange={e => setTicketMessage(e.target.value)}
                               placeholder="Describe your question or error details here..."
                               required
-                              className="w-full bg-slate-950 border border-slate-850 rounded-xl p-3 text-xs outline-none focus:border-blue-500 text-slate-200 resize-none"
+                              className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 text-slate-800 resize-none transition-colors placeholder:text-slate-400"
                             />
                           </div>
                           <button
@@ -422,14 +426,14 @@ export default function StoreAssistant() {
 
               {/* Chat Input Field if on Chat Tab */}
               {activeTab === 'chat' && (
-                <div className="p-3 border-t border-slate-800 bg-slate-900 flex items-center gap-2 shrink-0">
+                <div className="p-3 border-t border-slate-100 bg-white flex items-center gap-2 shrink-0">
                   <input
                     type="text"
                     value={input}
                     onChange={e => setInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleSend(input)}
                     placeholder="Type store question..."
-                    className="flex-1 bg-slate-950 border border-slate-850 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-200 transition-all"
+                    className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-800 transition-all placeholder:text-slate-400"
                   />
                   <button
                     onClick={() => handleSend(input)}
@@ -447,13 +451,13 @@ export default function StoreAssistant() {
           {isMinimized && (
             <button
               onClick={() => setIsMinimized(false)}
-              className="flex-1 flex items-center justify-between px-4 h-full w-full bg-slate-900 font-medium text-xs text-slate-100 cursor-pointer"
+              className="flex-1 flex items-center justify-between px-4 h-full w-full bg-white border border-blue-100 font-medium text-xs text-slate-800 cursor-pointer hover:bg-slate-50"
             >
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                <span className="font-bold text-[10px] uppercase tracking-wider text-slate-400">Assistant Minimized</span>
+                <span className="font-bold text-[10px] uppercase tracking-wider text-slate-500">Assistant Minimized</span>
               </div>
-              <div className="text-[10px] text-blue-400 font-black uppercase tracking-wider flex items-center gap-0.5">
+              <div className="text-[10px] text-blue-600 font-black uppercase tracking-wider flex items-center gap-0.5">
                 Expand <ChevronRight className="w-3.5 h-3.5" />
               </div>
             </button>
