@@ -1436,87 +1436,100 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
       case 'artisan':
         return (
-          <header className="header-theme sticky top-0 z-40 transition-all bg-[#FAF6F0] border-b border-[#E4DAC9]">
-            {/* Row 1: Logo and Action Icons */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between relative gap-4">
-              <button 
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="p-2 -ml-2 text-[#2F1E12] hover:bg-[#F3EFE7] rounded-full transition-all md:hidden"
-              >
-                <Menu className="w-6 h-6 stroke-[1.5]" />
-              </button>
-
-              {/* Centered Brand Logo */}
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex items-center justify-center">
-                <Link href="/" className="flex flex-col items-center gap-0.5 group">
+          <header className="sticky top-0 z-40 transition-all bg-[#2874F0] text-white border-b border-[#1976D2] font-sans">
+            {/* Top Row: Logo, Search Bar, Action Icons */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+              
+              {/* Brand Logo / Link */}
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  className="p-2 -ml-2 text-white hover:bg-blue-600 rounded-full transition-all md:hidden"
+                >
+                  <Menu className="w-5 h-5 stroke-[2]" />
+                </button>
+                <Link href="/" className="flex flex-col items-start leading-none group">
                   {store.logo_url ? (
-                    <img src={store.logo_url} alt={store.store_name} className="h-10 w-auto object-contain" />
+                    <img src={store.logo_url} alt={store.store_name} className="h-8 w-auto object-contain brightness-0 invert" />
                   ) : (
                     <>
-                      <span className="font-bold text-xl md:text-2xl tracking-widest text-[#2F1E12] uppercase font-serif">
+                      <span className="font-black text-base sm:text-lg tracking-tight uppercase group-hover:text-yellow-300 transition-colors italic">
                         {store.store_name}
                       </span>
-                      <span className="text-[8px] tracking-[0.3em] font-semibold text-[#8B5A2B] uppercase block">HANDMADE APOTHECARY</span>
+                      <span className="text-[8px] font-semibold text-yellow-300 italic flex items-center gap-0.5">Explore <span className="text-white font-bold uppercase">Plus</span></span>
                     </>
                   )}
                 </Link>
               </div>
 
-              {/* Right Side: Quick Action Icons */}
-              <div className="flex items-center gap-1.5 md:gap-3 ml-auto z-20">
-                <button onClick={() => setIsSearchOverlayOpen(!isSearchOverlayOpen)} className="p-2 text-[#2F1E12] hover:bg-[#F3EFE7] rounded-full transition-all">
-                  <Search className="w-5 h-5 stroke-[1.5]" />
-                </button>
-                <button onClick={() => setIsWishlistOpen(true)} className="p-2 text-[#2F1E12] hover:bg-[#F3EFE7] rounded-full transition-all relative">
-                  <Heart className="w-5 h-5 text-rose-700/80 stroke-[1.5]" />
+              {/* Centered Marketplace Search Input (Desktop) */}
+              <div className="flex-1 max-w-xl mx-4 relative hidden md:block">
+                <input 
+                  type="text" 
+                  placeholder="Search for products, categories and more..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-9 pl-4 pr-10 rounded-sm bg-white text-gray-900 placeholder-gray-400 text-xs font-semibold border-none focus:outline-none focus:ring-2 focus:ring-yellow-300"
+                />
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#2874F0]" />
+              </div>
+
+              {/* Right Side: Marketplace Quick Action Icons */}
+              <div className="flex items-center gap-3">
+                <button onClick={() => setIsWishlistOpen(true)} className="p-2 text-white hover:bg-blue-600 rounded-full transition-all relative">
+                  <Heart className="w-5 h-5 text-white stroke-[2]" />
                   {favorites.length > 0 && (
-                    <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-[#8B5A2B] text-white rounded-full text-[8px] font-black flex items-center justify-center">
+                    <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-yellow-300 text-black rounded-full text-[8px] font-black flex items-center justify-center shadow-sm">
                       {favorites.length}
                     </span>
                   )}
                 </button>
-                <button onClick={() => setIsCartOpen(true)} className="p-2 text-[#2F1E12] hover:bg-[#F3EFE7] rounded-full transition-all relative">
-                  <ShoppingCart className="w-5 h-5 stroke-[1.5]" />
+                
+                <button onClick={() => setIsCartOpen(true)} className="p-2 text-white hover:bg-blue-600 rounded-full transition-all relative">
+                  <ShoppingCart className="w-5 h-5 stroke-[2]" />
                   {cartItemCount > 0 && (
-                    <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-[#8B5A2B] text-white rounded-full text-[8px] font-black flex items-center justify-center font-bold">
+                    <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-yellow-300 text-black rounded-full text-[8px] font-black flex items-center justify-center shadow-sm">
                       {cartItemCount}
                     </span>
                   )}
                 </button>
                 {renderCustomerAuthHeader()}
               </div>
+
             </div>
 
-            {/* Row 2: Centered Desktop Links (Centered Navigation sub-row) */}
-            <div className="hidden md:flex items-center justify-center h-10 border-t border-[#E4DAC9]/60 pb-1.5 pt-1.5 bg-[#FAF6F0]">
-              <nav className="flex items-center gap-10 font-bold uppercase tracking-[0.2em] text-[9px] text-[#2F1E12]/80">
-                <button onClick={() => setIsAboutOpen(true)} className="hover:text-[#8B5A2B] transition-colors">Our Craft</button>
-                <a href="#catalog" className="hover:text-[#8B5A2B] transition-colors">Shop Pottery</a>
-                <button onClick={() => { setIsTrackOpen(true); setIsCartOpen(false); }} className="hover:text-[#8B5A2B] transition-colors">Track Order</button>
+            {/* Centered Desktop Category Strip (Desktop) */}
+            <div className="hidden md:flex items-center justify-center h-10 border-t border-blue-600/40 bg-white">
+              <nav className="flex items-center gap-10 font-bold uppercase tracking-wider text-[10px] text-gray-700">
+                {categoriesList.map(cat => (
+                  <button 
+                    key={cat}
+                    onClick={() => {
+                      setSelectedCategory(cat);
+                      const element = document.getElementById('catalog');
+                      if (element) element.scrollIntoView({ behavior: 'smooth' });
+                    }} 
+                    className={`hover:text-[#2874F0] transition-colors py-2 block border-b-2 ${selectedCategory === cat ? 'border-[#2874F0] text-[#2874F0]' : 'border-transparent text-gray-600'}`}
+                  >
+                    {cat === 'All' ? 'ALL PRODUCTS' : cat.toUpperCase()}
+                  </button>
+                ))}
               </nav>
             </div>
 
-            {/* Premium Sliding Search Bar Overlay */}
-            {isSearchOverlayOpen && (
-              <div className="bg-[#FAF6F0] border-t border-[#E4DAC9] px-4 py-3.5 animate-in slide-in-from-top duration-300">
-                <div className="max-w-3xl mx-auto relative">
-                  <input 
-                    type="text" 
-                    placeholder="Search organic collection..." 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full h-10 pl-10 pr-10 bg-white border border-[#E4DAC9] rounded-none text-xs outline-none focus:border-[#8B5A2B]"
-                    autoFocus
-                  />
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8B5A2B]/60" />
-                  {searchQuery && (
-                    <button onClick={() => setSearchQuery('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8B5A2B]">
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
+            {/* Mobile Category / Search Row */}
+            <div className="md:hidden bg-[#2874F0] px-4 pb-3 flex flex-col gap-2">
+              <div className="relative w-full">
+                <input 
+                  type="text" 
+                  placeholder="Search products..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-8 pl-4 pr-10 rounded bg-white text-gray-900 placeholder-gray-400 text-xs font-semibold border-none focus:outline-none"
+                />
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#2874F0]" />
               </div>
-            )}
+            </div>
           </header>
         );
 
@@ -1596,79 +1609,79 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
       case 'luxe':
         return (
-          <header className="header-theme sticky top-0 z-40 transition-all bg-[#0A0A0A]/90 backdrop-blur-md border-b border-zinc-900">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between relative gap-4">
-              {/* Hamburger Mobile */}
-              <button 
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="p-2 -ml-2 text-white hover:text-[#D4AF37] transition-colors md:hidden"
-              >
-                <Menu className="w-6 h-6 stroke-[1.2]" />
-              </button>
+          <header className="sticky top-0 z-40 transition-all bg-white text-gray-900 border-b border-gray-100 font-sans shadow-sm">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between relative gap-4">
+              
+              {/* Left Side: Brand Logo */}
+              <div className="flex items-center gap-6">
+                <button 
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  className="p-2 -ml-2 text-gray-700 hover:text-black md:hidden transition-colors"
+                >
+                  <Menu className="w-5 h-5 stroke-[1.5]" />
+                </button>
 
-              {/* Centered Logo with Gold Details */}
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex items-center justify-center">
-                <Link href="/" className="flex flex-col items-center gap-1 group">
+                <Link href="/" className="flex items-center group">
                   {store.logo_url ? (
-                    <img src={store.logo_url} alt={store.store_name} className="h-10 w-auto object-contain brightness-110 drop-shadow-[0_0_8px_rgba(212,175,55,0.3)]" />
+                    <img src={store.logo_url} alt={store.store_name} className="h-6 w-auto object-contain" />
                   ) : (
-                    <>
-                      <span className="font-light text-2xl tracking-[0.25em] text-white uppercase font-serif drop-shadow-[0_2px_10px_rgba(212,175,55,0.15)] group-hover:text-[#D4AF37] transition-all">
-                        {store.store_name}
-                      </span>
-                      <div className="w-12 h-[1px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent group-hover:w-20 transition-all duration-500"></div>
-                    </>
+                    <span className="font-extrabold text-lg sm:text-xl tracking-wider text-black uppercase font-sans">
+                      {store.store_name}
+                    </span>
                   )}
                 </Link>
               </div>
 
-              {/* Desktop links */}
-              <nav className="hidden md:flex items-center gap-8 font-light uppercase text-[9px] tracking-[0.25em] text-[#D4AF37] absolute left-10">
-                <button onClick={() => setIsAboutOpen(true)} className="hover:text-white transition-colors">THE HOUSE</button>
-                <a href="#catalog" className="hover:text-white transition-colors">COLLECTIONS</a>
-                <button onClick={() => { setIsTrackOpen(true); setIsCartOpen(false); }} className="hover:text-white transition-colors">TRACK ORDER</button>
+              {/* Centered Desktop Shopify-like Menu Links */}
+              <nav className="hidden md:flex items-center gap-8 text-[11px] font-semibold uppercase tracking-wider text-gray-600">
+                <a href="#catalog" className="hover:text-black transition-colors">Shop All</a>
+                <button onClick={() => setIsAboutOpen(true)} className="hover:text-black transition-colors">Our Story</button>
+                <button onClick={() => { setIsTrackOpen(true); setIsCartOpen(false); }} className="hover:text-black transition-colors">Track Order</button>
               </nav>
 
-              {/* Right Action Buttons */}
-              <div className="flex items-center gap-2 ml-auto z-20">
-                <button onClick={() => setIsSearchOverlayOpen(!isSearchOverlayOpen)} className="p-2 text-zinc-400 hover:text-white transition-colors">
-                  <Search className="w-5 h-5 stroke-[1.2]" />
+              {/* Right Action Icons */}
+              <div className="flex items-center gap-1.5 sm:gap-3 ml-auto z-20">
+                <button onClick={() => setIsSearchOverlayOpen(!isSearchOverlayOpen)} className="p-2 text-gray-600 hover:text-black transition-colors">
+                  <Search className="w-4.5 h-4.5 stroke-[2]" />
                 </button>
-                <button onClick={() => setIsWishlistOpen(true)} className="p-2 text-zinc-400 hover:text-white transition-colors relative">
-                  <Heart className="w-5 h-5 stroke-[1.2] text-[#D4AF37]/80" />
+                
+                <button onClick={() => setIsWishlistOpen(true)} className="p-2 text-gray-600 hover:text-black transition-colors relative">
+                  <Heart className="w-4.5 h-4.5 stroke-[2]" />
                   {favorites.length > 0 && (
-                    <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-[#D4AF37] text-black rounded-full text-[8px] font-black flex items-center justify-center">
+                    <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-black text-white rounded-full text-[8px] font-bold flex items-center justify-center">
                       {favorites.length}
                     </span>
                   )}
                 </button>
-                <button onClick={() => setIsCartOpen(true)} className="p-2 text-[#D4AF37] hover:text-white transition-colors relative">
-                  <ShoppingCart className="w-5 h-5 stroke-[1.2]" />
+                
+                <button onClick={() => setIsCartOpen(true)} className="p-2 text-gray-600 hover:text-black transition-colors relative">
+                  <ShoppingCart className="w-4.5 h-4.5 stroke-[2]" />
                   {cartItemCount > 0 && (
-                    <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-[#D4AF37] text-black rounded-full text-[8px] font-black flex items-center justify-center font-bold shadow-[0_0_8px_rgba(212,175,55,0.4)]">
+                    <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-black text-white rounded-full text-[8px] font-bold flex items-center justify-center">
                       {cartItemCount}
                     </span>
                   )}
                 </button>
                 {renderCustomerAuthHeader()}
               </div>
+
             </div>
 
-            {/* Sliding Search Bar Overlay */}
+            {/* Shopify minimal sliding search */}
             {isSearchOverlayOpen && (
-              <div className="bg-[#0D0D0D] border-t border-b border-zinc-900 px-4 py-3.5 animate-in slide-in-from-top duration-300">
+              <div className="bg-white border-t border-gray-100 px-4 py-4 animate-in slide-in-from-top duration-300">
                 <div className="max-w-3xl mx-auto relative">
                   <input 
                     type="text" 
-                    placeholder="Search curated collection..." 
+                    placeholder="Search our store..." 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full h-10 pl-10 pr-10 bg-[#070707] border border-zinc-800 text-white rounded-none text-xs outline-none focus:border-[#D4AF37] tracking-wider"
+                    className="w-full h-10 pl-10 pr-10 bg-gray-50 border border-gray-200 text-gray-900 rounded-none text-xs outline-none focus:border-black font-semibold"
                     autoFocus
                   />
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#D4AF37]" />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   {searchQuery && (
-                    <button onClick={() => setSearchQuery('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white">
+                    <button onClick={() => setSearchQuery('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black">
                       <X className="w-4 h-4" />
                     </button>
                   )}
@@ -1898,56 +1911,90 @@ export default function StorefrontClient({ store, products }: { store: any, prod
     switch (selectedTemplate) {
       case 'artisan':
         return (
-          <section className="relative px-4 sm:px-6 lg:px-8 py-12 max-w-7xl mx-auto font-sans animate-in fade-in duration-300 text-left">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-[#FAF6F0] p-6 sm:p-12 border border-[#E7E5E4] rounded-[24px] shadow-sm relative overflow-hidden">
+          <section className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto font-sans animate-in fade-in duration-300 text-left">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               
-              {/* Left Column: Storytelling warm text block (lg: col-span-7) */}
-              <div className="lg:col-span-7 space-y-6 text-[#1C1917] order-2 lg:order-1">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-stone-200/50 rounded-full border border-stone-300/40 text-[9px] font-bold tracking-[0.2em] text-[#1C1917] uppercase">
-                  🏺 Handmade Studio Curation
-                </div>
-                <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight font-serif text-[#1C1917] leading-tight">
-                  {artisanHeroTitle}
-                </h2>
-                <p className="text-sm leading-relaxed text-stone-600 font-serif italic max-w-xl">
-                  {artisanHeroSubtitle}
-                </p>
-                <div className="pt-4 flex flex-wrap gap-4">
-                  <a 
-                    href="#catalog"
-                    className="inline-block px-8 py-3.5 bg-[#1C1917] hover:bg-[#44403C] text-white text-[9px] font-bold uppercase tracking-[0.2em] rounded-full transition-all duration-300 hover:scale-[1.02] shadow-md shadow-stone-900/10 animate-pulse"
+              {/* Left Column: Big Marketplace Carousel Slider (lg: col-span-9) */}
+              <div className="lg:col-span-9 relative aspect-[21/9] w-full overflow-hidden bg-gray-100 rounded-sm shadow-sm group">
+                {carouselSlides.map((slide, index) => (
+                  <div 
+                    key={slide.id || index}
+                    className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
                   >
-                    {artisanHeroCTA}
-                  </a>
-                  <button 
-                    onClick={() => setIsAboutOpen(true)}
-                    className="inline-block px-8 py-3.5 bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 text-[9px] font-bold uppercase tracking-[0.2em] rounded-full transition-all duration-300 hover:scale-[1.02]"
-                  >
-                    Our Philosophy
-                  </button>
-                </div>
-              </div>
-
-              {/* Right Column: organic image with rounded corners (lg: col-span-5) */}
-              <div className="lg:col-span-5 aspect-[4/3] sm:aspect-square w-full overflow-hidden rounded-[20px] border border-stone-200/60 bg-[#FAF6F0] flex items-center justify-center relative order-1 lg:order-2">
-                {!artisanHeroError ? (
-                  <img 
-                    src={artisanHeroImage} 
-                    alt="Artisan Craft Studio Curation" 
-                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-103"
-                    onError={() => setArtisanHeroError(true)}
-                  />
-                ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#FAF6F0] to-stone-200/50 flex flex-col items-center justify-center p-6 text-center space-y-4">
-                    <svg className="w-12 h-12 text-stone-400 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v20M17 5v14M7 5v14M12 8a4 4 0 00-4 4v4a4 4 0 008 0v-4a4 4 0 00-4-4z" />
-                    </svg>
-                    <div>
-                      <span className="text-[9px] tracking-[0.2em] font-black text-stone-600 uppercase block">THE ARTISAN STUDY</span>
-                      <span className="text-[10px] text-stone-400 italic font-serif mt-1 block">Est. 2026 • Mud, Water, & Patience</span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent z-10" />
+                    <img 
+                      src={slide.image} 
+                      alt={slide.title} 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.parentElement?.classList.add('bg-gradient-to-br', 'from-blue-600', 'to-blue-900');
+                      }}
+                    />
+                    
+                    {/* Marketplace banner details */}
+                    <div className="absolute inset-0 z-20 flex flex-col justify-center items-start text-left px-8 sm:px-12 max-w-md space-y-3 text-white">
+                      <span className="inline-block bg-yellow-400 text-black text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-sm">
+                        ★ SUPER DEALS ★
+                      </span>
+                      <h2 className="text-xl sm:text-3xl font-black tracking-tight leading-tight uppercase font-sans drop-shadow-sm">
+                        {slide.title}
+                      </h2>
+                      <p className="text-[10px] sm:text-xs text-white/90 font-medium line-clamp-2">
+                        {slide.subtitle}
+                      </p>
+                      <div className="pt-2">
+                        <a 
+                          href="#catalog"
+                          className="inline-block px-5 py-2 bg-[#FB641B] hover:bg-[#e05615] text-white text-[10px] font-bold uppercase tracking-wider rounded-sm transition-colors shadow-md"
+                        >
+                          SHOP NOW
+                        </a>
+                      </div>
                     </div>
                   </div>
-                )}
+                ))}
+
+                {/* Left/Right Buttons */}
+                <button onClick={prevSlide} className="absolute left-2 top-1/2 -translate-y-1/2 z-25 w-8 h-8 rounded-full bg-white/70 hover:bg-white flex items-center justify-center text-gray-800 shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
+                  <ChevronLeft className="w-4 h-4 stroke-[2]" />
+                </button>
+                <button onClick={nextSlide} className="absolute right-2 top-1/2 -translate-y-1/2 z-25 w-8 h-8 rounded-full bg-white/70 hover:bg-white flex items-center justify-center text-gray-800 shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
+                  <ChevronRight className="w-4 h-4 stroke-[2]" />
+                </button>
+              </div>
+
+              {/* Right Column: Marketplace Offer Banners (lg: col-span-3) */}
+              <div className="lg:col-span-3 grid grid-rows-2 gap-4">
+                <div className="bg-white p-5 rounded-sm border border-gray-200 flex flex-col justify-between text-left shadow-sm relative overflow-hidden group">
+                  <div className="z-10 space-y-1.5">
+                    <span className="text-[8px] font-black tracking-wider text-[#2874F0] uppercase block">TODAY'S SPECIAL</span>
+                    <h3 className="text-base font-black text-gray-900 tracking-tight leading-tight uppercase font-sans">
+                      {artisanHeroTitle}
+                    </h3>
+                    <p className="text-[10px] text-gray-500 font-medium line-clamp-2">{artisanHeroSubtitle}</p>
+                  </div>
+                  <div className="pt-4 z-10">
+                    <a href="#catalog" className="inline-block text-[9px] font-black text-[#2874F0] hover:underline uppercase tracking-wider">
+                      Shop Deal →
+                    </a>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-5 rounded-sm border border-orange-100 flex flex-col justify-between text-left shadow-sm group">
+                  <div className="space-y-1.5">
+                    <span className="text-[8px] font-black tracking-wider text-orange-600 uppercase block">FESTIVE OFFERS</span>
+                    <h3 className="text-base font-black text-gray-900 tracking-tight leading-tight uppercase font-sans">
+                      UP TO 60% OFF
+                    </h3>
+                    <p className="text-[10px] text-gray-500 font-medium">Get huge savings on premium store essentials. Exclusive benefits online.</p>
+                  </div>
+                  <div className="pt-4">
+                    <button onClick={() => setIsAboutOpen(true)} className="inline-block text-[9px] font-black text-orange-600 hover:underline uppercase tracking-wider">
+                      Learn More →
+                    </button>
+                  </div>
+                </div>
               </div>
 
             </div>
@@ -2009,40 +2056,43 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
       case 'luxe':
         return (
-          <section className="relative h-[70vh] w-full overflow-hidden bg-[#070707] flex items-center justify-center border-b border-zinc-900 animate-in fade-in duration-500 font-sans">
-            {/* Elegant dark gradient overlays */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-transparent to-black/95 z-10" />
-            <div className="absolute inset-0 bg-radial-gradient from-transparent via-[#DFD5C6]/5 to-black/30 z-10 pointer-events-none" />
-            
-            {!luxeHeroError ? (
-              <img 
-                src={luxeHeroImage} 
-                alt="Luxury Collection Curation" 
-                className="absolute inset-0 w-full h-full object-cover opacity-35 scale-100 transition-transform duration-[15s] hover:scale-102"
-                onError={() => setLuxeHeroError(true)}
-              />
-            ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-zinc-950 to-black opacity-40 z-0" />
-            )}
-            
-            {/* Luxe typography overlay */}
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-4 max-w-4xl mx-auto space-y-6">
-              <span className="text-[9px] tracking-[0.4em] font-light text-[#DFD5C6] uppercase block mb-1">THE HOUSE OF LUXE • PARIS</span>
-              <h2 className="text-4xl sm:text-6xl font-light text-white tracking-[0.12em] leading-none uppercase font-serif drop-shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
-                {luxeHeroTitle}
-              </h2>
-              <div className="w-16 h-[1px] bg-[#DFD5C6]/50 my-2" />
-              <p className="text-[10px] sm:text-xs md:text-sm text-zinc-400 max-w-xl leading-relaxed tracking-[0.2em] uppercase font-light font-sans">
-                {luxeHeroSubtitle}
-              </p>
-              <div className="pt-6">
-                <a 
-                  href="#catalog"
-                  className="inline-block px-10 py-4 bg-[#DFD5C6] hover:bg-white text-[#070707] text-[9px] font-black uppercase tracking-[0.25em] transition-all duration-300 rounded-[2px] shadow-[0_4px_20px_rgba(223,213,198,0.15)] hover:scale-[1.02]"
-                >
-                  {luxeHeroCTA}
-                </a>
+          <section className="relative h-auto py-12 md:py-20 w-full overflow-hidden bg-white border-b border-gray-100 font-sans flex items-center animate-in fade-in duration-300">
+            {/* Split layout: text left, image right (very premium Shopify DTC look) */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full grid grid-cols-1 md:grid-cols-12 gap-8 items-center h-full">
+              
+              {/* Left text box (col-span-5) */}
+              <div className="md:col-span-5 text-left space-y-6 z-10 py-4">
+                <span className="text-[9px] tracking-[0.3em] font-black text-gray-500 uppercase block">NEW SEASON ARRIVALS</span>
+                <h1 className="text-3xl sm:text-5xl font-black text-gray-900 tracking-tight leading-[1.1] uppercase font-sans">
+                  {luxeHeroTitle}
+                </h1>
+                <p className="text-xs sm:text-sm leading-relaxed text-gray-500 max-w-sm font-medium">
+                  {luxeHeroSubtitle}
+                </p>
+                <div className="pt-2">
+                  <a 
+                    href="#catalog"
+                    className="inline-block px-10 py-3.5 bg-black hover:bg-gray-800 text-white text-[10px] font-bold uppercase tracking-widest transition-all rounded-sm shadow-md"
+                  >
+                    {luxeHeroCTA}
+                  </a>
+                </div>
               </div>
+
+              {/* Right image box (col-span-7) */}
+              <div className="md:col-span-7 aspect-[4/3] md:aspect-[16/10] w-full overflow-hidden bg-gray-50 rounded-sm relative shadow-sm border border-gray-100">
+                {!luxeHeroError ? (
+                  <img 
+                    src={luxeHeroImage} 
+                    alt="Lifestyle Curation" 
+                    className="w-full h-full object-cover transition-transform duration-[10s] ease-out hover:scale-103"
+                    onError={() => setLuxeHeroError(true)}
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200" />
+                )}
+              </div>
+
             </div>
           </section>
         );
@@ -2396,82 +2446,74 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
       case 'artisan':
         return (
-          <section id="catalog" className="px-4 sm:px-6 lg:px-8 py-16 max-w-7xl mx-auto text-[#1C1917] animate-in fade-in duration-300">
-            {/* Story highlights above catalog */}
-            <div className="mb-14 text-center">
-              <span className="text-[10px] tracking-[0.3em] font-black text-[#1C1917] uppercase block mb-3">OUR BRAND DIARIES</span>
-              <h3 className="text-2xl md:text-3xl font-extrabold tracking-tight font-serif text-[#1C1917]">Visual Stories From The Pottery</h3>
-              
-              <div className="flex justify-start sm:justify-center items-center gap-6 sm:gap-8 mt-8 overflow-x-auto py-2 px-4 scrollbar-none max-w-full">
-                {[
-                  { title: "Sourcing Clay", desc: "We dig local terracotta directly from the pristine riverbed clay veins, retaining rich iron and granular silica textures.", img: "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&q=80&w=150" },
-                  { title: "The Pottery Wheel", desc: "Every piece is carefully shaped on a slow kickwheel, where natural variations in finger pressure leave organic ripples.", img: "https://images.unsplash.com/photo-1565192647048-f997ed8799d4?auto=format&fit=crop&q=80&w=150" },
-                  { title: "Kiln Firing", desc: "We wood-fire our stoneware continuously for over 36 hours at 2,300°F. The falling ash creates soft, toasted gradients.", img: "https://images.unsplash.com/photo-1595435934249-5df7ed86b1c0?auto=format&fit=crop&q=80&w=150" },
-                  { title: "Our Artisans", desc: "A tight-knit community of 6 master potters bringing ancient techniques into contemporary functional modern tableware.", img: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=150" }
-                ].map((story, i) => (
-                  <div 
-                    key={i} 
-                    onClick={() => alert(`🌾 ${story.title}:\n\n${story.desc}`)}
-                    className="flex flex-col items-center cursor-pointer group flex-shrink-0"
-                  >
-                    <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-stone-200 group-hover:border-[#1C1917] transition-all p-1 bg-white relative flex items-center justify-center">
-                      <img 
-                        src={story.img} 
-                        alt={story.title} 
-                        className="w-full h-full object-cover rounded-full" 
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const parent = e.currentTarget.parentElement;
-                          if (parent && !parent.querySelector('.fallback-letter')) {
-                            parent.classList.add('bg-gradient-to-br', 'from-[#FAF6F0]', 'to-stone-200/50', 'flex', 'items-center', 'justify-center');
-                            const textNode = document.createElement('span');
-                            textNode.className = 'fallback-letter font-serif text-[12px] font-black text-[#1C1917]';
-                            textNode.innerText = story.title.charAt(0);
-                            parent.appendChild(textNode);
-                          }
-                        }}
-                      />
-                    </div>
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-stone-500 mt-2.5 group-hover:text-[#1C1917] transition-colors">{story.title}</span>
-                  </div>
-                ))}
+          <section id="catalog" className="px-4 sm:px-6 lg:px-8 py-10 max-w-7xl mx-auto text-[#212121] font-sans animate-in fade-in duration-300">
+            {/* Marketplace Shopping Benefits Strip */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white border border-gray-200 p-4 rounded-sm mb-8 text-xs text-gray-600">
+              <div className="flex items-center gap-2.5 justify-center text-left">
+                <svg className="w-5 h-5 text-[#2874F0] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="font-semibold">100% Original Products</span>
+              </div>
+              <div className="flex items-center gap-2.5 justify-center text-left">
+                <svg className="w-5 h-5 text-[#2874F0] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18" />
+                </svg>
+                <span className="font-semibold">Easy Returns & Refunds</span>
+              </div>
+              <div className="flex items-center gap-2.5 justify-center text-left col-span-2 md:col-span-1">
+                <svg className="w-5 h-5 text-[#2874F0] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <span className="font-semibold">Secure Transaction Guarantee</span>
+              </div>
+              <div className="flex items-center gap-2.5 justify-center text-left col-span-2 md:col-span-1">
+                <svg className="w-5 h-5 text-[#2874F0] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span className="font-semibold">Lightning Fast Delivery</span>
               </div>
             </div>
 
-            <div className="border-t border-stone-200 pt-12 flex flex-col md:flex-row items-center justify-between gap-6 mb-10 text-left">
-              <h4 className="text-xl font-bold font-serif text-[#1C1917] tracking-wide uppercase">{displayCatalogTitle()}</h4>
+            {/* Marketplace Filter bar & Title */}
+            <div className="border-b border-gray-200 pb-4 flex flex-col md:flex-row items-center justify-between gap-6 mb-8 text-left">
+              <div>
+                <h4 className="text-lg font-black text-gray-900 tracking-tight uppercase font-sans">
+                  {displayCatalogTitle()}
+                </h4>
+                <span className="text-[11px] text-gray-500 font-semibold block mt-0.5">Showing {processedProducts.length} items with active discount deals</span>
+              </div>
               
-              <div className="flex flex-wrap gap-2.5 items-center justify-center">
+              <div className="flex flex-wrap gap-2 items-center justify-center">
                 {categoriesList.map(cat => (
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${
+                    className={`px-4 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-wider border transition-all ${
                       selectedCategory === cat 
-                        ? 'bg-[#1C1917] border-[#1C1917] text-white shadow-sm'
-                        : 'bg-white border-stone-200 text-stone-500 hover:border-[#1C1917] hover:text-[#1C1917]'
+                        ? 'bg-[#2874F0] border-[#2874F0] text-white shadow-sm'
+                        : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
                     }`}
                   >
-                    {cat === 'All' ? 'ALL ESSENTIALS' : cat.toUpperCase()}
+                    {cat === 'All' ? 'ALL CATEGORIES' : cat.toUpperCase()}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Asymmetrical Staggered Pottery Grid */}
+            {/* Marketplace product cards */}
             {processedProducts.length === 0 ? (
-              <div className="text-center py-20 bg-[#FAF9F6] border border-dashed border-stone-200 rounded-[16px] text-stone-400 font-serif italic text-sm">
-                No organic goods in this category. Check back soon.
+              <div className="text-center py-20 bg-white border border-gray-200 rounded-sm text-gray-400 font-bold uppercase tracking-widest text-xs">
+                No items found in this section.
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-8">
-                {processedProducts.map((product, idx) => {
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+                {processedProducts.map((product) => {
                   const isLiked = favorites.includes(product.id);
                   let originalPrice = Number(product.price);
                   let displayPrice = originalPrice;
                   let hasActiveOffer = false;
                   let offerPercent = 0;
-                  let timeLeftText = '';
 
                   try {
                     if (product.description && product.description.startsWith('{')) {
@@ -2482,99 +2524,85 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                         if (endTime > now) {
                           hasActiveOffer = true;
                           displayPrice = Number(parsed.offer_price);
-                          offerPercent = Number(parsed.offer_percent) || 50;
-                          
-                          const diffMs = endTime - now;
-                          const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
-                          const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                          const diffSecs = Math.floor((diffMs % (1000 * 60)) / 1000);
-                          if (diffHrs > 0) {
-                            timeLeftText = `${diffHrs}h ${diffMins}m`;
-                          } else if (diffMins > 0) {
-                            timeLeftText = `${diffMins}m ${diffSecs}s`;
-                          } else {
-                            timeLeftText = `${diffSecs}s`;
-                          }
+                          offerPercent = Number(parsed.offer_percent) || 12;
                         }
                       }
                     }
                   } catch (e) {}
-                  
-                  // Introduce dynamic height class for true staggered layout look
-                  const isStaggered = idx % 3 === 1;
+
+                  // Stable rating generator based on product details for realistic feel
+                  const ratingVal = ((product.name.charCodeAt(0) % 5) * 0.2 + 4.0).toFixed(1);
+                  const reviewsCount = (product.name.charCodeAt(product.name.length - 1) % 90) + 12;
 
                   return (
                     <div 
                       key={product.id} 
-                      className={`card-theme flex flex-col bg-[#FAF9F6] border border-stone-200 rounded-[16px] overflow-hidden group shadow-sm transition-all duration-300 hover:shadow-md ${isStaggered ? 'md:translate-y-8' : ''}`}
+                      className="card-theme flex flex-col bg-white border border-gray-200 rounded-sm overflow-hidden group shadow-sm hover:shadow-md transition-all duration-300 relative text-left"
                     >
-                      <div className="relative aspect-[4/5] bg-stone-100 overflow-hidden cursor-pointer" onClick={() => setSelectedProduct(product)}>
+                      {/* Image frame */}
+                      <div className="relative aspect-square bg-gray-50 overflow-hidden cursor-pointer" onClick={() => setSelectedProduct(product)}>
                         {getProductImage(product) ? (
                           <img 
                             src={getProductImage(product)} 
                             alt={product.name} 
-                            className="w-full h-full object-cover transition-all duration-700 group-hover:scale-103"
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                           />
                         ) : (
-                          <div className="absolute inset-0 flex items-center justify-center font-bold text-stone-200 text-3xl">P</div>
-                        )}
-                        
-                        {/* Organic Badge */}
-                        {hasActiveOffer ? (
-                          <span className="absolute top-3 left-3 bg-[#1C1917] text-[#FAF6F0] text-[7px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-full">
-                            🏺 SAVE {offerPercent}%
-                          </span>
-                        ) : (
-                          <span className="absolute top-3 left-3 bg-white text-stone-600 border border-stone-200 text-[7px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-full">
-                            🌱 100% ORGANIC
-                          </span>
+                          <div className="absolute inset-0 flex items-center justify-center font-bold text-gray-300 text-3xl">P</div>
                         )}
 
-                        {/* Heart Button */}
+                        {/* Favorite Button */}
                         <button 
                           type="button"
                           onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
-                          className="absolute top-3 right-3 p-2.5 rounded-full bg-white/95 text-stone-400 hover:text-red-500 transition-colors z-20 border border-stone-200 shadow-sm"
+                          className="absolute top-2.5 right-2.5 p-2 rounded-full bg-white text-gray-400 hover:text-red-500 transition-colors border border-gray-100 shadow-sm"
                         >
-                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-rose-700 text-rose-700' : 'text-gray-400'}`} />
+                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-rose-600 text-rose-600' : 'text-gray-400'}`} />
                         </button>
                       </div>
 
-                      <div className="p-5 flex-1 flex flex-col justify-between bg-[#FAF9F6] space-y-4 text-left">
+                      {/* Content details */}
+                      <div className="p-4 flex-1 flex flex-col justify-between bg-white space-y-3">
                         <div className="space-y-1">
-                          <span className="text-[8px] font-bold text-stone-400 tracking-[0.25em] uppercase block font-sans">{getProductCategory(product)}</span>
+                          <span className="text-[9px] font-bold text-[#2874F0] uppercase tracking-wider block">{getProductCategory(product)}</span>
                           <h4 
                             onClick={() => setSelectedProduct(product)}
-                            className="font-bold text-[#1C1917] text-sm hover:underline cursor-pointer font-serif leading-tight line-clamp-2 min-h-[2.5rem]"
+                            className="font-bold text-gray-900 text-xs hover:text-[#2874F0] cursor-pointer leading-tight line-clamp-2 min-h-[2rem] font-sans"
                           >
                             {product.name}
                           </h4>
-                          <p className="text-[10px] text-stone-400 font-serif italic mt-0.5 line-clamp-2 leading-relaxed">
-                            {getProductDescription(product) || 'A tactile, functional stoneware perfect for organic home accents.'}
-                          </p>
+                          
+                          {/* Rating Row */}
+                          <div className="flex items-center gap-1.5 pt-0.5">
+                            <span className="inline-flex items-center gap-0.5 bg-green-700 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm">
+                              {ratingVal} <span className="text-[7px]">★</span>
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-semibold">({reviewsCount.toLocaleString()})</span>
+                          </div>
                         </div>
 
-                        <div className="pt-3 border-t border-stone-200/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                          <div className="flex flex-col">
-                            {hasActiveOffer ? (
-                              <div className="space-y-0.5">
-                                <span className="font-bold text-[#1C1917] font-serif text-base block">
-                                  {currencySymbol}{displayPrice.toLocaleString()}
-                                </span>
-                                <span className="text-xs text-stone-400 font-serif line-through block leading-none">
+                        {/* Price & Buy Block */}
+                        <div className="pt-2 border-t border-gray-100 flex flex-col gap-2">
+                          <div className="flex items-baseline gap-1.5 flex-wrap">
+                            <span className="font-bold text-gray-900 text-base">
+                              {currencySymbol}{displayPrice.toLocaleString()}
+                            </span>
+                            {hasActiveOffer && (
+                              <>
+                                <span className="text-xs text-gray-400 line-through font-semibold">
                                   {currencySymbol}{originalPrice.toLocaleString()}
                                 </span>
-                              </div>
-                            ) : (
-                              <span className="font-bold text-[#1C1917] font-serif text-base">
-                                {currencySymbol}{displayPrice.toLocaleString()}
-                              </span>
+                                <span className="text-[10px] text-green-700 font-bold">
+                                  {offerPercent}% off
+                                </span>
+                              </>
                             )}
                           </div>
+                          
                           <button 
                             type="button"
                             onClick={() => addToCart(product, 1)}
-                            className="w-full sm:w-auto text-center px-5 py-2.5 bg-[#1C1917] hover:bg-[#44403C] text-white text-[9px] font-black uppercase tracking-[0.15em] rounded-full transition-colors shadow-sm"
+                            className="w-full text-center py-2 bg-[#FB641B] hover:bg-[#e05615] text-white text-[10px] font-bold uppercase tracking-wider rounded-sm transition-colors shadow-sm animate-pulse"
                           >
                             Add To Cart
                           </button>
@@ -2781,67 +2809,48 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
       case 'luxe':
         return (
-          <section id="catalog" className="bg-[#070707] px-4 sm:px-6 lg:px-8 py-16 text-white max-w-7xl mx-auto animate-in fade-in duration-300">
-            {/* Curated Masterpieces Horizontal Carousel Slider */}
-            <div className="mb-20">
-              <span className="text-[9px] tracking-[0.3em] font-black text-[#DFD5C6] uppercase block mb-3 text-center">CURATED SHOWCASE</span>
-              <h3 className="text-2xl md:text-3xl font-light tracking-[0.15em] uppercase text-white font-serif text-center mb-10">House Masterpieces</h3>
-              
-              <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-none snap-x snap-mandatory">
-                {displayProducts.slice(0, 3).map((prod, i) => (
-                  <div 
-                    key={prod.id || i}
-                    onClick={() => setSelectedProduct(prod)}
-                    className="w-[85vw] sm:w-[500px] flex-shrink-0 snap-start bg-[#121212] border border-[#1C1C1E] rounded-[4px] overflow-hidden grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 items-center cursor-pointer hover:border-[#DFD5C6] transition-all group"
-                  >
-                    <div className="aspect-[4/5] bg-black overflow-hidden rounded-[2px]">
-                      <img src={getProductImage(prod)} alt={prod.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    </div>
-                    <div className="p-4 space-y-4 text-left">
-                      <span className="text-[8px] font-black text-[#DFD5C6] tracking-[0.25em] uppercase block">EXCLUSIVE NO.0{i+1}</span>
-                      <h4 className="text-sm font-light text-white uppercase tracking-wider font-serif leading-tight">{prod.name}</h4>
-                      <p className="text-[10px] text-[#DFD5C6] font-serif leading-relaxed line-clamp-3">{prod.description || 'A timeless addition crafted for fine aesthetic appreciation.'}</p>
-                      <div className="text-[#DFD5C6] font-serif text-sm font-bold pt-2">{currencySymbol}{Number(prod.price).toLocaleString()}</div>
-                    </div>
-                  </div>
-                ))}
+          <section id="catalog" className="bg-white px-4 sm:px-6 lg:px-8 py-16 text-gray-900 max-w-7xl mx-auto animate-in fade-in duration-300 font-sans">
+            
+            {/* DTC Brand Catalog Header */}
+            <div className="border-b border-gray-100 pb-8 flex flex-col sm:flex-row items-center justify-between gap-6 mb-12 text-left">
+              <div>
+                <span className="text-[9px] tracking-[0.2em] font-black text-gray-400 uppercase block mb-1">SHOP THE COLLECTION</span>
+                <h4 className="text-2xl font-black text-gray-900 uppercase font-sans tracking-tight">
+                  {displayCatalogTitle()}
+                </h4>
               </div>
-            </div>
-
-            {/* Main Luxury Catalog Grid */}
-            <div className="border-t border-zinc-900 pt-16 flex flex-col md:flex-row items-center justify-between gap-6 mb-12 text-left">
-              <h4 className="text-lg font-light tracking-[0.2em] uppercase text-white font-serif">{displayCatalogTitle()}</h4>
               
-              <div className="flex flex-wrap gap-2 justify-center">
+              {/* Clean minimal category links */}
+              <div className="flex flex-wrap gap-3">
                 {categoriesList.map(cat => (
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`px-4 py-1.5 border rounded-none text-[8px] font-black tracking-[0.2em] uppercase transition-all ${
+                    className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all border-b-2 ${
                       selectedCategory === cat 
-                        ? 'bg-[#DFD5C6] border-[#DFD5C6] text-black shadow-[0_0_10px_rgba(223,213,198,0.3)]'
-                        : 'bg-transparent border-zinc-800 text-zinc-500 hover:border-[#DFD5C6] hover:text-[#DFD5C6]'
+                        ? 'border-black text-black'
+                        : 'border-transparent text-gray-400 hover:text-black'
                     }`}
                   >
-                    {cat === 'All' ? 'ALL HOUSE LINES' : cat.toUpperCase()}
+                    {cat === 'All' ? 'ALL PRODUCTS' : cat.toUpperCase()}
                   </button>
                 ))}
               </div>
             </div>
 
+            {/* Shopify DTC Grid */}
             {processedProducts.length === 0 ? (
-              <div className="text-center py-20 bg-[#121212] border border-[#1C1C1E] rounded-[4px] text-zinc-500 font-serif text-xs uppercase tracking-[0.15em]">
-                Curations Empty. Under Preparation.
+              <div className="text-center py-20 border border-dashed border-gray-200 text-gray-400 font-sans text-xs uppercase tracking-wider">
+                No items available in this collection yet.
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-8">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10">
                 {processedProducts.map((product) => {
                   const isLiked = favorites.includes(product.id);
                   let originalPrice = Number(product.price);
                   let displayPrice = originalPrice;
                   let hasActiveOffer = false;
                   let offerPercent = 0;
-                  let timeLeftText = '';
 
                   try {
                     if (product.description && product.description.startsWith('{')) {
@@ -2852,93 +2861,89 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                         if (endTime > now) {
                           hasActiveOffer = true;
                           displayPrice = Number(parsed.offer_price);
-                          offerPercent = Number(parsed.offer_percent) || 50;
-                          
-                          const diffMs = endTime - now;
-                          const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
-                          const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                          const diffSecs = Math.floor((diffMs % (1000 * 60)) / 1000);
-                          if (diffHrs > 0) {
-                            timeLeftText = `${diffHrs}h ${diffMins}m`;
-                          } else if (diffMins > 0) {
-                            timeLeftText = `${diffMins}m ${diffSecs}s`;
-                          } else {
-                            timeLeftText = `${diffSecs}s`;
-                          }
+                          offerPercent = Number(parsed.offer_percent) || 15;
                         }
                       }
                     }
                   } catch (e) {}
 
                   return (
-                    <div key={product.id} className="bg-[#121212] border border-[#1C1C1E] rounded-[4px] overflow-hidden flex flex-col justify-between group hover:border-[#DFD5C6] transition-all duration-300 shadow-md">
-                      <div className="relative aspect-square bg-black overflow-hidden cursor-pointer" onClick={() => setSelectedProduct(product)}>
+                    <div key={product.id} className="group flex flex-col justify-between text-left relative bg-white">
+                      
+                      {/* Image container */}
+                      <div className="relative aspect-[3/4] bg-gray-50 overflow-hidden cursor-pointer mb-4" onClick={() => setSelectedProduct(product)}>
                         {getProductImage(product) ? (
                           <img 
                             src={getProductImage(product)} 
                             alt={product.name} 
-                            className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-102"
                           />
                         ) : (
-                          <div className="absolute inset-0 flex items-center justify-center text-zinc-800 font-serif text-3xl">L</div>
+                          <div className="absolute inset-0 flex items-center justify-center text-gray-200 font-sans text-xl font-bold">L</div>
                         )}
                         
-                        {hasActiveOffer ? (
-                          <span className="absolute top-3 left-3 bg-black border border-[#DFD5C6] text-[#DFD5C6] text-[7px] font-black uppercase tracking-[0.25em] px-2.5 py-1 shadow-[0_2px_10px_rgba(223,213,198,0.2)]">
-                            EXCLUSIVE: -{offerPercent}%
-                          </span>
-                        ) : (
-                          <span className="absolute top-3 left-3 bg-[#070707] border border-[#DFD5C6]/30 text-[#DFD5C6] text-[7px] font-black uppercase tracking-[0.25em] px-2.5 py-1">
-                            AURELIA CLASSIC
+                        {/* Elegant minimalist offer badge */}
+                        {hasActiveOffer && (
+                          <span className="absolute top-3 left-3 bg-black text-white text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 shadow-sm">
+                            -{offerPercent}%
                           </span>
                         )}
 
+                        {/* Direct Add To Cart overlay on hover (desktop) */}
+                        <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/20 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300 hidden md:block z-10">
+                          <button 
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); addToCart(product, 1); }}
+                            className="w-full bg-white text-black hover:bg-black hover:text-white py-2 text-[9px] font-bold uppercase tracking-wider transition-colors shadow-md"
+                          >
+                            Quick Add
+                          </button>
+                        </div>
+
+                        {/* Favorite button */}
                         <button 
                           type="button"
                           onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
-                          className="absolute top-3 right-3 p-2 bg-black/80 text-zinc-500 hover:text-white hover:border-[#DFD5C6] transition-all z-20 border border-[#1C1C1E] rounded"
+                          className="absolute top-3 right-3 p-2 bg-white/95 text-gray-400 hover:text-red-500 rounded-full border border-gray-100 shadow-sm transition-colors z-20"
                         >
-                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-[#DFD5C6] text-[#DFD5C6]' : 'text-zinc-500'}`} />
+                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-rose-700 text-rose-700' : 'text-gray-400'}`} />
                         </button>
                       </div>
 
-                      <div className="p-5 flex-1 flex flex-col justify-between bg-[#121212] space-y-4 text-left">
+                      {/* Content block */}
+                      <div className="space-y-2 flex-1 flex flex-col justify-between">
                         <div className="space-y-1">
-                          <span className="text-[8px] font-black text-[#DFD5C6] tracking-[0.2em] uppercase block">{getProductCategory(product)}</span>
+                          <span className="text-[8px] font-bold text-gray-400 tracking-wider uppercase block">{getProductCategory(product)}</span>
                           <h4 
                             onClick={() => setSelectedProduct(product)}
-                            className="font-light text-white text-sm hover:text-[#DFD5C6] cursor-pointer font-serif leading-tight line-clamp-2 min-h-[2.5rem]"
+                            className="font-bold text-gray-900 text-xs hover:underline cursor-pointer tracking-normal line-clamp-2 min-h-[2rem]"
                           >
                             {product.name}
                           </h4>
-                          <p className="text-[10px] text-[#DFD5C6] font-serif leading-relaxed line-clamp-2">
-                            {getProductDescription(product) || 'A curated masterpiece designed with fine detailing and high-end materials.'}
+                          <p className="text-[10px] text-gray-400 line-clamp-2 leading-relaxed font-medium">
+                            {getProductDescription(product) || 'Expertly manufactured using finest grade DTC fabrics and materials.'}
                           </p>
                         </div>
 
-                        <div className="pt-4 border-t border-[#1C1C1E] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                          <div className="flex flex-col">
-                            {hasActiveOffer ? (
-                              <div className="space-y-0.5">
-                                <span className="font-bold text-[#DFD5C6] font-serif text-sm block">
-                                  {currencySymbol}{displayPrice.toLocaleString()}
-                                </span>
-                                <span className="text-xs text-zinc-500 font-serif line-through block leading-none">
-                                  {currencySymbol}{originalPrice.toLocaleString()}
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="font-bold text-[#DFD5C6] font-serif text-sm">
-                                {currencySymbol}{displayPrice.toLocaleString()}
+                        <div className="pt-2 border-t border-gray-100 flex flex-col gap-2.5">
+                          <div className="flex items-baseline gap-2">
+                            <span className="font-bold text-gray-900 text-sm">
+                              {currencySymbol}{displayPrice.toLocaleString()}
+                            </span>
+                            {hasActiveOffer && (
+                              <span className="text-xs text-gray-400 line-through">
+                                {currencySymbol}{originalPrice.toLocaleString()}
                               </span>
                             )}
                           </div>
+                          
+                          {/* Mobile cart add button */}
                           <button 
                             type="button"
                             onClick={() => addToCart(product, 1)}
-                            className="w-full sm:w-auto text-center px-5 py-2 bg-[#DFD5C6] text-black hover:bg-white text-[8px] font-black uppercase tracking-[0.2em] transition-all duration-300 rounded-[2px] border border-transparent"
+                            className="w-full md:hidden text-center py-2 bg-black hover:bg-gray-800 text-white text-[9px] font-bold uppercase tracking-wider transition-colors rounded-sm"
                           >
-                            ORDER NOW
+                            Add To Bag
                           </button>
                         </div>
                       </div>
@@ -3139,7 +3144,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
             selectedTemplate === 'admire'
               ? "'Outfit', system-ui, -apple-system, sans-serif"
               : selectedTemplate === 'artisan'
-                ? "'Outfit', system-ui, -apple-system, sans-serif"
+                ? "system-ui, -apple-system, sans-serif"
                 : selectedTemplate === 'luxe'
                   ? "'Plus Jakarta Sans', system-ui, sans-serif"
                   : selectedTemplate === 'retro'
@@ -3154,16 +3159,18 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           font-family: ${
             selectedTemplate === 'admire'
               ? "'Playfair Display', 'Georgia', serif"
-              : selectedTemplate === 'artisan' || selectedTemplate === 'luxe'
-                ? "'Playfair Display', 'Georgia', serif"
-                : selectedTemplate === 'retro'
-                  ? "'Space Grotesk', system-ui, sans-serif"
-                  : selectedTemplate === 'bold'
-                    ? "'Plus Jakarta Sans', -apple-system, sans-serif"
-                    : "system-ui, -apple-system, sans-serif"
+              : selectedTemplate === 'artisan'
+                ? "system-ui, -apple-system, sans-serif"
+                : selectedTemplate === 'luxe'
+                  ? "'Plus Jakarta Sans', system-ui, sans-serif"
+                  : selectedTemplate === 'retro'
+                    ? "'Space Grotesk', system-ui, sans-serif"
+                    : selectedTemplate === 'bold'
+                      ? "'Plus Jakarta Sans', -apple-system, sans-serif"
+                      : "system-ui, -apple-system, sans-serif"
           } !important;
-          font-weight: ${selectedTemplate === 'bold' ? '900' : selectedTemplate === 'retro' ? '800' : selectedTemplate === 'admire' ? '800' : selectedTemplate === 'artisan' ? '700' : selectedTemplate === 'luxe' ? '300' : '700'} !important;
-          letter-spacing: ${selectedTemplate === 'minimal' ? '-0.03em' : selectedTemplate === 'luxe' ? '0.08em' : 'normal'} !important;
+          font-weight: ${selectedTemplate === 'bold' ? '900' : selectedTemplate === 'retro' ? '800' : selectedTemplate === 'admire' ? '800' : selectedTemplate === 'artisan' ? '800' : selectedTemplate === 'luxe' ? '700' : '700'} !important;
+          letter-spacing: ${selectedTemplate === 'minimal' ? '-0.03em' : selectedTemplate === 'luxe' ? '0.04em' : 'normal'} !important;
         }
 
         @keyframes marquee {
@@ -3181,17 +3188,19 @@ export default function StorefrontClient({ store, products }: { store: any, prod
             selectedTemplate === 'retro'
               ? '#F4EFE6'
               : selectedTemplate === 'luxe'
-                ? '#070707'
+                ? '#FFFFFF'
                 : selectedTemplate === 'artisan'
-                  ? '#FAF6F0'
+                  ? '#2874F0'
                   : '#FFFFFF'
           } !important;
           color: ${
             selectedTemplate === 'retro'
               ? '#2B231F'
               : selectedTemplate === 'luxe'
-                ? '#DFD5C6'
-                : '#04113f'
+                ? '#111111'
+                : selectedTemplate === 'artisan'
+                  ? '#FFFFFF'
+                  : '#04113f'
           } !important;
           border-bottom: ${
             selectedTemplate === 'bold'
@@ -3199,9 +3208,9 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               : selectedTemplate === 'retro'
                 ? '2px solid #000000'
                 : selectedTemplate === 'luxe'
-                  ? '1px solid #1c1c1e'
+                  ? '1px solid #F3F4F6'
                   : selectedTemplate === 'artisan'
-                    ? '1px solid #E7E5E4'
+                    ? '1px solid #1976D2'
                     : selectedTemplate === 'admire'
                       ? '1px solid rgba(242, 133, 42, 0.12)'
                       : '1px solid #F3F4F6'
@@ -3215,7 +3224,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               : selectedTemplate === 'retro'
                 ? '#E25B45'
                 : selectedTemplate === 'luxe'
-                  ? '#121212'
+                  ? '#111111'
                   : selectedTemplate === 'artisan'
                     ? '#1C1917'
                     : selectedTemplate === 'admire'
@@ -3223,11 +3232,9 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                       : 'var(--store-primary)'
           } !important;
           color: ${
-            selectedTemplate === 'retro' || selectedTemplate === 'bold'
+            selectedTemplate === 'retro' || selectedTemplate === 'bold' || selectedTemplate === 'luxe'
               ? '#FFFFFF'
-              : selectedTemplate === 'luxe'
-                ? '#DFD5C6'
-                : '#FFFFFF'
+              : '#FFFFFF'
           } !important;
           border-bottom: ${selectedTemplate === 'bold' ? '4px solid #000000' : 'none'} !important;
         }
@@ -3237,9 +3244,9 @@ export default function StorefrontClient({ store, products }: { store: any, prod
             selectedTemplate === 'retro'
               ? '#F4EFE6'
               : selectedTemplate === 'luxe'
-                ? '#070707'
+                ? '#FFFFFF'
                 : selectedTemplate === 'artisan'
-                  ? '#FDFBF7'
+                  ? '#F1F3F6'
                   : selectedTemplate === 'admire'
                     ? '#FAF8F5'
                     : '#FCFCFC'
@@ -3251,9 +3258,9 @@ export default function StorefrontClient({ store, products }: { store: any, prod
             selectedTemplate === 'retro'
               ? '#FFFFFF'
               : selectedTemplate === 'luxe'
-                ? '#121212'
+                ? '#FFFFFF'
                 : selectedTemplate === 'artisan'
-                  ? '#FAF9F6'
+                  ? '#FFFFFF'
                   : '#FFFFFF'
           } !important;
           border: ${
@@ -3262,19 +3269,19 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               : selectedTemplate === 'retro'
                 ? '2px solid #000000'
                 : selectedTemplate === 'luxe'
-                  ? '1px solid #1C1C1E'
+                  ? '1px solid #E5E7EB'
                   : selectedTemplate === 'artisan'
-                    ? '1px solid #E7E5E4'
+                    ? '1px solid #EDEDED'
                     : selectedTemplate === 'admire'
                       ? '1px solid rgba(242, 133, 42, 0.12)'
                       : '1px solid #F3F4F6'
           } !important;
           border-radius: ${
             selectedTemplate === 'artisan'
-              ? '16px'
+              ? '8px'
               : selectedTemplate === 'admire'
                 ? '16px'
-                : selectedTemplate === 'minimal' || selectedTemplate === 'luxe'
+                : selectedTemplate === 'minimal'
                   ? '4px'
                   : '0px'
           } !important;
@@ -3283,7 +3290,9 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               ? '4px 4px 0px 0px #000000'
               : selectedTemplate === 'retro'
                 ? '4px 4px 0px 0px #2B231F'
-                : 'none'
+                : selectedTemplate === 'artisan'
+                  ? '0 1px 4px rgba(0,0,0,0.06)'
+                  : 'none'
           } !important;
           overflow: hidden;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -3292,11 +3301,11 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         .card-theme:hover {
           border-color: ${
             selectedTemplate === 'luxe' 
-              ? '#DFD5C6' 
+              ? '#111111' 
               : selectedTemplate === 'retro' 
                 ? '#2B231F' 
                 : selectedTemplate === 'artisan' 
-                  ? '#1C1917' 
+                  ? '#2874F0' 
                   : 'inherit'
           } !important;
           box-shadow: ${
@@ -3304,14 +3313,18 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               ? '6px 6px 0px 0px #E11D48'
               : selectedTemplate === 'retro'
                 ? '6px 6px 0px 0px #E25B45'
-                : 'none'
+                : selectedTemplate === 'artisan'
+                  ? '0 3px 12px rgba(0,0,0,0.12)'
+                  : 'none'
           } !important;
           transform: ${
-            selectedTemplate === 'artisan' || selectedTemplate === 'luxe'
-              ? 'translateY(-4px)'
-              : selectedTemplate === 'retro'
-                ? 'translate(-2px, -2px)'
-                : 'none'
+            selectedTemplate === 'artisan'
+              ? 'none'
+              : selectedTemplate === 'luxe'
+                ? 'translateY(-2px)'
+                : selectedTemplate === 'retro'
+                  ? 'translate(-2px, -2px)'
+                  : 'none'
           } !important;
         }
 
@@ -3322,19 +3335,17 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               : selectedTemplate === 'retro'
                 ? '#E25B45'
                 : selectedTemplate === 'luxe'
-                  ? '#DFD5C6'
+                  ? '#111111'
                   : selectedTemplate === 'artisan'
-                    ? '#1C1917'
+                    ? '#FB641B'
                     : selectedTemplate === 'admire'
                       ? '#f2852a'
                       : 'var(--store-primary)'
           } !important;
           color: ${
-            selectedTemplate === 'retro' || selectedTemplate === 'bold'
+            selectedTemplate === 'retro' || selectedTemplate === 'bold' || selectedTemplate === 'luxe' || selectedTemplate === 'artisan'
               ? '#FFFFFF'
-              : selectedTemplate === 'luxe'
-                ? '#070707'
-                : '#FFFFFF'
+              : '#FFFFFF'
           } !important;
           font-weight: ${selectedTemplate === 'admire' ? '700' : '950'} !important;
           border: ${
@@ -3344,11 +3355,11 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           } !important;
           border-radius: ${
             selectedTemplate === 'artisan'
-              ? '9999px'
+              ? '4px'
               : selectedTemplate === 'admire'
                 ? '12px'
                 : selectedTemplate === 'minimal' || selectedTemplate === 'luxe'
-                  ? '4px'
+                  ? '2px'
                   : '0px'
           } !important;
           box-shadow: ${
@@ -3359,26 +3370,26 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 : 'none'
           } !important;
           transition: all 0.2s ease !important;
-          letter-spacing: ${selectedTemplate === 'minimal' ? '0.15em' : selectedTemplate === 'luxe' ? '0.25em' : 'normal'} !important;
+          letter-spacing: ${selectedTemplate === 'minimal' ? '0.15em' : selectedTemplate === 'luxe' ? '0.15em' : 'normal'} !important;
         }
 
         .btn-theme-primary:hover {
           background-color: ${
             selectedTemplate === 'luxe' 
-              ? '#FFFFFF' 
+              ? '#333333' 
               : selectedTemplate === 'artisan'
-                ? '#44403C'
+                ? '#e05615'
                 : selectedTemplate === 'retro'
                   ? '#C84C37'
                   : 'var(--store-primary-dark)'
           } !important;
-          color: ${selectedTemplate === 'luxe' ? '#000000' : 'inherit'} !important;
+          color: ${selectedTemplate === 'luxe' ? '#FFFFFF' : 'inherit'} !important;
           transform: ${
             selectedTemplate === 'bold'
               ? 'translate(-1px, -1px)'
               : selectedTemplate === 'retro'
                 ? 'translate(-1px, -1px)'
-                : 'scale-[1.02]'
+                : 'scale-[1.01]'
           } !important;
           box-shadow: ${
             selectedTemplate === 'bold'
