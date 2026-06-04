@@ -46,7 +46,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800 overflow-x-hidden antialiased font-sans">
+    <div className="flex flex-col min-h-screen bg-white text-slate-800 overflow-x-hidden antialiased font-sans">
       {/* Decorative Background Elements */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#fff_70%,transparent_100%)] pointer-events-none" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[350px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
@@ -164,7 +164,7 @@ export default function Home() {
         </section>
 
         {/* Templates Preview Section */}
-        <section id="templates" className="w-full py-16 md:py-24 border-t border-slate-100 bg-slate-50/50">
+        <section id="templates" className="w-full py-16 md:py-24 border-t border-slate-100 bg-white">
           <div className="container px-4 md:px-6 mx-auto max-w-7xl">
             <div className="flex flex-col items-center justify-center space-y-4 text-center mb-16">
               <div className="space-y-2">
@@ -239,7 +239,7 @@ export default function Home() {
               transition={{ duration: 0.2 }}
               className="relative w-full max-w-6xl h-full max-h-[85vh] bg-white border border-blue-100 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
             >
-              <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50/80 backdrop-blur-sm shrink-0">
+              <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-white/80 backdrop-blur-sm shrink-0">
                 <div className="flex items-center gap-2">
                   <span className="w-3 h-3 rounded-full bg-red-500/80" />
                   <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
@@ -263,7 +263,7 @@ export default function Home() {
                   title="Template Preview"
                 />
               </div>
-              <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 shrink-0">
+              <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-white shrink-0">
                 <button 
                   onClick={() => {
                     setPreviewUrl(null);
