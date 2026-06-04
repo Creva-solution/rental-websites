@@ -6,7 +6,7 @@ import {
   Building2, Globe, ShieldAlert, ShieldCheck, Play, Pause, 
   Search, RefreshCw, Copy, Check, Database, HelpCircle,
   Infinity, Calendar, Clock, Zap, Plus, FileText, X, Printer, Send, Upload, Trash2, Smartphone, Layers,
-  ToggleLeft, ToggleRight, MessageSquare
+  ToggleLeft, ToggleRight, MessageSquare, Plug
 } from 'lucide-react';
 
 export default function SuperAdminDashboard() {
@@ -91,11 +91,25 @@ export default function SuperAdminDashboard() {
   // Advanced filters and branding dashboard states
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [isBrandingOpen, setIsBrandingOpen] = useState<boolean>(false);
-  const [activeSettingTab, setActiveSettingTab] = useState<'branding' | 'pricing' | 'officers' | 'agreement' | 'templates' | 'whatsapp'>('branding');
+  const [activeSettingTab, setActiveSettingTab] = useState<'branding' | 'pricing' | 'officers' | 'agreement' | 'templates' | 'whatsapp' | 'integrations'>('branding');
   const [whatsappEnabledGlobal, setWhatsappEnabledGlobal] = useState<boolean>(true);
   const [whatsappPlansEnabled, setWhatsappPlansEnabled] = useState<string[]>(['30', '365', 'lifetime']);
   const [whatsappPlansOrderUpdatesEnabled, setWhatsappPlansOrderUpdatesEnabled] = useState<string[]>(['365', 'lifetime']);
   const [whatsappDefaultWelcome, setWhatsappDefaultWelcome] = useState<string>('Hi, I would like to query about your products!');
+
+  const [globalPaymentGateways, setGlobalPaymentGateways] = useState<Record<string, { enabled: boolean, plans: string[] }>>({
+    razorpay: { enabled: true, plans: ['30', '365', 'lifetime'] },
+    phonepe: { enabled: false, plans: ['365', 'lifetime'] },
+    cashfree: { enabled: false, plans: ['365', 'lifetime'] },
+    payu: { enabled: false, plans: ['365', 'lifetime'] }
+  });
+
+  const [globalIntegrations, setGlobalIntegrations] = useState<Record<string, boolean>>({
+    shiprocket: false,
+    delhivery: false,
+    whatsapp_api: false,
+    ga4: false
+  });
 
   // Custom storefront templates thumbnail state
   const [templateThumbnails, setTemplateThumbnails] = useState<Record<string, string>>({
@@ -245,6 +259,15 @@ export default function SuperAdminDashboard() {
       try { setWhatsappPlansOrderUpdatesEnabled(JSON.parse(savedWaOrderUpdates)); } catch(e) {}
     }
     if (savedWaWelcome) setWhatsappDefaultWelcome(savedWaWelcome);
+
+    const savedGlobalPaymentGateways = localStorage.getItem('saas_global_payment_gateways');
+    const savedGlobalIntegrations = localStorage.getItem('saas_global_integrations');
+    if (savedGlobalPaymentGateways) {
+      try { setGlobalPaymentGateways(JSON.parse(savedGlobalPaymentGateways)); } catch(e) {}
+    }
+    if (savedGlobalIntegrations) {
+      try { setGlobalIntegrations(JSON.parse(savedGlobalIntegrations)); } catch(e) {}
+    }
   }, []);
 
   // Handle officer stamp image upload
@@ -559,6 +582,8 @@ export default function SuperAdminDashboard() {
       localStorage.setItem('saas_wa_plans_enabled', JSON.stringify(whatsappPlansEnabled));
       localStorage.setItem('saas_wa_plans_order_updates_enabled', JSON.stringify(whatsappPlansOrderUpdatesEnabled));
       localStorage.setItem('saas_wa_default_welcome', whatsappDefaultWelcome);
+      localStorage.setItem('saas_global_payment_gateways', JSON.stringify(globalPaymentGateways));
+      localStorage.setItem('saas_global_integrations', JSON.stringify(globalIntegrations));
 
       const settingsData = {
         brandName,
@@ -578,7 +603,9 @@ export default function SuperAdminDashboard() {
         whatsappEnabledGlobal,
         whatsappPlansEnabled,
         whatsappPlansOrderUpdatesEnabled,
-        whatsappDefaultWelcome
+        whatsappDefaultWelcome,
+        globalPaymentGateways,
+        globalIntegrations
       };
 
       // Check if global settings row exists
@@ -860,6 +887,14 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
           if (parsed.whatsappDefaultWelcome) {
             setWhatsappDefaultWelcome(parsed.whatsappDefaultWelcome);
             localStorage.setItem('saas_wa_default_welcome', parsed.whatsappDefaultWelcome);
+          }
+          if (parsed.globalPaymentGateways) {
+            setGlobalPaymentGateways(parsed.globalPaymentGateways);
+            localStorage.setItem('saas_global_payment_gateways', JSON.stringify(parsed.globalPaymentGateways));
+          }
+          if (parsed.globalIntegrations) {
+            setGlobalIntegrations(parsed.globalIntegrations);
+            localStorage.setItem('saas_global_integrations', JSON.stringify(parsed.globalIntegrations));
           }
         } catch (e) {
           console.error("Failed to parse global settings from DB:", e);
@@ -2886,7 +2921,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                   Template Thumbnails
                 </button>
 
-                <button
+                 <button
                   type="button"
                   onClick={() => setActiveSettingTab('whatsapp')}
                   className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-bold transition-all w-full text-left ${
@@ -2897,6 +2932,19 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                 >
                   <MessageSquare className="w-4 h-4" />
                   WhatsApp Integration
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveSettingTab('integrations')}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-bold transition-all w-full text-left ${
+                    activeSettingTab === 'integrations'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-850'
+                  }`}
+                >
+                  <Plug className="w-4 h-4" />
+                  Integrations Config
                 </button>
               </div>
 
@@ -3742,6 +3790,154 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                         </div>
                       </div>
 
+                    </div>
+                  </div>
+                )}
+
+                {/* 7. INTEGRATIONS CONFIG TAB */}
+                {activeSettingTab === 'integrations' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                        <Plug className="w-4 h-4 text-blue-500" />
+                        Integrations & Gateways Config
+                      </h3>
+                      <p className="text-xs text-gray-400 mt-0.5">Globally configure payment gateways and third-party integrations, and assign plan availability.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Section 1: Payment Gateways Control */}
+                      <div className="border border-gray-850 p-5 rounded-xl bg-gray-950/40 space-y-5 text-left">
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider text-blue-400 border-b border-gray-850 pb-2">Payment Gateways</h4>
+                        
+                        <div className="space-y-6">
+                          {[
+                            { id: 'razorpay', name: 'Razorpay Payment Gateway' },
+                            { id: 'phonepe', name: 'PhonePe PG' },
+                            { id: 'cashfree', name: 'Cashfree' },
+                            { id: 'payu', name: 'PayU' }
+                          ].map((gateway) => {
+                            const config = globalPaymentGateways[gateway.id] || { enabled: false, plans: [] };
+                            
+                            return (
+                              <div key={gateway.id} className="space-y-3 pb-4 border-b border-gray-850/60 last:border-b-0 last:pb-0">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <span className="text-xs font-bold text-white">{gateway.name}</span>
+                                    <span className="text-[10px] text-gray-500 block">Globally enable or disable this gateway</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => setGlobalPaymentGateways(prev => ({
+                                      ...prev,
+                                      [gateway.id]: {
+                                        ...config,
+                                        enabled: !config.enabled
+                                      }
+                                    }))}
+                                    className="focus:outline-none transition-all"
+                                  >
+                                    {config.enabled ? (
+                                      <ToggleRight className="w-9 h-9 text-blue-500" strokeWidth={1.5} />
+                                    ) : (
+                                      <ToggleLeft className="w-9 h-9 text-gray-600" strokeWidth={1.5} />
+                                    )}
+                                  </button>
+                                </div>
+
+                                {config.enabled && (
+                                  <div className="bg-gray-900/50 p-3 rounded-lg border border-gray-850 space-y-2">
+                                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">Authorized Subscription Plans</span>
+                                    <div className="flex flex-wrap gap-x-4 gap-y-2">
+                                      {(() => {
+                                        const defaultPlans = [
+                                          { id: '30', name: '1 Month' },
+                                          { id: '365', name: '1 Year' },
+                                          { id: 'lifetime', name: 'Lifetime' }
+                                        ].filter(plan => !disabledDefaultPackages.includes(plan.id));
+
+                                        const customPlans = customPackages.map(pkg => ({
+                                          id: pkg.id,
+                                          name: pkg.name
+                                        }));
+
+                                        const allPlans = [...defaultPlans, ...customPlans];
+
+                                        if (allPlans.length === 0) {
+                                          return <span className="text-[10px] text-gray-500">No subscription plans available</span>;
+                                        }
+
+                                        return allPlans.map(plan => {
+                                          const checked = config.plans.includes(plan.id);
+                                          return (
+                                            <label key={plan.id} className="flex items-center gap-1.5 text-[10px] text-gray-300 font-medium cursor-pointer">
+                                              <input
+                                                type="checkbox"
+                                                checked={checked}
+                                                onChange={() => setGlobalPaymentGateways(prev => {
+                                                  const oldConfig = prev[gateway.id] || { enabled: false, plans: [] };
+                                                  const newPlans = checked 
+                                                    ? oldConfig.plans.filter(p => p !== plan.id)
+                                                    : [...oldConfig.plans, plan.id];
+                                                  return {
+                                                    ...prev,
+                                                    [gateway.id]: { ...oldConfig, plans: newPlans }
+                                                  };
+                                                })}
+                                                className="w-3.5 h-3.5 rounded border-gray-800 text-blue-650 bg-gray-950 focus:ring-blue-500/20 accent-blue-500 cursor-pointer"
+                                              />
+                                              {plan.name}
+                                            </label>
+                                          );
+                                        });
+                                      })()}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Section 2: Integrations Control */}
+                      <div className="border border-gray-850 p-5 rounded-xl bg-gray-950/40 space-y-5 text-left">
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider text-blue-400 border-b border-gray-850 pb-2">Third-Party Integrations</h4>
+                        
+                        <div className="space-y-4">
+                          {[
+                            { id: 'shiprocket', name: 'Shiprocket Logistics', desc: 'Allow store owners to sync courier shipments.' },
+                            { id: 'delhivery', name: 'Delivery Shipping', desc: 'Allow store owners to integrate Delhivery API.' },
+                            { id: 'whatsapp_api', name: 'Creva WhatsApp Bot', desc: 'Allow store owners to automate notification workflows.' },
+                            { id: 'ga4', name: 'Google Analytics 4', desc: 'Allow tracking checkouts and traffic metrics.' }
+                          ].map((integration) => {
+                            const isEnabled = !!globalIntegrations[integration.id];
+                            
+                            return (
+                              <div key={integration.id} className="flex items-center justify-between pb-4 border-b border-gray-850/60 last:border-b-0 last:pb-0">
+                                <div>
+                                  <span className="text-xs font-bold text-white block">{integration.name}</span>
+                                  <span className="text-[10px] text-gray-500 block leading-tight mt-0.5">{integration.desc}</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setGlobalIntegrations(prev => ({
+                                    ...prev,
+                                    [integration.id]: !prev[integration.id]
+                                  }))}
+                                  className="focus:outline-none transition-all shrink-0"
+                                >
+                                  {isEnabled ? (
+                                    <ToggleRight className="w-9 h-9 text-blue-500" strokeWidth={1.5} />
+                                  ) : (
+                                    <ToggleLeft className="w-9 h-9 text-gray-600" strokeWidth={1.5} />
+                                  )}
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
