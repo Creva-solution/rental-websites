@@ -1447,7 +1447,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
               
               {/* Brand Logo / Link */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 md:gap-4">
                 <button 
                   onClick={() => setIsMobileMenuOpen(true)}
                   className="p-2 -ml-2 text-white hover:bg-blue-600 rounded-full transition-all md:hidden"
@@ -1459,7 +1459,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     <img src={store.logo_url} alt={store.store_name} className="h-8 w-auto object-contain brightness-0 invert" />
                   ) : (
                     <>
-                      <span className="font-black text-base sm:text-lg tracking-tight uppercase group-hover:text-yellow-300 transition-colors italic">
+                      <span className="font-black text-sm sm:text-lg tracking-tight uppercase group-hover:text-yellow-300 transition-colors italic truncate max-w-[120px] sm:max-w-none">
                         {store.store_name}
                       </span>
                       <span className="text-[8px] font-semibold text-yellow-300 italic flex items-center gap-0.5">Explore <span className="text-white font-bold uppercase">Plus</span></span>
@@ -1468,7 +1468,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 </Link>
               </div>
 
-              {/* Centered Marketplace Search Input (Desktop) */}
+              {/* Centered Desktop Shopify-like Menu Links or search */}
               <div className="flex-1 max-w-xl mx-4 relative hidden md:block">
                 <input 
                   type="text" 
@@ -1481,7 +1481,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               </div>
 
               {/* Right Side: Marketplace Quick Action Icons */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 md:gap-3">
                 <button onClick={() => setIsWishlistOpen(true)} className="p-2 text-white hover:bg-blue-600 rounded-full transition-all relative">
                   <Heart className="w-5 h-5 text-white stroke-[2]" />
                   {favorites.length > 0 && (
@@ -1619,7 +1619,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between relative gap-4">
               
               {/* Left Side: Brand Logo */}
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2 md:gap-6">
                 <button 
                   onClick={() => setIsMobileMenuOpen(true)}
                   className="p-2 -ml-2 text-gray-700 hover:text-black md:hidden transition-colors"
@@ -1631,7 +1631,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   {store.logo_url ? (
                     <img src={store.logo_url} alt={store.store_name} className="h-6 w-auto object-contain" />
                   ) : (
-                    <span className="font-extrabold text-lg sm:text-xl tracking-wider text-black uppercase font-sans">
+                    <span className="font-extrabold text-sm sm:text-xl tracking-wider text-black uppercase font-sans truncate max-w-[130px] sm:max-w-none">
                       {store.store_name}
                     </span>
                   )}
@@ -1646,7 +1646,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               </nav>
 
               {/* Right Action Icons */}
-              <div className="flex items-center gap-1.5 sm:gap-3 ml-auto z-20">
+              <div className="flex items-center gap-0.5 sm:gap-3 ml-auto z-20">
                 <button onClick={() => setIsSearchOverlayOpen(!isSearchOverlayOpen)} className="p-2 text-gray-600 hover:text-black transition-colors">
                   <Search className="w-4.5 h-4.5 stroke-[2]" />
                 </button>
@@ -1702,7 +1702,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           <header className="header-theme sticky top-0 z-40 bg-white border-b border-orange-100/40 shadow-sm transition-all duration-300">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
               {/* Left: Mobile Menu Trigger & Desktop Navigation */}
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2 md:gap-6">
                 <button 
                   onClick={() => setIsMobileMenuOpen(true)}
                   className="p-2 -ml-2 text-[#04113f] hover:bg-orange-50 rounded-full transition-all md:hidden"
@@ -1722,9 +1722,9 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               <div className="flex-1 md:flex-none flex items-center justify-center">
                 <Link href="/" className="flex items-center gap-2 group">
                   {store.logo_url ? (
-                    <img src={store.logo_url} alt={store.store_name} className="h-11 w-auto object-contain transition-transform group-hover:scale-102" />
+                    <img src={store.logo_url} alt={store.store_name} className="h-9 md:h-11 w-auto object-contain transition-transform group-hover:scale-102" />
                   ) : (
-                    <span className="font-extrabold text-xl md:text-2xl tracking-tight text-[#04113f] group-hover:text-[#f2852a] transition-all font-theme-title">
+                    <span className="font-extrabold text-sm sm:text-base md:text-2xl tracking-tight text-[#04113f] group-hover:text-[#f2852a] transition-all font-theme-title truncate max-w-[120px] sm:max-w-none">
                       🧼 {store.store_name}
                     </span>
                   )}
@@ -1732,7 +1732,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               </div>
 
               {/* Right: Search Bar, Sky-100 Avatar, Emerald-100 Cart Bag */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 md:gap-3">
                 {/* Desktop Integrated Search Bar */}
                 <div className="hidden lg:relative lg:flex items-center">
                   <input 
@@ -1811,12 +1811,12 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 <Menu className="w-6 h-6 stroke-[1.5]" />
               </button>
 
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex items-center justify-center">
+              <div className="md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 z-10 flex items-center justify-center flex-shrink">
                 <Link href="/" className="flex items-center gap-2 group">
                   {store.logo_url ? (
-                    <img src={store.logo_url} alt={store.store_name} className="h-9 w-auto object-contain" />
+                    <img src={store.logo_url} alt={store.store_name} className="h-8 md:h-9 w-auto object-contain" />
                   ) : (
-                    <span className="font-light text-lg md:text-xl tracking-[0.2em] text-gray-950 uppercase font-sans">
+                    <span className="font-light text-xs sm:text-base md:text-xl tracking-wider md:tracking-[0.2em] text-gray-950 uppercase font-sans truncate max-w-[120px] sm:max-w-none">
                       {store.store_name}
                     </span>
                   )}
@@ -1830,7 +1830,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 <button onClick={() => { setIsTrackOpen(true); setIsCartOpen(false); }} className="hover:text-black transition-colors">TRACK ORDER</button>
               </nav>
 
-              <div className="flex items-center gap-1.5 ml-auto z-20">
+              <div className="flex items-center gap-0.5 sm:gap-1.5 ml-auto z-20">
                 <button onClick={() => setIsSearchOverlayOpen(!isSearchOverlayOpen)} className="p-2 text-gray-500 hover:text-black transition-all">
                   <Search className="w-5 h-5 stroke-[1.5]" />
                 </button>
