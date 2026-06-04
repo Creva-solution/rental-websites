@@ -1384,93 +1384,54 @@ export default function StorefrontClient({ store, products }: { store: any, prod
     switch (selectedTemplate) {
       case 'retro':
         return (
-          <>
-            {/* Desktop Fixed Left Sidebar Header Navigation */}
-            <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-80 bg-zinc-950 text-[#10B981] border-r-4 border-black p-6 z-40 overflow-y-auto font-mono">
-              <div className="flex flex-col items-center text-center space-y-4 pb-6 border-b-4 border-[#10B981]/30">
-                <div className="w-16 h-16 rounded bg-[#10B981]/5 border-2 border-[#10B981] flex items-center justify-center text-[#10B981] font-black text-2xl overflow-hidden shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+          <header className="header-theme sticky top-0 z-40 transition-all border-b-2 border-black bg-[#F4EFE6] text-[#2B231F] font-mono shadow-[0_2px_0px_#000]">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+              
+              {/* Left Logo / Desktop Nav */}
+              <div className="flex items-center gap-6">
+                <Link href="/" className="flex items-center gap-2 font-black uppercase text-[10px] sm:text-xs tracking-wider border-2 border-black bg-white px-3 py-1.5 shadow-[2px_2px_0px_#000] hover:bg-stone-50 transition-colors">
                   {store.logo_url ? (
-                    <img src={store.logo_url} alt={store.store_name} className="w-full h-full object-cover" />
+                    <img src={store.logo_url} alt={store.store_name} className="h-5 w-auto object-contain" />
                   ) : (
-                    <span>{store.store_name?.charAt(0).toUpperCase()}</span>
+                    <span>💾 {store.store_name}</span>
                   )}
-                </div>
-                <div>
-                  <h1 className="font-extrabold text-sm uppercase tracking-widest text-[#10B981] drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
-                    {store.store_name}
-                  </h1>
-                  <p className="text-[9px] text-[#10B981]/70 font-bold uppercase mt-1">SYSTEM ONLINE v1.99</p>
-                </div>
+                </Link>
+                
+                {/* Desktop Nav Links */}
+                <nav className="hidden md:flex items-center gap-5 text-[10px] font-bold uppercase tracking-wider text-stone-700">
+                  <button onClick={() => setIsAboutOpen(true)} className="hover:text-black hover:underline">[ ABOUT_US.TXT ]</button>
+                  <a href="#catalog" className="hover:text-black hover:underline">[ CATALOG.EXE ]</a>
+                  <button onClick={() => { setIsTrackOpen(true); setIsCartOpen(false); }} className="hover:text-black hover:underline">[ TRACK_ORDER.SYS ]</button>
+                </nav>
               </div>
 
-              {/* Digital Clock Display */}
-              <div className="mt-4 p-3 bg-zinc-900/60 border border-[#10B981]/30 rounded text-center text-xs">
-                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">LOCAL SYSTEM TIME</div>
-                <div className="font-bold text-[#10B981] mt-1 tracking-widest font-mono">
-                  {new Date().toLocaleTimeString()}
-                </div>
-              </div>
-
-              <div className="mt-4 flex justify-center bg-zinc-900/40 p-2 border border-[#10B981]/20 rounded">
+              {/* Right Action Icons */}
+              <div className="flex items-center gap-2">
+                <button onClick={() => setIsWishlistOpen(true)} className="p-2 border-2 border-black bg-white hover:bg-stone-50 text-black shadow-[2px_2px_0px_#000] relative transition-colors">
+                  <Heart className="w-4 h-4 text-red-500 fill-red-500" />
+                  {favorites.length > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-black text-white text-[8px] font-bold w-4 h-4 flex items-center justify-center border border-white">
+                      {favorites.length}
+                    </span>
+                  )}
+                </button>
+                
+                <button 
+                  onClick={() => setIsCartOpen(true)}
+                  className="p-2 border-2 border-black bg-[#E25B45] text-white hover:bg-[#C84C37] shadow-[2px_2px_0px_#000] relative transition-colors"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  {cartItemCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-black text-white text-[8px] font-bold w-4 h-4 flex items-center justify-center border border-white animate-bounce">
+                      {cartItemCount}
+                    </span>
+                  )}
+                </button>
                 {renderCustomerAuthHeader()}
               </div>
 
-              {/* Sidebar Menu Items */}
-              <nav className="flex flex-col gap-4 mt-8 uppercase text-xs">
-                <button onClick={() => setIsAboutOpen(true)} className="text-left py-2.5 px-3 border border-[#10B981]/20 hover:bg-[#10B981]/10 rounded transition-all text-[#10B981] font-bold">
-                  [ ABOUT_SYSTEM ]
-                </button>
-                <a href="#catalog" className="text-left py-2.5 px-3 border border-[#10B981]/20 hover:bg-[#10B981]/10 rounded transition-all text-[#10B981] font-bold">
-                  [ SHOP_CATALOG.EXE ]
-                </a>
-                <button onClick={() => { setIsTrackOpen(true); setIsCartOpen(false); }} className="text-left py-2.5 px-3 border border-[#10B981]/20 hover:bg-[#10B981]/10 rounded transition-all text-[#10B981] font-bold">
-                  [ ORDER_TRACK.SYS ]
-                </button>
-              </nav>
-
-              {/* Action buttons (Cart / Wishlist) */}
-              <div className="mt-auto space-y-3 pt-6 border-t-2 border-[#10B981]/20">
-                <button 
-                  onClick={() => setIsWishlistOpen(true)} 
-                  className="w-full py-2.5 bg-[#EF4444]/10 hover:bg-[#EF4444]/25 border border-red-500 rounded text-red-500 text-[10px] font-black transition-all flex items-center justify-between px-4"
-                >
-                  <span>WISHLIST.SYS</span>
-                  <span>({favorites.length})</span>
-                </button>
-                <button 
-                  onClick={() => setIsCartOpen(true)} 
-                  className="w-full py-3 bg-[#10B981] hover:bg-[#10B981]/90 active:scale-95 border-2 border-black text-black text-[10px] font-black transition-all flex items-center justify-between px-4 shadow-[3px_3px_0px_rgba(16,185,129,0.3)]"
-                >
-                  <span>RUN CART.EXE</span>
-                  <span>({cartItemCount})</span>
-                </button>
-              </div>
-            </aside>
-
-            <header className="header-theme sticky top-0 z-40 transition-all shadow-sm lg:hidden bg-zinc-950 text-[#10B981] border-b-4 border-black">
-              <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
-                <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-[#10B981] border-2 border-black bg-zinc-900 rounded shadow-[2px_2px_0_0_#000]">
-                  <Menu className="w-5 h-5 stroke-[2.5]" />
-                </button>
-                <span className="font-extrabold text-sm uppercase tracking-tight text-[#10B981] flex items-center gap-2">
-                  {store.logo_url ? (
-                    <img src={store.logo_url} alt={store.store_name} className="h-6 w-auto object-contain" />
-                  ) : (
-                    store.store_name
-                  )}
-                </span>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setIsCartOpen(true)} className="p-2 text-black border-2 border-black bg-[#10B981] rounded shadow-[2px_2px_0_0_#000] relative">
-                    <ShoppingCart className="w-5 h-5" />
-                    {cartItemCount > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full text-[9px] w-4 h-4 flex items-center justify-center font-bold border border-black animate-bounce">{cartItemCount}</span>
-                    )}
-                  </button>
-                  {renderCustomerAuthHeader()}
-                </div>
-              </div>
-            </header>
-          </>
+            </div>
+          </header>
         );
 
       case 'artisan':
@@ -1937,48 +1898,58 @@ export default function StorefrontClient({ store, products }: { store: any, prod
     switch (selectedTemplate) {
       case 'artisan':
         return (
-          <section className="relative px-4 sm:px-6 lg:px-8 py-10 max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center bg-[#FAF6F0] p-6 sm:p-10 border border-[#E4DAC9] rounded-[24px]">
-              {/* Left Side: organic image with rounded corners */}
-              <div className="aspect-[4/3] w-full overflow-hidden rounded-[24px] border border-[#E4DAC9] bg-[#FAF6F0] flex items-center justify-center relative">
+          <section className="relative px-4 sm:px-6 lg:px-8 py-12 max-w-7xl mx-auto font-sans animate-in fade-in duration-300 text-left">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-[#FAF6F0] p-6 sm:p-12 border border-[#E7E5E4] rounded-[24px] shadow-sm relative overflow-hidden">
+              
+              {/* Left Column: Storytelling warm text block (lg: col-span-7) */}
+              <div className="lg:col-span-7 space-y-6 text-[#1C1917] order-2 lg:order-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-stone-200/50 rounded-full border border-stone-300/40 text-[9px] font-bold tracking-[0.2em] text-[#1C1917] uppercase">
+                  🏺 Handmade Studio Curation
+                </div>
+                <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight font-serif text-[#1C1917] leading-tight">
+                  {artisanHeroTitle}
+                </h2>
+                <p className="text-sm leading-relaxed text-stone-600 font-serif italic max-w-xl">
+                  {artisanHeroSubtitle}
+                </p>
+                <div className="pt-4 flex flex-wrap gap-4">
+                  <a 
+                    href="#catalog"
+                    className="inline-block px-8 py-3.5 bg-[#1C1917] hover:bg-[#44403C] text-white text-[9px] font-bold uppercase tracking-[0.2em] rounded-full transition-all duration-300 hover:scale-[1.02] shadow-md shadow-stone-900/10 animate-pulse"
+                  >
+                    {artisanHeroCTA}
+                  </a>
+                  <button 
+                    onClick={() => setIsAboutOpen(true)}
+                    className="inline-block px-8 py-3.5 bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 text-[9px] font-bold uppercase tracking-[0.2em] rounded-full transition-all duration-300 hover:scale-[1.02]"
+                  >
+                    Our Philosophy
+                  </button>
+                </div>
+              </div>
+
+              {/* Right Column: organic image with rounded corners (lg: col-span-5) */}
+              <div className="lg:col-span-5 aspect-[4/3] sm:aspect-square w-full overflow-hidden rounded-[20px] border border-stone-200/60 bg-[#FAF6F0] flex items-center justify-center relative order-1 lg:order-2">
                 {!artisanHeroError ? (
                   <img 
                     src={artisanHeroImage} 
-                    alt="Artisan Craft Studio" 
-                    className="w-full h-full object-cover"
+                    alt="Artisan Craft Studio Curation" 
+                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-103"
                     onError={() => setArtisanHeroError(true)}
                   />
                 ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#FAF6F0] to-[#E4DAC9]/40 flex flex-col items-center justify-center p-6 text-center space-y-4">
-                    <svg className="w-16 h-16 text-[#8B5A2B]/60 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#FAF6F0] to-stone-200/50 flex flex-col items-center justify-center p-6 text-center space-y-4">
+                    <svg className="w-12 h-12 text-stone-400 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v20M17 5v14M7 5v14M12 8a4 4 0 00-4 4v4a4 4 0 008 0v-4a4 4 0 00-4-4z" />
                     </svg>
                     <div>
-                      <span className="text-[9px] tracking-[0.2em] font-black text-[#8B5A2B] uppercase block">THE ARTISAN WHEEL</span>
-                      <span className="text-[10px] text-[#2F1E12]/60 italic font-serif mt-1 block">Est. 2026 • Mud, Water, & Patience</span>
+                      <span className="text-[9px] tracking-[0.2em] font-black text-stone-600 uppercase block">THE ARTISAN STUDY</span>
+                      <span className="text-[10px] text-stone-400 italic font-serif mt-1 block">Est. 2026 • Mud, Water, & Patience</span>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Right Side: storytelling warm block */}
-              <div className="space-y-6 lg:pl-6 text-[#2F1E12]">
-                <span className="text-[10px] tracking-[0.3em] font-black text-[#8B5A2B] uppercase block">SINCE 2026 • THE WAY OF MUD & FIRE</span>
-                <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight font-serif text-[#2F1E12] leading-tight">
-                  {artisanHeroTitle}
-                </h2>
-                <p className="text-sm leading-relaxed text-[#2F1E12]/80 font-serif italic">
-                  {artisanHeroSubtitle}
-                </p>
-                <div className="pt-4">
-                  <a 
-                    href="#catalog"
-                    className="inline-block px-10 py-4 bg-[#8B5A2B] text-white hover:bg-[#6e4620] text-[10px] font-black uppercase tracking-[0.2em] rounded-full transition-all duration-200 shadow-md hover:scale-[1.02]"
-                  >
-                    {artisanHeroCTA} →
-                  </a>
-                </div>
-              </div>
             </div>
           </section>
         );
@@ -2038,35 +2009,36 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
       case 'luxe':
         return (
-          <section className="relative h-[65vh] w-full overflow-hidden bg-black flex items-center justify-center border-b border-zinc-900">
-            {/* Dark elegant overlay and floating gold sparkles */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60 z-10" />
+          <section className="relative h-[70vh] w-full overflow-hidden bg-[#070707] flex items-center justify-center border-b border-zinc-900 animate-in fade-in duration-500 font-sans">
+            {/* Elegant dark gradient overlays */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-transparent to-black/95 z-10" />
+            <div className="absolute inset-0 bg-radial-gradient from-transparent via-[#DFD5C6]/5 to-black/30 z-10 pointer-events-none" />
+            
             {!luxeHeroError ? (
               <img 
                 src={luxeHeroImage} 
-                alt="Luxury Collection" 
-                className="absolute inset-0 w-full h-full object-cover opacity-45 scale-100 transition-transform duration-[10s]"
+                alt="Luxury Collection Curation" 
+                className="absolute inset-0 w-full h-full object-cover opacity-35 scale-100 transition-transform duration-[15s] hover:scale-102"
                 onError={() => setLuxeHeroError(true)}
               />
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-tr from-zinc-950 via-[#121212] to-zinc-900 flex items-center justify-center opacity-70" />
+              <div className="absolute inset-0 bg-gradient-to-br from-zinc-950 to-black opacity-40 z-0" />
             )}
             
-            {/* Elegant luxury text */}
-            <div className="relative z-20 text-center px-4 max-w-3xl mx-auto space-y-6 md:space-y-8 flex flex-col items-center">
-              <span className="inline-block px-5 py-2 border border-[#D4AF37]/40 text-[#D4AF37] text-[9px] font-black uppercase tracking-[0.3em] rounded bg-black/45 backdrop-blur-sm animate-pulse">
-                THE AURELIA CURATION
-              </span>
-              <h2 className="text-4xl sm:text-6xl font-light text-white tracking-[0.1em] uppercase font-serif leading-tight">
+            {/* Luxe typography overlay */}
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-4 max-w-4xl mx-auto space-y-6">
+              <span className="text-[9px] tracking-[0.4em] font-light text-[#DFD5C6] uppercase block mb-1">THE HOUSE OF LUXE • PARIS</span>
+              <h2 className="text-4xl sm:text-6xl font-light text-white tracking-[0.12em] leading-none uppercase font-serif drop-shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
                 {luxeHeroTitle}
               </h2>
-              <p className="text-xs md:text-sm text-zinc-400 font-serif max-w-xl tracking-wider leading-relaxed">
+              <div className="w-16 h-[1px] bg-[#DFD5C6]/50 my-2" />
+              <p className="text-[10px] sm:text-xs md:text-sm text-zinc-400 max-w-xl leading-relaxed tracking-[0.2em] uppercase font-light font-sans">
                 {luxeHeroSubtitle}
               </p>
-              <div className="pt-2">
+              <div className="pt-6">
                 <a 
                   href="#catalog"
-                  className="inline-block px-12 py-4 bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black hover:from-white hover:to-white text-[10px] font-black uppercase tracking-[0.25em] transition-all duration-300 shadow-[0_0_20px_rgba(212,175,55,0.2)] rounded-sm hover:scale-[1.03]"
+                  className="inline-block px-10 py-4 bg-[#DFD5C6] hover:bg-white text-[#070707] text-[9px] font-black uppercase tracking-[0.25em] transition-all duration-300 rounded-[2px] shadow-[0_4px_20px_rgba(223,213,198,0.15)] hover:scale-[1.02]"
                 >
                   {luxeHeroCTA}
                 </a>
@@ -2077,74 +2049,66 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
       case 'retro':
         return (
-          <section className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto font-mono">
-            {/* 90s Staggered computer windows grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+          <section className="px-4 sm:px-6 lg:px-8 py-10 max-w-7xl mx-auto font-mono text-[#2B231F] text-left animate-in fade-in duration-300">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-[#ECE6DA] border-2 border-black p-6 sm:p-10 shadow-[6px_6px_0px_#2B231F] rounded-none">
               
-              {/* Computer Window 1 */}
-              <div className="border-4 border-black bg-zinc-900 text-white rounded overflow-hidden flex flex-col shadow-[6px_6px_0px_#8B5CF6]">
-                {/* OS Title Bar */}
-                <div className="bg-[#8B5CF6] text-black h-8 px-3.5 flex items-center justify-between font-black uppercase tracking-wider text-[10px] border-b-4 border-black">
-                  <span>PROMO_V1.EXE</span>
-                  <div className="flex gap-1.5">
-                    <span className="w-3.5 h-3.5 bg-black text-[#8B5CF6] flex items-center justify-center font-bold text-[8px] border border-black cursor-pointer">_</span>
-                    <span className="w-3.5 h-3.5 bg-black text-[#8B5CF6] flex items-center justify-center font-bold text-[8px] border border-black cursor-pointer">X</span>
-                  </div>
+              {/* Left Column: Polaroid Photo Card (Lg: col-span-5) */}
+              <div className="lg:col-span-5 bg-white border-2 border-black p-4 pb-8 rotate-[-1.5deg] shadow-[4px_4px_0px_#2B231F] group hover:rotate-0 hover:scale-[1.01] transition-all duration-300">
+                <div className="aspect-[4/3] w-full bg-stone-100 overflow-hidden border border-stone-200">
+                  <img 
+                    src={artisanHeroImage} 
+                    alt="Retro Polaroid Shot" 
+                    className="w-full h-full object-cover grayscale-[25%] contrast-[115%]"
+                  />
                 </div>
-                
-                {/* Inner lo-fi CRT screen */}
-                <div className="p-6 space-y-4 flex-1 bg-zinc-950 text-[#10B981] flex flex-col justify-between">
-                  <div className="space-y-3">
-                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">&gt; LOAD DATASET</div>
-                    <h3 className="text-xl sm:text-2xl font-black uppercase tracking-widest text-[#10B981]">
-                      {retroTitle1}
-                    </h3>
-                    <p className="text-[11px] text-zinc-400 leading-relaxed font-mono">
-                      &gt; {retroSubtitle1}
-                    </p>
-                  </div>
-                  <div className="pt-6 border-t border-[#10B981]/20">
-                    <a 
-                      href="#catalog"
-                      className="inline-block bg-[#10B981] text-black border-2 border-black px-6 py-2.5 text-[9px] font-black uppercase tracking-widest shadow-[3px_3px_0px_#8B5CF6] hover:translate-x-[-1.5px] hover:translate-y-[-1.5px] active:translate-x-[2px] active:translate-y-[2px] transition-all"
-                    >
-                      [ {retroCTA1} ]
-                    </a>
-                  </div>
+                <div className="mt-4 text-center">
+                  <span className="font-serif italic text-sm text-stone-600 block tracking-tight">"Snapshots of our daily studio logs. C:2026"</span>
                 </div>
               </div>
 
-              {/* Computer Window 2 */}
-              <div className="border-4 border-black bg-zinc-900 text-white rounded overflow-hidden flex flex-col shadow-[6px_6px_0px_#10B981]">
-                {/* OS Title Bar */}
-                <div className="bg-[#10B981] text-black h-8 px-3.5 flex items-center justify-between font-black uppercase tracking-wider text-[10px] border-b-4 border-black">
-                  <span>WIDGET.SYS</span>
-                  <div className="flex gap-1.5">
-                    <span className="w-3.5 h-3.5 bg-black text-[#10B981] flex items-center justify-center font-bold text-[8px] border border-black cursor-pointer">_</span>
-                    <span className="w-3.5 h-3.5 bg-black text-[#10B981] flex items-center justify-center font-bold text-[8px] border border-black cursor-pointer">X</span>
+              {/* Right Column: Macintosh OS Window (Lg: col-span-7) */}
+              <div className="lg:col-span-7 border-2 border-black bg-white shadow-[4px_4px_0px_#2B231F] overflow-hidden flex flex-col rounded-none">
+                {/* OS Window header bar */}
+                <div className="bg-stone-100 h-8 px-4 flex items-center justify-between border-b-2 border-black font-black uppercase text-[10px] select-none tracking-widest text-[#2B231F]">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-400 border border-black" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 border border-black" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-green-400 border border-black" />
                   </div>
+                  <span>WELCOME.TXT</span>
+                  <div className="w-8 h-1.5 border-y border-stone-400 flex flex-col justify-between" />
                 </div>
                 
-                {/* Lofi CRT display */}
-                <div className="p-6 space-y-4 flex-1 bg-zinc-950 text-[#8B5CF6] flex flex-col justify-between">
-                  <div className="space-y-3">
-                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">&gt; STATUS REPORT</div>
-                    <h3 className="text-xl sm:text-2xl font-black uppercase tracking-widest text-[#8B5CF6]">
-                      {retroTitle2}
-                    </h3>
-                    <p className="text-[11px] text-zinc-400 leading-relaxed font-mono">
-                      &gt; {retroSubtitle2}
-                    </p>
+                {/* OS Window Content */}
+                <div className="p-6 sm:p-8 space-y-4 text-left">
+                  <div className="inline-block bg-[#E25B45]/15 border border-[#E25B45] text-[#E25B45] text-[8px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-none">
+                    System Alert: Nostalgia online
                   </div>
-                  <div className="pt-6 border-t border-[#8B5CF6]/20">
+                  
+                  <h2 className="text-2xl sm:text-4xl font-extrabold uppercase tracking-tight text-stone-900 leading-none">
+                    {retroTitle1}
+                  </h2>
+                  
+                  <p className="text-xs text-stone-600 leading-relaxed font-mono">
+                    {retroSubtitle1}
+                  </p>
+                  
+                  <div className="pt-4 flex flex-wrap gap-3">
+                    <a 
+                      href="#catalog"
+                      className="inline-block bg-[#E25B45] hover:bg-[#C84C37] text-white border-2 border-black px-6 py-2.5 text-[9px] font-black uppercase tracking-widest shadow-[2px_2px_0px_#2B231F] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all"
+                    >
+                      {retroCTA1}
+                    </a>
                     <button 
                       onClick={() => setIsAboutOpen(true)}
-                      className="inline-block bg-[#8B5CF6] text-black border-2 border-black px-6 py-2.5 text-[9px] font-black uppercase tracking-widest shadow-[3px_3px_0px_#10B981] hover:translate-x-[-1.5px] hover:translate-y-[-1.5px] active:translate-x-[2px] active:translate-y-[2px] transition-all"
+                      className="inline-block bg-white hover:bg-stone-50 text-black border-2 border-black px-6 py-2.5 text-[9px] font-black uppercase tracking-widest shadow-[2px_2px_0px_#2B231F] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all"
                     >
-                      [ {retroCTA2} ]
+                      {retroCTA2}
                     </button>
                   </div>
                 </div>
+
               </div>
 
             </div>
@@ -2274,11 +2238,11 @@ export default function StorefrontClient({ store, products }: { store: any, prod
     switch (selectedTemplate) {
       case 'retro':
         return (
-          <section id="catalog" className="px-4 sm:px-6 lg:px-8 py-12 font-mono text-[#10B981]">
-            <div className="border-4 border-black p-4 mb-8 bg-zinc-950 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[4px_4px_0_0_#8B5CF6]">
+          <section id="catalog" className="px-4 sm:px-6 lg:px-8 py-12 font-mono text-[#2B231F] animate-in fade-in duration-300">
+            <div className="border-2 border-black p-4 mb-8 bg-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[4px_4px_0_0_#2B231F] rounded-none">
               <div className="flex items-center gap-2 text-xs font-bold uppercase">
-                <span className="w-2.5 h-2.5 bg-red-600 rounded-full animate-ping"></span>
-                <span>STATUS: RETRO_CATALOG_LOADED.EXE</span>
+                <span className="w-2.5 h-2.5 bg-[#E25B45] rounded-full animate-pulse"></span>
+                <span>STATUS: CATALOG_ONLINE.TXT</span>
               </div>
               
               {/* Category Pills inside Retro */}
@@ -2287,13 +2251,13 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`px-3 py-1.5 border-2 border-black rounded text-[9px] font-bold uppercase tracking-wider ${
+                    className={`px-3 py-1.5 border-2 border-black text-[9px] font-black uppercase tracking-wider transition-all rounded-none ${
                       selectedCategory === cat 
-                        ? 'bg-[#10B981] text-black shadow-[2px_2px_0px_#8B5CF6]'
-                        : 'bg-zinc-900 text-[#10B981] hover:bg-[#10B981]/25'
+                        ? 'bg-[#E25B45] text-white shadow-[2px_2px_0px_#2B231F]'
+                        : 'bg-white text-black hover:bg-stone-50'
                     }`}
                   >
-                    {cat === 'All' ? 'ALL_FILTERS' : `${cat.toUpperCase()}`}
+                    {cat === 'All' ? 'ALL_LINES' : `${cat.toUpperCase()}`}
                   </button>
                 ))}
               </div>
@@ -2301,7 +2265,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
             {/* Product Windows Grid */}
             {processedProducts.length === 0 ? (
-              <div className="text-center py-20 bg-zinc-950 border-4 border-black rounded shadow-[4px_4px_0_0_#EF4444] text-red-500 font-bold uppercase tracking-widest text-xs">
+              <div className="text-center py-20 bg-white border-2 border-black rounded-none shadow-[4px_4px_0_0_#E25B45] text-[#E25B45] font-bold uppercase tracking-widest text-xs">
                 [ ERROR_404: NO PRODUCTS FOUND ]
               </div>
             ) : (
@@ -2342,85 +2306,82 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   } catch (e) {}
 
                   return (
-                    <div key={product.id} className="border-4 border-black bg-zinc-900 rounded overflow-hidden flex flex-col justify-between shadow-[4px_4px_0px_#8B5CF6] hover:shadow-[6px_6px_0px_#10B981] transition-all hover:translate-x-[-1px] hover:translate-y-[-1px]">
+                    <div key={product.id} className="border-2 border-black bg-white rounded-none overflow-hidden flex flex-col justify-between shadow-[4px_4px_0px_#2B231F] hover:shadow-[6px_6px_0px_#E25B45] transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] duration-300">
                       {/* OS Folder Window Header */}
-                      <div className="bg-black text-[#10B981] h-7 px-3 flex items-center justify-between border-b-4 border-black text-[9px] font-black tracking-wider uppercase">
+                      <div className="bg-stone-100 text-[#2B231F] h-7 px-3 flex items-center justify-between border-b-2 border-black text-[9px] font-black tracking-wider uppercase select-none">
                         <span>ITEM_{idx + 1 < 10 ? '0' + (idx + 1) : idx + 1}.SYS</span>
                         <div className="flex gap-1">
-                          <span onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }} className={`w-3.5 h-3.5 border border-black flex items-center justify-center font-bold text-[8px] cursor-pointer ${isLiked ? 'bg-red-500 text-white' : 'bg-zinc-800 text-[#10B981]'}`}>
+                          <button 
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }} 
+                            className={`w-3.5 h-3.5 border border-black flex items-center justify-center font-bold text-[8px] cursor-pointer ${isLiked ? 'bg-red-500 text-white' : 'bg-white text-gray-500 hover:text-red-500'}`}
+                          >
                             ♥
-                          </span>
-                          <span className="w-3.5 h-3.5 bg-[#8B5CF6] text-black flex items-center justify-center font-bold text-[8px] border border-black cursor-pointer">X</span>
+                          </button>
                         </div>
                       </div>
 
                       {/* Image Frame */}
-                      <div className="aspect-square relative w-full bg-black overflow-hidden border-b-4 border-black group cursor-pointer" onClick={() => setSelectedProduct(product)}>
+                      <div className="aspect-square relative w-full bg-stone-50 overflow-hidden border-b-2 border-black group cursor-pointer" onClick={() => setSelectedProduct(product)}>
                         {getProductImage(product) ? (
                           <img 
                             src={getProductImage(product)} 
                             alt={product.name} 
-                            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-all duration-500"
                           />
                         ) : (
-                          <div className="absolute inset-0 flex items-center justify-center text-zinc-600 font-bold text-4xl">?</div>
+                          <div className="absolute inset-0 flex items-center justify-center text-zinc-300 font-bold text-4xl">?</div>
                         )}
                         
                         {/* Neon retro badges */}
                         {hasActiveOffer && (
-                          <span className="absolute top-2 left-2 bg-[#10B981] text-black border-2 border-black font-black uppercase text-[8px] px-2 py-0.5 shadow-[2px_2px_0px_#000] animate-pulse">
-                            PROMO: -{offerPercent}%
+                          <span className="absolute top-2 left-2 bg-[#E25B45] text-white border border-black font-black uppercase text-[7px] px-2 py-0.5 shadow-[1px_1px_0px_#000]">
+                            -{offerPercent}%
                           </span>
                         )}
                         {product.is_new && !hasActiveOffer && (
-                          <span className="absolute top-2 left-2 bg-yellow-300 text-black border-2 border-black font-black uppercase text-[8px] px-2 py-0.5 shadow-[2px_2px_0px_#000]">
-                            HOT!
+                          <span className="absolute top-2 left-2 bg-yellow-300 text-black border border-black font-black uppercase text-[7px] px-2 py-0.5 shadow-[1px_1px_0px_#000]">
+                            NEW
                           </span>
                         )}
                       </div>
 
                       {/* Info Frame */}
-                      <div className="p-4 space-y-2 flex-1 flex flex-col justify-between bg-zinc-950">
+                      <div className="p-4 space-y-2 flex-1 flex flex-col justify-between bg-white text-left">
                         <div className="space-y-1">
-                          <span className="text-[8px] text-[#8B5CF6] font-bold tracking-widest uppercase block">&gt; {getProductCategory(product).toUpperCase()}</span>
+                          <span className="text-[8px] text-stone-400 font-bold tracking-widest uppercase block">&gt; {getProductCategory(product).toUpperCase()}</span>
                           <h4 
                             onClick={() => setSelectedProduct(product)}
-                            className="font-bold text-[#10B981] text-xs hover:underline cursor-pointer uppercase tracking-wider line-clamp-2 min-h-[2rem]"
+                            className="font-black text-[#2B231F] text-xs hover:text-[#E25B45] transition-colors cursor-pointer uppercase tracking-wider line-clamp-2 min-h-[2rem]"
                           >
                             {product.name}
                           </h4>
                         </div>
 
                         <div className="space-y-3">
-                          <div className="flex items-center gap-1 font-bold text-[9px] text-zinc-500">
-                            <span>STABILITY: [100%]</span>
-                          </div>
-
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t border-stone-100">
                             <div className="flex flex-col">
                               {hasActiveOffer ? (
                                 <div className="space-y-0.5">
-                                  <span className="font-extrabold text-[#10B981] text-sm block">
+                                  <span className="font-black text-[#E25B45] text-sm block">
                                     {currencySymbol}{displayPrice.toLocaleString()}
                                   </span>
-                                  <span className="text-[10px] text-zinc-500 line-through block font-bold leading-none">
+                                  <span className="text-[9px] text-stone-400 line-through block font-bold leading-none">
                                     {currencySymbol}{originalPrice.toLocaleString()}
-                                  </span>
-                                  <span className="text-[8px] text-red-500 font-extrabold block uppercase tracking-wider animate-pulse leading-none mt-0.5">
-                                    ⚡ PROMO: {timeLeftText}
                                   </span>
                                 </div>
                               ) : (
-                                <span className="font-extrabold text-white text-sm">
+                                <span className="font-black text-[#2B231F] text-sm">
                                   {currencySymbol}{displayPrice.toLocaleString()}
                                 </span>
                               )}
                             </div>
                             <button 
+                              type="button"
                               onClick={() => addToCart(product, 1)}
-                              className="w-full sm:w-auto text-center px-3 py-1.5 bg-[#10B981] hover:bg-[#8B5CF6] hover:text-black text-black border-2 border-black font-black uppercase text-[8px] shadow-[2px_2px_0px_rgba(16,185,129,0.3)] transition-all"
+                              className="w-full sm:w-auto text-center px-3 py-1.5 bg-[#E25B45] hover:bg-[#C84C37] text-white border-2 border-black font-black uppercase text-[8px] shadow-[2px_2px_0px_rgba(43,35,31,0.2)] transition-colors"
                             >
-                              [ LOAD ]
+                              [ ORDER ]
                             </button>
                           </div>
                         </div>
@@ -2435,11 +2396,11 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
       case 'artisan':
         return (
-          <section id="catalog" className="px-4 sm:px-6 lg:px-8 py-16 max-w-7xl mx-auto text-[#2F1E12]">
+          <section id="catalog" className="px-4 sm:px-6 lg:px-8 py-16 max-w-7xl mx-auto text-[#1C1917] animate-in fade-in duration-300">
             {/* Story highlights above catalog */}
             <div className="mb-14 text-center">
-              <span className="text-[10px] tracking-[0.3em] font-black text-[#8B5A2B] uppercase block mb-3">OUR BRAND DIARIES</span>
-              <h3 className="text-2xl md:text-3xl font-extrabold tracking-tight font-serif text-[#2F1E12]">Visual Stories From The Pottery</h3>
+              <span className="text-[10px] tracking-[0.3em] font-black text-[#1C1917] uppercase block mb-3">OUR BRAND DIARIES</span>
+              <h3 className="text-2xl md:text-3xl font-extrabold tracking-tight font-serif text-[#1C1917]">Visual Stories From The Pottery</h3>
               
               <div className="flex justify-start sm:justify-center items-center gap-6 sm:gap-8 mt-8 overflow-x-auto py-2 px-4 scrollbar-none max-w-full">
                 {[
@@ -2453,7 +2414,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     onClick={() => alert(`🌾 ${story.title}:\n\n${story.desc}`)}
                     className="flex flex-col items-center cursor-pointer group flex-shrink-0"
                   >
-                    <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#E4DAC9] group-hover:border-[#8B5A2B] transition-all p-1 bg-white relative flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-stone-200 group-hover:border-[#1C1917] transition-all p-1 bg-white relative flex items-center justify-center">
                       <img 
                         src={story.img} 
                         alt={story.title} 
@@ -2462,23 +2423,23 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                           e.currentTarget.style.display = 'none';
                           const parent = e.currentTarget.parentElement;
                           if (parent && !parent.querySelector('.fallback-letter')) {
-                            parent.classList.add('bg-gradient-to-br', 'from-[#FAF6F0]', 'to-[#E4DAC9]', 'flex', 'items-center', 'justify-center');
+                            parent.classList.add('bg-gradient-to-br', 'from-[#FAF6F0]', 'to-stone-200/50', 'flex', 'items-center', 'justify-center');
                             const textNode = document.createElement('span');
-                            textNode.className = 'fallback-letter font-serif text-[12px] font-black text-[#8B5A2B]';
+                            textNode.className = 'fallback-letter font-serif text-[12px] font-black text-[#1C1917]';
                             textNode.innerText = story.title.charAt(0);
                             parent.appendChild(textNode);
                           }
                         }}
                       />
                     </div>
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#2F1E12] mt-2.5 group-hover:text-[#8B5A2B] transition-colors">{story.title}</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-stone-500 mt-2.5 group-hover:text-[#1C1917] transition-colors">{story.title}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="border-t border-[#E4DAC9] pt-12 flex flex-col md:flex-row items-center justify-between gap-6 mb-10">
-              <h4 className="text-xl font-bold font-serif text-[#2F1E12] tracking-wide uppercase">{displayCatalogTitle()}</h4>
+            <div className="border-t border-stone-200 pt-12 flex flex-col md:flex-row items-center justify-between gap-6 mb-10 text-left">
+              <h4 className="text-xl font-bold font-serif text-[#1C1917] tracking-wide uppercase">{displayCatalogTitle()}</h4>
               
               <div className="flex flex-wrap gap-2.5 items-center justify-center">
                 {categoriesList.map(cat => (
@@ -2487,8 +2448,8 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     onClick={() => setSelectedCategory(cat)}
                     className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${
                       selectedCategory === cat 
-                        ? 'bg-[#8B5A2B] border-[#8B5A2B] text-white'
-                        : 'bg-white border-[#E4DAC9] text-[#2F1E12]/70 hover:border-[#8B5A2B]'
+                        ? 'bg-[#1C1917] border-[#1C1917] text-white shadow-sm'
+                        : 'bg-white border-stone-200 text-stone-500 hover:border-[#1C1917] hover:text-[#1C1917]'
                     }`}
                   >
                     {cat === 'All' ? 'ALL ESSENTIALS' : cat.toUpperCase()}
@@ -2499,7 +2460,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
             {/* Asymmetrical Staggered Pottery Grid */}
             {processedProducts.length === 0 ? (
-              <div className="text-center py-20 bg-[#FDFBF7] border border-dashed border-[#E4DAC9] rounded-[24px] text-gray-500 font-serif italic text-sm">
+              <div className="text-center py-20 bg-[#FAF9F6] border border-dashed border-stone-200 rounded-[16px] text-stone-400 font-serif italic text-sm">
                 No organic goods in this category. Check back soon.
               </div>
             ) : (
@@ -2545,76 +2506,75 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   return (
                     <div 
                       key={product.id} 
-                      className={`card-theme flex flex-col bg-[#FDFBF7] border border-[#E4DAC9] rounded-[24px] overflow-hidden group shadow-sm transition-all duration-300 hover:shadow-md ${isStaggered ? 'md:translate-y-8' : ''}`}
+                      className={`card-theme flex flex-col bg-[#FAF9F6] border border-stone-200 rounded-[16px] overflow-hidden group shadow-sm transition-all duration-300 hover:shadow-md ${isStaggered ? 'md:translate-y-8' : ''}`}
                     >
-                      <div className="relative aspect-[4/5] bg-gray-50 overflow-hidden cursor-pointer" onClick={() => setSelectedProduct(product)}>
+                      <div className="relative aspect-[4/5] bg-stone-100 overflow-hidden cursor-pointer" onClick={() => setSelectedProduct(product)}>
                         {getProductImage(product) ? (
                           <img 
                             src={getProductImage(product)} 
                             alt={product.name} 
-                            className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105"
+                            className="w-full h-full object-cover transition-all duration-700 group-hover:scale-103"
                           />
                         ) : (
-                          <div className="absolute inset-0 flex items-center justify-center font-bold text-[#E4DAC9] text-3xl">P</div>
+                          <div className="absolute inset-0 flex items-center justify-center font-bold text-stone-200 text-3xl">P</div>
                         )}
                         
                         {/* Organic Badge */}
                         {hasActiveOffer ? (
-                          <span className="absolute top-3 left-3 bg-[#8B5A2B] text-[#FAF6F0] border border-[#E4DAC9] text-[7.5px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-full">
-                            🏺 SAVE {offerPercent}% NOW
+                          <span className="absolute top-3 left-3 bg-[#1C1917] text-[#FAF6F0] text-[7px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-full">
+                            🏺 SAVE {offerPercent}%
                           </span>
                         ) : (
-                          <span className="absolute top-3 left-3 bg-[#FAF6F0] text-[#8B5A2B] border border-[#E4DAC9] text-[7.5px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-full">
-                            🌱 100% ORGANIC STONEWARE
+                          <span className="absolute top-3 left-3 bg-white text-stone-600 border border-stone-200 text-[7px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-full">
+                            🌱 100% ORGANIC
                           </span>
                         )}
 
                         {/* Heart Button */}
                         <button 
+                          type="button"
                           onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
-                          className="absolute top-3 right-3 p-2.5 rounded-full bg-[#FAF6F0]/95 text-zinc-500 hover:text-red-500 transition-colors z-20 border border-[#E4DAC9]"
+                          className="absolute top-3 right-3 p-2.5 rounded-full bg-white/95 text-stone-400 hover:text-red-500 transition-colors z-20 border border-stone-200 shadow-sm"
                         >
                           <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-rose-700 text-rose-700' : 'text-gray-400'}`} />
                         </button>
                       </div>
 
-                      <div className="p-5 flex-1 flex flex-col justify-between bg-[#FDFBF7] space-y-4">
+                      <div className="p-5 flex-1 flex flex-col justify-between bg-[#FAF9F6] space-y-4 text-left">
                         <div className="space-y-1">
-                          <span className="text-[8px] font-bold text-[#8B5A2B] tracking-[0.25em] uppercase block">{getProductCategory(product)}</span>
+                          <span className="text-[8px] font-bold text-stone-400 tracking-[0.25em] uppercase block font-sans">{getProductCategory(product)}</span>
                           <h4 
                             onClick={() => setSelectedProduct(product)}
-                            className="font-bold text-[#2F1E12] text-sm hover:underline cursor-pointer font-serif leading-tight line-clamp-2 min-h-[2.5rem]"
+                            className="font-bold text-[#1C1917] text-sm hover:underline cursor-pointer font-serif leading-tight line-clamp-2 min-h-[2.5rem]"
                           >
                             {product.name}
                           </h4>
-                          <p className="text-[10px] text-zinc-400 font-serif italic mt-0.5 line-clamp-2 leading-relaxed">
+                          <p className="text-[10px] text-stone-400 font-serif italic mt-0.5 line-clamp-2 leading-relaxed">
                             {getProductDescription(product) || 'A tactile, functional stoneware perfect for organic home accents.'}
                           </p>
                         </div>
 
-                        <div className="pt-2 border-t border-[#E4DAC9]/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="pt-3 border-t border-stone-200/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                           <div className="flex flex-col">
                             {hasActiveOffer ? (
                               <div className="space-y-0.5">
-                                <span className="font-bold text-[#8B5A2B] font-serif text-base block">
+                                <span className="font-bold text-[#1C1917] font-serif text-base block">
                                   {currencySymbol}{displayPrice.toLocaleString()}
                                 </span>
-                                <span className="text-xs text-zinc-400 font-serif line-through block leading-none">
+                                <span className="text-xs text-stone-400 font-serif line-through block leading-none">
                                   {currencySymbol}{originalPrice.toLocaleString()}
-                                </span>
-                                <span className="text-[9px] text-[#8B5A2B] font-serif italic block mt-0.5">
-                                  * Ends in {timeLeftText}
                                 </span>
                               </div>
                             ) : (
-                              <span className="font-bold text-[#8B5A2B] font-serif text-base">
+                              <span className="font-bold text-[#1C1917] font-serif text-base">
                                 {currencySymbol}{displayPrice.toLocaleString()}
                               </span>
                             )}
                           </div>
                           <button 
+                            type="button"
                             onClick={() => addToCart(product, 1)}
-                            className="w-full sm:w-auto text-center px-5 py-2 bg-[#8B5A2B] hover:bg-[#6e4620] text-white text-[9px] font-black uppercase tracking-[0.15em] rounded-full transition-colors"
+                            className="w-full sm:w-auto text-center px-5 py-2.5 bg-[#1C1917] hover:bg-[#44403C] text-white text-[9px] font-black uppercase tracking-[0.15em] rounded-full transition-colors shadow-sm"
                           >
                             Add To Cart
                           </button>
@@ -2821,10 +2781,10 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
       case 'luxe':
         return (
-          <section id="catalog" className="bg-[#0A0A0A] px-4 sm:px-6 lg:px-8 py-16 text-white max-w-7xl mx-auto">
+          <section id="catalog" className="bg-[#070707] px-4 sm:px-6 lg:px-8 py-16 text-white max-w-7xl mx-auto animate-in fade-in duration-300">
             {/* Curated Masterpieces Horizontal Carousel Slider */}
             <div className="mb-20">
-              <span className="text-[9px] tracking-[0.3em] font-black text-[#D4AF37] uppercase block mb-3 text-center">CURATED SHOWCASE</span>
+              <span className="text-[9px] tracking-[0.3em] font-black text-[#DFD5C6] uppercase block mb-3 text-center">CURATED SHOWCASE</span>
               <h3 className="text-2xl md:text-3xl font-light tracking-[0.15em] uppercase text-white font-serif text-center mb-10">House Masterpieces</h3>
               
               <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-none snap-x snap-mandatory">
@@ -2832,16 +2792,16 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   <div 
                     key={prod.id || i}
                     onClick={() => setSelectedProduct(prod)}
-                    className="w-[85vw] sm:w-[500px] flex-shrink-0 snap-start bg-[#0E0E0E] border border-zinc-900 rounded-[4px] overflow-hidden grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 items-center cursor-pointer hover:border-[#D4AF37] transition-all group"
+                    className="w-[85vw] sm:w-[500px] flex-shrink-0 snap-start bg-[#121212] border border-[#1C1C1E] rounded-[4px] overflow-hidden grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 items-center cursor-pointer hover:border-[#DFD5C6] transition-all group"
                   >
                     <div className="aspect-[4/5] bg-black overflow-hidden rounded-[2px]">
                       <img src={getProductImage(prod)} alt={prod.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     </div>
-                    <div className="p-4 space-y-4">
-                      <span className="text-[8px] font-black text-[#D4AF37] tracking-[0.25em] uppercase block">EXCLUSIVE NO.0{i+1}</span>
+                    <div className="p-4 space-y-4 text-left">
+                      <span className="text-[8px] font-black text-[#DFD5C6] tracking-[0.25em] uppercase block">EXCLUSIVE NO.0{i+1}</span>
                       <h4 className="text-sm font-light text-white uppercase tracking-wider font-serif leading-tight">{prod.name}</h4>
-                      <p className="text-[10px] text-[#D4AF37] font-serif leading-relaxed line-clamp-3">{prod.description || 'A timeless addition crafted for fine aesthetic appreciation.'}</p>
-                      <div className="text-[#D4AF37] font-serif text-sm font-bold pt-2">{currencySymbol}{Number(prod.price).toLocaleString()}</div>
+                      <p className="text-[10px] text-[#DFD5C6] font-serif leading-relaxed line-clamp-3">{prod.description || 'A timeless addition crafted for fine aesthetic appreciation.'}</p>
+                      <div className="text-[#DFD5C6] font-serif text-sm font-bold pt-2">{currencySymbol}{Number(prod.price).toLocaleString()}</div>
                     </div>
                   </div>
                 ))}
@@ -2849,7 +2809,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
             </div>
 
             {/* Main Luxury Catalog Grid */}
-            <div className="border-t border-zinc-900 pt-16 flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
+            <div className="border-t border-zinc-900 pt-16 flex flex-col md:flex-row items-center justify-between gap-6 mb-12 text-left">
               <h4 className="text-lg font-light tracking-[0.2em] uppercase text-white font-serif">{displayCatalogTitle()}</h4>
               
               <div className="flex flex-wrap gap-2 justify-center">
@@ -2859,8 +2819,8 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     onClick={() => setSelectedCategory(cat)}
                     className={`px-4 py-1.5 border rounded-none text-[8px] font-black tracking-[0.2em] uppercase transition-all ${
                       selectedCategory === cat 
-                        ? 'bg-[#D4AF37] border-[#D4AF37] text-black shadow-[0_0_10px_rgba(212,175,55,0.3)]'
-                        : 'bg-transparent border-zinc-800 text-zinc-500 hover:border-[#D4AF37] hover:text-[#D4AF37]'
+                        ? 'bg-[#DFD5C6] border-[#DFD5C6] text-black shadow-[0_0_10px_rgba(223,213,198,0.3)]'
+                        : 'bg-transparent border-zinc-800 text-zinc-500 hover:border-[#DFD5C6] hover:text-[#DFD5C6]'
                     }`}
                   >
                     {cat === 'All' ? 'ALL HOUSE LINES' : cat.toUpperCase()}
@@ -2870,7 +2830,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
             </div>
 
             {processedProducts.length === 0 ? (
-              <div className="text-center py-20 bg-[#0E0E0E] border border-zinc-900 rounded-[4px] text-zinc-500 font-serif text-xs uppercase tracking-[0.15em]">
+              <div className="text-center py-20 bg-[#121212] border border-[#1C1C1E] rounded-[4px] text-zinc-500 font-serif text-xs uppercase tracking-[0.15em]">
                 Curations Empty. Under Preparation.
               </div>
             ) : (
@@ -2911,7 +2871,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   } catch (e) {}
 
                   return (
-                    <div key={product.id} className="bg-[#0E0E0E] border border-zinc-900 rounded-[4px] overflow-hidden flex flex-col justify-between group hover:border-[#D4AF37] transition-all duration-300 shadow-md">
+                    <div key={product.id} className="bg-[#121212] border border-[#1C1C1E] rounded-[4px] overflow-hidden flex flex-col justify-between group hover:border-[#DFD5C6] transition-all duration-300 shadow-md">
                       <div className="relative aspect-square bg-black overflow-hidden cursor-pointer" onClick={() => setSelectedProduct(product)}>
                         {getProductImage(product) ? (
                           <img 
@@ -2924,60 +2884,59 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                         )}
                         
                         {hasActiveOffer ? (
-                          <span className="absolute top-3 left-3 bg-black border border-[#D4AF37] text-[#D4AF37] text-[7px] font-black uppercase tracking-[0.25em] px-2.5 py-1 shadow-[0_2px_10px_rgba(212,175,55,0.2)]">
+                          <span className="absolute top-3 left-3 bg-black border border-[#DFD5C6] text-[#DFD5C6] text-[7px] font-black uppercase tracking-[0.25em] px-2.5 py-1 shadow-[0_2px_10px_rgba(223,213,198,0.2)]">
                             EXCLUSIVE: -{offerPercent}%
                           </span>
                         ) : (
-                          <span className="absolute top-3 left-3 bg-[#0A0A0A] border border-[#D4AF37]/50 text-[#D4AF37] text-[7px] font-black uppercase tracking-[0.25em] px-2.5 py-1">
+                          <span className="absolute top-3 left-3 bg-[#070707] border border-[#DFD5C6]/30 text-[#DFD5C6] text-[7px] font-black uppercase tracking-[0.25em] px-2.5 py-1">
                             AURELIA CLASSIC
                           </span>
                         )}
 
                         <button 
+                          type="button"
                           onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
-                          className="absolute top-3 right-3 p-2 bg-black/80 text-zinc-500 hover:text-white hover:border-[#D4AF37] transition-all z-20 border border-zinc-900 rounded"
+                          className="absolute top-3 right-3 p-2 bg-black/80 text-zinc-500 hover:text-white hover:border-[#DFD5C6] transition-all z-20 border border-[#1C1C1E] rounded"
                         >
-                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-[#D4AF37] text-[#D4AF37]' : 'text-zinc-500'}`} />
+                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-[#DFD5C6] text-[#DFD5C6]' : 'text-zinc-500'}`} />
                         </button>
                       </div>
 
-                      <div className="p-5 flex-1 flex flex-col justify-between bg-[#0E0E0E] space-y-4">
+                      <div className="p-5 flex-1 flex flex-col justify-between bg-[#121212] space-y-4 text-left">
                         <div className="space-y-1">
-                          <span className="text-[8px] font-black text-[#D4AF37] tracking-[0.2em] uppercase block">{getProductCategory(product)}</span>
+                          <span className="text-[8px] font-black text-[#DFD5C6] tracking-[0.2em] uppercase block">{getProductCategory(product)}</span>
                           <h4 
                             onClick={() => setSelectedProduct(product)}
-                            className="font-light text-white text-sm hover:text-[#D4AF37] cursor-pointer font-serif leading-tight line-clamp-2 min-h-[2.5rem]"
+                            className="font-light text-white text-sm hover:text-[#DFD5C6] cursor-pointer font-serif leading-tight line-clamp-2 min-h-[2.5rem]"
                           >
                             {product.name}
                           </h4>
-                          <p className="text-[10px] text-[#D4AF37] font-serif leading-relaxed line-clamp-2">
+                          <p className="text-[10px] text-[#DFD5C6] font-serif leading-relaxed line-clamp-2">
                             {getProductDescription(product) || 'A curated masterpiece designed with fine detailing and high-end materials.'}
                           </p>
                         </div>
 
-                        <div className="pt-4 border-t border-zinc-900 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="pt-4 border-t border-[#1C1C1E] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                           <div className="flex flex-col">
                             {hasActiveOffer ? (
                               <div className="space-y-0.5">
-                                <span className="font-bold text-[#D4AF37] font-serif text-sm block">
+                                <span className="font-bold text-[#DFD5C6] font-serif text-sm block">
                                   {currencySymbol}{displayPrice.toLocaleString()}
                                 </span>
                                 <span className="text-xs text-zinc-500 font-serif line-through block leading-none">
                                   {currencySymbol}{originalPrice.toLocaleString()}
                                 </span>
-                                <span className="text-[8px] text-[#D4AF37] font-serif uppercase tracking-widest block mt-0.5 opacity-90">
-                                  👑 FLASH CURATION ({timeLeftText})
-                                </span>
                               </div>
                             ) : (
-                              <span className="font-bold text-[#D4AF37] font-serif text-sm">
+                              <span className="font-bold text-[#DFD5C6] font-serif text-sm">
                                 {currencySymbol}{displayPrice.toLocaleString()}
                               </span>
                             )}
                           </div>
                           <button 
+                            type="button"
                             onClick={() => addToCart(product, 1)}
-                            className="w-full sm:w-auto text-center px-5 py-2 bg-[#D4AF37] text-black hover:bg-white text-[8px] font-black uppercase tracking-[0.2em] transition-all duration-300 rounded-[2px] border border-transparent"
+                            className="w-full sm:w-auto text-center px-5 py-2 bg-[#DFD5C6] text-black hover:bg-white text-[8px] font-black uppercase tracking-[0.2em] transition-all duration-300 rounded-[2px] border border-transparent"
                           >
                             ORDER NOW
                           </button>
@@ -3179,13 +3138,15 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           font-family: ${
             selectedTemplate === 'admire'
               ? "'Outfit', system-ui, -apple-system, sans-serif"
-              : selectedTemplate === 'artisan' || selectedTemplate === 'luxe'
-                ? "'Georgia', Cambria, 'Times New Roman', Times, serif"
-                : selectedTemplate === 'retro'
-                  ? "'Space Grotesk', 'Plus Jakarta Sans', monospace, sans-serif"
-                  : selectedTemplate === 'bold'
-                    ? "'Plus Jakarta Sans', -apple-system, sans-serif"
-                    : "system-ui, -apple-system, sans-serif"
+              : selectedTemplate === 'artisan'
+                ? "'Outfit', system-ui, -apple-system, sans-serif"
+                : selectedTemplate === 'luxe'
+                  ? "'Plus Jakarta Sans', system-ui, sans-serif"
+                  : selectedTemplate === 'retro'
+                    ? "'Space Grotesk', system-ui, sans-serif"
+                    : selectedTemplate === 'bold'
+                      ? "'Plus Jakarta Sans', -apple-system, sans-serif"
+                      : "system-ui, -apple-system, sans-serif"
           } !important;
         }
         
@@ -3194,15 +3155,15 @@ export default function StorefrontClient({ store, products }: { store: any, prod
             selectedTemplate === 'admire'
               ? "'Playfair Display', 'Georgia', serif"
               : selectedTemplate === 'artisan' || selectedTemplate === 'luxe'
-                ? "'Georgia', Cambria, 'Times New Roman', Times, serif"
+                ? "'Playfair Display', 'Georgia', serif"
                 : selectedTemplate === 'retro'
-                  ? "'Space Grotesk', 'Plus Jakarta Sans', monospace, sans-serif"
+                  ? "'Space Grotesk', system-ui, sans-serif"
                   : selectedTemplate === 'bold'
                     ? "'Plus Jakarta Sans', -apple-system, sans-serif"
                     : "system-ui, -apple-system, sans-serif"
           } !important;
-          font-weight: ${selectedTemplate === 'bold' ? '900' : selectedTemplate === 'retro' ? '850' : selectedTemplate === 'admire' ? '800' : selectedTemplate === 'artisan' ? '800' : selectedTemplate === 'luxe' ? '400' : '700'} !important;
-          letter-spacing: ${selectedTemplate === 'minimal' ? '-0.03em' : selectedTemplate === 'luxe' ? '0.02em' : 'normal'} !important;
+          font-weight: ${selectedTemplate === 'bold' ? '900' : selectedTemplate === 'retro' ? '800' : selectedTemplate === 'admire' ? '800' : selectedTemplate === 'artisan' ? '700' : selectedTemplate === 'luxe' ? '300' : '700'} !important;
+          letter-spacing: ${selectedTemplate === 'minimal' ? '-0.03em' : selectedTemplate === 'luxe' ? '0.08em' : 'normal'} !important;
         }
 
         @keyframes marquee {
@@ -3218,29 +3179,29 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         .header-theme {
           background-color: ${
             selectedTemplate === 'retro'
-              ? '#09090b'
+              ? '#F4EFE6'
               : selectedTemplate === 'luxe'
-                ? '#0A0A0A'
+                ? '#070707'
                 : selectedTemplate === 'artisan'
                   ? '#FAF6F0'
                   : '#FFFFFF'
           } !important;
           color: ${
             selectedTemplate === 'retro'
-              ? '#10B981'
+              ? '#2B231F'
               : selectedTemplate === 'luxe'
-                ? '#FFFFFF'
+                ? '#DFD5C6'
                 : '#04113f'
           } !important;
           border-bottom: ${
             selectedTemplate === 'bold'
               ? '4px solid #000000'
               : selectedTemplate === 'retro'
-                ? '4px solid #000000'
+                ? '2px solid #000000'
                 : selectedTemplate === 'luxe'
-                  ? '1px solid #1f2937'
+                  ? '1px solid #1c1c1e'
                   : selectedTemplate === 'artisan'
-                    ? '1px solid #E4DAC9'
+                    ? '1px solid #E7E5E4'
                     : selectedTemplate === 'admire'
                       ? '1px solid rgba(242, 133, 42, 0.12)'
                       : '1px solid #F3F4F6'
@@ -3252,11 +3213,11 @@ export default function StorefrontClient({ store, products }: { store: any, prod
             selectedTemplate === 'bold'
               ? '#000000'
               : selectedTemplate === 'retro'
-                ? '#8B5CF6'
+                ? '#E25B45'
                 : selectedTemplate === 'luxe'
-                  ? '#111111'
+                  ? '#121212'
                   : selectedTemplate === 'artisan'
-                    ? '#8B5A2B'
+                    ? '#1C1917'
                     : selectedTemplate === 'admire'
                       ? '#f2852a'
                       : 'var(--store-primary)'
@@ -3265,7 +3226,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
             selectedTemplate === 'retro' || selectedTemplate === 'bold'
               ? '#FFFFFF'
               : selectedTemplate === 'luxe'
-                ? '#D4AF37'
+                ? '#DFD5C6'
                 : '#FFFFFF'
           } !important;
           border-bottom: ${selectedTemplate === 'bold' ? '4px solid #000000' : 'none'} !important;
@@ -3274,11 +3235,11 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         .bg-theme-main {
           background-color: ${
             selectedTemplate === 'retro'
-              ? '#09090b'
+              ? '#F4EFE6'
               : selectedTemplate === 'luxe'
-                ? '#0A0A0A'
+                ? '#070707'
                 : selectedTemplate === 'artisan'
-                  ? '#FAF6F0'
+                  ? '#FDFBF7'
                   : selectedTemplate === 'admire'
                     ? '#FAF8F5'
                     : '#FCFCFC'
@@ -3288,29 +3249,29 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         .card-theme {
           background-color: ${
             selectedTemplate === 'retro'
-              ? '#09090b'
+              ? '#FFFFFF'
               : selectedTemplate === 'luxe'
-                ? '#0E0E0E'
+                ? '#121212'
                 : selectedTemplate === 'artisan'
-                  ? '#FDFBF7'
+                  ? '#FAF9F6'
                   : '#FFFFFF'
           } !important;
           border: ${
             selectedTemplate === 'bold'
               ? '4px solid #000000'
               : selectedTemplate === 'retro'
-                ? '4px solid #000000'
+                ? '2px solid #000000'
                 : selectedTemplate === 'luxe'
-                  ? '1px solid #1c1c1e'
+                  ? '1px solid #1C1C1E'
                   : selectedTemplate === 'artisan'
-                    ? '1px solid #E4DAC9'
+                    ? '1px solid #E7E5E4'
                     : selectedTemplate === 'admire'
                       ? '1px solid rgba(242, 133, 42, 0.12)'
                       : '1px solid #F3F4F6'
           } !important;
           border-radius: ${
             selectedTemplate === 'artisan'
-              ? '24px'
+              ? '16px'
               : selectedTemplate === 'admire'
                 ? '16px'
                 : selectedTemplate === 'minimal' || selectedTemplate === 'luxe'
@@ -3321,23 +3282,36 @@ export default function StorefrontClient({ store, products }: { store: any, prod
             selectedTemplate === 'bold'
               ? '4px 4px 0px 0px #000000'
               : selectedTemplate === 'retro'
-                ? '4px 4px 0px 0px #8B5CF6'
+                ? '4px 4px 0px 0px #2B231F'
                 : 'none'
           } !important;
           overflow: hidden;
-          transition: all 0.3s ease;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .card-theme:hover {
-          border-color: ${selectedTemplate === 'luxe' ? '#D4AF37' : selectedTemplate === 'retro' ? '#10B981' : selectedTemplate === 'admire' ? '#f2852a' : 'inherit'} !important;
+          border-color: ${
+            selectedTemplate === 'luxe' 
+              ? '#DFD5C6' 
+              : selectedTemplate === 'retro' 
+                ? '#2B231F' 
+                : selectedTemplate === 'artisan' 
+                  ? '#1C1917' 
+                  : 'inherit'
+          } !important;
           box-shadow: ${
             selectedTemplate === 'bold'
               ? '6px 6px 0px 0px #E11D48'
               : selectedTemplate === 'retro'
-                ? '6px 6px 0px 0px #10B981'
-                : selectedTemplate === 'admire'
-                  ? '0 10px 25px -5px rgba(242, 133, 42, 0.2), 0 8px 10px -6px rgba(242, 133, 42, 0.2)'
-                  : 'none'
+                ? '6px 6px 0px 0px #E25B45'
+                : 'none'
+          } !important;
+          transform: ${
+            selectedTemplate === 'artisan' || selectedTemplate === 'luxe'
+              ? 'translateY(-4px)'
+              : selectedTemplate === 'retro'
+                ? 'translate(-2px, -2px)'
+                : 'none'
           } !important;
         }
 
@@ -3346,21 +3320,23 @@ export default function StorefrontClient({ store, products }: { store: any, prod
             selectedTemplate === 'bold'
               ? '#000000'
               : selectedTemplate === 'retro'
-                ? '#10B981'
+                ? '#E25B45'
                 : selectedTemplate === 'luxe'
-                  ? '#D4AF37'
+                  ? '#DFD5C6'
                   : selectedTemplate === 'artisan'
-                    ? '#8B5A2B'
+                    ? '#1C1917'
                     : selectedTemplate === 'admire'
                       ? '#f2852a'
                       : 'var(--store-primary)'
           } !important;
           color: ${
-            selectedTemplate === 'retro' || selectedTemplate === 'luxe' || selectedTemplate === 'bold'
-              ? '#000000'
-              : '#FFFFFF'
+            selectedTemplate === 'retro' || selectedTemplate === 'bold'
+              ? '#FFFFFF'
+              : selectedTemplate === 'luxe'
+                ? '#070707'
+                : '#FFFFFF'
           } !important;
-          font-weight: ${selectedTemplate === 'admire' ? '700' : '900'} !important;
+          font-weight: ${selectedTemplate === 'admire' ? '700' : '950'} !important;
           border: ${
             selectedTemplate === 'bold' || selectedTemplate === 'retro'
               ? '2px solid #000000'
@@ -3372,35 +3348,43 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               : selectedTemplate === 'admire'
                 ? '12px'
                 : selectedTemplate === 'minimal' || selectedTemplate === 'luxe'
-                  ? '2px'
+                  ? '4px'
                   : '0px'
           } !important;
           box-shadow: ${
             selectedTemplate === 'bold'
               ? '3px 3px 0px 0px #000000'
               : selectedTemplate === 'retro'
-                ? '3px 3px 0px 0px #8B5CF6'
+                ? '3px 3px 0px 0px #2B231F'
                 : 'none'
           } !important;
           transition: all 0.2s ease !important;
-          letter-spacing: ${selectedTemplate === 'minimal' ? '0.15em' : selectedTemplate === 'luxe' ? '0.2em' : 'normal'} !important;
+          letter-spacing: ${selectedTemplate === 'minimal' ? '0.15em' : selectedTemplate === 'luxe' ? '0.25em' : 'normal'} !important;
         }
 
         .btn-theme-primary:hover {
-          background-color: ${selectedTemplate === 'luxe' ? '#FFFFFF' : selectedTemplate === 'admire' ? '#04113f' : 'var(--store-primary-dark)'} !important;
+          background-color: ${
+            selectedTemplate === 'luxe' 
+              ? '#FFFFFF' 
+              : selectedTemplate === 'artisan'
+                ? '#44403C'
+                : selectedTemplate === 'retro'
+                  ? '#C84C37'
+                  : 'var(--store-primary-dark)'
+          } !important;
           color: ${selectedTemplate === 'luxe' ? '#000000' : 'inherit'} !important;
           transform: ${
             selectedTemplate === 'bold'
               ? 'translate(-1px, -1px)'
               : selectedTemplate === 'retro'
-                ? 'translate(-1.5px, -1.5px)'
+                ? 'translate(-1px, -1px)'
                 : 'scale-[1.02]'
           } !important;
           box-shadow: ${
             selectedTemplate === 'bold'
               ? '5px 5px 0px 0px #000000'
               : selectedTemplate === 'retro'
-                ? '5.5px 5.5px 0px 0px #000000'
+                ? '4px 4px 0px 0px #2B231F'
                 : 'none'
           } !important;
         }
@@ -3410,12 +3394,12 @@ export default function StorefrontClient({ store, products }: { store: any, prod
             selectedTemplate === 'bold'
               ? 'translate(2px, 2px)'
               : selectedTemplate === 'retro'
-                ? 'translate(3px, 3px)'
+                ? 'translate(2.5px, 2.5px)'
                 : 'scale-[0.98]'
           } !important;
           box-shadow: ${
             selectedTemplate === 'bold' || selectedTemplate === 'retro'
-              ? '2px 2px 0px 0px #000000'
+              ? '1px 1px 0px 0px #000000'
               : 'none'
           } !important;
         }
@@ -3496,11 +3480,11 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       {/* Dynamic Announcement Bar */}
       {renderAnnouncementBar()}
 
-      <div className={selectedTemplate === 'retro' ? 'flex flex-col lg:flex-row min-h-screen relative w-full' : ''}>
+      <div>
         {/* Dynamic Sticky Header Navigation */}
         {renderHeader()}
 
-        <div className={`flex-1 flex flex-col ${selectedTemplate === 'retro' ? 'lg:pl-80' : ''}`}>
+        <div className="flex-1 flex flex-col animate-in fade-in duration-300">
           {/* Dynamic Hero Banner */}
           {renderHero()}
 
