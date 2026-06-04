@@ -83,7 +83,7 @@ class OrderController extends Controller
 
         $id = 'order_' . Str::uuid()->toString();
 
-        DB::table('orders')->insert([
+        $insertData = [
             'id' => $id,
             'store_id' => $request->input('store_id'),
             'customer_name' => $request->input('customer_name'),
@@ -94,7 +94,22 @@ class OrderController extends Controller
             'status' => $request->input('status', 'pending'),
             'created_at' => now(),
             'updated_at' => now()
-        ]);
+        ];
+
+        if ($request->has('payment_method')) {
+            $insertData['payment_method'] = $request->input('payment_method');
+        }
+        if ($request->has('payment_status')) {
+            $insertData['payment_status'] = $request->input('payment_status');
+        }
+        if ($request->has('tracking_number')) {
+            $insertData['tracking_number'] = $request->input('tracking_number');
+        }
+        if ($request->has('delivery_date')) {
+            $insertData['delivery_date'] = $request->input('delivery_date');
+        }
+
+        DB::table('orders')->insert($insertData);
 
         // Insert order items if present
         if ($request->has('items') && is_array($request->input('items'))) {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Globe, Save, Upload, Building, Phone, Mail, Palette, Check, X, ShieldAlert, ShieldCheck, Smartphone, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Loader2, Globe, Save, Upload, Building, Phone, Mail, Palette, Check, X, ShieldAlert, ShieldCheck, Smartphone, ToggleLeft, ToggleRight, CreditCard, Coins } from 'lucide-react';
 
 export default function SettingsPage() {
   const [store, setStore] = useState<any>(null);
@@ -28,6 +28,8 @@ export default function SettingsPage() {
     whatsapp_number: '',
     whatsapp_enabled: true,
     whatsapp_welcome: '',
+    cod_enabled: true,
+    online_payment_enabled: true,
   });
 
   const [verifyingDomain, setVerifyingDomain] = useState(false);
@@ -84,6 +86,8 @@ export default function SettingsPage() {
       let waNum = '';
       let waEnabled = true;
       let waWelcome = '';
+      let codEnabled = true;
+      let onlinePaymentEnabled = true;
 
       try {
         if (storeData.description && storeData.description.startsWith('{')) {
@@ -97,6 +101,8 @@ export default function SettingsPage() {
           waNum = parsed.whatsappNumber || '';
           waEnabled = parsed.whatsappEnabled !== undefined ? parsed.whatsappEnabled : true;
           waWelcome = parsed.whatsappWelcomeMessage || '';
+          codEnabled = parsed.codEnabled !== undefined ? parsed.codEnabled : true;
+          onlinePaymentEnabled = parsed.onlinePaymentEnabled !== undefined ? parsed.onlinePaymentEnabled : true;
         }
       } catch (e) {
         console.error("Failed to parse description JSON:", e);
@@ -119,6 +125,8 @@ export default function SettingsPage() {
         whatsapp_number: waNum,
         whatsapp_enabled: waEnabled,
         whatsapp_welcome: waWelcome,
+        cod_enabled: codEnabled,
+        online_payment_enabled: onlinePaymentEnabled,
       });
 
       if (storeData.custom_domain) {
@@ -292,6 +300,8 @@ export default function SettingsPage() {
           whatsappNumber: formData.whatsapp_number,
           whatsappEnabled: formData.whatsapp_enabled,
           whatsappWelcomeMessage: formData.whatsapp_welcome,
+          codEnabled: formData.cod_enabled,
+          onlinePaymentEnabled: formData.online_payment_enabled,
         };
         finalDescription = JSON.stringify(merged);
         
@@ -658,6 +668,60 @@ export default function SettingsPage() {
             </div>
           );
         })()}
+
+        {/* Checkout Payment Methods */}
+        <div className="p-6 border-b border-border space-y-6">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-primary" /> Checkout Payment Methods
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Enable or disable checkout payment methods offered to your storefront customers.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Cash on Delivery (COD) toggle */}
+            <div className="flex items-center justify-between p-4 bg-muted/10 rounded-lg border border-border">
+              <div className="space-y-1 text-left">
+                <span className="text-sm font-semibold flex items-center gap-2 text-foreground">
+                  <Coins className="w-4 h-4 text-primary" /> Cash on Delivery (COD)
+                </span>
+                <p className="text-xs text-muted-foreground">Allow customers to choose COD and pay in cash upon receiving their order.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormData({...formData, cod_enabled: !formData.cod_enabled})}
+                className="focus:outline-none transition-all"
+              >
+                {formData.cod_enabled ? (
+                  <ToggleRight className="w-9 h-9 text-primary" strokeWidth={1.5} />
+                ) : (
+                  <ToggleLeft className="w-9 h-9 text-muted-foreground" strokeWidth={1.5} />
+                )}
+              </button>
+            </div>
+
+            {/* Online Payment toggle */}
+            <div className="flex items-center justify-between p-4 bg-muted/10 rounded-lg border border-border">
+              <div className="space-y-1 text-left">
+                <span className="text-sm font-semibold flex items-center gap-2 text-foreground">
+                  <CreditCard className="w-4 h-4 text-primary" /> Online Payment
+                </span>
+                <p className="text-xs text-muted-foreground">Allow customers to choose online payment (Credit/Debit Card, Net Banking, UPI).</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormData({...formData, online_payment_enabled: !formData.online_payment_enabled})}
+                className="focus:outline-none transition-all"
+              >
+                {formData.online_payment_enabled ? (
+                  <ToggleRight className="w-9 h-9 text-primary" strokeWidth={1.5} />
+                ) : (
+                  <ToggleLeft className="w-9 h-9 text-muted-foreground" strokeWidth={1.5} />
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
 
         {/* Domain Settings */}
         <div className="p-6 space-y-6 bg-muted/10">

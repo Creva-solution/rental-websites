@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { 
   ShoppingCart, Menu, Search, X, Loader2, User, ChevronLeft, ChevronRight, 
   Truck, Shield, RefreshCw, ArrowRight, Heart, Star, Check, Eye, ArrowUpDown, 
-  Sparkles, Package, ShoppingBag, EyeOff, Calendar, Clock, Instagram, Facebook, Twitter, Youtube, Linkedin, MessageCircle
+  Sparkles, Package, ShoppingBag, EyeOff, Calendar, Clock, Instagram, Facebook, Twitter, Youtube, Linkedin, MessageCircle,
+  CreditCard, Coins
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -249,6 +250,8 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   let socialLinks = { instagram: '', facebook: '', twitter: '', youtube: '', linkedin: '' };
   let flashAd: any = null;
   let selectedTemplate: 'minimal' | 'artisan' | 'bold' | 'luxe' | 'retro' | 'admire' = 'minimal';
+  let codEnabled = true;
+  let onlinePaymentEnabled = true;
   let benefits = {
     enabled: true,
     items: [
@@ -303,6 +306,12 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           enabled: data.benefits.enabled !== false,
           items: data.benefits.items || benefits.items
         };
+      }
+      if (data.codEnabled !== undefined) {
+        codEnabled = data.codEnabled;
+      }
+      if (data.onlinePaymentEnabled !== undefined) {
+        onlinePaymentEnabled = data.onlinePaymentEnabled;
       }
 
       // Extract competitor features
@@ -601,7 +610,17 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
+  const [customerPaymentMethod, setCustomerPaymentMethod] = useState<'cod' | 'online' | ''>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Initialize default customer payment method based on active settings
+  useEffect(() => {
+    if (!codEnabled && onlinePaymentEnabled) {
+      setCustomerPaymentMethod('online');
+    } else {
+      setCustomerPaymentMethod('cod');
+    }
+  }, [codEnabled, onlinePaymentEnabled]);
 
   // Order Tracking State
   const [isTrackOpen, setIsTrackOpen] = useState(false);
@@ -841,7 +860,9 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         customer_phone: customerPhone,
         shipping_address: customerAddress,
         total_amount: finalTotalAmount,
-        status: 'pending'
+        status: 'pending',
+        payment_method: customerPaymentMethod === 'cod' ? 'Cash on Delivery (COD)' : 'Online Payment',
+        payment_status: 'unpaid'
       }]).select().single();
       
       if (error) throw error;
@@ -864,7 +885,11 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       message += `*Customer Details:*\n`;
       message += `Name: ${customerName}\n`;
       message += `Phone: ${customerPhone}\n`;
-      message += `Address: ${customerAddress}\n\n`;
+      message += `Address: ${customerAddress}\n`;
+      if (customerPaymentMethod) {
+        message += `Payment Method: ${customerPaymentMethod === 'cod' ? 'Cash on Delivery (COD)' : 'Online Payment'}\n`;
+      }
+      message += `\n`;
       message += `*Order Summary:*\n`;
       
       cart.forEach(item => {
@@ -3208,6 +3233,67 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                       <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Shipping Address *</label>
                       <textarea required value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} className="w-full p-3 border border-gray-200 outline-none text-xs focus:border-purple-600 transition-colors min-h-[90px]" placeholder="Enter home address..." />
                     </div>
+
+                    {/* Payment Method Selector */}
+                    {(codEnabled || onlinePaymentEnabled) && (
+                      <div className="pt-2">
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Payment Method *</label>
+                        <div className="flex flex-col gap-2">
+                          {codEnabled && (
+                            <button
+                              type="button"
+                              onClick={() => setCustomerPaymentMethod('cod')}
+                              className={`p-3 border text-left flex items-center justify-between transition-all rounded-lg ${
+                                customerPaymentMethod === 'cod'
+                                  ? 'border-purple-600 bg-purple-50/10'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <div className="p-1.5 bg-purple-50 rounded-md">
+                                  <Coins className="w-4 h-4 text-purple-600" />
+                                </div>
+                                <div>
+                                  <span className="text-xs font-bold text-gray-900 block">Cash on Delivery (COD)</span>
+                                  <span className="text-[9.5px] text-gray-400 block mt-0.5">Pay with cash upon delivery</span>
+                                </div>
+                              </div>
+                              <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                                customerPaymentMethod === 'cod' ? 'border-purple-600 bg-purple-600' : 'border-gray-300'
+                              }`}>
+                                {customerPaymentMethod === 'cod' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                              </div>
+                            </button>
+                          )}
+                          {onlinePaymentEnabled && (
+                            <button
+                              type="button"
+                              onClick={() => setCustomerPaymentMethod('online')}
+                              className={`p-3 border text-left flex items-center justify-between transition-all rounded-lg ${
+                                customerPaymentMethod === 'online'
+                                  ? 'border-purple-600 bg-purple-50/10'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <div className="p-1.5 bg-purple-50 rounded-md">
+                                  <CreditCard className="w-4 h-4 text-purple-600" />
+                                </div>
+                                <div>
+                                  <span className="text-xs font-bold text-gray-900 block">Online Payment</span>
+                                  <span className="text-[9.5px] text-gray-400 block mt-0.5">Pay online via Card, Netbanking or UPI</span>
+                                </div>
+                              </div>
+                              <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                                customerPaymentMethod === 'online' ? 'border-purple-600 bg-purple-600' : 'border-gray-300'
+                              }`}>
+                                {customerPaymentMethod === 'online' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                              </div>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </form>
               ) : (
