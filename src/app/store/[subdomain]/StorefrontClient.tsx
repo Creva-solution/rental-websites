@@ -633,6 +633,126 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   const [regPassword, setRegPassword] = useState('');
   const [regError, setRegError] = useState('');
 
+  // Helper to parse combined address back into parts
+  const parseAddress = (combined: string) => {
+    if (!combined) return { doorNo: '', street: '', city: '', pincode: '' };
+    if (!combined.includes(',')) {
+      return { doorNo: '', street: combined, city: '', pincode: '' };
+    }
+    const parts = combined.split(',').map(p => p.trim());
+    const doorNo = parts[0] || '';
+    const street = parts[1] || '';
+    const lastPart = parts[parts.length - 1] || '';
+    let city = '', pincode = '';
+    if (lastPart.includes('-')) {
+      const cityPin = lastPart.split('-').map(p => p.trim());
+      city = cityPin[0] || '';
+      pincode = cityPin[1] || '';
+    } else {
+      city = lastPart;
+    }
+    let finalStreet = street;
+    if (parts.length > 3) {
+      finalStreet = parts.slice(1, parts.length - 1).join(', ');
+    }
+    return { doorNo, street: finalStreet, city, pincode };
+  };
+
+  // Checkout Address Split States
+  const [checkoutDoorNo, setCheckoutDoorNo] = useState('');
+  const [checkoutStreet, setCheckoutStreet] = useState('');
+  const [checkoutCity, setCheckoutCity] = useState('');
+  const [checkoutPincode, setCheckoutPincode] = useState('');
+
+  // Register Address Split States
+  const [regDoorNo, setRegDoorNo] = useState('');
+  const [regStreet, setRegStreet] = useState('');
+  const [regCity, setRegCity] = useState('');
+  const [regPincode, setRegPincode] = useState('');
+
+  // Profile Address Split States
+  const [profileDoorNo, setProfileDoorNo] = useState('');
+  const [profileStreet, setProfileStreet] = useState('');
+  const [profileCity, setProfileCity] = useState('');
+  const [profilePincode, setProfilePincode] = useState('');
+
+  // Synchronize customerAddress string for Checkout
+  useEffect(() => {
+    const parts = [];
+    if (checkoutDoorNo.trim()) parts.push(checkoutDoorNo.trim());
+    if (checkoutStreet.trim()) parts.push(checkoutStreet.trim());
+    
+    let lastPart = '';
+    if (checkoutCity.trim()) lastPart += checkoutCity.trim();
+    if (checkoutPincode.trim()) {
+      lastPart += (lastPart ? ' - ' : '') + checkoutPincode.trim();
+    }
+    if (lastPart) parts.push(lastPart);
+    
+    setCustomerAddress(parts.join(', '));
+  }, [checkoutDoorNo, checkoutStreet, checkoutCity, checkoutPincode]);
+
+  // Synchronize regAddress string for Registration
+  useEffect(() => {
+    const parts = [];
+    if (regDoorNo.trim()) parts.push(regDoorNo.trim());
+    if (regStreet.trim()) parts.push(regStreet.trim());
+    
+    let lastPart = '';
+    if (regCity.trim()) lastPart += regCity.trim();
+    if (regPincode.trim()) {
+      lastPart += (lastPart ? ' - ' : '') + regPincode.trim();
+    }
+    if (lastPart) parts.push(lastPart);
+    
+    setRegAddress(parts.join(', '));
+  }, [regDoorNo, regStreet, regCity, regPincode]);
+
+  // Load split profile address states when profile modal is opened
+  useEffect(() => {
+    if (isProfileModalOpen && customerUser) {
+      const parsedAddr = parseAddress(customerUser.address || '');
+      setProfileDoorNo(parsedAddr.doorNo);
+      setProfileStreet(parsedAddr.street);
+      setProfileCity(parsedAddr.city);
+      setProfilePincode(parsedAddr.pincode);
+    }
+  }, [isProfileModalOpen, customerUser]);
+
+  // Profile Address Change Sync Handler
+  const handleProfileAddressChange = (door: string, street: string, city: string, pin: string) => {
+    const parts = [];
+    if (door.trim()) parts.push(door.trim());
+    if (street.trim()) parts.push(street.trim());
+    
+    let lastPart = '';
+    if (city.trim()) lastPart += city.trim();
+    if (pin.trim()) {
+      lastPart += (lastPart ? ' - ' : '') + pin.trim();
+    }
+    if (lastPart) parts.push(lastPart);
+    
+    const combined = parts.join(', ');
+    
+    if (customerUser) {
+      const updated = { ...customerUser, address: combined };
+      setCustomerUser(updated);
+      localStorage.setItem(`creva_customer_user_${store.id}`, JSON.stringify(updated));
+      setCustomerAddress(combined);
+      
+      try {
+        const accountsKey = `creva_customer_accounts_${store.id}`;
+        const accounts = JSON.parse(localStorage.getItem(accountsKey) || '[]');
+        const updatedAccounts = accounts.map((acc: any) => 
+          (acc.email === customerUser.email || acc.phone === customerUser.phone) 
+            ? { ...acc, address: combined } 
+            : acc
+        );
+        localStorage.setItem(accountsKey, JSON.stringify(updatedAccounts));
+      } catch (err) {}
+    }
+  };
+
   // Load customer session on page mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -645,6 +765,11 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           setCustomerName(parsed.name || '');
           setCustomerPhone(parsed.phone || '');
           setCustomerAddress(parsed.address || '');
+          const parsedAddr = parseAddress(parsed.address || '');
+          setCheckoutDoorNo(parsedAddr.doorNo);
+          setCheckoutStreet(parsedAddr.street);
+          setCheckoutCity(parsedAddr.city);
+          setCheckoutPincode(parsedAddr.pincode);
         } catch (e) {
           console.error("Failed to parse saved customer session", e);
         }
@@ -678,6 +803,11 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         setCustomerName(found.name);
         setCustomerPhone(found.phone);
         setCustomerAddress(found.address);
+        const parsedAddr = parseAddress(found.address || '');
+        setCheckoutDoorNo(parsedAddr.doorNo);
+        setCheckoutStreet(parsedAddr.street);
+        setCheckoutCity(parsedAddr.city);
+        setCheckoutPincode(parsedAddr.pincode);
 
         setIsLoginModalOpen(false);
         setLoginEmailOrPhone('');
@@ -727,12 +857,21 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       setCustomerName(regName);
       setCustomerPhone(regPhone);
       setCustomerAddress(regAddress);
+      const parsedAddr = parseAddress(regAddress || '');
+      setCheckoutDoorNo(parsedAddr.doorNo);
+      setCheckoutStreet(parsedAddr.street);
+      setCheckoutCity(parsedAddr.city);
+      setCheckoutPincode(parsedAddr.pincode);
 
       setIsLoginModalOpen(false);
       setRegName('');
       setRegPhone('');
       setRegEmail('');
       setRegAddress('');
+      setRegDoorNo('');
+      setRegStreet('');
+      setRegCity('');
+      setRegPincode('');
       setRegPassword('');
     } catch (err) {
       console.error(err);
@@ -1123,6 +1262,10 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 setCustomerName('');
                 setCustomerPhone('');
                 setCustomerAddress('');
+                setCheckoutDoorNo('');
+                setCheckoutStreet('');
+                setCheckoutCity('');
+                setCheckoutPincode('');
               }}
               className="w-full px-4 py-2 text-left text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-bold"
             >
@@ -1219,7 +1362,6 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-[#10B981] border-2 border-black bg-zinc-900 rounded shadow-[2px_2px_0_0_#000]">
                   <Menu className="w-5 h-5 stroke-[2.5]" />
                 </button>
-                {renderCustomerAuthHeader()}
                 <span className="font-extrabold text-sm uppercase tracking-tight text-[#10B981] flex items-center gap-2">
                   {store.logo_url ? (
                     <img src={store.logo_url} alt={store.store_name} className="h-6 w-auto object-contain" />
@@ -1227,12 +1369,15 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     store.store_name
                   )}
                 </span>
-                <button onClick={() => setIsCartOpen(true)} className="p-2 text-black border-2 border-black bg-[#10B981] rounded shadow-[2px_2px_0_0_#000] relative">
-                  <ShoppingCart className="w-5 h-5" />
-                  {cartItemCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full text-[9px] w-4 h-4 flex items-center justify-center font-bold border border-black animate-bounce">{cartItemCount}</span>
-                  )}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setIsCartOpen(true)} className="p-2 text-black border-2 border-black bg-[#10B981] rounded shadow-[2px_2px_0_0_#000] relative">
+                    <ShoppingCart className="w-5 h-5" />
+                    {cartItemCount > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full text-[9px] w-4 h-4 flex items-center justify-center font-bold border border-black animate-bounce">{cartItemCount}</span>
+                    )}
+                  </button>
+                  {renderCustomerAuthHeader()}
+                </div>
               </div>
             </header>
           </>
@@ -1271,7 +1416,6 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 <button onClick={() => setIsSearchOverlayOpen(!isSearchOverlayOpen)} className="p-2 text-[#2F1E12] hover:bg-[#F3EFE7] rounded-full transition-all">
                   <Search className="w-5 h-5 stroke-[1.5]" />
                 </button>
-                {renderCustomerAuthHeader()}
                 <button onClick={() => setIsWishlistOpen(true)} className="p-2 text-[#2F1E12] hover:bg-[#F3EFE7] rounded-full transition-all relative">
                   <Heart className="w-5 h-5 text-rose-700/80 stroke-[1.5]" />
                   {favorites.length > 0 && (
@@ -1288,6 +1432,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     </span>
                   )}
                 </button>
+                {renderCustomerAuthHeader()}
               </div>
             </div>
 
@@ -1351,7 +1496,6 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 <button onClick={() => setIsSearchOverlayOpen(!isSearchOverlayOpen)} className="p-2 border-2 border-black bg-white hover:bg-gray-100 rounded text-black transition-all">
                   <Search className="w-5 h-5 stroke-[2.5]" />
                 </button>
-                {renderCustomerAuthHeader()}
                 <button onClick={() => setIsWishlistOpen(true)} className="p-2 border-2 border-black bg-white hover:bg-gray-100 rounded text-black transition-all relative">
                   <Heart className="w-5 h-5 text-red-500 fill-red-500" />
                   {favorites.length > 0 && (
@@ -1371,6 +1515,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     </span>
                   )}
                 </button>
+                {renderCustomerAuthHeader()}
               </div>
             </div>
 
@@ -1438,7 +1583,6 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 <button onClick={() => setIsSearchOverlayOpen(!isSearchOverlayOpen)} className="p-2 text-zinc-400 hover:text-white transition-colors">
                   <Search className="w-5 h-5 stroke-[1.2]" />
                 </button>
-                {renderCustomerAuthHeader()}
                 <button onClick={() => setIsWishlistOpen(true)} className="p-2 text-zinc-400 hover:text-white transition-colors relative">
                   <Heart className="w-5 h-5 stroke-[1.2] text-[#D4AF37]/80" />
                   {favorites.length > 0 && (
@@ -1455,6 +1599,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     </span>
                   )}
                 </button>
+                {renderCustomerAuthHeader()}
               </div>
             </div>
 
@@ -1619,7 +1764,6 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 <button onClick={() => setIsSearchOverlayOpen(!isSearchOverlayOpen)} className="p-2 text-gray-500 hover:text-black transition-all">
                   <Search className="w-5 h-5 stroke-[1.5]" />
                 </button>
-                {renderCustomerAuthHeader()}
                 <button onClick={() => setIsWishlistOpen(true)} className="p-2 text-gray-500 hover:text-black transition-all relative">
                   <Heart className="w-5 h-5 stroke-[1.5] text-rose-500" />
                   {favorites.length > 0 && (
@@ -1636,6 +1780,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     </span>
                   )}
                 </button>
+                {renderCustomerAuthHeader()}
               </div>
             </div>
 
@@ -3436,9 +3581,25 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                       <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">WhatsApp Mobile *</label>
                       <input required type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="w-full h-10 px-3 border border-gray-200 outline-none text-xs focus:border-purple-600 transition-colors" placeholder="9876543210" />
                     </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Shipping Address *</label>
-                      <textarea required value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} className="w-full p-3 border border-gray-200 outline-none text-xs focus:border-purple-600 transition-colors min-h-[90px]" placeholder="Enter home address..." />
+                    <div className="space-y-3 pt-1">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1">Door / Flat No *</label>
+                          <input required type="text" value={checkoutDoorNo} onChange={e => setCheckoutDoorNo(e.target.value)} className="w-full h-10 px-3 border border-gray-200 outline-none text-xs focus:border-purple-600 transition-colors" placeholder="e.g. G1, Block A" />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1">Pincode *</label>
+                          <input required type="tel" value={checkoutPincode} onChange={e => setCheckoutPincode(e.target.value.replace(/\D/g, ''))} className="w-full h-10 px-3 border border-gray-200 outline-none text-xs focus:border-purple-600 transition-colors" placeholder="600028" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1">Street / Area / Locality *</label>
+                        <input required type="text" value={checkoutStreet} onChange={e => setCheckoutStreet(e.target.value)} className="w-full h-10 px-3 border border-gray-200 outline-none text-xs focus:border-purple-600 transition-colors" placeholder="e.g. 12th Main Road, Gandhi Nagar" />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1">City *</label>
+                        <input required type="text" value={checkoutCity} onChange={e => setCheckoutCity(e.target.value)} className="w-full h-10 px-3 border border-gray-200 outline-none text-xs focus:border-purple-600 transition-colors" placeholder="e.g. Chennai" />
+                      </div>
                     </div>
 
                     {/* Payment Method Selector */}
@@ -4239,21 +4400,74 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                       </label>
                     </div>
 
-                    <div className="relative border-b-2 border-gray-200 focus-within:border-[#2874f0] transition-colors">
-                      <input 
-                        type="text" 
-                        value={regAddress}
-                        onChange={(e) => setRegAddress(e.target.value)}
-                        className="w-full h-9 px-0 bg-transparent outline-none text-sm text-gray-900 placeholder-transparent peer"
-                        placeholder="Default Shipping Address"
-                        id="reg-address"
-                      />
-                      <label 
-                        htmlFor="reg-address"
-                        className="absolute left-0 -top-3.5 text-gray-400 text-xs transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-1.5 peer-focus:-top-3.5 peer-focus:text-xs peer-focus:text-[#2874f0] pointer-events-none"
-                      >
-                        Default Shipping Address (Optional)
-                      </label>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-3 pt-1">
+                      <div className="relative border-b-2 border-gray-200 focus-within:border-[#2874f0] transition-colors col-span-1">
+                        <input 
+                          type="text" 
+                          value={regDoorNo}
+                          onChange={(e) => setRegDoorNo(e.target.value)}
+                          className="w-full h-9 px-0 bg-transparent outline-none text-sm text-gray-900 placeholder-transparent peer"
+                          placeholder="Door / Flat No"
+                          id="reg-door"
+                        />
+                        <label 
+                          htmlFor="reg-door"
+                          className="absolute left-0 -top-3.5 text-gray-400 text-[10px] transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-1.5 peer-focus:-top-3.5 peer-focus:text-[10px] peer-focus:text-[#2874f0] pointer-events-none"
+                        >
+                          Door / Flat No
+                        </label>
+                      </div>
+
+                      <div className="relative border-b-2 border-gray-200 focus-within:border-[#2874f0] transition-colors col-span-1">
+                        <input 
+                          type="text" 
+                          value={regPincode}
+                          onChange={(e) => setRegPincode(e.target.value.replace(/\D/g, ''))}
+                          className="w-full h-9 px-0 bg-transparent outline-none text-sm text-gray-900 placeholder-transparent peer"
+                          placeholder="Pincode"
+                          id="reg-pincode"
+                        />
+                        <label 
+                          htmlFor="reg-pincode"
+                          className="absolute left-0 -top-3.5 text-gray-400 text-[10px] transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-1.5 peer-focus:-top-3.5 peer-focus:text-[10px] peer-focus:text-[#2874f0] pointer-events-none"
+                        >
+                          Pincode
+                        </label>
+                      </div>
+
+                      <div className="relative border-b-2 border-gray-200 focus-within:border-[#2874f0] transition-colors col-span-2">
+                        <input 
+                          type="text" 
+                          value={regStreet}
+                          onChange={(e) => setRegStreet(e.target.value)}
+                          className="w-full h-9 px-0 bg-transparent outline-none text-sm text-gray-900 placeholder-transparent peer"
+                          placeholder="Street / Area / Locality"
+                          id="reg-street"
+                        />
+                        <label 
+                          htmlFor="reg-street"
+                          className="absolute left-0 -top-3.5 text-gray-400 text-[10px] transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-1.5 peer-focus:-top-3.5 peer-focus:text-[10px] peer-focus:text-[#2874f0] pointer-events-none"
+                        >
+                          Street / Area / Locality
+                        </label>
+                      </div>
+
+                      <div className="relative border-b-2 border-gray-200 focus-within:border-[#2874f0] transition-colors col-span-2">
+                        <input 
+                          type="text" 
+                          value={regCity}
+                          onChange={(e) => setRegCity(e.target.value)}
+                          className="w-full h-9 px-0 bg-transparent outline-none text-sm text-gray-900 placeholder-transparent peer"
+                          placeholder="City"
+                          id="reg-city"
+                        />
+                        <label 
+                          htmlFor="reg-city"
+                          className="absolute left-0 -top-3.5 text-gray-400 text-[10px] transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-1.5 peer-focus:-top-3.5 peer-focus:text-[10px] peer-focus:text-[#2874f0] pointer-events-none"
+                        >
+                          City
+                        </label>
+                      </div>
                     </div>
 
                     <div className="relative border-b-2 border-gray-200 focus-within:border-[#2874f0] transition-colors">
@@ -4339,29 +4553,62 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
               <div>
                 <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">Default Delivery Address</span>
-                <div className="mt-1">
-                  <textarea
-                    value={customerUser.address}
-                    onChange={(e) => {
-                      const updated = { ...customerUser, address: e.target.value };
-                      setCustomerUser(updated);
-                      localStorage.setItem(`creva_customer_user_${store.id}`, JSON.stringify(updated));
-                      setCustomerAddress(e.target.value);
-                      
-                      try {
-                        const accountsKey = `creva_customer_accounts_${store.id}`;
-                        const accounts = JSON.parse(localStorage.getItem(accountsKey) || '[]');
-                        const updatedAccounts = accounts.map((acc: any) => 
-                          (acc.email === customerUser.email || acc.phone === customerUser.phone) 
-                            ? { ...acc, address: e.target.value } 
-                            : acc
-                        );
-                        localStorage.setItem(accountsKey, JSON.stringify(updatedAccounts));
-                      } catch (err) {}
-                    }}
-                    className="w-full p-2.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-blue-500 min-h-[80px]"
-                    placeholder="Provide your default shipping details..."
-                  />
+                <div className="mt-2 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Door / Flat No</label>
+                      <input 
+                        type="text" 
+                        value={profileDoorNo}
+                        onChange={(e) => {
+                          setProfileDoorNo(e.target.value);
+                          handleProfileAddressChange(e.target.value, profileStreet, profileCity, profilePincode);
+                        }}
+                        className="w-full p-2.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-blue-500"
+                        placeholder="e.g. G1, Block A"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Pincode</label>
+                      <input 
+                        type="text" 
+                        value={profilePincode}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '');
+                          setProfilePincode(val);
+                          handleProfileAddressChange(profileDoorNo, profileStreet, profileCity, val);
+                        }}
+                        className="w-full p-2.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-blue-500"
+                        placeholder="600028"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Street / Area / Locality</label>
+                    <input 
+                      type="text" 
+                      value={profileStreet}
+                      onChange={(e) => {
+                        setProfileStreet(e.target.value);
+                        handleProfileAddressChange(profileDoorNo, e.target.value, profileCity, profilePincode);
+                      }}
+                      className="w-full p-2.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-blue-500"
+                      placeholder="e.g. 12th Main Road, Gandhi Nagar"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">City</label>
+                    <input 
+                      type="text" 
+                      value={profileCity}
+                      onChange={(e) => {
+                        setProfileCity(e.target.value);
+                        handleProfileAddressChange(profileDoorNo, profileStreet, e.target.value, profilePincode);
+                      }}
+                      className="w-full p-2.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-blue-500"
+                      placeholder="e.g. Chennai"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
