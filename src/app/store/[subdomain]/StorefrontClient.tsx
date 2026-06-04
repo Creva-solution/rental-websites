@@ -1306,16 +1306,22 @@ export default function StorefrontClient({ store, products }: { store: any, prod
     if (customerUser) {
       return (
         <div className="relative group z-30">
+          {isProfileDropdownOpen && (
+            <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setIsProfileDropdownOpen(false)} />
+          )}
           <button 
-            onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-            className="flex items-center gap-1.5 p-2 text-xs font-bold text-gray-800 hover:text-black uppercase tracking-wider transition-colors focus:outline-none"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsProfileDropdownOpen(!isProfileDropdownOpen);
+            }}
+            className="flex items-center gap-1.5 p-2 text-xs font-bold text-gray-800 hover:text-black uppercase tracking-wider transition-colors focus:outline-none relative z-50"
           >
             <User className="w-4 h-4 stroke-[2] text-[#3B82F6]" />
             <span className="hidden sm:inline truncate max-w-[80px]">{customerUser.name.split(' ')[0]}</span>
           </button>
           
           {/* Dropdown Menu */}
-          <div className="absolute right-0 top-full pt-1 w-44 z-50 hidden group-hover:block hover:block text-left">
+          <div className={`absolute right-0 top-full pt-1 w-44 z-50 text-left ${isProfileDropdownOpen ? 'block' : 'hidden group-hover:block hover:block'}`}>
             <div className="bg-white border border-gray-100 shadow-xl rounded-lg py-1.5 animate-in fade-in slide-in-from-top-1">
               <div className="px-4 py-2 border-b border-gray-50">
                 <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Signed in as</p>
@@ -3625,6 +3631,128 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           )}
         </div>
       </div>
+
+      {/* Mobile Menu Drawer Sidebar */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden font-sans md:hidden">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200" onClick={() => setIsMobileMenuOpen(false)} />
+          <div className="fixed inset-y-0 left-0 max-w-xs w-full bg-white shadow-2xl flex flex-col animate-in slide-in-from-left duration-300">
+            
+            <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-black text-gray-950 tracking-tight uppercase">{store.store_name}</h2>
+                <p className="text-[10px] text-gray-400 mt-0.5">Explore our store collection.</p>
+              </div>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-gray-400 hover:text-gray-950 rounded-full transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Menu Links */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <nav className="flex flex-col gap-6 text-sm font-bold uppercase tracking-wider text-gray-800">
+                <a 
+                  href="#catalog" 
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="hover:text-primary transition-colors flex items-center justify-between pb-3 border-b border-gray-50"
+                >
+                  <span>Shop Catalog</span>
+                  <span className="text-gray-400">→</span>
+                </a>
+                
+                <button 
+                  onClick={() => {
+                    setIsAboutOpen(true);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="hover:text-primary transition-colors flex items-center justify-between pb-3 border-b border-gray-50 text-left w-full"
+                >
+                  <span>Our Story</span>
+                  <span className="text-gray-400">→</span>
+                </button>
+                
+                <button 
+                  onClick={() => {
+                    setIsTrackOpen(true);
+                    setIsCartOpen(false);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="hover:text-primary transition-colors flex items-center justify-between pb-3 border-b border-gray-50 text-left w-full"
+                >
+                  <span>Track Order</span>
+                  <span className="text-gray-400">→</span>
+                </button>
+
+                <button 
+                  onClick={() => {
+                    setIsWishlistOpen(true);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="hover:text-primary transition-colors flex items-center justify-between pb-3 border-b border-gray-50 text-left w-full"
+                >
+                  <span>My Wishlist</span>
+                  <span className="text-gray-400">→</span>
+                </button>
+              </nav>
+
+              {/* Login / Profile button in Mobile menu */}
+              <div className="pt-8">
+                {customerUser ? (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-gray-50 border border-gray-100 rounded-xl">
+                      <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Logged in as</p>
+                      <p className="text-sm font-black text-gray-900 truncate mt-0.5">{customerUser.name}</p>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setIsProfileModalOpen(true);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 text-center text-xs font-bold uppercase tracking-wider rounded-xl transition-all"
+                    >
+                      My Profile
+                    </button>
+                    <button 
+                      onClick={() => {
+                        localStorage.removeItem(`creva_customer_user_${store.id}`);
+                        setCustomerUser(null);
+                        setCustomerName('');
+                        setCustomerPhone('');
+                        setCustomerAddress('');
+                        setCheckoutDoorNo('');
+                        setCheckoutStreet('');
+                        setCheckoutCity('');
+                        setCheckoutPincode('');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full py-3 bg-rose-50 hover:bg-rose-100 text-rose-600 text-center text-xs font-bold uppercase tracking-wider rounded-xl transition-all"
+                    >
+                      Log Out
+                    </button>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => {
+                      setIsLoginModalOpen(true);
+                      setLoginMode('login');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full py-3 bg-[#3B82F6] hover:bg-blue-600 text-white text-center text-xs font-bold uppercase tracking-widest rounded-xl transition-all shadow-md shadow-blue-500/10"
+                  >
+                    Login / Sign Up
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-100 bg-gray-50 text-[10px] text-muted-foreground text-center font-medium">
+              Powered by Creva SaaS
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Shopping Cart Drawer Sidebar */}
       {isCartOpen && (
