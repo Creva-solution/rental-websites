@@ -1227,51 +1227,53 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           </button>
           
           {/* Dropdown Menu */}
-          <div className="absolute right-0 mt-1 w-44 bg-white border border-gray-100 shadow-xl rounded-lg py-1.5 animate-in fade-in slide-in-from-top-1 z-50 hidden group-hover:block hover:block text-left">
-            <div className="px-4 py-2 border-b border-gray-50">
-              <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Signed in as</p>
-              <p className="text-xs font-bold text-gray-900 truncate mt-0.5">{customerUser.name}</p>
+          <div className="absolute right-0 top-full pt-1 w-44 z-50 hidden group-hover:block hover:block text-left">
+            <div className="bg-white border border-gray-100 shadow-xl rounded-lg py-1.5 animate-in fade-in slide-in-from-top-1">
+              <div className="px-4 py-2 border-b border-gray-50">
+                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Signed in as</p>
+                <p className="text-xs font-bold text-gray-900 truncate mt-0.5">{customerUser.name}</p>
+              </div>
+              <button 
+                onClick={() => {
+                  setIsProfileModalOpen(true);
+                  setIsProfileDropdownOpen(false);
+                }}
+                className="w-full px-4 py-2 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 font-semibold"
+              >
+                <User className="w-3.5 h-3.5 text-gray-400" />
+                My Profile
+              </button>
+              <button 
+                onClick={() => {
+                  setIsTrackOpen(true);
+                  setIsCartOpen(false);
+                  setIsProfileDropdownOpen(false);
+                }}
+                className="w-full px-4 py-2 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 font-semibold"
+              >
+                <ShoppingBag className="w-3.5 h-3.5 text-gray-400" />
+                My Orders
+              </button>
+              <hr className="my-1 border-gray-100" />
+              <button 
+                onClick={() => {
+                  localStorage.removeItem(`creva_customer_user_${store.id}`);
+                  setCustomerUser(null);
+                  setIsProfileDropdownOpen(false);
+                  setCustomerName('');
+                  setCustomerPhone('');
+                  setCustomerAddress('');
+                  setCheckoutDoorNo('');
+                  setCheckoutStreet('');
+                  setCheckoutCity('');
+                  setCheckoutPincode('');
+                }}
+                className="w-full px-4 py-2 text-left text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-bold"
+              >
+                <EyeOff className="w-3.5 h-3.5 text-rose-400" />
+                Log Out
+              </button>
             </div>
-            <button 
-              onClick={() => {
-                setIsProfileModalOpen(true);
-                setIsProfileDropdownOpen(false);
-              }}
-              className="w-full px-4 py-2 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 font-semibold"
-            >
-              <User className="w-3.5 h-3.5 text-gray-400" />
-              My Profile
-            </button>
-            <button 
-              onClick={() => {
-                setIsTrackOpen(true);
-                setIsCartOpen(false);
-                setIsProfileDropdownOpen(false);
-              }}
-              className="w-full px-4 py-2 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 font-semibold"
-            >
-              <ShoppingBag className="w-3.5 h-3.5 text-gray-400" />
-              My Orders
-            </button>
-            <hr className="my-1 border-gray-100" />
-            <button 
-              onClick={() => {
-                localStorage.removeItem(`creva_customer_user_${store.id}`);
-                setCustomerUser(null);
-                setIsProfileDropdownOpen(false);
-                setCustomerName('');
-                setCustomerPhone('');
-                setCustomerAddress('');
-                setCheckoutDoorNo('');
-                setCheckoutStreet('');
-                setCheckoutCity('');
-                setCheckoutPincode('');
-              }}
-              className="w-full px-4 py-2 text-left text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-bold"
-            >
-              <EyeOff className="w-3.5 h-3.5 text-rose-400" />
-              Log Out
-            </button>
           </div>
         </div>
       );
