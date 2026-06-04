@@ -789,8 +789,10 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       const accountsStr = localStorage.getItem(accountsKey) || '[]';
       const accounts = JSON.parse(accountsStr);
       
+      const identity = loginEmailOrPhone.trim().toLowerCase();
+      const rawIdentity = loginEmailOrPhone.trim();
       const found = accounts.find((acc: any) => 
-        (acc.email === loginEmailOrPhone || acc.phone === loginEmailOrPhone) && 
+        (acc.email?.trim().toLowerCase() === identity || acc.phone?.trim() === rawIdentity) && 
         acc.password === loginPassword
       );
 
@@ -833,16 +835,22 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       const accountsStr = localStorage.getItem(accountsKey) || '[]';
       const accounts = JSON.parse(accountsStr);
 
-      const exists = accounts.some((acc: any) => acc.email === regEmail || acc.phone === regPhone);
+      const normalizedEmail = regEmail.trim().toLowerCase();
+      const normalizedPhone = regPhone.trim();
+
+      const exists = accounts.some((acc: any) => 
+        acc.email?.trim().toLowerCase() === normalizedEmail || 
+        acc.phone?.trim() === normalizedPhone
+      );
       if (exists) {
         setRegError('An account with this email/phone already exists');
         return;
       }
 
       const newAccount = {
-        name: regName,
-        phone: regPhone,
-        email: regEmail,
+        name: regName.trim(),
+        phone: normalizedPhone,
+        email: normalizedEmail,
         address: regAddress,
         password: regPassword
       };
@@ -850,14 +858,14 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       accounts.push(newAccount);
       localStorage.setItem(accountsKey, JSON.stringify(accounts));
       
-      const sessionUser = { name: regName, email: regEmail, phone: regPhone, address: regAddress };
+      const sessionUser = { name: newAccount.name, email: newAccount.email, phone: newAccount.phone, address: newAccount.address };
       localStorage.setItem(`creva_customer_user_${store.id}`, JSON.stringify(sessionUser));
       setCustomerUser(sessionUser);
 
-      setCustomerName(regName);
-      setCustomerPhone(regPhone);
-      setCustomerAddress(regAddress);
-      const parsedAddr = parseAddress(regAddress || '');
+      setCustomerName(newAccount.name);
+      setCustomerPhone(newAccount.phone);
+      setCustomerAddress(newAccount.address);
+      const parsedAddr = parseAddress(newAccount.address || '');
       setCheckoutDoorNo(parsedAddr.doorNo);
       setCheckoutStreet(parsedAddr.street);
       setCheckoutCity(parsedAddr.city);
