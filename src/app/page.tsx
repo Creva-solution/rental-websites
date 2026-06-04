@@ -9,6 +9,8 @@ import {
   HelpCircle, Bot, Smartphone, CheckCircle2, FileText, Landmark, Clipboard, AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import MarketingNavbar from '@/components/MarketingNavbar';
+import MarketingFooter from '@/components/MarketingFooter';
 
 export default function Home() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -54,33 +56,7 @@ export default function Home() {
       <div className="absolute top-[600px] right-0 w-[400px] h-[300px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
 
       {/* Header */}
-      <header className="px-6 lg:px-14 h-20 flex items-center border-b border-slate-100 bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm shadow-blue-500/5">
-        <Link className="flex items-center gap-2 group" href="#">
-          <div className="p-2 bg-blue-600 rounded-xl group-hover:scale-105 transition-transform shadow-lg shadow-blue-500/20">
-            <Store className="w-5 h-5 text-white" />
-          </div>
-          <span className="font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-700 via-blue-900 to-slate-900">
-            Creva Webzz
-          </span>
-        </Link>
-        <nav className="ml-auto flex gap-4 sm:gap-8 items-center">
-          <Link className="hidden md:inline-block text-xs uppercase tracking-widest font-black text-slate-550 hover:text-blue-600 transition-colors" href="#features">
-            Features
-          </Link>
-          <Link className="hidden md:inline-block text-xs uppercase tracking-widest font-black text-slate-550 hover:text-blue-600 transition-colors" href="#templates">
-            Templates
-          </Link>
-          <Link className="text-xs uppercase tracking-widest font-black text-slate-550 hover:text-blue-600 transition-colors px-2" href="/login">
-            Login
-          </Link>
-          <Link
-            className="text-xs font-black uppercase tracking-widest bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 h-10 px-5 flex items-center rounded-xl transition-all hover:scale-102"
-            href="/register"
-          >
-            Start Free Trial
-          </Link>
-        </nav>
-      </header>
+      <MarketingNavbar />
 
       {/* Hero Section */}
       <main className="flex-1 relative z-10">
@@ -111,7 +87,7 @@ export default function Home() {
                 </Link>
                 <Link
                   className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-8 text-sm font-black uppercase tracking-widest text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 hover:border-slate-350 hover:scale-105 transition-all"
-                  href="#templates"
+                  href="/templates"
                 >
                   View Templates
                 </Link>
@@ -463,19 +439,7 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="flex flex-col gap-4 sm:flex-row py-8 w-full shrink-0 items-center px-6 lg:px-14 border-t border-slate-100 bg-white z-10 relative">
-        <p className="text-xs text-slate-500">
-          © 2026 Creva Webzz Inc. All rights reserved.
-        </p>
-        <nav className="sm:ml-auto flex gap-6">
-          <Link className="text-xs text-slate-400 hover:text-blue-600 transition-colors" href="#">
-            Terms of Service
-          </Link>
-          <Link className="text-xs text-slate-400 hover:text-blue-600 transition-colors" href="#">
-            Privacy Policy
-          </Link>
-        </nav>
-      </footer>
+      <MarketingFooter />
 
       {/* Preview Modal */}
       <AnimatePresence>
