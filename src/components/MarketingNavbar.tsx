@@ -10,6 +10,7 @@ export default function MarketingNavbar() {
   const pathname = usePathname();
 
   const links = [
+    { name: 'Home', href: '/' },
     { name: 'Features', href: '/features' },
     { name: 'Templates', href: '/templates' },
     { name: 'Pricing', href: '/pricing' }

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Loader2, Lock, CheckCircle2, Globe, FileText, Printer, Download, Edit3, Phone, Check, QrCode, Smartphone, Upload, Trash, X, Clipboard, HelpCircle, AlertTriangle } from 'lucide-react';
 
 export default function BusinessSetupWizard() {
@@ -734,39 +735,78 @@ export default function BusinessSetupWizard() {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto p-4 sm:p-6 md:p-8 bg-white text-slate-800 rounded-2xl sm:rounded-3xl shadow-[0_20px_50px_rgba(15,23,42,0.08)] border border-slate-200 backdrop-blur-md">
-      {/* Progress Bar */}
-      <div className="mb-8 relative">
-        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-          <motion.div 
-            className="h-full bg-blue-600"
-            initial={{ width: '0%' }}
-            animate={{ width: `${((step - 1) / 5) * 100}%` }}
-            transition={{ duration: 0.3 }}
-          />
+    <div className="w-full max-w-5xl mx-auto bg-white text-slate-800 rounded-3xl shadow-[0_20px_50px_rgba(15,23,42,0.06)] border border-slate-200 overflow-hidden grid grid-cols-1 lg:grid-cols-12">
+      {/* Sidebar - Visible on Desktop */}
+      <div className="lg:col-span-4 bg-slate-50/50 border-r border-slate-100 p-8 flex flex-col justify-between hidden lg:flex">
+        <div className="space-y-8">
+          <div>
+            <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest block mb-1">Onboarding</span>
+            <h3 className="font-bold text-lg text-slate-800">Store Setup</h3>
+          </div>
+          
+          <div className="space-y-6">
+            {[
+              { id: 1, label: 'Business Info', desc: 'Category and details' },
+              { id: 2, label: 'Branding Design', desc: 'Colors & custom logo' },
+              { id: 3, label: 'Contact Details', desc: 'Support line settings' },
+              { id: 4, label: 'Preferences', desc: 'Currency & subdomain' },
+              { id: 5, label: 'Plan & Contract', desc: 'Licensing & payment' },
+              { id: 6, label: 'Account Setup', desc: 'Owner credentials' },
+            ].map((s) => {
+              const isActive = step === s.id;
+              const isCompleted = step > s.id;
+              return (
+                <div key={s.id} className="flex items-start gap-3">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all ${
+                    isCompleted 
+                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/10' 
+                      : isActive 
+                        ? 'bg-blue-50 text-blue-600 border border-blue-200 scale-105 shadow-sm shadow-blue-500/5' 
+                        : 'bg-white border border-slate-200 text-slate-400'
+                  }`}>
+                    {isCompleted ? <Check className="w-3.5 h-3.5" /> : s.id}
+                  </div>
+                  <div className="text-left">
+                    <span className={`block text-xs font-bold ${isActive ? 'text-blue-600' : isCompleted ? 'text-slate-700' : 'text-slate-400'}`}>
+                      {s.label}
+                    </span>
+                    <span className="block text-[10px] text-slate-400 font-medium leading-tight mt-0.5">{s.desc}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-        <div className="hidden md:flex justify-between mt-4 text-[10px] md:text-xs font-semibold text-blue-600">
-          <span className={step >= 1 ? "text-blue-600 font-bold" : "text-slate-400"}>1. Business</span>
-          <span className={step >= 2 ? "text-blue-600 font-bold" : "text-slate-400"}>2. Branding</span>
-          <span className={step >= 3 ? "text-blue-600 font-bold" : "text-slate-400"}>3. Contact</span>
-          <span className={step >= 4 ? "text-blue-600 font-bold" : "text-slate-400"}>4. Preferences</span>
-          <span className={step >= 5 ? "text-blue-600 font-bold" : "text-slate-400"}>5. Plan & Contract</span>
-          <span className={step >= 6 ? "text-blue-600 font-bold" : "text-slate-400"}>6. Account</span>
-        </div>
-        <div className="flex md:hidden justify-between mt-3 text-[11px] font-bold text-slate-500">
-          <span>STEP {step} OF 6</span>
-          <span className="text-blue-600 uppercase tracking-wider font-extrabold">
-            {step === 1 ? "Business Info" :
-             step === 2 ? "Branding Design" :
-             step === 3 ? "Contact Details" :
-             step === 4 ? "Store Preferences" :
-             step === 5 ? "Plan & Contract" : "Account Setup"}
-          </span>
+        
+        <div className="text-[10px] text-slate-400 font-medium">
+          Need help? <Link href="/features" className="text-blue-600 font-semibold hover:underline">Read docs</Link>
         </div>
       </div>
 
-      <div className="min-h-[300px]">
-        <AnimatePresence mode="wait">
+      {/* Main Content Area */}
+      <div className="lg:col-span-8 p-6 sm:p-8 md:p-10 flex flex-col justify-between">
+        {/* Mobile Header / Progress Bar */}
+        <div className="lg:hidden mb-8">
+          <div className="flex justify-between items-center mb-3 text-xs font-bold text-slate-500">
+            <span>STEP {step} OF 6</span>
+            <span className="text-blue-600 uppercase tracking-widest font-extrabold">
+              {step === 1 ? "Business Info" :
+               step === 2 ? "Branding Design" :
+               step === 3 ? "Contact Details" :
+               step === 4 ? "Store Preferences" :
+               step === 5 ? "Plan & Contract" : "Account Setup"}
+            </span>
+          </div>
+          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-blue-600 transition-all duration-300"
+              style={{ width: `${((step - 1) / 5) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="min-h-[300px] flex flex-col justify-between flex-1">
+          <AnimatePresence mode="wait">
           {step === 1 && (
             <motion.div
               key="step1"
@@ -1593,6 +1633,7 @@ export default function BusinessSetupWizard() {
             )}
           </button>
         )}
+      </div>
       </div>
     </div>
   );

@@ -26,8 +26,8 @@ export default function RegisterPage() {
       </header>
       
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 z-10">
-        <div className="w-full max-w-3xl mb-8 text-center space-y-2">
+      <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 z-10 w-full">
+        <div className="w-full max-w-5xl mb-8 text-center space-y-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-blue-200 bg-blue-55/80 text-blue-600 text-[10px] font-black uppercase tracking-wider">
             Setup Wizard
           </div>
