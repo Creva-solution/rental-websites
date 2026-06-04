@@ -613,6 +613,133 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   const [customerPaymentMethod, setCustomerPaymentMethod] = useState<'cod' | 'online' | ''>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Customer User Authentication States (Flipkart style)
+  const [customerUser, setCustomerUser] = useState<{ name: string; email: string; phone: string; address: string } | null>(null);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [loginMode, setLoginMode] = useState<'login' | 'register'>('login');
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+
+  // Login Form Inputs
+  const [loginEmailOrPhone, setLoginEmailOrPhone] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+
+  // Register Form Inputs
+  const [regName, setRegName] = useState('');
+  const [regPhone, setRegPhone] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regAddress, setRegAddress] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regError, setRegError] = useState('');
+
+  // Load customer session on page mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedUser = localStorage.getItem(`creva_customer_user_${store.id}`);
+      if (savedUser) {
+        try {
+          const parsed = JSON.parse(savedUser);
+          setCustomerUser(parsed);
+          // Autofill checkout details
+          setCustomerName(parsed.name || '');
+          setCustomerPhone(parsed.phone || '');
+          setCustomerAddress(parsed.address || '');
+        } catch (e) {
+          console.error("Failed to parse saved customer session", e);
+        }
+      }
+    }
+  }, [store.id]);
+
+  const handleCustomerLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    if (!loginEmailOrPhone || !loginPassword) {
+      setLoginError('All fields are required');
+      return;
+    }
+    try {
+      const accountsKey = `creva_customer_accounts_${store.id}`;
+      const accountsStr = localStorage.getItem(accountsKey) || '[]';
+      const accounts = JSON.parse(accountsStr);
+      
+      const found = accounts.find((acc: any) => 
+        (acc.email === loginEmailOrPhone || acc.phone === loginEmailOrPhone) && 
+        acc.password === loginPassword
+      );
+
+      if (found) {
+        const sessionUser = { name: found.name, email: found.email, phone: found.phone, address: found.address };
+        localStorage.setItem(`creva_customer_user_${store.id}`, JSON.stringify(sessionUser));
+        setCustomerUser(sessionUser);
+        
+        // Auto pre-fill checkout fields
+        setCustomerName(found.name);
+        setCustomerPhone(found.phone);
+        setCustomerAddress(found.address);
+
+        setIsLoginModalOpen(false);
+        setLoginEmailOrPhone('');
+        setLoginPassword('');
+      } else {
+        setLoginError('Invalid email/phone or password');
+      }
+    } catch (err) {
+      console.error(err);
+      setLoginError('Login failed');
+    }
+  };
+
+  const handleCustomerRegister = (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegError('');
+    if (!regName || !regPhone || !regEmail || !regPassword) {
+      setRegError('All fields are required');
+      return;
+    }
+    try {
+      const accountsKey = `creva_customer_accounts_${store.id}`;
+      const accountsStr = localStorage.getItem(accountsKey) || '[]';
+      const accounts = JSON.parse(accountsStr);
+
+      const exists = accounts.some((acc: any) => acc.email === regEmail || acc.phone === regPhone);
+      if (exists) {
+        setRegError('An account with this email/phone already exists');
+        return;
+      }
+
+      const newAccount = {
+        name: regName,
+        phone: regPhone,
+        email: regEmail,
+        address: regAddress,
+        password: regPassword
+      };
+
+      accounts.push(newAccount);
+      localStorage.setItem(accountsKey, JSON.stringify(accounts));
+      
+      const sessionUser = { name: regName, email: regEmail, phone: regPhone, address: regAddress };
+      localStorage.setItem(`creva_customer_user_${store.id}`, JSON.stringify(sessionUser));
+      setCustomerUser(sessionUser);
+
+      setCustomerName(regName);
+      setCustomerPhone(regPhone);
+      setCustomerAddress(regAddress);
+
+      setIsLoginModalOpen(false);
+      setRegName('');
+      setRegPhone('');
+      setRegEmail('');
+      setRegAddress('');
+      setRegPassword('');
+    } catch (err) {
+      console.error(err);
+      setRegError('Registration failed');
+    }
+  };
+
   // Initialize default customer payment method based on active settings
   useEffect(() => {
     if (!codEnabled && onlinePaymentEnabled) {
@@ -948,6 +1075,78 @@ export default function StorefrontClient({ store, products }: { store: any, prod
     );
   };
 
+  const renderCustomerAuthHeader = () => {
+    if (customerUser) {
+      return (
+        <div className="relative group z-30">
+          <button 
+            onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+            className="flex items-center gap-1.5 p-2 text-xs font-bold text-gray-800 hover:text-black uppercase tracking-wider transition-colors focus:outline-none"
+          >
+            <User className="w-4 h-4 stroke-[2] text-[#3B82F6]" />
+            <span className="hidden sm:inline truncate max-w-[80px]">{customerUser.name.split(' ')[0]}</span>
+          </button>
+          
+          {/* Dropdown Menu */}
+          <div className="absolute right-0 mt-1 w-44 bg-white border border-gray-100 shadow-xl rounded-lg py-1.5 animate-in fade-in slide-in-from-top-1 z-50 hidden group-hover:block hover:block text-left">
+            <div className="px-4 py-2 border-b border-gray-50">
+              <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Signed in as</p>
+              <p className="text-xs font-bold text-gray-900 truncate mt-0.5">{customerUser.name}</p>
+            </div>
+            <button 
+              onClick={() => {
+                setIsProfileModalOpen(true);
+                setIsProfileDropdownOpen(false);
+              }}
+              className="w-full px-4 py-2 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 font-semibold"
+            >
+              <User className="w-3.5 h-3.5 text-gray-400" />
+              My Profile
+            </button>
+            <button 
+              onClick={() => {
+                setIsTrackOpen(true);
+                setIsCartOpen(false);
+                setIsProfileDropdownOpen(false);
+              }}
+              className="w-full px-4 py-2 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 font-semibold"
+            >
+              <ShoppingBag className="w-3.5 h-3.5 text-gray-400" />
+              My Orders
+            </button>
+            <hr className="my-1 border-gray-100" />
+            <button 
+              onClick={() => {
+                localStorage.removeItem(`creva_customer_user_${store.id}`);
+                setCustomerUser(null);
+                setIsProfileDropdownOpen(false);
+                setCustomerName('');
+                setCustomerPhone('');
+                setCustomerAddress('');
+              }}
+              className="w-full px-4 py-2 text-left text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-bold"
+            >
+              <EyeOff className="w-3.5 h-3.5 text-rose-400" />
+              Log Out
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <button 
+        onClick={() => {
+          setIsLoginModalOpen(true);
+          setLoginMode('login');
+        }}
+        className="px-4 py-1.5 border border-[#3B82F6] text-[#3B82F6] hover:bg-[#3B82F6] hover:text-white rounded text-[10px] sm:text-xs font-black transition-all uppercase tracking-widest bg-white hover:scale-102 duration-200 shadow-sm"
+      >
+        Login
+      </button>
+    );
+  };
+
   const renderHeader = () => {
     switch (selectedTemplate) {
       case 'retro':
@@ -977,6 +1176,10 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 <div className="font-bold text-[#10B981] mt-1 tracking-widest font-mono">
                   {new Date().toLocaleTimeString()}
                 </div>
+              </div>
+
+              <div className="mt-4 flex justify-center bg-zinc-900/40 p-2 border border-[#10B981]/20 rounded">
+                {renderCustomerAuthHeader()}
               </div>
 
               {/* Sidebar Menu Items */}
@@ -1011,12 +1214,12 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               </div>
             </aside>
 
-            {/* Mobile Header Navigation for Retro */}
             <header className="header-theme sticky top-0 z-40 transition-all shadow-sm lg:hidden bg-zinc-950 text-[#10B981] border-b-4 border-black">
               <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
                 <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-[#10B981] border-2 border-black bg-zinc-900 rounded shadow-[2px_2px_0_0_#000]">
                   <Menu className="w-5 h-5 stroke-[2.5]" />
                 </button>
+                {renderCustomerAuthHeader()}
                 <span className="font-extrabold text-sm uppercase tracking-tight text-[#10B981] flex items-center gap-2">
                   {store.logo_url ? (
                     <img src={store.logo_url} alt={store.store_name} className="h-6 w-auto object-contain" />
@@ -1068,6 +1271,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 <button onClick={() => setIsSearchOverlayOpen(!isSearchOverlayOpen)} className="p-2 text-[#2F1E12] hover:bg-[#F3EFE7] rounded-full transition-all">
                   <Search className="w-5 h-5 stroke-[1.5]" />
                 </button>
+                {renderCustomerAuthHeader()}
                 <button onClick={() => setIsWishlistOpen(true)} className="p-2 text-[#2F1E12] hover:bg-[#F3EFE7] rounded-full transition-all relative">
                   <Heart className="w-5 h-5 text-rose-700/80 stroke-[1.5]" />
                   {favorites.length > 0 && (
@@ -1147,6 +1351,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 <button onClick={() => setIsSearchOverlayOpen(!isSearchOverlayOpen)} className="p-2 border-2 border-black bg-white hover:bg-gray-100 rounded text-black transition-all">
                   <Search className="w-5 h-5 stroke-[2.5]" />
                 </button>
+                {renderCustomerAuthHeader()}
                 <button onClick={() => setIsWishlistOpen(true)} className="p-2 border-2 border-black bg-white hover:bg-gray-100 rounded text-black transition-all relative">
                   <Heart className="w-5 h-5 text-red-500 fill-red-500" />
                   {favorites.length > 0 && (
@@ -1233,6 +1438,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 <button onClick={() => setIsSearchOverlayOpen(!isSearchOverlayOpen)} className="p-2 text-zinc-400 hover:text-white transition-colors">
                   <Search className="w-5 h-5 stroke-[1.2]" />
                 </button>
+                {renderCustomerAuthHeader()}
                 <button onClick={() => setIsWishlistOpen(true)} className="p-2 text-zinc-400 hover:text-white transition-colors relative">
                   <Heart className="w-5 h-5 stroke-[1.2] text-[#D4AF37]/80" />
                   {favorites.length > 0 && (
@@ -1413,6 +1619,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 <button onClick={() => setIsSearchOverlayOpen(!isSearchOverlayOpen)} className="p-2 text-gray-500 hover:text-black transition-all">
                   <Search className="w-5 h-5 stroke-[1.5]" />
                 </button>
+                {renderCustomerAuthHeader()}
                 <button onClick={() => setIsWishlistOpen(true)} className="p-2 text-gray-500 hover:text-black transition-all relative">
                   <Heart className="w-5 h-5 stroke-[1.5] text-rose-500" />
                   {favorites.length > 0 && (
@@ -3865,6 +4072,307 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Flipkart-Style Login Modal */}
+      {isLoginModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-3xl bg-white shadow-2xl rounded-2xl overflow-hidden flex flex-col md:flex-row animate-in zoom-in-95 duration-200 text-left min-h-[460px]">
+            
+            {/* Left Panel: Flipkart Style Blue/Indigo Column */}
+            <div className="w-full md:w-2/5 bg-gradient-to-b from-[#2874f0] to-[#1e5bb8] text-white p-8 flex flex-col justify-between relative overflow-hidden">
+              <div className="space-y-4">
+                <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-snug">
+                  {loginMode === 'login' ? 'Login' : "Looks like you're new here!"}
+                </h3>
+                <p className="text-xs sm:text-sm text-blue-100 leading-relaxed font-light">
+                  {loginMode === 'login' 
+                    ? 'Get access to your Orders, Wishlist and Recommendations' 
+                    : 'Sign up with your mobile number to get started'}
+                </p>
+              </div>
+
+              {/* Decorative elements */}
+              <div className="mt-8 opacity-25">
+                <div className="absolute -bottom-10 -left-10 w-44 h-44 rounded-full bg-white/10 blur-xl pointer-events-none" />
+                <div className="flex flex-col items-center">
+                  <ShoppingBag className="w-28 h-28 stroke-[1] text-white" />
+                </div>
+              </div>
+            </div>
+
+            {/* Right Panel: Form Input Fields */}
+            <div className="w-full md:w-3/5 p-8 flex flex-col justify-between relative bg-white">
+              {/* Close Button */}
+              <button 
+                onClick={() => setIsLoginModalOpen(false)}
+                className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-900 rounded-full hover:bg-gray-100 transition-all focus:outline-none"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {loginMode === 'login' ? (
+                /* LOGIN MODE */
+                <form onSubmit={handleCustomerLogin} className="space-y-6 my-auto">
+                  <div className="space-y-4">
+                    <div className="relative border-b-2 border-gray-200 focus-within:border-[#2874f0] transition-colors">
+                      <input 
+                        required 
+                        type="text" 
+                        value={loginEmailOrPhone}
+                        onChange={(e) => setLoginEmailOrPhone(e.target.value)}
+                        className="w-full h-10 px-0 bg-transparent outline-none text-sm text-gray-900 placeholder-transparent peer"
+                        placeholder="Email or Mobile"
+                        id="login-identity"
+                      />
+                      <label 
+                        htmlFor="login-identity"
+                        className="absolute left-0 -top-3.5 text-gray-400 text-xs transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-2 peer-focus:-top-3.5 peer-focus:text-xs peer-focus:text-[#2874f0] pointer-events-none"
+                      >
+                        Enter Email / Mobile Number
+                      </label>
+                    </div>
+
+                    <div className="relative border-b-2 border-gray-200 focus-within:border-[#2874f0] transition-colors">
+                      <input 
+                        required 
+                        type="password" 
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        className="w-full h-10 px-0 bg-transparent outline-none text-sm text-gray-900 placeholder-transparent peer"
+                        placeholder="Password"
+                        id="login-pass"
+                      />
+                      <label 
+                        htmlFor="login-pass"
+                        className="absolute left-0 -top-3.5 text-gray-400 text-xs transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-2 peer-focus:-top-3.5 peer-focus:text-xs peer-focus:text-[#2874f0] pointer-events-none"
+                      >
+                        Enter Password
+                      </label>
+                    </div>
+                  </div>
+
+                  {loginError && (
+                    <p className="text-[11px] font-bold text-rose-600 animate-in fade-in">{loginError}</p>
+                  )}
+
+                  <div className="space-y-4 pt-4">
+                    <button 
+                      type="submit"
+                      className="w-full py-3 bg-[#fb641b] hover:bg-[#e05410] text-white font-bold rounded-lg text-xs uppercase tracking-wider transition-colors shadow-md hover:scale-[1.01] duration-150"
+                    >
+                      Login
+                    </button>
+
+                    <div className="text-center text-xs text-gray-400 font-medium">Or</div>
+
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setLoginMode('register');
+                        setLoginError('');
+                      }}
+                      className="w-full py-3 bg-white hover:bg-gray-50 border border-gray-200 text-[#2874f0] font-bold rounded-lg text-xs uppercase tracking-wider transition-colors shadow-sm"
+                    >
+                      Create an account
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                /* REGISTER MODE */
+                <form onSubmit={handleCustomerRegister} className="space-y-4 my-auto overflow-y-auto max-h-[380px] pr-2">
+                  <div className="space-y-4">
+                    <div className="relative border-b-2 border-gray-200 focus-within:border-[#2874f0] transition-colors">
+                      <input 
+                        required 
+                        type="text" 
+                        value={regName}
+                        onChange={(e) => setRegName(e.target.value)}
+                        className="w-full h-9 px-0 bg-transparent outline-none text-sm text-gray-900 placeholder-transparent peer"
+                        placeholder="Full Name"
+                        id="reg-name"
+                      />
+                      <label 
+                        htmlFor="reg-name"
+                        className="absolute left-0 -top-3.5 text-gray-400 text-xs transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-1.5 peer-focus:-top-3.5 peer-focus:text-xs peer-focus:text-[#2874f0] pointer-events-none"
+                      >
+                        Full Name *
+                      </label>
+                    </div>
+
+                    <div className="relative border-b-2 border-gray-200 focus-within:border-[#2874f0] transition-colors">
+                      <input 
+                        required 
+                        type="tel" 
+                        value={regPhone}
+                        onChange={(e) => setRegPhone(e.target.value.replace(/\D/g, ''))}
+                        className="w-full h-9 px-0 bg-transparent outline-none text-sm text-gray-900 placeholder-transparent peer"
+                        placeholder="Mobile Number"
+                        id="reg-phone"
+                      />
+                      <label 
+                        htmlFor="reg-phone"
+                        className="absolute left-0 -top-3.5 text-gray-400 text-xs transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-1.5 peer-focus:-top-3.5 peer-focus:text-xs peer-focus:text-[#2874f0] pointer-events-none"
+                      >
+                        WhatsApp Mobile Number *
+                      </label>
+                    </div>
+
+                    <div className="relative border-b-2 border-gray-200 focus-within:border-[#2874f0] transition-colors">
+                      <input 
+                        required 
+                        type="email" 
+                        value={regEmail}
+                        onChange={(e) => setRegEmail(e.target.value)}
+                        className="w-full h-9 px-0 bg-transparent outline-none text-sm text-gray-900 placeholder-transparent peer"
+                        placeholder="Email Address"
+                        id="reg-email"
+                      />
+                      <label 
+                        htmlFor="reg-email"
+                        className="absolute left-0 -top-3.5 text-gray-400 text-xs transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-1.5 peer-focus:-top-3.5 peer-focus:text-xs peer-focus:text-[#2874f0] pointer-events-none"
+                      >
+                        Email Address *
+                      </label>
+                    </div>
+
+                    <div className="relative border-b-2 border-gray-200 focus-within:border-[#2874f0] transition-colors">
+                      <input 
+                        type="text" 
+                        value={regAddress}
+                        onChange={(e) => setRegAddress(e.target.value)}
+                        className="w-full h-9 px-0 bg-transparent outline-none text-sm text-gray-900 placeholder-transparent peer"
+                        placeholder="Default Shipping Address"
+                        id="reg-address"
+                      />
+                      <label 
+                        htmlFor="reg-address"
+                        className="absolute left-0 -top-3.5 text-gray-400 text-xs transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-1.5 peer-focus:-top-3.5 peer-focus:text-xs peer-focus:text-[#2874f0] pointer-events-none"
+                      >
+                        Default Shipping Address (Optional)
+                      </label>
+                    </div>
+
+                    <div className="relative border-b-2 border-gray-200 focus-within:border-[#2874f0] transition-colors">
+                      <input 
+                        required 
+                        type="password" 
+                        value={regPassword}
+                        onChange={(e) => setRegPassword(e.target.value)}
+                        className="w-full h-9 px-0 bg-transparent outline-none text-sm text-gray-900 placeholder-transparent peer"
+                        placeholder="Password"
+                        id="reg-password"
+                      />
+                      <label 
+                        htmlFor="reg-password"
+                        className="absolute left-0 -top-3.5 text-gray-400 text-xs transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-1.5 peer-focus:-top-3.5 peer-focus:text-xs peer-focus:text-[#2874f0] pointer-events-none"
+                      >
+                        Set Password *
+                      </label>
+                    </div>
+                  </div>
+
+                  {regError && (
+                    <p className="text-[11px] font-bold text-rose-600 animate-in fade-in">{regError}</p>
+                  )}
+
+                  <div className="space-y-3 pt-4">
+                    <button 
+                      type="submit"
+                      className="w-full py-3 bg-[#fb641b] hover:bg-[#e05410] text-white font-bold rounded-lg text-xs uppercase tracking-wider transition-colors shadow-md"
+                    >
+                      Sign Up & Login
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setLoginMode('login');
+                        setRegError('');
+                      }}
+                      className="w-full py-2.5 text-xs text-[#2874f0] font-bold hover:underline text-center"
+                    >
+                      Existing User? Log in here
+                    </button>
+                  </div>
+                </form>
+              )}
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Profile Modal */}
+      {isProfileModalOpen && customerUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md bg-white shadow-2xl rounded-2xl p-6 text-left animate-in zoom-in-95 duration-200 flex flex-col font-sans">
+            <button 
+              onClick={() => setIsProfileModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-900 rounded-full hover:bg-gray-100 transition-all focus:outline-none"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3.5 border-b pb-4 mb-5">
+              <div className="w-12 h-12 bg-blue-50 text-blue-600 border border-blue-200 rounded-2xl flex items-center justify-center text-lg font-black shrink-0 shadow-inner">
+                {customerUser.name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <h4 className="font-extrabold text-gray-900 text-sm">{customerUser.name}</h4>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Active Account Profile</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">Email Address</span>
+                <span className="text-xs font-semibold text-gray-900 block mt-1">{customerUser.email}</span>
+              </div>
+
+              <div>
+                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">WhatsApp Mobile</span>
+                <span className="text-xs font-semibold text-gray-900 block mt-1">{customerUser.phone}</span>
+              </div>
+
+              <div>
+                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">Default Delivery Address</span>
+                <div className="mt-1">
+                  <textarea
+                    value={customerUser.address}
+                    onChange={(e) => {
+                      const updated = { ...customerUser, address: e.target.value };
+                      setCustomerUser(updated);
+                      localStorage.setItem(`creva_customer_user_${store.id}`, JSON.stringify(updated));
+                      setCustomerAddress(e.target.value);
+                      
+                      try {
+                        const accountsKey = `creva_customer_accounts_${store.id}`;
+                        const accounts = JSON.parse(localStorage.getItem(accountsKey) || '[]');
+                        const updatedAccounts = accounts.map((acc: any) => 
+                          (acc.email === customerUser.email || acc.phone === customerUser.phone) 
+                            ? { ...acc, address: e.target.value } 
+                            : acc
+                        );
+                        localStorage.setItem(accountsKey, JSON.stringify(updatedAccounts));
+                      } catch (err) {}
+                    }}
+                    className="w-full p-2.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-blue-500 min-h-[80px]"
+                    placeholder="Provide your default shipping details..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setIsProfileModalOpen(false)}
+                className="px-5 py-2 bg-gray-900 hover:bg-black text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
+              >
+                Done
+              </button>
             </div>
           </div>
         </div>
