@@ -275,13 +275,107 @@ class MockSupabaseAuth {
     }
   }
 
+  async resetPasswordForEmail(email: string, options?: { redirectTo?: string }) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ email, redirectTo: options?.redirectTo })
+      });
+
+      if (!response.ok) {
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.error || 'Failed to send reset link');
+      }
+
+      const data = await response.json();
+      if (data.debug_link) {
+        console.log("MOCK RESET LINK (LOCAL DEV ONLY):", data.debug_link);
+        if (typeof window !== 'undefined') {
+          (window as any).lastResetLink = data.debug_link;
+        }
+      }
+      return { data, error: null };
+    } catch (err: any) {
+      return { data: null, error: { message: err.message || String(err) } };
+    }
+  }
+
+  async updateUser({ password }: { password?: string }) {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('mock_supabase_token') : null;
+      const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Accept': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: JSON.stringify({ password, token })
+      });
+
+      if (!response.ok) {
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.error || 'Failed to update password');
+      }
+
+      const data = await response.json();
+      return { data, error: null };
+    } catch (err: any) {
+      return { data: null, error: { message: err.message || String(err) } };
+    }
+  }
+
   async getSession() {
     try {
       if (typeof window === 'undefined') {
         return { data: { session: null }, error: null };
       }
-      const token = localStorage.getItem('mock_supabase_token');
-      const userStr = localStorage.getItem('mock_supabase_user');
+      
+      let token = localStorage.getItem('mock_supabase_token');
+      let userStr = localStorage.getItem('mock_supabase_user');
+      
+      if (!token) {
+        const hash = window.location.hash;
+        const search = window.location.search;
+        let urlToken: string | null = null;
+        
+        if (hash) {
+          const params = new URLSearchParams(hash.substring(1));
+          urlToken = params.get('access_token');
+        }
+        
+        if (!urlToken && search) {
+          const params = new URLSearchParams(search);
+          urlToken = params.get('token') || params.get('access_token');
+        }
+        
+        if (urlToken) {
+          const verifyResponse = await fetch(`${API_BASE_URL}/auth/verify-token`, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json', 
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${urlToken}`
+            },
+            body: JSON.stringify({ token: urlToken })
+          });
+          
+          if (verifyResponse.ok) {
+            const verifyData = await verifyResponse.json();
+            if (verifyData.user) {
+              token = urlToken;
+              userStr = JSON.stringify(verifyData.user);
+              localStorage.setItem('mock_supabase_token', token);
+              localStorage.setItem('mock_supabase_user', userStr);
+              
+              if (window.history.replaceState) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+              }
+            }
+          }
+        }
+      }
       
       if (!token || !userStr) {
         return { data: { session: null }, error: null };

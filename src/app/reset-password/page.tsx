@@ -4,70 +4,70 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, Lock, Mail, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Loader2, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 
-export default function LoginPage() {
+export default function ResetPasswordPage() {
   const router = useRouter();
-  const [view, setView] = useState<'login' | 'forgot'>('login');
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [resetEmail, setResetEmail] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [hasSession, setHasSession] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [resetSuccess, setResetSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('reset') === 'success') {
-        setResetSuccess('Password reset successfully! Please log in with your new password.');
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-    }
+    const checkSession = async () => {
+      // Small delay to allow supabase auth client to parse recovery hash fragment
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      const { data: { session } } = await supabase.auth.getSession();
+      setHasSession(!!session);
+      setChecking(false);
+    };
+    checkSession();
   }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const { error } = await supabase.auth.updateUser({
+        password: password,
       });
 
       if (error) throw error;
 
-      router.push('/admin');
+      // Logout the temporary session
+      await supabase.auth.signOut();
+
+      // Redirect back to login with success search param
+      router.push('/login?reset=success');
     } catch (err: any) {
-      setError(err.message || 'Invalid email or password');
+      setError(err.message || 'Failed to update password. Please try again.');
       setLoading(false);
     }
   };
 
-  const handleSendResetLink = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setResetSuccess(null);
-
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (error) throw error;
-
-      setResetSuccess('Reset link has been sent to your email! Please check your inbox.');
-      setView('login');
-      setEmail(resetEmail);
-    } catch (err: any) {
-      setError(err.message || 'Failed to send reset link. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/20">
+        <div className="text-center space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Verifying Reset Session...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/20 p-4">
@@ -88,55 +88,18 @@ export default function LoginPage() {
                 <path d="M187.969 111.557H180.232L178.807 115.502H176.363L182.777 97.864H185.45L191.838 115.502H189.395L187.969 111.557ZM187.308 109.674L184.101 100.715L180.894 109.674H187.308Z" fill="white"/>
                 <path fill-rule="evenodd" clip-rule="evenodd" d="M151.609 0.266528C150.787 0.443259 149.224 1.0234 148.136 1.5553C143.392 3.87416 140.27 8.63054 139.851 14.1765L139.703 16.1346L134.13 16.2005L128.557 16.2667L127.436 16.888C125.665 17.869 124.797 19.2248 124.416 21.6028C123.447 27.6533 122.677 31.4413 122.315 31.9388C122.095 32.241 121.492 32.7046 120.975 32.9687C120.048 33.4427 119.926 33.4489 111.64 33.4489H103.244L102.721 33.9729C101.97 34.7238 101.988 36.0288 102.759 36.635C103.303 37.0632 103.565 37.0779 110.923 37.0894C116.236 37.098 118.744 37.1782 119.252 37.3562C120.232 37.6997 120.807 38.5396 120.915 39.7831C121.029 41.1126 120.459 42.0699 119.214 42.6347C118.354 43.0255 117.653 43.0447 104.101 43.0492L89.8914 43.0539L89.4272 43.5478C88.7141 44.3072 88.7984 45.4387 89.6199 46.1298L90.2765 46.6825L103.761 46.6833C116.758 46.684 117.269 46.6991 117.928 47.1008C118.892 47.6888 119.345 48.6621 119.21 49.8581C119.121 50.6467 118.938 50.9804 118.234 51.6371L117.368 52.4454H108.598C98.9653 52.4454 98.8808 52.4559 98.359 53.7161C98.1419 54.2396 98.1419 54.4932 98.359 55.0168C98.8751 56.2631 99.0529 56.2874 107.649 56.2874C114.507 56.2874 115.544 56.3305 116.062 56.6366C116.879 57.119 117.351 58.0044 117.351 59.0524C117.351 60.3138 116.841 61.1584 115.79 61.6357C114.992 61.9975 114.344 62.0415 109.752 62.0457L104.607 62.0504L104.042 62.5738C103.285 63.2754 103.267 64.4209 104.001 65.155C104.524 65.6779 104.534 65.679 108.991 65.679C111.446 65.679 113.767 65.7413 114.147 65.8173C115.132 66.0143 116.209 67.1677 116.386 68.2151C116.692 70.0245 118.977 72.3531 121.074 72.9922C121.743 73.1962 128.318 73.2562 150.008 73.2562C182.384 73.2562 179.408 73.4558 181.737 71.1284C182.845 70.0204 183.119 69.5908 183.497 68.3656C183.744 67.5675 183.945 66.5645 183.943 66.1368C183.942 65.7088 183.602 62.7654 183.188 59.5958C182.383 53.4384 182.226 52.1897 181.708 47.8564C181.525 46.3303 181.16 43.3527 180.896 41.2396L180.416 37.3976L159.822 37.2892L139.229 37.181L159.773 37.1291L180.317 37.0775V36.4604C180.317 36.121 180.082 33.984 179.795 31.7113C179.508 29.4387 179.121 26.1865 178.935 24.4843C178.749 22.7821 178.547 20.9909 178.487 20.504C178.358 19.4712 177.423 17.9619 176.48 17.2644C175.295 16.3886 174.251 16.16 171.432 16.16H168.791L168.788 15.0394C168.781 12.0397 167.431 8.12062 165.521 5.54926C162.458 1.42766 156.581 -0.80368 151.609 0.266528ZM151.374 4.18344C146.936 5.45407 143.946 9.38635 143.476 14.5718L143.332 16.16H154.254H165.175L165.043 14.7192C164.742 11.4104 163.724 8.9601 161.822 6.96675C159.204 4.22143 155.079 3.12284 151.374 4.18344ZM147.393 26.1385C152.823 26.1701 161.707 26.1701 167.137 26.1385C172.567 26.1067 168.124 26.0808 157.265 26.0808C146.406 26.0808 141.964 26.1067 147.393 26.1385ZM177.708 26.6196C178.614 27.172 178.911 27.1713 178.076 26.6187C177.724 26.3854 177.34 26.1944 177.222 26.194C177.105 26.1938 177.323 26.3852 177.708 26.6196ZM159.464 30.1408C158.494 30.8201 158.668 32.7172 159.779 33.2077C161.086 33.8195 162.388 33.0449 162.388 31.6347C162.388 30.1557 160.685 29.2857 159.464 30.1408ZM165.971 30.1113C165.05 30.8116 165.079 32.7339 166.019 33.2372C167.255 33.8984 168.791 33.0319 168.791 31.6731C168.791 30.5894 168.094 29.8187 167.121 29.8272C166.69 29.8308 166.172 29.9587 165.971 30.1113ZM172.282 30.3262C171.065 31.3732 171.831 33.4489 173.434 33.4489C174.272 33.4489 175.408 32.4812 175.408 31.7678C175.408 30.0964 173.547 29.2381 172.282 30.3262ZM128.718 41.2127C128.512 41.3248 128.273 41.521 128.187 41.6484C127.887 42.0911 128.026 43.0565 128.45 43.4808C128.831 43.8614 129.162 43.9077 131.504 43.9077H134.131L136.651 51.645C138.037 55.9007 139.309 59.6031 139.479 59.8728C139.648 60.1424 140.093 60.5503 140.468 60.7791C141.118 61.1757 141.613 61.1951 151.075 61.1951C160.527 61.1951 161.033 61.1753 161.681 60.7804C162.055 60.5522 162.468 60.1646 162.6 59.919C162.731 59.6733 163.638 56.8161 164.616 53.5696C166.127 48.5469 166.36 47.574 166.175 47.0449C165.749 45.8229 165.82 45.8287 151.126 45.8287H137.716L137.143 44.0678C136.417 41.8396 136.112 41.4142 135.031 41.1231C134.007 40.8475 129.263 40.915 128.718 41.2127ZM139.21 50.3644C139.474 51.2156 140.159 53.3231 140.731 55.048C141.648 57.8106 141.834 58.1999 142.301 58.3171C143.258 58.5572 159.81 58.3753 160.139 58.1211C160.304 57.9931 160.792 56.6876 161.223 55.2202C161.654 53.7528 162.236 51.8028 162.517 50.8869C162.798 49.971 163.028 49.1307 163.028 49.0192C163.028 48.8942 158.395 48.8169 150.878 48.8169H138.729L139.21 50.3644ZM142.792 63.7509C142.403 63.9947 141.935 64.5522 141.751 64.99C140.834 67.1739 143.407 69.2887 145.459 68.0375C146.394 67.467 146.66 66.8757 146.54 65.6288C146.408 64.2529 145.727 63.5349 144.43 63.4028C143.736 63.3319 143.318 63.4207 142.792 63.7509ZM156.859 63.8805C155.943 64.651 155.632 65.7863 156.058 66.8051C156.429 67.6951 157.503 68.4518 158.396 68.4529C160.854 68.4563 161.863 65.0297 159.779 63.7588C158.791 63.1567 157.663 63.2036 156.859 63.8805Z" fill="#3C77C3"/>
                 <path d="M128.644 29.2416L127.363 35.0046H135.474C137.144 34.9122 137.833 35.454 138.783 37.139H180.191L178.91 28.1743C178.621 27.0979 178.04 26.7687 176.562 26.4668H131.952C129.712 26.719 129.042 27.3728 128.644 29.2416Z" fill="black" stroke="white" stroke-width="0.640332"/>
-                <circle cx="161.194" cy="31.9086" r="2.02772" fill="#D9D9D9"/>
-                <circle cx="166.744" cy="31.9086" r="2.02772" fill="#D9D9D9"/>
-                <circle cx="172.292" cy="31.9086" r="2.02772" fill="#D9D9D9"/>
-                <circle cx="132.779" cy="79.8652" r="6.60545" fill="#D9D9D9"/>
-                <circle cx="132.78" cy="79.8658" r="3.00248" fill="black"/>
-                <circle cx="168.209" cy="79.8652" r="6.60545" fill="#D9D9D9"/>
-                <circle cx="168.209" cy="79.8658" r="3.00248" fill="black"/>
-                <path d="M69.1792 151.022L62.9284 175H55.8578L52.0322 159.219L48.0699 175H40.9994L34.9194 151.022H41.1702L44.6201 168.476L48.8897 151.022H55.3113L59.4102 168.476L62.8942 151.022H69.1792ZM83.4145 155.701V160.551H91.2366V165.06H83.4145V170.32H92.2613V175H77.5736V151.022H92.2613V155.701H83.4145ZM116.035 162.703C117.424 162.999 118.54 163.694 119.383 164.787C120.225 165.857 120.647 167.087 120.647 168.476C120.647 170.48 119.941 172.074 118.529 173.258C117.14 174.419 115.193 175 112.688 175H101.518V151.022H112.312C114.749 151.022 116.65 151.579 118.016 152.695C119.406 153.811 120.1 155.325 120.1 157.238C120.1 158.65 119.724 159.823 118.973 160.756C118.244 161.69 117.265 162.339 116.035 162.703ZM107.359 160.722H111.185C112.141 160.722 112.87 160.517 113.371 160.107C113.895 159.675 114.157 159.049 114.157 158.229C114.157 158.229C114.157 158.229 114.157 158.229ZM111.663 170.286C112.642 170.286 113.394 170.07 113.918 169.637C114.464 169.182 114.737 168.533 114.737 167.69C114.737 166.848 114.453 166.187 113.883 165.709C113.337 165.231 112.574 164.992 111.595 164.992H107.359V170.286H111.663Z" fill="black"/>
-                <path d="M135.716 170.218H146.032V175H129.09V170.56L139.337 155.804H129.09V151.022H146.032V155.462L135.716 170.218ZM161.529 170.218H171.844V175H154.902V170.56L165.15 155.804H154.902V151.022H171.844V155.462L161.529 170.218Z" fill="#3C77C3"/>
-                <path d="M13.9434 163.318H34.0181" stroke="#3C77C3" stroke-width="2.50935"/>
-                <path d="M172.868 163.318H192.943" stroke="#3C77C3" stroke-width="2.50935"/>
               </svg>
-              <span>Creva Webzz</span>
             </Link>
-            <h1 className="text-2xl font-bold tracking-tight">
-              {view === 'login' ? 'Welcome back' : 'Reset password'}
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              {view === 'login' ? 'Login to manage your store' : 'Request a secure password reset link'}
-            </p>
+            <h1 className="text-2xl font-bold tracking-tight">Reset Password</h1>
+            <p className="text-muted-foreground text-sm">Create a new password for your account</p>
           </div>
 
-          {resetSuccess && (
-            <div className="p-3 mb-4 bg-emerald-50 text-emerald-800 text-xs rounded-md border border-emerald-200 animate-in fade-in slide-in-from-top-1 text-left">
-              {resetSuccess}
-            </div>
-          )}
-
-          {view === 'login' ? (
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2 text-left">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-muted-foreground" />
-                  Email Address
-                </label>
-                <input 
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  placeholder="you@example.com"
-                />
-              </div>
-
+          {hasSession ? (
+            <form onSubmit={handleResetSubmit} className="space-y-4">
               <div className="space-y-2 text-left">
                 <label className="text-sm font-medium flex items-center gap-2">
                   <Lock className="w-4 h-4 text-muted-foreground" />
-                  Password
+                  New Password
                 </label>
                 <input 
                   type="password"
@@ -148,19 +111,19 @@ export default function LoginPage() {
                 />
               </div>
 
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setError(null);
-                    setResetSuccess(null);
-                    setResetEmail(email);
-                    setView('forgot');
-                  }}
-                  className="text-xs text-[#3C77C3] font-medium hover:underline focus:outline-none"
-                >
-                  Forgot Password?
-                </button>
+              <div className="space-y-2 text-left">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-muted-foreground" />
+                  Confirm Password
+                </label>
+                <input 
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  placeholder="••••••••"
+                />
               </div>
 
               {error && (
@@ -177,71 +140,34 @@ export default function LoginPage() {
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Logging in...
+                    Updating Password...
                   </>
                 ) : (
                   <>
-                    Log In
+                    Update Password
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
             </form>
           ) : (
-            <form onSubmit={handleSendResetLink} className="space-y-4">
-              <div className="space-y-2 text-left">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-muted-foreground" />
-                  Email Address
-                </label>
-                <input 
-                  type="email"
-                  required
-                  value={resetEmail}
-                  onChange={(e) => setResetEmail(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  placeholder="you@example.com"
-                />
+            <div className="space-y-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto">
+                <AlertCircle className="w-6 h-6" />
               </div>
-
-              {error && (
-                <div className="p-3 bg-destructive/10 text-destructive text-xs rounded-md border border-destructive/20 animate-in fade-in slide-in-from-top-1 text-left">
-                  {error}
-                </div>
-              )}
-
-              <div className="flex flex-col gap-2 pt-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all disabled:opacity-50"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Sending reset link...
-                    </>
-                  ) : (
-                    <>
-                      Send Reset Link
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setError(null);
-                    setView('login');
-                  }}
-                  className="w-full flex items-center justify-center gap-1.5 px-6 py-2.5 bg-muted text-foreground border rounded-lg font-semibold hover:bg-muted/80 transition-all text-sm"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to Login
-                </button>
+              <div className="space-y-2">
+                <h3 className="font-bold text-sm text-foreground uppercase tracking-wider">Session Invalid or Expired</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  This password reset link is invalid, has already been used, or has expired. Please request a new link from the login page.
+                </p>
               </div>
-            </form>
+              <Link 
+                href="/login" 
+                className="w-full inline-flex items-center justify-center gap-1.5 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all text-sm"
+              >
+                Back to Login
+              </Link>
+            </div>
           )}
 
           <div className="mt-8 pt-6 border-t border-border text-center">
