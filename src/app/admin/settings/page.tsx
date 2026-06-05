@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Globe, Save, Upload, Building, Phone, Mail, Palette, Check, X, ShieldAlert, ShieldCheck, Smartphone, ToggleLeft, ToggleRight, CreditCard, Coins } from 'lucide-react';
+import { Loader2, Globe, Save, Upload, Building, Phone, Mail, Palette, Check, X, ShieldAlert, ShieldCheck, Smartphone, ToggleLeft, ToggleRight, CreditCard, Coins, Lock } from 'lucide-react';
 
 export default function SettingsPage() {
   const [store, setStore] = useState<any>(null);
@@ -42,6 +42,15 @@ export default function SettingsPage() {
   const [screenshotUploading, setScreenshotUploading] = useState(false);
   const [customDomainNameInput, setCustomDomainNameInput] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'qr' | 'app'>('qr');
+
+  // Security Settings Password Change States
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState('');
 
   useEffect(() => {
     fetchStore();
@@ -280,6 +289,41 @@ export default function SettingsPage() {
       } else {
         alert(`📱 Simulated ${appName} launch!\nTo complete payment, please scan the QR code on your mobile device or send ₹${domainPrice} to ${upiId}.`);
       }
+    }
+  };
+
+  const handlePasswordUpdate = async () => {
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordMessage('Error: New password and confirm password do not match.');
+      return;
+    }
+    if (passwordForm.newPassword.length < 6) {
+      setPasswordMessage('Error: Password must be at least 6 characters long.');
+      return;
+    }
+
+    setPasswordLoading(true);
+    setPasswordMessage('');
+
+    try {
+      const { error } = await (supabase.auth as any).changePassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword
+      });
+
+      if (error) throw error;
+
+      setPasswordMessage('Password updated successfully! Please keep it safe.');
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+      setTimeout(() => setPasswordMessage(''), 5000);
+    } catch (err: any) {
+      setPasswordMessage('Error: ' + (err.message || 'Failed to update password.'));
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -1190,6 +1234,81 @@ export default function SettingsPage() {
                 );
               })()}
             </div>
+          </div>
+        </div>
+
+        {/* Security Settings */}
+        <div className="p-6 border-t border-border space-y-6 bg-muted/5">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Lock className="w-5 h-5 text-primary" /> Security Settings
+          </h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Update your account password. Make sure to choose a secure, strong password.
+          </p>
+
+          {passwordMessage && (
+            <div className={`p-3 rounded-lg border text-xs text-left flex items-center gap-2 ${
+              passwordMessage.includes('Error') 
+                ? 'bg-destructive/10 text-destructive border-destructive/20' 
+                : 'bg-emerald-55/10 text-emerald-800 border-emerald-200'
+            }`}>
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span>{passwordMessage}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Current Password</label>
+              <input 
+                type="password" 
+                placeholder="••••••••"
+                value={passwordForm.currentPassword} 
+                onChange={e => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">New Password</label>
+              <input 
+                type="password" 
+                placeholder="••••••••"
+                value={passwordForm.newPassword} 
+                onChange={e => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Confirm New Password</label>
+              <input 
+                type="password" 
+                placeholder="••••••••"
+                value={passwordForm.confirmPassword} 
+                onChange={e => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none text-sm"
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end pt-2">
+            <button
+              type="button"
+              onClick={handlePasswordUpdate}
+              disabled={passwordLoading || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
+              className="px-5 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-black rounded-md font-semibold text-xs transition-colors flex items-center gap-1.5"
+            >
+              {passwordLoading ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Updating Password...
+                </>
+              ) : (
+                <>
+                  <Lock className="w-3.5 h-3.5" />
+                  Update Password
+                </>
+              )}
+            </button>
           </div>
         </div>
 

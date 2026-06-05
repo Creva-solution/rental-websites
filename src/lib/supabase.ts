@@ -326,6 +326,31 @@ class MockSupabaseAuth {
     }
   }
 
+  async changePassword({ currentPassword, newPassword }: { currentPassword?: string; newPassword?: string }) {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('mock_supabase_token') : null;
+      const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Accept': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
+
+      if (!response.ok) {
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.error || 'Failed to update password');
+      }
+
+      const data = await response.json();
+      return { data, error: null };
+    } catch (err: any) {
+      return { data: null, error: { message: err.message || String(err) } };
+    }
+  }
+
   async getSession() {
     try {
       if (typeof window === 'undefined') {

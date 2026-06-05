@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, Lock, Mail, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Loader2, Lock, Mail, ArrowRight, ArrowLeft, Phone, ShieldAlert } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -199,60 +199,70 @@ export default function LoginPage() {
               </button>
             </form>
           ) : (
-            <form onSubmit={handleSendResetLink} className="space-y-4">
-              <div className="space-y-2 text-left">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-muted-foreground" />
-                  Email Address
-                </label>
-                <input 
-                  type="email"
-                  required
-                  value={resetEmail}
-                  onChange={(e) => setResetEmail(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  placeholder="you@example.com"
-                />
-              </div>
-
-              {error && (
-                <div className="p-3 bg-destructive/10 text-destructive text-xs rounded-md border border-destructive/20 animate-in fade-in slide-in-from-top-1 text-left">
-                  {error}
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="p-5 bg-blue-500/5 rounded-2xl border border-blue-500/15 text-left space-y-4 shadow-sm">
+                <div className="flex items-start gap-3.5">
+                  <div className="p-2.5 bg-blue-500/10 rounded-xl text-primary shrink-0 border border-blue-500/10">
+                    <ShieldAlert className="w-5 h-5 text-[#3C77C3]" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-800 text-sm">Manual Password Reset Required</h3>
+                    <p className="text-slate-500 text-xs mt-1 leading-relaxed">
+                      For security compliance, automated self-service password reset links are disabled. Please contact the Creva Super Admin to reset your password or get temporary credentials.
+                    </p>
+                  </div>
                 </div>
-              )}
 
-              <div className="flex flex-col gap-2 pt-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all disabled:opacity-50"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Sending reset link...
-                    </>
-                  ) : (
-                    <>
-                      Send Reset Link
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
+                <div className="h-px bg-border/60 my-2" />
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setError(null);
-                    setView('login');
-                  }}
-                  className="w-full flex items-center justify-center gap-1.5 px-6 py-2.5 bg-muted text-foreground border rounded-lg font-semibold hover:bg-muted/80 transition-all text-sm"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to Login
-                </button>
+                <div className="space-y-3">
+                  <a
+                    href="tel:+918220376226"
+                    className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border/80 hover:border-primary/40 hover:bg-muted/30 transition-all group"
+                  >
+                    <div className="p-2 bg-emerald-500/10 text-emerald-600 rounded-lg group-hover:scale-105 transition-transform">
+                      <Phone className="w-4 h-4" />
+                    </div>
+                    <div className="text-left">
+                      <span className="block text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Call Super Admin</span>
+                      <span className="block text-sm font-bold text-slate-800">+91 82203 76226</span>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-muted-foreground/60 ml-auto group-hover:translate-x-0.5 transition-transform" />
+                  </a>
+
+                  <a
+                    href="mailto:admin@crevawebzz.com"
+                    className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border/80 hover:border-primary/40 hover:bg-muted/30 transition-all group"
+                  >
+                    <div className="p-2 bg-blue-500/10 text-[#3C77C3] rounded-lg group-hover:scale-105 transition-transform">
+                      <Mail className="w-4 h-4" />
+                    </div>
+                    <div className="text-left">
+                      <span className="block text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Email Address</span>
+                      <span className="block text-sm font-bold text-slate-800">admin@crevawebzz.com</span>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-muted-foreground/60 ml-auto group-hover:translate-x-0.5 transition-transform" />
+                  </a>
+                </div>
+
+                <div className="p-3 bg-amber-500/5 text-amber-800 text-[11px] rounded-lg border border-amber-500/15 flex gap-2">
+                  <span className="shrink-0 text-amber-600 font-bold">Note:</span>
+                  <span>Once the admin provides your temporary password, log in here and change it in your store settings immediately.</span>
+                </div>
               </div>
-            </form>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setView('login');
+                }}
+                className="w-full flex items-center justify-center gap-1.5 px-6 py-2.5 bg-muted text-foreground border rounded-lg font-semibold hover:bg-muted/80 transition-all text-sm"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Login
+              </button>
+            </div>
           )}
 
           <div className="mt-8 pt-6 border-t border-border text-center">
