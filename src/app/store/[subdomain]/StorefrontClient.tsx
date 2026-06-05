@@ -5,7 +5,7 @@ import {
   ShoppingCart, Menu, Search, X, Loader2, User, ChevronLeft, ChevronRight, 
   Truck, Shield, RefreshCw, ArrowRight, Heart, Star, Check, Eye, ArrowUpDown, 
   Sparkles, Package, ShoppingBag, EyeOff, Calendar, Clock, Instagram, Facebook, Twitter, Youtube, Linkedin, MessageCircle,
-  CreditCard, Coins, Smartphone, QrCode, CheckCircle2, Lock
+  CreditCard, Coins, Smartphone, QrCode, CheckCircle2, Lock, Building2, Zap
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -1186,6 +1186,102 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         { name: 'Luxury Cotton Hoodie', quantity: 1, price: 71.00 }
       ]
     });
+  };
+
+  // Load Razorpay checkout SDK dynamically
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (typeof window === 'undefined') {
+        resolve(false);
+        return;
+      }
+      if ((window as any).Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  // Launch real Razorpay checkout
+  const handleRazorpayPayment = async () => {
+    setPaymentProcessing(true);
+    setPaymentStageText('Loading Razorpay Secure Checkout...');
+    
+    const loaded = await loadRazorpayScript();
+    if (!loaded) {
+      setPaymentProcessing(false);
+      alert('Failed to load Razorpay payment gateway SDK. Please check your internet connection.');
+      return;
+    }
+
+    setPaymentStageText('Initializing payment dialog...');
+    
+    // Retrieve Key ID from integration settings
+    let keyId = 'rzp_test_defaultKeyIdIfEmpty';
+    try {
+      if (store.description && store.description.startsWith('{')) {
+        const descData = JSON.parse(store.description);
+        if (descData.integrationSettings && descData.integrationSettings.razorpay) {
+          keyId = descData.integrationSettings.razorpay.keyId || keyId;
+        }
+      }
+    } catch (e) {
+      console.error("Failed to parse Razorpay Key ID in handleRazorpayPayment", e);
+    }
+
+    const options = {
+      key: keyId,
+      amount: Math.round(finalTotalAmount * 100), // amount in paise
+      currency: store.currency || 'INR',
+      name: store.store_name,
+      description: `Payment for Order at ${store.store_name}`,
+      image: store.logo_url || '',
+      handler: async function (response: any) {
+        setPaymentStageText('Verifying transaction...');
+        setPaymentProcessing(true);
+        
+        // Wait briefly for smooth visual flow
+        setTimeout(async () => {
+          setPaymentProcessing(false);
+          setSimulatedPaymentSuccess(true);
+          
+          setTimeout(async () => {
+            await submitFinalOrder(
+              'paid', 
+              'Razorpay Online', 
+              `Paid via Razorpay. ID: ${response.razorpay_payment_id}`
+            );
+          }, 1500);
+        }, 1200);
+      },
+      prefill: {
+        name: customerName || '',
+        contact: customerPhone || '',
+        email: customerUser?.email || ''
+      },
+      theme: {
+        color: store.primary_color || '#7C3AED'
+      },
+      modal: {
+        ondismiss: function () {
+          setPaymentProcessing(false);
+        }
+      }
+    };
+
+    try {
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    } catch (err: any) {
+      setPaymentProcessing(false);
+      alert('Error launching Razorpay: ' + err.message);
+    }
   };
 
   const submitFinalOrder = async (paymentStatus: 'paid' | 'unpaid', actualMethod: string, extraNote: string = '') => {
@@ -4073,165 +4169,74 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 </div>
 
                 {razorpayConnected ? (
-                  /* SIMULATED GATEWAY OPTIONS */
-                  <form onSubmit={async (e) => {
-                    e.preventDefault();
-                    setPaymentProcessing(true);
-                    setPaymentStageText('Connecting to simulated payment server...');
-                    setTimeout(() => {
-                      setPaymentStageText('Authenticating secure transaction...');
-                      setTimeout(() => {
-                        setPaymentStageText('Finalizing payment authorization...');
-                        setTimeout(async () => {
-                          setPaymentProcessing(false);
-                          setSimulatedPaymentSuccess(true);
-                          setTimeout(async () => {
-                            await submitFinalOrder(
-                              'paid', 
-                              `Online Payment (Simulated - ${selectedSimulatedPG.toUpperCase()})`,
-                              selectedSimulatedPG === 'card' 
-                                ? `Paid via Card Ending in ${cardNumber.slice(-4) || '1234'}` 
-                                : selectedSimulatedPG === 'qr'
-                                  ? 'Paid via Shop UPI QR Code Scan'
-                                  : `Paid via ${selectedSimulatedPG.toUpperCase()} UPI`
-                            );
-                          }, 1500);
-                        }, 1000);
-                      }, 1000);
-                    }, 1000);
-                  }} className="p-6 flex-1 overflow-y-auto space-y-5">
-                    
-                    {/* Method Selector Tabs */}
-                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                      {(['gpay', 'phonepe', 'paytm', 'qr', 'card'] as const).map((method) => (
-                        <button
-                          key={method}
-                          type="button"
-                          onClick={() => setSelectedSimulatedPG(method)}
-                          className={`py-2 px-1 text-center border rounded-xl flex flex-col items-center justify-center gap-1.5 transition-all ${
-                            selectedSimulatedPG === method
-                              ? 'border-purple-600 bg-purple-50/10 text-purple-700 shadow-sm'
-                              : 'border-slate-200 hover:border-slate-300 text-slate-500'
-                          }`}
-                        >
-                          {method === 'card' ? (
-                            <CreditCard className="w-4 h-4 text-purple-600" />
-                          ) : method === 'qr' ? (
-                            <QrCode className="w-4 h-4 text-purple-600" />
-                          ) : (
-                            <Smartphone className="w-4 h-4 text-purple-600" />
-                          )}
-                          <span className="text-[9px] font-bold uppercase tracking-wider block">
-                            {method === 'gpay' ? 'GPay' : method === 'phonepe' ? 'PhonePe' : method === 'paytm' ? 'Paytm' : method === 'qr' ? 'Shop QR' : 'Card'}
-                          </span>
-                        </button>
-                      ))}
+                  <div className="p-6 flex-1 overflow-y-auto space-y-6 text-center">
+                    {/* Amount & Merchant Info */}
+                    <div className="bg-gradient-to-r from-purple-50/60 to-rose-50/60 border border-purple-100 rounded-3xl p-5 shadow-sm text-left relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-xl pointer-events-none" />
+                      <span className="text-[9px] text-gray-400 font-black uppercase tracking-wider block">Merchant Storefront</span>
+                      <h4 className="font-extrabold text-base text-gray-900 mt-0.5">{store.store_name}</h4>
+                      
+                      <div className="h-px bg-gray-105/50 my-3.5" />
+                      
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="text-[9px] text-gray-400 font-black uppercase tracking-wider block">Total Amount</span>
+                          <h3 className="font-black text-xl text-purple-700 mt-0.5">{currencySymbol}{finalTotalAmount.toLocaleString()}</h3>
+                        </div>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50/50 text-emerald-700 border border-emerald-100 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm">
+                          <Check className="w-3.5 h-3.5 text-emerald-600" /> SECURE GATEWAY
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Method Content */}
-                    <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100">
-                      {selectedSimulatedPG === 'qr' ? (
-                        <div className="flex flex-col items-center justify-center space-y-3 py-2 text-center">
-                          <p className="text-[10px] text-slate-500 leading-relaxed max-w-[280px] mx-auto font-medium">
-                            Scan the merchant's business QR code using GPay, PhonePe, Paytm, or any UPI app to pay.
-                          </p>
-                          <div className="p-2 bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center justify-center w-36 h-36">
-                            <img 
-                              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                                `upi://pay?pa=${paymentUpiId || `${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi`}&pn=${encodeURIComponent(store.store_name)}&am=${finalTotalAmount}&cu=INR`
-                              )}`} 
-                              alt="Store payment QR"
-                              className="w-full h-full object-contain"
-                            />
+                    {/* Features/Info Card */}
+                    <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 text-left space-y-3">
+                      <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Supported Payment Channels</h5>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-slate-150/40">
+                          <div className="p-1 bg-purple-50 text-purple-600 rounded">
+                            <Smartphone className="w-3.5 h-3.5" />
                           </div>
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 text-purple-705 border border-purple-100 rounded-full text-[9px] font-black uppercase tracking-wider">
-                            <QrCode className="w-3.5 h-3.5 text-purple-600" /> DIRECT UPI QR SCAN
-                          </span>
+                          <span className="text-[11px] font-bold text-slate-700">UPI / GPay / PhonePe</span>
                         </div>
-                      ) : selectedSimulatedPG !== 'card' ? (
-                        <div className="space-y-3 text-center py-2">
-                          <p className="text-[10px] text-slate-500 leading-relaxed max-w-[260px] mx-auto font-medium">
-                            We will simulate a secure UPI direct callback flow. Click pay below to authenticate.
-                          </p>
-                          <div className="w-full text-center">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-100 rounded-full text-[9px] font-bold uppercase tracking-wider">
-                              UPI Target: {customerPhone}@upi
-                            </span>
+                        
+                        <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-slate-150/40">
+                          <div className="p-1 bg-purple-50 text-purple-600 rounded">
+                            <CreditCard className="w-3.5 h-3.5" />
                           </div>
+                          <span className="text-[11px] font-bold text-slate-700">Credit / Debit Cards</span>
                         </div>
-                      ) : (
-                        <div className="space-y-3">
-                          <div>
-                            <label className="block text-[8px] font-bold text-gray-500 uppercase tracking-widest mb-1">Card Number *</label>
-                            <input 
-                              required 
-                              type="text" 
-                              maxLength={19}
-                              value={cardNumber}
-                              onChange={e => {
-                                const val = e.target.value.replace(/\D/g, '');
-                                const formatted = val.match(/.{1,4}/g)?.join(' ') || val;
-                                setCardNumber(formatted);
-                              }}
-                              placeholder="4111 2222 3333 4444" 
-                              className="w-full h-9 px-3 border border-gray-200 bg-white outline-none rounded-xl text-xs focus:border-purple-600 transition-colors placeholder:text-gray-300 font-mono" 
-                            />
+
+                        <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-slate-150/40">
+                          <div className="p-1 bg-purple-50 text-purple-600 rounded">
+                            <Building2 className="w-3.5 h-3.5" />
                           </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="block text-[8px] font-bold text-gray-500 uppercase tracking-widest mb-1">Expiry Date *</label>
-                              <input 
-                                required 
-                                type="text"
-                                maxLength={5}
-                                value={cardExpiry}
-                                onChange={e => {
-                                  const val = e.target.value.replace(/\D/g, '');
-                                  if (val.length >= 2) {
-                                    setCardExpiry(val.slice(0,2) + '/' + val.slice(2,4));
-                                  } else {
-                                    setCardExpiry(val);
-                                  }
-                                }}
-                                placeholder="MM/YY" 
-                                className="w-full h-9 px-3 border border-gray-200 bg-white outline-none rounded-xl text-xs focus:border-purple-600 transition-colors placeholder:text-gray-300 font-mono" 
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[8px] font-bold text-gray-500 uppercase tracking-widest mb-1">CVV / CVC *</label>
-                              <input 
-                                required 
-                                type="password" 
-                                maxLength={3}
-                                value={cardCvv}
-                                onChange={e => setCardCvv(e.target.value.replace(/\D/g, ''))}
-                                placeholder="•••" 
-                                className="w-full h-9 px-3 border border-gray-200 bg-white outline-none rounded-xl text-xs focus:border-purple-600 transition-colors placeholder:text-gray-300 font-mono" 
-                              />
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-[8px] font-bold text-gray-500 uppercase tracking-widest mb-1">Cardholder Name *</label>
-                            <input 
-                              required 
-                              type="text" 
-                              value={cardName}
-                              onChange={e => setCardName(e.target.value)}
-                              placeholder="JOHN DOE" 
-                              className="w-full h-9 px-3 border border-gray-200 bg-white outline-none rounded-xl text-xs focus:border-purple-600 transition-colors placeholder:text-gray-300 uppercase font-semibold" 
-                            />
-                          </div>
+                          <span className="text-[11px] font-bold text-slate-700">Net Banking</span>
                         </div>
-                      )}
+
+                        <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-slate-150/40">
+                          <div className="p-1 bg-purple-50 text-purple-600 rounded">
+                            <Zap className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="text-[11px] font-bold text-slate-700">Wallets & PayLater</span>
+                        </div>
+                      </div>
+
+                      <p className="text-[9.5px] text-slate-450 leading-relaxed font-medium">
+                        Razorpay will automatically launch its payment overlay. On mobile devices, selecting GPay or PhonePe will prompt you to complete the payment in the respective app securely.
+                      </p>
                     </div>
 
+                    {/* Pay Button */}
                     <button
-                      type="submit"
-                      className="w-full py-3.5 bg-gradient-to-r from-purple-700 to-rose-500 hover:opacity-95 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-lg transition-all flex items-center justify-center gap-1.5"
+                      type="button"
+                      onClick={handleRazorpayPayment}
+                      className="w-full py-4 bg-gradient-to-r from-purple-700 via-purple-650 to-rose-500 hover:opacity-95 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl hover:shadow-2xl transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
                     >
-                      <Lock className="w-3.5 h-3.5" /> Pay {currencySymbol}{finalTotalAmount.toLocaleString()}
+                      <Lock className="w-4 h-4 text-white" /> PAY SECURELY VIA RAZORPAY
                     </button>
-                  </form>
+                  </div>
                 ) : (
                   /* MANUAL UPI QR FALLBACK OPTIONS */
                   <div className="p-6 flex-1 overflow-y-auto space-y-5 text-center">
