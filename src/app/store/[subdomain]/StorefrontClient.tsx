@@ -252,6 +252,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   let selectedTemplate: 'minimal' | 'artisan' | 'bold' | 'luxe' | 'retro' | 'admire' = 'minimal';
   let codEnabled = true;
   let onlinePaymentEnabled = true;
+  let paymentQrUrl = '';
   let benefits = {
     enabled: true,
     items: [
@@ -312,6 +313,9 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       }
       if (data.onlinePaymentEnabled !== undefined) {
         onlinePaymentEnabled = data.onlinePaymentEnabled;
+      }
+      if (data.paymentQrUrl) {
+        paymentQrUrl = data.paymentQrUrl;
       }
 
       // Extract competitor features
@@ -617,7 +621,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [simulatedPaymentSuccess, setSimulatedPaymentSuccess] = useState(false);
-  const [selectedSimulatedPG, setSelectedSimulatedPG] = useState<'gpay' | 'phonepe' | 'paytm' | 'card'>('gpay');
+  const [selectedSimulatedPG, setSelectedSimulatedPG] = useState<'gpay' | 'phonepe' | 'paytm' | 'card' | 'qr'>('gpay');
   const [copiedPhone, setCopiedPhone] = useState(false);
   const [paymentStageText, setPaymentStageText] = useState('Initiating secure gateway...');
 
@@ -4085,7 +4089,11 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                             await submitFinalOrder(
                               'paid', 
                               `Online Payment (Simulated - ${selectedSimulatedPG.toUpperCase()})`,
-                              selectedSimulatedPG === 'card' ? `Paid via Card Ending in ${cardNumber.slice(-4) || '1234'}` : `Paid via ${selectedSimulatedPG.toUpperCase()} UPI`
+                              selectedSimulatedPG === 'card' 
+                                ? `Paid via Card Ending in ${cardNumber.slice(-4) || '1234'}` 
+                                : selectedSimulatedPG === 'qr'
+                                  ? 'Paid via Shop UPI QR Code Scan'
+                                  : `Paid via ${selectedSimulatedPG.toUpperCase()} UPI`
                             );
                           }, 1500);
                         }, 1000);
@@ -4094,8 +4102,8 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   }} className="p-6 flex-1 overflow-y-auto space-y-5">
                     
                     {/* Method Selector Tabs */}
-                    <div className="grid grid-cols-4 gap-2">
-                      {(['gpay', 'phonepe', 'paytm', 'card'] as const).map((method) => (
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                      {(['gpay', 'phonepe', 'paytm', 'qr', 'card'] as const).map((method) => (
                         <button
                           key={method}
                           type="button"
@@ -4108,11 +4116,13 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                         >
                           {method === 'card' ? (
                             <CreditCard className="w-4 h-4 text-purple-600" />
+                          ) : method === 'qr' ? (
+                            <QrCode className="w-4 h-4 text-purple-600" />
                           ) : (
                             <Smartphone className="w-4 h-4 text-purple-600" />
                           )}
                           <span className="text-[9px] font-bold uppercase tracking-wider block">
-                            {method === 'gpay' ? 'GPay' : method === 'phonepe' ? 'PhonePe' : method === 'paytm' ? 'Paytm' : 'Card'}
+                            {method === 'gpay' ? 'GPay' : method === 'phonepe' ? 'PhonePe' : method === 'paytm' ? 'Paytm' : method === 'qr' ? 'Shop QR' : 'Card'}
                           </span>
                         </button>
                       ))}
@@ -4120,7 +4130,25 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
                     {/* Method Content */}
                     <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100">
-                      {selectedSimulatedPG !== 'card' ? (
+                      {selectedSimulatedPG === 'qr' ? (
+                        <div className="flex flex-col items-center justify-center space-y-3 py-2 text-center">
+                          <p className="text-[10px] text-slate-500 leading-relaxed max-w-[280px] mx-auto font-medium">
+                            Scan the merchant's business QR code using GPay, PhonePe, Paytm, or any UPI app to pay.
+                          </p>
+                          <div className="p-2 bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center justify-center w-36 h-36">
+                            <img 
+                              src={paymentQrUrl ? paymentQrUrl : `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                                `upi://pay?pa=${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi&pn=${store.store_name}&am=${finalTotalAmount}&cu=INR`
+                              )}`} 
+                              alt="Store payment QR"
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 text-purple-705 border border-purple-100 rounded-full text-[9px] font-black uppercase tracking-wider">
+                            <QrCode className="w-3.5 h-3.5 text-purple-600" /> DIRECT UPI QR SCAN
+                          </span>
+                        </div>
+                      ) : selectedSimulatedPG !== 'card' ? (
                         <div className="space-y-3 text-center py-2">
                           <p className="text-[10px] text-slate-500 leading-relaxed max-w-[260px] mx-auto font-medium">
                             We will simulate a secure UPI direct callback flow. Click pay below to authenticate.
@@ -4218,7 +4246,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     <div className="flex flex-col items-center justify-center">
                       <div className="p-3 bg-white border border-slate-200 rounded-3xl shadow-sm relative overflow-hidden flex items-center justify-center w-48 h-48">
                         <img 
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                          src={paymentQrUrl ? paymentQrUrl : `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
                             `upi://pay?pa=${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi&pn=${store.store_name}&am=${finalTotalAmount}&cu=INR`
                           )}`} 
                           alt="UPI Payment QR Code" 
