@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [resetEmail, setResetEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [resetSuccess, setResetSuccess] = useState<string | null>(null);
+  const [resetSuccess, setResetSuccess] = useState<React.ReactNode | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -53,13 +53,24 @@ export default function LoginPage() {
     setResetSuccess(null);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      const { data, error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (error) throw error;
 
-      setResetSuccess('Reset link has been sent to your email! Please check your inbox.');
+      if (data && data.debug_link) {
+        setResetSuccess(
+          <span>
+            Reset link generated! Since mail delivery is not configured on this server, you can use the debug link directly:{' '}
+            <a href={data.debug_link} className="font-bold underline text-[#3C77C3] hover:text-[#2d5992]">
+              Reset Password Link
+            </a>
+          </span>
+        );
+      } else {
+        setResetSuccess('Reset link has been sent to your email! Please check your inbox.');
+      }
       setView('login');
       setEmail(resetEmail);
     } catch (err: any) {
