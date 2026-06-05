@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { 
   Loader2, BarChart3, TrendingUp, ShoppingBag, Receipt, Users, Award, Sparkles, 
   Calendar, Download, ArrowUpRight, ArrowDownRight, DollarSign, Percent, ShieldCheck, 
-  Briefcase, Compass, ChevronRight, Activity, CalendarDays, ShoppingCart
+  Briefcase, Compass, ChevronRight, Activity, CalendarDays, ShoppingCart, Clock
 } from 'lucide-react';
 
 export default function ReportsPage() {
@@ -110,11 +110,11 @@ export default function ReportsPage() {
     const uniqueShoppersCount = new Set(filteredOrders.map(o => o.customer_phone)).size;
     const aov = totalOrdersCount > 0 ? (grossRevenue / totalOrdersCount) : 0;
     
-    // Simulate high conversion rate matching store traction
-    const conversionRate = totalOrdersCount > 0 ? Number(((totalOrdersCount / (totalOrdersCount + 180)) * 100).toFixed(2)) : 0;
+    // Calculate Fulfillment Rate (Completed Orders / Total Orders)
+    const completedCount = filteredOrders.filter(o => o.status === 'completed').length;
+    const completionRate = totalOrdersCount > 0 ? Number(((completedCount / totalOrdersCount) * 100).toFixed(1)) : 0;
     
     // Calculate Monthly Growth % (Comparing filtered sales to matching previous duration)
-    // For demonstration, compute MoM sales growth dynamically based on last month vs current month
     const now = new Date();
     const currentMonthSales = orders
       .filter(o => new Date(o.created_at).getMonth() === now.getMonth() && new Date(o.created_at).getFullYear() === now.getFullYear())
@@ -131,7 +131,7 @@ export default function ReportsPage() {
       totalOrdersCount,
       uniqueShoppersCount,
       aov,
-      conversionRate,
+      completionRate,
       growthPercent: Number(growthPercent.toFixed(1))
     };
   }, [filteredOrders, orders]);
@@ -139,19 +139,32 @@ export default function ReportsPage() {
   // 3. FINANCIAL ANALYSIS SUMMARY
   const financials = useMemo(() => {
     const gross = stats.grossRevenue;
-    const discounts = gross * 0.05; // 5% average discounts configured
-    const delivery = stats.totalOrdersCount * 60; // Flat ₹60 shipping yield
-    const tax = gross * 0.18; // 18% standard GST
-    const profit = gross - discounts + delivery - tax;
+    
+    // Real calculations from database
+    const paidSales = filteredOrders
+      .filter(o => {
+        const key = typeof window !== 'undefined' ? localStorage.getItem(`creva_order_extra_${o.id}`) : null;
+        const extraStatus = key ? JSON.parse(key).payment_status : null;
+        return o.payment_status === 'paid' || extraStatus === 'paid';
+      })
+      .reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
+      
+    const unpaidSales = gross - paidSales;
+    
+    const completedSales = filteredOrders
+      .filter(o => o.status === 'completed')
+      .reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
+
+    const netCollected = paidSales;
 
     return {
       gross,
-      discounts,
-      delivery,
-      tax,
-      profit: Math.max(profit, 0)
+      paidSales,
+      unpaidSales,
+      completedSales,
+      netCollected
     };
-  }, [stats]);
+  }, [filteredOrders, stats]);
 
   // 4. TOP PRODUCTS & LEADERBOARDS
   const productPerformance = useMemo(() => {
@@ -259,15 +272,46 @@ export default function ReportsPage() {
     return Array.from(customerMap.values()).sort((a, b) => b.spend - a.spend);
   }, [filteredOrders]);
 
-  // Traffic Source Simulation
-  const trafficSources = useMemo(() => {
+  // Payment Methods Breakdown (Real Data)
+  const paymentMethodsDistribution = useMemo(() => {
+    const total = filteredOrders.length;
+    if (total === 0) {
+      return [
+        { source: 'Direct UPI', percentage: 0, color: 'bg-purple-500' },
+        { source: 'Cash on Delivery', percentage: 0, color: 'bg-amber-500' },
+        { source: 'Razorpay Online', percentage: 0, color: 'bg-emerald-500' },
+        { source: 'Others/WhatsApp Cash', percentage: 0, color: 'bg-slate-400' }
+      ];
+    }
+    
+    let upiCount = 0;
+    let codCount = 0;
+    let rpCount = 0;
+    let otherCount = 0;
+    
+    filteredOrders.forEach(o => {
+      const key = typeof window !== 'undefined' ? localStorage.getItem(`creva_order_extra_${o.id}`) : null;
+      const extraStatus = key ? JSON.parse(key).payment_method : null;
+      const method = o.payment_method || extraStatus || 'WhatsApp Cash';
+      
+      if (method.includes('UPI') || method.includes('GPay') || method.includes('PhonePe')) {
+        upiCount++;
+      } else if (method.includes('Cash on Delivery') || method.includes('COD')) {
+        codCount++;
+      } else if (method.includes('Razorpay') || method.includes('Online')) {
+        rpCount++;
+      } else {
+        otherCount++;
+      }
+    });
+
     return [
-      { source: 'WhatsApp Shares', percentage: 55, color: 'bg-emerald-500' },
-      { source: 'Direct Search', percentage: 25, color: 'bg-[#3C77C3]' },
-      { source: 'Instagram Bio', percentage: 12, color: 'bg-rose-500' },
-      { source: 'Other links', percentage: 8, color: 'bg-amber-500' }
+      { source: 'Direct UPI', percentage: Math.round((upiCount / total) * 100), color: 'bg-purple-500' },
+      { source: 'Cash on Delivery', percentage: Math.round((codCount / total) * 100), color: 'bg-amber-500' },
+      { source: 'Razorpay Online', percentage: Math.round((rpCount / total) * 100), color: 'bg-emerald-500' },
+      { source: 'Others/WhatsApp Cash', percentage: Math.round((otherCount / total) * 100), color: 'bg-slate-450' }
     ];
-  }, []);
+  }, [filteredOrders]);
 
   // Category sales leaderboard
   const categoryLeaderboard = useMemo(() => {
@@ -423,7 +467,7 @@ export default function ReportsPage() {
           { label: 'Total Orders', value: stats.totalOrdersCount, icon: ShoppingBag, color: 'text-[#3C77C3] bg-[#3C77C3]/10 border-[#3C77C3]/10', sub: 'Inflow traffic sync', isGrowth: true },
           { label: 'Total Customers', value: stats.uniqueShoppersCount, icon: Users, color: 'text-purple-500 bg-purple-500/10 border-purple-500/10', sub: 'Unique phone registry', isGrowth: true },
           { label: 'Average Order', value: `${currencySymbol}${Math.round(stats.aov).toLocaleString()}`, icon: Receipt, color: 'text-amber-500 bg-amber-500/10 border-amber-500/10', sub: 'Standard transaction', isGrowth: true },
-          { label: 'Conversion Rate', value: `${stats.conversionRate}%`, icon: Percent, color: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/10', sub: 'Successful checkouts', isGrowth: true },
+          { label: 'Fulfillment Rate', value: `${stats.completionRate}%`, icon: Percent, color: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/10', sub: 'Completed orders', isGrowth: true },
           { label: 'Growth Status', value: stats.growthPercent >= 0 ? 'Positive MoM' : 'Negative MoM', icon: Activity, color: stats.growthPercent >= 0 ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/10' : 'text-rose-500 bg-rose-500/10 border-rose-500/10', sub: stats.growthPercent >= 0 ? 'Above SaaS index' : 'Recheck marketing copy', isGrowth: stats.growthPercent >= 0 }
         ].map((card, idx) => (
           <div key={idx} className="bg-card text-card-foreground p-5 rounded-2xl border shadow-sm flex flex-col justify-between hover:border-[#3C77C3]/20 transition-all text-left">
@@ -507,16 +551,16 @@ export default function ReportsPage() {
           </p>
         </div>
 
-        {/* Graph 2: Traffic Sources & Conversion Funnel */}
+        {/* Graph 2: Payment Channels Distribution */}
         <div className="bg-card rounded-2xl border shadow-sm p-6 space-y-6 flex flex-col justify-between text-left">
           <div className="space-y-4">
             <div className="border-b pb-3 flex items-center gap-2">
-              <Compass className="w-5 h-5 text-[#3C77C3]" />
-              <h3 className="font-bold text-xs uppercase tracking-widest text-gray-800">Traffic Outlets & Engagement</h3>
+              <ShoppingCart className="w-5 h-5 text-[#3C77C3]" />
+              <h3 className="font-bold text-xs uppercase tracking-widest text-gray-800">Payment Method Breakdown</h3>
             </div>
 
             <div className="space-y-4">
-              {trafficSources.map((item, idx) => (
+              {paymentMethodsDistribution.map((item, idx) => (
                 <div key={idx} className="space-y-1.5">
                   <div className="flex justify-between items-center text-[10px] font-bold">
                     <span className="text-gray-700 uppercase tracking-wide">{item.source}</span>
@@ -530,31 +574,31 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          <div className="bg-muted/30 border rounded-xl p-4 text-[10px] text-muted-foreground leading-relaxed leading-normal">
-            🎯 WhatsApp checkout captures user referral metadata tags automatically upon session handshakes.
+          <div className="bg-muted/30 border rounded-xl p-4 text-[10px] text-muted-foreground leading-relaxed leading-normal font-medium">
+            🎯 Real-time distribution of payment modes chosen by customers at checkout.
           </div>
         </div>
       </div>
 
-      {/* Financial Section Breakdown (Gross, Discounts, Delivery, Taxes, Profit) */}
+      {/* Financial Section Breakdown (Real Cash Flow) */}
       <div className="bg-card border rounded-2xl p-6 shadow-sm text-left">
         <div className="border-b pb-3 flex items-center gap-2 mb-6">
           <DollarSign className="w-5 h-5 text-emerald-500" />
-          <h3 className="font-bold text-xs uppercase tracking-widest text-gray-800">Financial Audit & Operating Margins</h3>
+          <h3 className="font-bold text-xs uppercase tracking-widest text-gray-800">Financial Audit & Realized Cash Flow</h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
           {[
-            { label: 'Gross Revenue', val: financials.gross, icon: TrendingUp, style: 'text-gray-900' },
-            { label: 'Promo Discounts', val: -financials.discounts, icon: Percent, style: 'text-rose-600' },
-            { label: 'Shipping Yield', val: financials.delivery, icon: ShoppingCart, style: 'text-[#3C77C3]' },
-            { label: 'GST Tax (18%)', val: -financials.tax, icon: Briefcase, style: 'text-amber-600' },
-            { label: 'Net Profit Margin', val: financials.profit, icon: ShieldCheck, style: 'text-emerald-600 font-extrabold text-lg' }
+            { label: 'Total Sales (Booked)', val: financials.gross, icon: TrendingUp, style: 'text-gray-900' },
+            { label: 'Paid Sales (Realized)', val: financials.paidSales, icon: ShieldCheck, style: 'text-emerald-600' },
+            { label: 'COD / Pending (Unpaid)', val: financials.unpaidSales, icon: Clock, style: 'text-rose-600' },
+            { label: 'Completed Sales Value', val: financials.completedSales, icon: ShoppingBag, style: 'text-[#3C77C3]' },
+            { label: 'Net Collected Revenue', val: financials.netCollected, icon: DollarSign, style: 'text-emerald-700 font-extrabold text-lg' }
           ].map((item, idx) => (
             <div key={idx} className="bg-muted/15 border border-border/60 p-4 rounded-xl flex flex-col justify-between space-y-3">
               <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{item.label}</span>
               <span className={`text-base font-black tracking-tight ${item.style}`}>
-                {item.val >= 0 ? '' : '-'}{currencySymbol}{Math.abs(Math.round(item.val)).toLocaleString()}
+                {currencySymbol}{Math.abs(Math.round(item.val)).toLocaleString()}
               </span>
             </div>
           ))}
