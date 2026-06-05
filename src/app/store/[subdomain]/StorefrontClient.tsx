@@ -5603,7 +5603,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           }
         } catch (e) {}
 
-        const isGloballyEnabled = globalSettings?.whatsappEnabledGlobal !== false;
+        const isGloballyEnabled = true;
         const plansCtc = globalSettings?.whatsappPlansEnabled || ['30', '365', 'lifetime'];
         const hasClickToChat = isGloballyEnabled;
         const isWidgetVisible = hasClickToChat && whatsappEnabled && whatsappNumber.trim().length > 0;

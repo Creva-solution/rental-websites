@@ -178,7 +178,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   // Determine WhatsApp permissions to show/hide Marketing Hub
-  const isGloballyEnabled = globalSettings?.whatsappEnabledGlobal !== false;
+  const isGloballyEnabled = true;
   let selectedPlan = '30';
   try {
     if (store?.description && store.description.startsWith('{')) {

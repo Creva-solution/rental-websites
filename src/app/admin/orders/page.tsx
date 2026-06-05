@@ -1356,7 +1356,7 @@ export default function OrdersPage() {
         const cleanPhone = order.customer_phone ? order.customer_phone.replace(/[^0-9]/g, '') : '';
         const whatsappNumberToUse = cleanPhone.startsWith('91') ? cleanPhone : '91' + cleanPhone;
 
-        const isGloballyEnabled = globalSettings?.whatsappEnabledGlobal !== false;
+        const isGloballyEnabled = true;
         let selectedPlan = '30';
         try {
           if (store?.description && store.description.startsWith('{')) {

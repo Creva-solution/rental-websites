@@ -540,7 +540,7 @@ export default function SettingsPage() {
         {/* WhatsApp Integration Settings */}
         {(() => {
           // Determine WhatsApp permissions
-          const isGloballyEnabled = globalSettings?.whatsappEnabledGlobal !== false;
+          const isGloballyEnabled = true;
           let selectedPlan = '30';
           try {
             if (store?.description && store.description.startsWith('{')) {

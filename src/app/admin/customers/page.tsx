@@ -102,7 +102,7 @@ export default function CustomersPage() {
   const currencySymbol = store?.currency === 'USD' ? '$' : '₹';
 
   // Determine WhatsApp permissions
-  const isGloballyEnabled = globalSettings?.whatsappEnabledGlobal !== false;
+  const isGloballyEnabled = true;
   let selectedPlan = '30';
   try {
     if (store?.description && store.description.startsWith('{')) {

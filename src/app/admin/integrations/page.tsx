@@ -216,6 +216,7 @@ export default function IntegrationsPage() {
   };
 
   const isIntegrationVisible = (id: string) => {
+    if (id === 'whatsapp_api') return true;
     if (!globalIntegrations) return false;
     return !!globalIntegrations[id];
   };
