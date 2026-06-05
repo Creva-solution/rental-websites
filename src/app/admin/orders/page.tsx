@@ -164,16 +164,44 @@ export default function OrdersPage() {
   const currencySymbol = store?.currency === 'USD' ? '$' : '₹';
 
   // 1. FAIL-PROOF PERSISTENT SAVE FOR EXTRA FIELDS (LOCALSTORAGE FALLBACK)
-  const getExtraFields = (orderId: string) => {
-    if (typeof window === 'undefined') return { tracking_number: '', delivery_date: '', payment_method: 'WhatsApp Cash', payment_status: 'unpaid' };
+  const getExtraFields = (orderOrId: any) => {
+    let order: any = null;
+    let orderId = '';
+    
+    if (typeof orderOrId === 'string') {
+      orderId = orderOrId;
+      order = orders.find(o => o.id === orderId);
+    } else if (orderOrId && typeof orderOrId === 'object') {
+      order = orderOrId;
+      orderId = order.id;
+    }
+
+    if (typeof window === 'undefined') {
+      return { 
+        tracking_number: '', 
+        delivery_date: '', 
+        payment_method: order?.payment_method || 'WhatsApp Cash', 
+        payment_status: order?.payment_status || 'unpaid' 
+      };
+    }
+
     const key = `creva_order_extra_${orderId}`;
     const local = localStorage.getItem(key);
-    if (local) return JSON.parse(local);
+    if (local) {
+      const parsed = JSON.parse(local);
+      return {
+        tracking_number: parsed.tracking_number || '',
+        delivery_date: parsed.delivery_date || '',
+        payment_method: order?.payment_method || parsed.payment_method || 'WhatsApp Cash',
+        payment_status: order?.payment_status || parsed.payment_status || 'unpaid'
+      };
+    }
+
     return {
       tracking_number: '',
       delivery_date: '',
-      payment_method: 'WhatsApp Cash',
-      payment_status: 'unpaid'
+      payment_method: order?.payment_method || 'WhatsApp Cash',
+      payment_status: order?.payment_status || 'unpaid'
     };
   };
 
@@ -199,7 +227,7 @@ export default function OrdersPage() {
   // 2. DYNAMIC SEARCH & FILTER CONTROLS
   const processedOrders = useMemo(() => {
     return orders.filter(order => {
-      const extra = getExtraFields(order.id);
+      const extra = getExtraFields(order);
       
       // Order ID or Customer Name search
       const matchesSearch = 
@@ -339,7 +367,7 @@ export default function OrdersPage() {
     const customerName = order.customer_name || 'Valued Customer';
     const orderId = order.id.substring(0, 6).toUpperCase();
     const amount = `${currencySymbol}${Number(order.total_amount).toLocaleString()}`;
-    const extra = getExtraFields(order.id);
+    const extra = getExtraFields(order);
 
     if (status === 'accepted') {
       return `Hi ${customerName}! Your order #${orderId} at ${storeName} has been accepted. Total amount: ${amount}. Thank you for shopping with us!`;
@@ -747,7 +775,7 @@ export default function OrdersPage() {
                     </tr>
                   ) : (
                     processedOrders.map((order) => {
-                      const extra = getExtraFields(order.id);
+                      const extra = getExtraFields(order);
                       return (
                         <tr key={order.id} className="hover:bg-muted/10 transition-colors">
                           <td className="px-6 py-4 w-12 text-center">
@@ -871,7 +899,7 @@ export default function OrdersPage() {
           
           {/* Detailed Order Inspector Card / Edit drawer (Pops up when selectedOrder is active) */}
           {selectedOrder ? (() => {
-            const extra = getExtraFields(selectedOrder.id);
+            const extra = getExtraFields(selectedOrder);
             const timelineSteps = [
               { label: 'Placed', active: true, desc: 'WhatsApp Checkout matched' },
               { label: 'Payment', active: extra.payment_status === 'paid', desc: extra.payment_method },
