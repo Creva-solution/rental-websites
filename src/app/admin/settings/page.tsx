@@ -30,7 +30,7 @@ export default function SettingsPage() {
     whatsapp_welcome: '',
     cod_enabled: true,
     online_payment_enabled: true,
-    payment_qr_url: '',
+    payment_upi_id: '',
   });
 
   const [verifyingDomain, setVerifyingDomain] = useState(false);
@@ -40,7 +40,6 @@ export default function SettingsPage() {
 
   const [globalSettings, setGlobalSettings] = useState<any>(null);
   const [screenshotUploading, setScreenshotUploading] = useState(false);
-  const [qrUploading, setQrUploading] = useState(false);
   const [customDomainNameInput, setCustomDomainNameInput] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'qr' | 'app'>('qr');
 
@@ -90,7 +89,7 @@ export default function SettingsPage() {
       let waWelcome = '';
       let codEnabled = true;
       let onlinePaymentEnabled = true;
-      let paymentQrUrl = '';
+      let paymentUpiId = '';
 
       try {
         if (storeData.description && storeData.description.startsWith('{')) {
@@ -106,7 +105,7 @@ export default function SettingsPage() {
           waWelcome = parsed.whatsappWelcomeMessage || '';
           codEnabled = parsed.codEnabled !== undefined ? parsed.codEnabled : true;
           onlinePaymentEnabled = parsed.onlinePaymentEnabled !== undefined ? parsed.onlinePaymentEnabled : true;
-          paymentQrUrl = parsed.paymentQrUrl || '';
+          paymentUpiId = parsed.paymentUpiId || '';
         }
       } catch (e) {
         console.error("Failed to parse description JSON:", e);
@@ -131,7 +130,7 @@ export default function SettingsPage() {
         whatsapp_welcome: waWelcome,
         cod_enabled: codEnabled,
         online_payment_enabled: onlinePaymentEnabled,
-        payment_qr_url: paymentQrUrl,
+        payment_upi_id: paymentUpiId,
       });
 
       if (storeData.custom_domain) {
@@ -268,72 +267,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleQrUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert("⚠️ QR code image is too large! Please choose a file under 5MB.");
-      return;
-    }
-
-    setQrUploading(true);
-
-    const updateFormQrUrl = (url: string) => {
-      setFormData(prev => ({
-        ...prev,
-        payment_qr_url: url
-      }));
-      alert("✅ QR code image loaded successfully! Click 'Save Changes' at the bottom to apply.");
-    };
-
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `qr-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-      const filePath = `payment-qrs/${fileName}`;
-
-      const { data, error } = await supabase.storage
-        .from('assets')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (error) {
-        const { data: dataAlt, error: errorAlt } = await supabase.storage
-          .from('products')
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: false
-          });
-        if (errorAlt) throw errorAlt;
-        
-        const { data: { publicUrl: url } } = supabase.storage
-          .from('products')
-          .getPublicUrl(filePath);
-        updateFormQrUrl(url);
-      } else {
-        const { data: { publicUrl: url } } = supabase.storage
-          .from('assets')
-          .getPublicUrl(filePath);
-        updateFormQrUrl(url);
-      }
-    } catch (err: any) {
-      console.warn("Storage upload failed for QR, falling back to base64", err);
-      try {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64Url = reader.result as string;
-          updateFormQrUrl(base64Url);
-        };
-        reader.readAsDataURL(file);
-      } catch (readerErr: any) {
-        alert(`Upload failed: ${readerErr.message}`);
-      }
-    } finally {
-      setQrUploading(false);
-    }
-  };
-
   const handleSimulateDomainUpi = (appName: string) => {
     const upiId = globalSettings?.platformUpi || 'creva@ybl';
     const domainPrice = globalSettings?.customDomainUnlockPrice || '1499';
@@ -373,7 +306,7 @@ export default function SettingsPage() {
           whatsappWelcomeMessage: formData.whatsapp_welcome,
           codEnabled: formData.cod_enabled,
           onlinePaymentEnabled: formData.online_payment_enabled,
-          paymentQrUrl: formData.payment_qr_url,
+          paymentUpiId: formData.payment_upi_id,
         };
         finalDescription = JSON.stringify(merged);
         
@@ -793,71 +726,31 @@ export default function SettingsPage() {
               </button>
             </div>
 
-            {/* Payment QR Code Upload (only visible if Online Payment is enabled) */}
+            {/* Merchant UPI ID configuration (only visible if Online Payment is enabled) */}
             {formData.online_payment_enabled && (
               <div className="md:col-span-2 p-5 bg-muted/5 border border-border rounded-xl space-y-4 text-left">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
-                  <div>
-                    <span className="text-sm font-semibold text-foreground flex items-center gap-2">
-                      <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      Merchant UPI QR Code Image
-                    </span>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Upload your shop's custom payment QR code image (GPay, PhonePe, Paytm, etc.). Customers will see this image in the checkout online payment window.
-                    </p>
-                  </div>
-                  {formData.payment_qr_url && (
-                    <button
-                      type="button"
-                      onClick={() => setFormData({...formData, payment_qr_url: ''})}
-                      className="px-2.5 py-1 text-[10px] bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded font-bold uppercase transition-all"
-                    >
-                      Clear QR Code
-                    </button>
-                  )}
+                <div className="border-b border-border pb-3">
+                  <span className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    Merchant UPI VPA ID
+                  </span>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Configure your direct payment UPI VPA ID (e.g. <code>merchant@upi</code>). The storefront will dynamically generate the checkout QR code with pre-filled product transaction amounts when customers pay.
+                  </p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-5 items-start">
-                  {/* Upload Dropzone */}
-                  <div className="relative border border-dashed border-border hover:border-primary bg-background rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/10 transition-all shadow-inner w-full sm:max-w-xs">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleQrUpload}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      disabled={qrUploading}
-                    />
-                    {qrUploading ? (
-                      <div className="flex flex-col items-center gap-1">
-                        <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                        <p className="text-[10px] font-bold text-muted-foreground">Uploading QR code...</p>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center">
-                        <svg className="w-5 h-5 text-muted-foreground mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                        </svg>
-                        <p className="text-xs font-semibold text-foreground">Click to upload QR image</p>
-                        <p className="text-[9px] text-muted-foreground mt-0.5">PNG, JPG or JPEG under 5MB</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* QR Image Preview */}
-                  {formData.payment_qr_url && (
-                    <div className="flex flex-col gap-1 items-start bg-background border border-border p-2 rounded-xl shadow-sm">
-                      <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">Preview QR</span>
-                      <div className="w-24 h-24 rounded-lg overflow-hidden border bg-white flex items-center justify-center">
-                        <img 
-                          src={formData.payment_qr_url} 
-                          alt="Store Payment QR Preview" 
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                    </div>
-                  )}
+                <div className="space-y-2 max-w-md">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">UPI VPA Address *</label>
+                  <input
+                    type="text"
+                    value={formData.payment_upi_id}
+                    onChange={e => setFormData({...formData, payment_upi_id: e.target.value.trim()})}
+                    placeholder="e.g. storename@okaxis"
+                    className="w-full h-10 px-3.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
+                  />
+                  <p className="text-[10px] text-muted-foreground">Make sure this address is active on your UPI application to receive direct merchant transfers.</p>
                 </div>
               </div>
             )}

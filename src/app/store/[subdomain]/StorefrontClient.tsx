@@ -252,7 +252,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   let selectedTemplate: 'minimal' | 'artisan' | 'bold' | 'luxe' | 'retro' | 'admire' = 'minimal';
   let codEnabled = true;
   let onlinePaymentEnabled = true;
-  let paymentQrUrl = '';
+  let paymentUpiId = '';
   let benefits = {
     enabled: true,
     items: [
@@ -314,8 +314,8 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       if (data.onlinePaymentEnabled !== undefined) {
         onlinePaymentEnabled = data.onlinePaymentEnabled;
       }
-      if (data.paymentQrUrl) {
-        paymentQrUrl = data.paymentQrUrl;
+      if (data.paymentUpiId) {
+        paymentUpiId = data.paymentUpiId;
       }
 
       // Extract competitor features
@@ -4137,8 +4137,8 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                           </p>
                           <div className="p-2 bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center justify-center w-36 h-36">
                             <img 
-                              src={paymentQrUrl ? paymentQrUrl : `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                                `upi://pay?pa=${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi&pn=${store.store_name}&am=${finalTotalAmount}&cu=INR`
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                                `upi://pay?pa=${paymentUpiId || `${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi`}&pn=${encodeURIComponent(store.store_name)}&am=${finalTotalAmount}&cu=INR`
                               )}`} 
                               alt="Store payment QR"
                               className="w-full h-full object-contain"
@@ -4246,8 +4246,8 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     <div className="flex flex-col items-center justify-center">
                       <div className="p-3 bg-white border border-slate-200 rounded-3xl shadow-sm relative overflow-hidden flex items-center justify-center w-48 h-48">
                         <img 
-                          src={paymentQrUrl ? paymentQrUrl : `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                            `upi://pay?pa=${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi&pn=${store.store_name}&am=${finalTotalAmount}&cu=INR`
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                            `upi://pay?pa=${paymentUpiId || `${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi`}&pn=${encodeURIComponent(store.store_name)}&am=${finalTotalAmount}&cu=INR`
                           )}`} 
                           alt="UPI Payment QR Code" 
                           className="w-full h-full object-contain"
@@ -4258,25 +4258,27 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                       </span>
                     </div>
 
-                    {/* Phone Transfer Details */}
+                    {/* UPI VPA Transfer Details */}
                     <div className="bg-purple-50/10 border border-purple-100/50 rounded-2xl p-4 text-left space-y-2">
-                      <span className="text-[8px] font-bold text-purple-600 uppercase tracking-wider block">GPay / PhonePe / Paytm Transfer</span>
+                      <span className="text-[8px] font-bold text-purple-600 uppercase tracking-wider block">UPI VPA Address / ID</span>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono font-bold text-gray-900 select-all">{store.contact_phone || '9876543210'}</span>
+                        <span className="text-xs font-mono font-bold text-gray-900 select-all">
+                          {paymentUpiId || `${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi`}
+                        </span>
                         <button
                           type="button"
                           onClick={() => {
-                            navigator.clipboard.writeText(store.contact_phone || '9876543210');
+                            navigator.clipboard.writeText(paymentUpiId || `${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi`);
                             setCopiedPhone(true);
                             setTimeout(() => setCopiedPhone(false), 2000);
                           }}
                           className="text-[9px] font-bold text-purple-700 uppercase tracking-wider hover:underline"
                         >
-                          {copiedPhone ? 'Copied!' : 'Copy Number'}
+                          {copiedPhone ? 'Copied!' : 'Copy UPI ID'}
                         </button>
                       </div>
                       <p className="text-[9.5px] text-gray-400 leading-normal mt-1 font-medium">
-                        If you cannot scan, transfer the exact amount to the number above manually using GPay, PhonePe, or Paytm.
+                        If you cannot scan, transfer the exact amount to the UPI ID above manually using GPay, PhonePe, or Paytm.
                       </p>
                     </div>
 
@@ -4287,7 +4289,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                         await submitFinalOrder(
                           'unpaid', 
                           'Manual UPI Transfer', 
-                          `UPI Transfer initiated to ${store.contact_phone || 'Store Number'}`
+                          `UPI Transfer initiated to ${paymentUpiId || `${(store.contact_phone || 'Store Number').replace(/\D/g, '')}@upi`}`
                         );
                       }}
                       className="w-full py-3.5 bg-gradient-to-r from-purple-700 to-rose-500 hover:opacity-95 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-lg transition-all flex items-center justify-center gap-1.5 animate-pulse"
