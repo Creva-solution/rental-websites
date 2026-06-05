@@ -622,6 +622,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [simulatedPaymentSuccess, setSimulatedPaymentSuccess] = useState(false);
   const [selectedSimulatedPG, setSelectedSimulatedPG] = useState<'gpay' | 'phonepe' | 'paytm' | 'card' | 'qr'>('gpay');
+  const [activePaymentTab, setActivePaymentTab] = useState<'upi' | 'gateway'>('upi');
   const [copiedPhone, setCopiedPhone] = useState(false);
   const [paymentStageText, setPaymentStageText] = useState('Initiating secure gateway...');
 
@@ -4168,8 +4169,118 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   </button>
                 </div>
 
-                {razorpayConnected ? (
-                  <div className="p-6 flex-1 overflow-y-auto space-y-6 text-center">
+                {/* Tab selectors for connected gateways */}
+                {razorpayConnected && (
+                  <div className="flex border-b border-slate-100 bg-slate-50/50">
+                    <button
+                      type="button"
+                      onClick={() => setActivePaymentTab('upi')}
+                      className={`flex-1 py-3.5 text-center text-xs font-black uppercase tracking-wider transition-all border-b-2 ${
+                        activePaymentTab === 'upi'
+                          ? 'border-purple-600 text-purple-700 bg-white'
+                          : 'border-transparent text-slate-400 hover:text-slate-700'
+                      }`}
+                    >
+                      UPI / GPay / QR Code
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActivePaymentTab('gateway')}
+                      className={`flex-1 py-3.5 text-center text-xs font-black uppercase tracking-wider transition-all border-b-2 ${
+                        activePaymentTab === 'gateway'
+                          ? 'border-purple-600 text-purple-700 bg-white'
+                          : 'border-transparent text-slate-400 hover:text-slate-700'
+                      }`}
+                    >
+                      Cards / Netbanking
+                    </button>
+                  </div>
+                )}
+
+                {(!razorpayConnected || activePaymentTab === 'upi') ? (
+                  /* UPI QR & DIRECT APP LAUNCH VIEW */
+                  <div className="p-6 flex-1 overflow-y-auto space-y-5 text-center animate-in fade-in duration-200">
+                    {/* Amount Card */}
+                    <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl">
+                      <span className="text-[9px] text-gray-400 font-black uppercase tracking-wider block">Amount to Transfer</span>
+                      <h4 className="font-extrabold text-xl text-purple-700 mt-1">{currencySymbol}{finalTotalAmount.toLocaleString()}</h4>
+                    </div>
+
+                    {/* QR Code Container */}
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="p-3 bg-white border border-slate-200 rounded-3xl shadow-sm relative overflow-hidden flex items-center justify-center w-48 h-48">
+                        <img 
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                            `upi://pay?pa=${paymentUpiId || `${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi`}&pn=${encodeURIComponent(store.store_name)}&am=${finalTotalAmount}&cu=INR`
+                          )}`} 
+                          alt="UPI Payment QR Code" 
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <span className="text-[8.5px] font-black text-gray-400 uppercase tracking-widest mt-2.5 flex items-center gap-1 justify-center">
+                        <QrCode className="w-3.5 h-3.5 text-purple-600 animate-pulse" /> SCAN TO PAY VIA ANY UPI APP
+                      </span>
+                    </div>
+
+                    {/* Direct App Launch Button on Mobile */}
+                    <div className="space-y-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const upiIntent = `upi://pay?pa=${paymentUpiId || `${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi`}&pn=${encodeURIComponent(store.store_name)}&am=${finalTotalAmount}&cu=INR`;
+                          window.location.href = upiIntent;
+                        }}
+                        className="w-full py-4 bg-gradient-to-r from-purple-755 to-purple-600 hover:opacity-95 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                      >
+                        <Smartphone className="w-4 h-4 text-white" /> Open UPI App (GPay/PhonePe)
+                      </button>
+                      <p className="text-[9.5px] text-gray-400 font-medium leading-relaxed max-w-[280px] mx-auto">
+                        If you are on your mobile phone, click the button above to launch GPay, PhonePe, or Paytm automatically.
+                      </p>
+                    </div>
+
+                    {/* UPI VPA Transfer Details */}
+                    <div className="bg-purple-50/10 border border-purple-100/50 rounded-2xl p-4 text-left space-y-2">
+                      <span className="text-[8px] font-bold text-purple-600 uppercase tracking-wider block">Merchant UPI ID</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold text-gray-900 select-all">
+                          {paymentUpiId || `${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi`}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(paymentUpiId || `${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi`);
+                            setCopiedPhone(true);
+                            setTimeout(() => setCopiedPhone(false), 2000);
+                          }}
+                          className="text-[9px] font-bold text-purple-700 uppercase tracking-wider hover:underline"
+                        >
+                          {copiedPhone ? 'Copied!' : 'Copy ID'}
+                        </button>
+                      </div>
+                      <p className="text-[9.5px] text-gray-400 leading-normal mt-1 font-medium">
+                        If scanning or direct app launching is not working, transfer manually to the UPI ID above.
+                      </p>
+                    </div>
+
+                    {/* Submit Button */}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await submitFinalOrder(
+                          'unpaid', 
+                          'Direct UPI Transfer', 
+                          `UPI Transfer initiated to ${paymentUpiId || `${(store.contact_phone || 'Store Number').replace(/\D/g, '')}@upi`}`
+                        );
+                      }}
+                      className="w-full py-3.5 bg-gradient-to-r from-purple-700 to-rose-500 hover:opacity-95 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-md transition-all flex items-center justify-center gap-1.5"
+                    >
+                      Confirm Payment & Send Order via WhatsApp
+                    </button>
+                  </div>
+                ) : (
+                  /* GATEWAY / RAZORPAY VIEW */
+                  <div className="p-6 flex-1 overflow-y-auto space-y-6 text-center animate-in fade-in duration-200">
                     {/* Amount & Merchant Info */}
                     <div className="bg-gradient-to-r from-purple-50/60 to-rose-50/60 border border-purple-100 rounded-3xl p-5 shadow-sm text-left relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-xl pointer-events-none" />
@@ -4235,71 +4346,6 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                       className="w-full py-4 bg-gradient-to-r from-purple-700 via-purple-650 to-rose-500 hover:opacity-95 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl hover:shadow-2xl transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
                     >
                       <Lock className="w-4 h-4 text-white" /> PAY SECURELY VIA RAZORPAY
-                    </button>
-                  </div>
-                ) : (
-                  /* MANUAL UPI QR FALLBACK OPTIONS */
-                  <div className="p-6 flex-1 overflow-y-auto space-y-5 text-center">
-                    
-                    {/* Amount Card */}
-                    <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl">
-                      <span className="text-[9px] text-gray-400 font-black uppercase tracking-wider block">Amount to Transfer</span>
-                      <h4 className="font-extrabold text-xl text-purple-700 mt-1">{currencySymbol}{finalTotalAmount.toLocaleString()}</h4>
-                    </div>
-
-                    {/* QR Code Container */}
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="p-3 bg-white border border-slate-200 rounded-3xl shadow-sm relative overflow-hidden flex items-center justify-center w-48 h-48">
-                        <img 
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                            `upi://pay?pa=${paymentUpiId || `${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi`}&pn=${encodeURIComponent(store.store_name)}&am=${finalTotalAmount}&cu=INR`
-                          )}`} 
-                          alt="UPI Payment QR Code" 
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                      <span className="text-[8.5px] font-black text-gray-400 uppercase tracking-widest mt-2 flex items-center gap-1 justify-center">
-                        <QrCode className="w-3.5 h-3.5 text-purple-600" /> SCAN TO PAY VIA ANY UPI APP
-                      </span>
-                    </div>
-
-                    {/* UPI VPA Transfer Details */}
-                    <div className="bg-purple-50/10 border border-purple-100/50 rounded-2xl p-4 text-left space-y-2">
-                      <span className="text-[8px] font-bold text-purple-600 uppercase tracking-wider block">UPI VPA Address / ID</span>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono font-bold text-gray-900 select-all">
-                          {paymentUpiId || `${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi`}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(paymentUpiId || `${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi`);
-                            setCopiedPhone(true);
-                            setTimeout(() => setCopiedPhone(false), 2000);
-                          }}
-                          className="text-[9px] font-bold text-purple-700 uppercase tracking-wider hover:underline"
-                        >
-                          {copiedPhone ? 'Copied!' : 'Copy UPI ID'}
-                        </button>
-                      </div>
-                      <p className="text-[9.5px] text-gray-400 leading-normal mt-1 font-medium">
-                        If you cannot scan, transfer the exact amount to the UPI ID above manually using GPay, PhonePe, or Paytm.
-                      </p>
-                    </div>
-
-                    {/* Submit Button */}
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        await submitFinalOrder(
-                          'unpaid', 
-                          'Manual UPI Transfer', 
-                          `UPI Transfer initiated to ${paymentUpiId || `${(store.contact_phone || 'Store Number').replace(/\D/g, '')}@upi`}`
-                        );
-                      }}
-                      className="w-full py-3.5 bg-gradient-to-r from-purple-700 to-rose-500 hover:opacity-95 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-lg transition-all flex items-center justify-center gap-1.5 animate-pulse"
-                    >
-                      Confirm Payment & Send Order via WhatsApp
                     </button>
                   </div>
                 )}
