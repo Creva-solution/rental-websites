@@ -62,7 +62,7 @@ export default function LoginPage() {
       if (data && data.debug_link) {
         setResetSuccess(
           <span>
-            Reset link generated! Since mail delivery is not configured on this server, you can use the debug link directly:{' '}
+            Reset link generated! {data.smtp_error ? `(SMTP Error: ${data.smtp_error})` : 'Since mail delivery is not configured on this server, you can use the debug link directly:'}{' '}
             <a href={data.debug_link} className="font-bold underline text-[#3C77C3] hover:text-[#2d5992]">
               Reset Password Link
             </a>
