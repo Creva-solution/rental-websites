@@ -36,6 +36,7 @@ class StorageController extends Controller
 
             $publicUrl = asset('uploads/' . $fileName);
             return response()->json([
+                'url' => $publicUrl,
                 'publicUrl' => $publicUrl,
                 'filePath' => 'uploads/' . $fileName
             ]);
@@ -49,11 +50,31 @@ class StorageController extends Controller
 
             $publicUrl = asset('uploads/' . $fileName);
             return response()->json([
+                'url' => $publicUrl,
                 'publicUrl' => $publicUrl,
                 'filePath' => 'uploads/' . $fileName
             ]);
         }
 
         return response()->json(['error' => 'No file provided'], 400);
+    }
+
+    public function delete(Request $request)
+    {
+        $filePath = $request->input('filePath');
+        if (!$filePath) {
+            return response()->json(['error' => 'No file path provided'], 400);
+        }
+
+        // Clean up the path to prevent directory traversal
+        $fileName = basename($filePath);
+        $fullPath = public_path('uploads/' . $fileName);
+
+        if (file_exists($fullPath)) {
+            unlink($fullPath);
+            return response()->json(['success' => true]);
+        }
+
+        return response()->json(['error' => 'File not found on disk'], 404);
     }
 }

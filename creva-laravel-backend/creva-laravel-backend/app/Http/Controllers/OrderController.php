@@ -108,6 +108,9 @@ class OrderController extends Controller
         if ($request->has('delivery_date')) {
             $insertData['delivery_date'] = $request->input('delivery_date');
         }
+        if ($request->has('payment_screenshot_url')) {
+            $insertData['payment_screenshot_url'] = $request->input('payment_screenshot_url');
+        }
 
         DB::table('orders')->insert($insertData);
 

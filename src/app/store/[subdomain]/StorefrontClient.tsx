@@ -5,7 +5,8 @@ import {
   ShoppingCart, Menu, Search, X, Loader2, User, ChevronLeft, ChevronRight, 
   Truck, Shield, RefreshCw, ArrowRight, Heart, Star, Check, Eye, ArrowUpDown, 
   Sparkles, Package, ShoppingBag, EyeOff, Calendar, Clock, Instagram, Facebook, Twitter, Youtube, Linkedin, MessageCircle,
-  CreditCard, Coins, Smartphone, QrCode, CheckCircle2, Lock, Building2, Zap
+  CreditCard, Coins, Smartphone, QrCode, CheckCircle2, Lock, Building2, Zap,
+  Upload, Trash2, Image
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -619,6 +620,8 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
   // Online Payment flow states
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
+  const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [simulatedPaymentSuccess, setSimulatedPaymentSuccess] = useState(false);
   const [selectedSimulatedPG, setSelectedSimulatedPG] = useState<'gpay' | 'phonepe' | 'paytm' | 'card' | 'qr'>('gpay');
@@ -1300,7 +1303,8 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         total_amount: finalTotalAmount,
         status: 'pending',
         payment_method: actualMethod,
-        payment_status: paymentStatus
+        payment_status: paymentStatus,
+        payment_screenshot_url: screenshotUrl || null
       }]).select().single();
       
       if (error) throw error;
@@ -1329,6 +1333,9 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       if (extraNote) {
         message += `Payment Info: ${extraNote}\n`;
       }
+      if (screenshotUrl) {
+        message += `Payment Proof: ${screenshotUrl}\n`;
+      }
       message += `\n`;
       message += `*Order Summary:*\n`;
       
@@ -1355,6 +1362,8 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       setIsCheckout(false);
       setIsPaymentModalOpen(false);
       setSimulatedPaymentSuccess(false);
+      setScreenshotUrl(null);
+      setUploadingScreenshot(false);
       setCardNumber('');
       setCardExpiry('');
       setCardCvv('');
@@ -1371,6 +1380,53 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       alert("Failed to process order.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleScreenshotUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size should be less than 5MB.');
+      return;
+    }
+
+    setUploadingScreenshot(true);
+    try {
+      const fileName = `order-receipts/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+      const { data, error } = await supabase.storage
+        .from('payment-screenshots')
+        .upload(fileName, file);
+
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage
+        .from('payment-screenshots')
+        .getPublicUrl(data.path);
+
+      setScreenshotUrl(urlData.publicUrl);
+    } catch (err: any) {
+      console.error('Failed to upload screenshot:', err);
+      alert('Failed to upload screenshot: ' + (err.message || String(err)));
+    } finally {
+      setUploadingScreenshot(false);
+    }
+  };
+
+  const handleRemoveScreenshot = async () => {
+    if (!screenshotUrl) return;
+    const oldUrl = screenshotUrl;
+    setScreenshotUrl(null);
+    try {
+      await supabase.storage.from('payment-screenshots').remove([oldUrl]);
+    } catch (err) {
+      console.warn('Failed to delete removed screenshot from server:', err);
     }
   };
 
@@ -4263,9 +4319,68 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                       </p>
                     </div>
 
+                    {/* Payment Screenshot Upload */}
+                    <div className="bg-slate-50 border border-slate-250 rounded-2xl p-4 text-left space-y-3">
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">
+                        Upload Payment Screenshot *
+                      </span>
+                      
+                      {!screenshotUrl ? (
+                        <label className="border-2 border-dashed border-slate-200 hover:border-purple-400 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all bg-white relative min-h-[120px]">
+                          {uploadingScreenshot ? (
+                            <div className="flex flex-col items-center justify-center gap-2 text-purple-600">
+                              <Loader2 className="w-6 h-6 animate-spin" />
+                              <span className="text-[10px] font-bold uppercase tracking-wider">Uploading screenshot...</span>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="p-2 bg-purple-50 rounded-xl text-purple-600 flex items-center justify-center">
+                                <Upload className="w-5 h-5" />
+                              </div>
+                              <div className="text-center">
+                                <span className="text-xs font-bold text-gray-900 block">Click to upload receipt</span>
+                                <span className="text-[9.5px] text-gray-400 block mt-0.5">Supports JPG, PNG, WEBP (Max 5MB)</span>
+                              </div>
+                            </>
+                          )}
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={handleScreenshotUpload} 
+                            disabled={uploadingScreenshot} 
+                            className="hidden" 
+                          />
+                        </label>
+                      ) : (
+                        <div className="bg-white border border-slate-100 rounded-xl p-3 flex items-center justify-between shadow-sm animate-in fade-in duration-200">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-lg border border-slate-200 overflow-hidden bg-slate-50 flex-shrink-0">
+                              <img src={screenshotUrl} alt="Receipt proof" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="min-w-0">
+                              <span className="text-xs font-bold text-emerald-600 block flex items-center gap-1">
+                                <Check className="w-3.5 h-3.5" /> Screenshot Uploaded
+                              </span>
+                              <span className="text-[9.5px] text-gray-400 block truncate max-w-[200px] mt-0.5">
+                                {screenshotUrl.split('/').pop()}
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleRemoveScreenshot}
+                            className="p-2 hover:bg-rose-50 text-slate-450 hover:text-rose-600 rounded-xl transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
                     {/* Submit Button */}
                     <button
                       type="button"
+                      disabled={!screenshotUrl || uploadingScreenshot}
                       onClick={async () => {
                         await submitFinalOrder(
                           'unpaid', 
@@ -4273,7 +4388,11 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                           `UPI Transfer initiated to ${paymentUpiId || `${(store.contact_phone || 'Store Number').replace(/\D/g, '')}@upi`}`
                         );
                       }}
-                      className="w-full py-3.5 bg-gradient-to-r from-purple-700 to-rose-500 hover:opacity-95 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-md transition-all flex items-center justify-center gap-1.5"
+                      className={`w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-md transition-all flex items-center justify-center gap-1.5 ${
+                        (!screenshotUrl || uploadingScreenshot)
+                          ? 'bg-gray-255 text-gray-400 cursor-not-allowed border-none shadow-none bg-slate-200'
+                          : 'bg-gradient-to-r from-purple-700 to-rose-500 hover:opacity-95 text-white active:scale-[0.98]'
+                      }`}
                     >
                       Confirm Payment & Send Order via WhatsApp
                     </button>

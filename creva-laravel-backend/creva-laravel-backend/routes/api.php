@@ -32,6 +32,9 @@ Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/logout', [AuthController::class, 'logout']);
 Route::get('/auth/user', [AuthController::class, 'getUser']);
+Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/auth/verify-token', [AuthController::class, 'verifyToken']);
+Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 
 // Stores Routes
 Route::get('/stores', [StoreController::class, 'index']);
@@ -60,3 +63,5 @@ Route::delete('/order_items/{id?}', [OrderController::class, 'destroyOrderItems'
 
 // Local Storage Uploads
 Route::post('/storage/upload', [StorageController::class, 'upload']);
+Route::post('/storage/delete', [StorageController::class, 'delete']);
+Route::delete('/storage/delete', [StorageController::class, 'delete']);

@@ -6,7 +6,7 @@ import {
   Loader2, ReceiptText, CheckCircle, Clock, Printer, RotateCw, Search, Filter, 
   Download, ArrowUpRight, Check, Send, Copy, AlertTriangle, Sparkles, MessageSquare, 
   Trash2, Calendar, ShoppingCart, Users, Award, ShieldAlert, BadgeAlert, HelpCircle,
-  ShoppingBag, TrendingUp, X, BarChart3
+  ShoppingBag, TrendingUp, X, BarChart3, Image
 } from 'lucide-react';
 
 function numberToWords(num: number): string {
@@ -294,16 +294,46 @@ export default function OrdersPage() {
   // 4. ORDER STATUS TRANSITION CONTROLS
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     try {
+      const orderToUpdate = orders.find(o => o.id === orderId);
+      const isConfirmed = newStatus === 'completed' || newStatus === 'processing';
+      const screenshot = orderToUpdate?.payment_screenshot_url;
+
+      const updatePayload: any = { status: newStatus };
+      if (isConfirmed && screenshot) {
+        updatePayload.payment_screenshot_url = null;
+      }
+
       const { error } = await supabase
         .from('orders')
-        .update({ status: newStatus })
+        .update(updatePayload)
         .eq('id', orderId);
       
       if (error) throw error;
+
+      if (isConfirmed && screenshot) {
+        // Run storage deletion in background
+        supabase.storage.from('payment-screenshots').remove([screenshot]).catch(err => {
+          console.warn("Failed to delete screenshot from storage:", err);
+        });
+      }
       
       setOrders(prev => prev.map(order => 
-        order.id === orderId ? { ...order, status: newStatus } : order
+        order.id === orderId 
+          ? { 
+              ...order, 
+              status: newStatus,
+              payment_screenshot_url: isConfirmed ? null : order.payment_screenshot_url
+            } 
+          : order
       ));
+
+      if (selectedOrder?.id === orderId) {
+        setSelectedOrder({
+          ...selectedOrder,
+          status: newStatus,
+          payment_screenshot_url: isConfirmed ? null : selectedOrder.payment_screenshot_url
+        });
+      }
     } catch (err) {
       console.error("Failed to update status:", err);
       alert("Failed to update status");
@@ -314,16 +344,55 @@ export default function OrdersPage() {
   const handleBulkStatusUpdate = async (newStatus: string) => {
     if (selectedOrderIds.length === 0) return;
     try {
+      const isConfirmed = newStatus === 'completed' || newStatus === 'processing';
+      
+      // If confirmed, find all orders that have screenshots to delete them
+      const screenshotsToDelete: string[] = [];
+      if (isConfirmed) {
+        orders.forEach(o => {
+          if (selectedOrderIds.includes(o.id) && o.payment_screenshot_url) {
+            screenshotsToDelete.push(o.payment_screenshot_url);
+          }
+        });
+      }
+
+      const updatePayload: any = { status: newStatus };
+      if (isConfirmed && screenshotsToDelete.length > 0) {
+        updatePayload.payment_screenshot_url = null;
+      }
+
       const { error } = await supabase
         .from('orders')
-        .update({ status: newStatus })
+        .update(updatePayload)
         .in('id', selectedOrderIds);
 
       if (error) throw error;
 
-      setOrders(prev => prev.map(o => 
-        selectedOrderIds.includes(o.id) ? { ...o, status: newStatus } : o
-      ));
+      if (screenshotsToDelete.length > 0) {
+        supabase.storage.from('payment-screenshots').remove(screenshotsToDelete).catch(err => {
+          console.warn("Failed to delete bulk screenshots from storage:", err);
+        });
+      }
+
+      setOrders(prev => prev.map(o => {
+        if (selectedOrderIds.includes(o.id)) {
+          return {
+            ...o,
+            status: newStatus,
+            payment_screenshot_url: isConfirmed ? null : o.payment_screenshot_url
+          };
+        }
+        return o;
+      }));
+
+      if (selectedOrder && selectedOrderIds.includes(selectedOrder.id)) {
+        setSelectedOrder({
+          ...selectedOrder,
+          status: newStatus,
+          payment_screenshot_url: isConfirmed ? null : selectedOrder.payment_screenshot_url
+        });
+      }
+
       setSelectedOrderIds([]);
       alert(`Successfully updated status to '${newStatus}' for selected orders!`);
     } catch (e) {
@@ -829,6 +898,11 @@ export default function OrdersPage() {
                               {extra.payment_status}
                             </span>
                             <span className="block text-[8px] text-muted-foreground font-mono mt-0.5">{extra.payment_method}</span>
+                            {order.payment_screenshot_url && (
+                              <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-750 text-[7px] font-black uppercase tracking-wider mt-1 border border-emerald-500/20">
+                                <Image className="w-2.5 h-2.5 text-emerald-600" /> Proof Attached
+                              </span>
+                            )}
                           </td>
                           <td className="px-6 py-4">
                             <select
@@ -948,6 +1022,30 @@ export default function OrdersPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Payment Proof Screenshot */}
+                {selectedOrder.payment_screenshot_url && (
+                  <div className="space-y-3">
+                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest block">Payment Proof Screenshot</span>
+                    <div className="bg-muted/15 border p-3 rounded-xl flex flex-col items-center justify-center gap-2">
+                      <div className="relative group overflow-hidden rounded-lg border border-border bg-slate-50 w-full max-h-48 flex items-center justify-center cursor-zoom-in">
+                        <img 
+                          src={selectedOrder.payment_screenshot_url} 
+                          alt="Direct UPI payment receipt proof" 
+                          onClick={() => window.open(selectedOrder.payment_screenshot_url, '_blank')}
+                          className="object-contain max-h-44 w-auto rounded hover:scale-[1.02] transition-transform"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => window.open(selectedOrder.payment_screenshot_url, '_blank')}
+                        className="text-[10px] font-black text-[#3C77C3] uppercase tracking-wider hover:underline"
+                      >
+                        View Full Size Receipt
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Horizontal Order Timeline Tracking */}
                 <div className="space-y-3">

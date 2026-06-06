@@ -441,12 +441,13 @@ class MockStorageBucket {
           body: JSON.stringify({ base64: file })
         });
         const data = await response.json();
+        const url = data.url || data.publicUrl;
         if (!response.ok) throw new Error(data.error || 'Base64 upload failed');
         if (typeof window !== 'undefined') {
           if (!(window as any).mockStorageCache) (window as any).mockStorageCache = {};
-          (window as any).mockStorageCache[filePath] = data.url;
+          (window as any).mockStorageCache[filePath] = url;
         }
-        return { data: { path: data.url }, error: null };
+        return { data: { path: url }, error: null };
       } else {
         // Standard Binary upload support
         formData.append('file', file);
@@ -458,12 +459,13 @@ class MockStorageBucket {
           body: formData
         });
         const data = await response.json();
+        const url = data.url || data.publicUrl;
         if (!response.ok) throw new Error(data.error || 'File upload failed');
         if (typeof window !== 'undefined') {
           if (!(window as any).mockStorageCache) (window as any).mockStorageCache = {};
-          (window as any).mockStorageCache[filePath] = data.url;
+          (window as any).mockStorageCache[filePath] = url;
         }
-        return { data: { path: data.url }, error: null };
+        return { data: { path: url }, error: null };
       }
     } catch (err: any) {
       return { data: null, error: { message: err.message || String(err) } };
@@ -488,8 +490,38 @@ class MockStorageBucket {
   }
 
   async remove(filePaths: string[]) {
-    // Return mock success as file deletion is optional
-    return { data: filePaths, error: null };
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('mock_supabase_token') : null;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      for (const path of filePaths) {
+        if (!path) continue;
+        let cleanPath = path;
+        if (path.startsWith('http://') || path.startsWith('https://')) {
+          try {
+            const urlObj = new URL(path);
+            cleanPath = urlObj.pathname.substring(1); // removes leading '/' (e.g. 'uploads/filename.ext')
+          } catch (e) {
+            cleanPath = path;
+          }
+        }
+        
+        await fetch(`${API_BASE_URL}/storage/delete`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ filePath: cleanPath })
+        });
+      }
+      return { data: filePaths, error: null };
+    } catch (err: any) {
+      return { data: null, error: { message: err.message || String(err) } };
+    }
   }
 }
 

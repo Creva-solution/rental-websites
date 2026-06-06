@@ -80,6 +80,7 @@ CREATE TABLE "orders" (
   "payment_status" VARCHAR(255) DEFAULT 'unpaid',
   "tracking_number" VARCHAR(255) DEFAULT NULL,
   "delivery_date" VARCHAR(255) DEFAULT NULL,
+  "payment_screenshot_url" TEXT DEFAULT NULL,
   "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("id"),

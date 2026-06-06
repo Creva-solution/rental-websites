@@ -196,6 +196,283 @@ try {
                 'role' => $user->role
             ]);
         }
+
+        if ($action === 'forgot-password' && $requestMethod === 'POST') {
+            $email = $body['email'] ?? '';
+            if (!$email) {
+                jsonResponse(['error' => 'Email is required'], 400);
+            }
+
+            // Check if user exists
+            $stmt = $pdo->prepare('SELECT id FROM "users" WHERE email = ?');
+            $stmt->execute([$email]);
+            if (!$stmt->fetch()) {
+                jsonResponse(['error' => 'We can\'t find a user with that email address.'], 400);
+            }
+
+            // Ensure table exists
+            $pdo->exec('CREATE TABLE IF NOT EXISTS password_resets (email VARCHAR(255) PRIMARY KEY, token VARCHAR(255) NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)');
+
+            // Generate token
+            $token = bin2hex(random_bytes(32));
+
+            // Save token
+            $stmt = $pdo->prepare('DELETE FROM password_resets WHERE email = ?');
+            $stmt->execute([$email]);
+            
+            $stmt = $pdo->prepare('INSERT INTO password_resets (email, token, created_at) VALUES (?, ?, NOW())');
+            $stmt->execute([$email, $token]);
+
+            // Generate link
+            $redirectTo = $body['redirectTo'] ?? 'http://localhost:3000/reset-password';
+            $resetLink = $redirectTo . '#access_token=' . $token . '&type=recovery';
+
+            // Send email
+            $emailSent = false;
+            $subject = 'Reset Password - Creva Webzz';
+            $headers = "MIME-Version: 1.0\r\n";
+            $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+            $headers .= "From: no-reply@crevawebzz.com\r\n";
+            
+            $message = '
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #ffffff;">
+                    <div style="text-align: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #eee;">
+                        <h2 style="color: #3C77C3; margin: 0; font-size: 24px;">Creva Webzz</h2>
+                        <p style="color: #777; margin: 5px 0 0 0; font-size: 14px;">Store Management Portal</p>
+                    </div>
+                    <p style="font-size: 16px; color: #333; line-height: 1.5;">Hello,</p>
+                    <p style="font-size: 16px; color: #333; line-height: 1.5;">You are receiving this email because we received a password reset request for your store account.</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="' . $resetLink . '" style="background-color: #3C77C3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px; box-shadow: 0 4px 6px rgba(60,119,195,0.2);">Reset Password</a>
+                    </div>
+                    <p style="font-size: 14px; color: #555; line-height: 1.5;">This password reset link is valid for 60 minutes.</p>
+                    <p style="font-size: 14px; color: #777; line-height: 1.5;">If you did not request a password reset, no further action is required.</p>
+                    <hr style="border: 0; border-top: 1px solid #eee; margin: 25px 0;" />
+                    <p style="font-size: 12px; color: #999; text-align: center; margin: 0;">This is an automated email. Please do not reply to this email.</p>
+                </div>
+            ';
+            
+            $smtpHost = getenv('SMTP_HOST') ?: ($_ENV['SMTP_HOST'] ?? ($env['SMTP_HOST'] ?? null));
+            $resendKey = getenv('RESEND_API_KEY') ?: ($_ENV['RESEND_API_KEY'] ?? ($env['RESEND_API_KEY'] ?? null));
+            $smtpError = null;
+
+            if ($smtpHost) {
+                try {
+                    $smtpPort = getenv('SMTP_PORT') ?: ($_ENV['SMTP_PORT'] ?? ($env['SMTP_PORT'] ?? 465));
+                    $smtpUser = getenv('SMTP_USERNAME') ?: ($_ENV['SMTP_USERNAME'] ?? ($env['SMTP_USERNAME'] ?? ''));
+                    $smtpPass = getenv('SMTP_PASSWORD') ?: ($_ENV['SMTP_PASSWORD'] ?? ($env['SMTP_PASSWORD'] ?? ''));
+                    $smtpFromEmail = getenv('SMTP_FROM_EMAIL') ?: ($_ENV['SMTP_FROM_EMAIL'] ?? ($env['SMTP_FROM_EMAIL'] ?? $smtpUser));
+                    $smtpFromName = getenv('SMTP_FROM_NAME') ?: ($_ENV['SMTP_FROM_NAME'] ?? ($env['SMTP_FROM_NAME'] ?? 'Creva Webzz'));
+
+                    $smtp = new SimpleSMTP($smtpHost, $smtpPort, $smtpUser, $smtpPass);
+                    $emailSent = $smtp->send($email, $subject, $message, $smtpFromEmail, $smtpFromName);
+                } catch (Exception $e) {
+                    $smtpError = $e->getMessage();
+                    error_log("Failed to send email via SMTP: " . $e->getMessage());
+                }
+            } else if ($resendKey) {
+                try {
+                    $ch = curl_init('https://api.resend.com/emails');
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_POST, true);
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                        'Authorization: Bearer ' . $resendKey,
+                        'Content-Type: application/json'
+                    ]);
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+                        'from' => 'Creva Webzz <onboarding@resend.dev>',
+                        'to' => [$email],
+                        'subject' => $subject,
+                        'html' => $message
+                    ]));
+                    $curlRes = curl_exec($ch);
+                    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    curl_close($ch);
+                    $emailSent = ($status === 200 || $status === 201);
+                } catch (Exception $e) {
+                    error_log("Failed to send email via Resend: " . $e->getMessage());
+                }
+            } else {
+                try {
+                    $emailSent = @mail($email, $subject, $message, $headers);
+                } catch (Exception $e) {
+                    error_log("Failed to send mail: " . $e->getMessage());
+                }
+            }
+
+            $res = ['message' => 'Reset link has been sent to your email!'];
+            if ((!$smtpHost && !$resendKey) || !$emailSent) {
+                $res['debug_link'] = $resetLink;
+                if ($smtpError) {
+                    $res['smtp_error'] = $smtpError;
+                }
+            }
+            jsonResponse($res);
+        }
+
+        if ($action === 'verify-token' && $requestMethod === 'POST') {
+            $token = $body['token'] ?? '';
+            if (!$token) {
+                $headers = apache_request_headers();
+                $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+                if (preg_match('/Bearer\s+(\S+)/i', $authHeader, $matches)) {
+                    $token = $matches[1];
+                }
+            }
+            
+            if (!$token) {
+                jsonResponse(['error' => 'Reset token is required'], 400);
+            }
+
+            // Ensure table exists
+            $pdo->exec('CREATE TABLE IF NOT EXISTS password_resets (email VARCHAR(255) PRIMARY KEY, token VARCHAR(255) NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)');
+
+            $stmt = $pdo->prepare('SELECT * FROM password_resets WHERE token = ?');
+            $stmt->execute([$token]);
+            $reset = $stmt->fetch();
+            if (!$reset) {
+                jsonResponse(['error' => 'Invalid or expired reset token'], 400);
+            }
+
+            $createdAt = strtotime($reset->created_at);
+            $now = time();
+            if ($now - $createdAt > 3600) {
+                $stmt = $pdo->prepare('DELETE FROM password_resets WHERE token = ?');
+                $stmt->execute([$token]);
+                jsonResponse(['error' => 'Reset token has expired'], 400);
+            }
+
+            $stmt = $pdo->prepare('SELECT * FROM "users" WHERE email = ?');
+            $stmt->execute([$reset->email]);
+            $user = $stmt->fetch();
+            if (!$user) {
+                jsonResponse(['error' => 'User not found'], 404);
+            }
+
+            jsonResponse([
+                'user' => [
+                    'id' => $user->id,
+                    'email' => $user->email,
+                    'name' => $user->name,
+                    'role' => $user->role
+                ]
+            ]);
+        }
+
+        if ($action === 'reset-password' && $requestMethod === 'POST') {
+            $token = $body['token'] ?? '';
+            if (!$token) {
+                $headers = apache_request_headers();
+                $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+                if (preg_match('/Bearer\s+(\S+)/i', $authHeader, $matches)) {
+                    $token = $matches[1];
+                }
+            }
+            if (!$token) {
+                jsonResponse(['error' => 'Reset token is required'], 400);
+            }
+
+            $password = $body['password'] ?? '';
+            if (!$password || strlen($password) < 6) {
+                jsonResponse(['error' => 'Password must be at least 6 characters long'], 400);
+            }
+
+            // Ensure table exists
+            $pdo->exec('CREATE TABLE IF NOT EXISTS password_resets (email VARCHAR(255) PRIMARY KEY, token VARCHAR(255) NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)');
+
+            $stmt = $pdo->prepare('SELECT * FROM password_resets WHERE token = ?');
+            $stmt->execute([$token]);
+            $reset = $stmt->fetch();
+            if (!$reset) {
+                jsonResponse(['error' => 'Invalid or expired reset token'], 400);
+            }
+
+            $createdAt = strtotime($reset->created_at);
+            $now = time();
+            if ($now - $createdAt > 3600) {
+                $stmt = $pdo->prepare('DELETE FROM password_resets WHERE token = ?');
+                $stmt->execute([$token]);
+                jsonResponse(['error' => 'Reset token has expired'], 400);
+            }
+
+            $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+            $stmt = $pdo->prepare('UPDATE "users" SET password = ?, updated_at = NOW() WHERE email = ?');
+            $stmt->execute([$hashedPassword, $reset->email]);
+
+            $stmt = $pdo->prepare('DELETE FROM password_resets WHERE email = ?');
+            $stmt->execute([$reset->email]);
+
+            jsonResponse([
+                'success' => true,
+                'message' => 'Password updated successfully'
+            ]);
+        }
+
+        if ($action === 'superadmin-reset-password' && $requestMethod === 'POST') {
+            $currentUser = getAuthUser($pdo);
+            if (!$currentUser || $currentUser->role !== 'superadmin') {
+                jsonResponse(['error' => 'Unauthorized. Only Super Admin can perform this action.'], 403);
+            }
+
+            $targetUserId = $body['userId'] ?? '';
+            $newPassword = $body['password'] ?? '';
+
+            if (!$targetUserId || !$newPassword) {
+                jsonResponse(['error' => 'User ID and new password are required.'], 400);
+            }
+
+            if (strlen($newPassword) < 6) {
+                jsonResponse(['error' => 'Password must be at least 6 characters long.'], 400);
+            }
+
+            // Check if target user exists
+            $stmt = $pdo->prepare('SELECT id FROM "users" WHERE id = ?');
+            $stmt->execute([$targetUserId]);
+            if (!$stmt->fetch()) {
+                jsonResponse(['error' => 'Target user not found.'], 404);
+            }
+
+            $hashedPassword = password_hash($newPassword, PASSWORD_BCRYPT);
+            $stmt = $pdo->prepare('UPDATE "users" SET password = ?, updated_at = NOW() WHERE id = ?');
+            $stmt->execute([$hashedPassword, $targetUserId]);
+
+            jsonResponse([
+                'success' => true,
+                'message' => 'User password reset successfully by Super Admin.'
+            ]);
+        }
+
+        if ($action === 'change-password' && $requestMethod === 'POST') {
+            $currentUser = getAuthUser($pdo);
+            if (!$currentUser) {
+                jsonResponse(['error' => 'Unauthorized.'], 401);
+            }
+
+            $currentPassword = $body['currentPassword'] ?? '';
+            $newPassword = $body['newPassword'] ?? '';
+
+            if (!$currentPassword || !$newPassword) {
+                jsonResponse(['error' => 'Current password and new password are required.'], 400);
+            }
+
+            if (strlen($newPassword) < 6) {
+                jsonResponse(['error' => 'New password must be at least 6 characters long.'], 400);
+            }
+
+            // Verify current password
+            if (!password_verify($currentPassword, $currentUser->password)) {
+                jsonResponse(['error' => 'Incorrect current password.'], 400);
+            }
+
+            $hashedPassword = password_hash($newPassword, PASSWORD_BCRYPT);
+            $stmt = $pdo->prepare('UPDATE "users" SET password = ?, updated_at = NOW() WHERE id = ?');
+            $stmt->execute([$hashedPassword, $currentUser->id]);
+
+            jsonResponse([
+                'success' => true,
+                'message' => 'Password updated successfully.'
+            ]);
+        }
         
         jsonResponse(['error' => 'Auth Action Not Found'], 404);
     }
@@ -566,4 +843,92 @@ try {
     jsonResponse(['error' => 'Endpoint Not Found'], 404);
 } catch (Exception $e) {
     jsonResponse(['error' => 'Internal Engine Error: ' . $e->getMessage()], 500);
+}
+
+class SimpleSMTP {
+    private $host;
+    private $port;
+    private $username;
+    private $password;
+
+    public function __construct($host, $port, $username, $password) {
+        $this->host = $host;
+        $this->port = (int)$port;
+        $this->username = $username;
+        $this->password = $password;
+    }
+
+    public function send($to, $subject, $message, $fromEmail, $fromName) {
+        $ssl = ($this->port === 465) ? 'ssl://' : '';
+        $socket = @fsockopen($ssl . $this->host, $this->port, $errno, $errstr, 15);
+        if (!$socket) {
+            throw new Exception("SMTP connection failed: $errstr ($errno)");
+        }
+
+        $getResponse = function($socket) {
+            $response = "";
+            while (($line = fgets($socket, 515)) !== false) {
+                $response .= $line;
+                if (substr($line, 3, 1) == " ") break;
+            }
+            return $response;
+        };
+
+        $getResponse($socket);
+
+        fwrite($socket, "EHLO " . $this->host . "\r\n");
+        $getResponse($socket);
+
+        if ($this->port === 587) {
+            fwrite($socket, "STARTTLS\r\n");
+            $getResponse($socket);
+            if (!@stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+                fclose($socket);
+                throw new Exception("SMTP STARTTLS negotiation failed");
+            }
+            fwrite($socket, "EHLO " . $this->host . "\r\n");
+            $getResponse($socket);
+        }
+
+        fwrite($socket, "AUTH LOGIN\r\n");
+        $getResponse($socket);
+
+        fwrite($socket, base64_encode($this->username) . "\r\n");
+        $getResponse($socket);
+
+        fwrite($socket, base64_encode($this->password) . "\r\n");
+        $authRes = $getResponse($socket);
+        if (strpos($authRes, '235') === false) {
+            fclose($socket);
+            throw new Exception("SMTP authentication failed: " . trim($authRes));
+        }
+
+        fwrite($socket, "MAIL FROM: <" . $this->username . ">\r\n");
+        $getResponse($socket);
+
+        fwrite($socket, "RCPT TO: <" . $to . ">\r\n");
+        $getResponse($socket);
+
+        fwrite($socket, "DATA\r\n");
+        $getResponse($socket);
+
+        $headers = "MIME-Version: 1.0\r\n";
+        $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+        $headers .= "From: =?UTF-8?B?" . base64_encode($fromName) . "?= <" . $fromEmail . ">\r\n";
+        $headers .= "To: <" . $to . ">\r\n";
+        $headers .= "Subject: =?UTF-8?B?" . base64_encode($subject) . "?=\r\n";
+        $headers .= "Date: " . date('r') . "\r\n";
+        $headers .= "\r\n";
+
+        fwrite($socket, $headers . $message . "\r\n.\r\n");
+        $dataRes = $getResponse($socket);
+
+        fwrite($socket, "QUIT\r\n");
+        fclose($socket);
+
+        if (strpos($dataRes, '250') === false) {
+            throw new Exception("SMTP data transmission failed: " . trim($dataRes));
+        }
+        return true;
+    }
 }
