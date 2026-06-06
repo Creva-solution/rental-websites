@@ -174,15 +174,32 @@ const getYouTubeEmbedUrl = (url: string) => {
   return embedUrl;
 };
 
+const getCategoryEmoji = (category: string) => {
+  const cat = category.toLowerCase();
+  if (cat.includes('all')) return '🛍️';
+  if (cat.includes('plate') || cat.includes('mattai')) return '🍽️';
+  if (cat.includes('cup') || cat.includes('tumbler')) return '🥛';
+  if (cat.includes('spoon') || cat.includes('fork') || cat.includes('cutlery') || cat.includes('spoons')) return '🍴';
+  if (cat.includes('bowl') || cat.includes('bowls')) return '🥣';
+  if (cat.includes('bag') || cat.includes('bags')) return '🛍️';
+  if (cat.includes('organic') || cat.includes('eco') || cat.includes('nature') || cat.includes('natural')) return '🌱';
+  if (cat.includes('soap') || cat.includes('soaps')) return '🧼';
+  if (cat.includes('ceramic') || cat.includes('clay') || cat.includes('pottery')) return '🏺';
+  if (cat.includes('gift') || cat.includes('combo') || cat.includes('offers')) return '🎁';
+  return '🏷️';
+};
+
 export default function StorefrontClient({ store, products }: { store: any, products: any[] }) {
   const primaryColor = useMemo(() => {
-    const raw = store.primary_color || '#3B82F6';
+    const raw = store.subdomain?.includes('pakkumattai') || store.store_name?.toLowerCase().includes('pakkumattai')
+      ? (store.primary_color && store.primary_color !== '#3B82F6' ? store.primary_color : '#1b4332')
+      : (store.primary_color || '#3B82F6');
     let clean = raw.replace('#', '');
     if (clean.length === 3) {
       clean = clean.split('').map((char: string) => char + char).join('');
     }
     return '#' + clean;
-  }, [store.primary_color]);
+  }, [store.primary_color, store.subdomain, store.store_name]);
 
   const hexToRgb = (hex: string) => {
     const cleanHex = hex.replace('#', '');
@@ -1618,7 +1635,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
       case 'artisan':
         return (
-          <header className="sticky top-0 z-40 transition-all bg-[#2874F0] text-white border-b border-[#1976D2] font-sans">
+          <header className="sticky top-0 z-40 transition-all bg-[var(--store-primary)] text-white border-b border-[var(--store-primary-dark)] font-sans">
             {/* Top Row: Logo, Search Bar, Action Icons */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
               
@@ -1626,7 +1643,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               <div className="flex items-center gap-2 md:gap-4">
                 <button 
                   onClick={() => setIsMobileMenuOpen(true)}
-                  className="p-2 -ml-2 text-white hover:bg-blue-600 rounded-full transition-all md:hidden"
+                  className="p-2 -ml-2 text-white hover:bg-[var(--store-primary-dark)] rounded-full transition-all md:hidden"
                 >
                   <Menu className="w-5 h-5 stroke-[2]" />
                 </button>
@@ -1653,12 +1670,12 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full h-9 pl-4 pr-10 rounded-sm bg-white text-gray-900 placeholder-gray-400 text-xs font-semibold border-none focus:outline-none focus:ring-2 focus:ring-yellow-300"
                 />
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#2874F0]" />
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--store-primary)]" />
               </div>
 
               {/* Right Side: Marketplace Quick Action Icons */}
               <div className="flex items-center gap-1.5 md:gap-3">
-                <button onClick={() => setIsWishlistOpen(true)} className="p-2 text-white hover:bg-blue-600 rounded-full transition-all relative">
+                <button onClick={() => setIsWishlistOpen(true)} className="p-2 text-white hover:bg-[var(--store-primary-dark)] rounded-full transition-all relative">
                   <Heart className="w-5 h-5 text-white stroke-[2]" />
                   {favorites.length > 0 && (
                     <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-yellow-300 text-black rounded-full text-[8px] font-black flex items-center justify-center shadow-sm">
@@ -1667,7 +1684,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   )}
                 </button>
                 
-                <button onClick={() => setIsCartOpen(true)} className="p-2 text-white hover:bg-blue-600 rounded-full transition-all relative">
+                <button onClick={() => setIsCartOpen(true)} className="p-2 text-white hover:bg-[var(--store-primary-dark)] rounded-full transition-all relative">
                   <ShoppingCart className="w-5 h-5 stroke-[2]" />
                   {cartItemCount > 0 && (
                     <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-yellow-300 text-black rounded-full text-[8px] font-black flex items-center justify-center shadow-sm">
@@ -1681,7 +1698,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
             </div>
 
             {/* Centered Desktop Category Strip (Desktop) */}
-            <div className="hidden md:flex items-center justify-center h-10 border-t border-blue-600/40 bg-white">
+            <div className="hidden md:flex items-center justify-center h-10 border-t border-[var(--store-primary)]/20 bg-white">
               <nav className="flex items-center gap-10 font-bold uppercase tracking-wider text-[10px] text-gray-700">
                 {categoriesList.map(cat => (
                   <button 
@@ -1691,16 +1708,17 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                       const element = document.getElementById('catalog');
                       if (element) element.scrollIntoView({ behavior: 'smooth' });
                     }} 
-                    className={`hover:text-[#2874F0] transition-colors py-2 block border-b-2 ${selectedCategory === cat ? 'border-[#2874F0] text-[#2874F0]' : 'border-transparent text-gray-600'}`}
+                    className={`hover:text-[var(--store-primary)] transition-colors py-2 block border-b-2 flex items-center gap-1.5 ${selectedCategory === cat ? 'border-[var(--store-primary)] text-[var(--store-primary)]' : 'border-transparent text-gray-600'}`}
                   >
-                    {cat === 'All' ? 'ALL PRODUCTS' : cat.toUpperCase()}
+                    <span>{getCategoryEmoji(cat)}</span>
+                    <span>{cat === 'All' ? 'ALL PRODUCTS' : cat.toUpperCase()}</span>
                   </button>
                 ))}
               </nav>
             </div>
 
             {/* Mobile Category / Search Row */}
-            <div className="md:hidden bg-[#2874F0] px-4 pb-3 flex flex-col gap-2">
+            <div className="md:hidden bg-[var(--store-primary)] px-4 pb-3 flex flex-col gap-2">
               <div className="relative w-full">
                 <input 
                   type="text" 
@@ -1709,7 +1727,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full h-8 pl-4 pr-10 rounded bg-white text-gray-900 placeholder-gray-400 text-xs font-semibold border-none focus:outline-none"
                 />
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#2874F0]" />
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--store-primary)]" />
               </div>
             </div>
           </header>
@@ -2110,14 +2128,14 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
-                        e.currentTarget.parentElement?.classList.add('bg-gradient-to-br', 'from-blue-600', 'to-blue-900');
+                        e.currentTarget.parentElement?.classList.add('bg-gradient-to-br', 'from-emerald-800', 'to-emerald-950');
                       }}
                     />
                     
                     {/* Marketplace banner details */}
                     <div className="absolute inset-0 z-20 flex flex-col justify-center items-start text-left px-8 sm:px-12 max-w-md space-y-3 text-white">
                       <span className="inline-block bg-yellow-400 text-black text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-sm">
-                        ★ SUPER DEALS ★
+                        🌿 100% ECO-FRIENDLY & BIODEGRADABLE 🌿
                       </span>
                       <h2 className="text-xl sm:text-3xl font-black tracking-tight leading-tight uppercase font-sans drop-shadow-sm">
                         {slide.title}
@@ -2128,9 +2146,9 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                       <div className="pt-2">
                         <a 
                           href="#catalog"
-                          className="inline-block px-5 py-2 bg-[#FB641B] hover:bg-[#e05615] text-white text-[10px] font-bold uppercase tracking-wider rounded-sm transition-colors shadow-md"
+                          className="inline-block px-5 py-2 bg-[var(--store-primary)] hover:bg-[var(--store-primary-dark)] text-white text-[10px] font-bold uppercase tracking-wider rounded-sm transition-colors shadow-md"
                         >
-                          SHOP NOW
+                          🛒 SHOP NOW
                         </a>
                       </div>
                     </div>
@@ -2150,30 +2168,30 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               <div className="lg:col-span-3 grid grid-rows-2 gap-4">
                 <div className="bg-white p-5 rounded-sm border border-gray-200 flex flex-col justify-between text-left shadow-sm relative overflow-hidden group">
                   <div className="z-10 space-y-1.5">
-                    <span className="text-[8px] font-black tracking-wider text-[#2874F0] uppercase block">TODAY'S SPECIAL</span>
+                    <span className="text-[8px] font-black tracking-wider text-[var(--store-primary)] uppercase block">✨ TODAY'S SPECIAL DEAL ✨</span>
                     <h3 className="text-base font-black text-gray-900 tracking-tight leading-tight uppercase font-sans">
                       {artisanHeroTitle}
                     </h3>
                     <p className="text-[10px] text-gray-500 font-medium line-clamp-2">{artisanHeroSubtitle}</p>
                   </div>
                   <div className="pt-4 z-10">
-                    <a href="#catalog" className="inline-block text-[9px] font-black text-[#2874F0] hover:underline uppercase tracking-wider">
-                      Shop Deal →
+                    <a href="#catalog" className="inline-block text-[9px] font-black text-[var(--store-primary)] hover:underline uppercase tracking-wider">
+                      🛍️ Shop Deal →
                     </a>
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-5 rounded-sm border border-orange-100 flex flex-col justify-between text-left shadow-sm group">
+                <div className="bg-gradient-to-br from-green-50/30 to-amber-50/30 p-5 rounded-sm border border-gray-200 flex flex-col justify-between text-left shadow-sm group">
                   <div className="space-y-1.5">
-                    <span className="text-[8px] font-black tracking-wider text-orange-600 uppercase block">FESTIVE OFFERS</span>
+                    <span className="text-[8px] font-black tracking-wider text-[var(--store-primary)] uppercase block">🎉 SPECIAL FESTIVE OFFERS 🎉</span>
                     <h3 className="text-base font-black text-gray-900 tracking-tight leading-tight uppercase font-sans">
                       UP TO 60% OFF
                     </h3>
                     <p className="text-[10px] text-gray-500 font-medium">Get huge savings on premium store essentials. Exclusive benefits online.</p>
                   </div>
                   <div className="pt-4">
-                    <button onClick={() => setIsAboutOpen(true)} className="inline-block text-[9px] font-black text-orange-600 hover:underline uppercase tracking-wider">
-                      Learn More →
+                    <button onClick={() => setIsAboutOpen(true)} className="inline-block text-[9px] font-black text-[var(--store-primary)] hover:underline uppercase tracking-wider">
+                      ℹ️ Learn More →
                     </button>
                   </div>
                 </div>
@@ -2631,29 +2649,21 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           <section id="catalog" className="px-4 sm:px-6 lg:px-8 py-10 max-w-7xl mx-auto text-[#212121] font-sans animate-in fade-in duration-300">
             {/* Marketplace Shopping Benefits Strip */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white border border-gray-200 p-4 rounded-sm mb-8 text-xs text-gray-600">
-              <div className="flex items-center gap-2.5 justify-center text-left">
-                <svg className="w-5 h-5 text-[#2874F0] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="font-semibold">100% Original Products</span>
+              <div className="flex items-center gap-2 justify-center text-left">
+                <span className="text-base">🌱</span>
+                <span className="font-semibold">{store.subdomain?.includes('pakkumattai') || store.store_name?.toLowerCase().includes('pakkumattai') ? '100% Eco & Natural' : '100% Original Goods'}</span>
               </div>
-              <div className="flex items-center gap-2.5 justify-center text-left">
-                <svg className="w-5 h-5 text-[#2874F0] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18" />
-                </svg>
-                <span className="font-semibold">Easy Returns & Refunds</span>
+              <div className="flex items-center gap-2 justify-center text-left">
+                <span className="text-base">🔄</span>
+                <span className="font-semibold">Easy Replacements</span>
               </div>
-              <div className="flex items-center gap-2.5 justify-center text-left col-span-2 md:col-span-1">
-                <svg className="w-5 h-5 text-[#2874F0] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-                <span className="font-semibold">Secure Transaction Guarantee</span>
+              <div className="flex items-center gap-2 justify-center text-left col-span-2 md:col-span-1">
+                <span className="text-base">🛡️</span>
+                <span className="font-semibold">100% Secure Payments</span>
               </div>
-              <div className="flex items-center gap-2.5 justify-center text-left col-span-2 md:col-span-1">
-                <svg className="w-5 h-5 text-[#2874F0] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                <span className="font-semibold">Lightning Fast Delivery</span>
+              <div className="flex items-center gap-2 justify-center text-left col-span-2 md:col-span-1">
+                <span className="text-base">⚡</span>
+                <span className="font-semibold">Doorstep Delivery</span>
               </div>
             </div>
 
@@ -2671,13 +2681,14 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`px-4 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-wider border transition-all ${
+                    className={`px-4 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-wider border transition-all flex items-center gap-1.5 ${
                       selectedCategory === cat 
-                        ? 'bg-[#2874F0] border-[#2874F0] text-white shadow-sm'
+                        ? 'bg-[var(--store-primary)] border-[var(--store-primary)] text-white shadow-sm'
                         : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
                     }`}
                   >
-                    {cat === 'All' ? 'ALL CATEGORIES' : cat.toUpperCase()}
+                    <span>{getCategoryEmoji(cat)}</span>
+                    <span>{cat === 'All' ? 'ALL CATEGORIES' : cat.toUpperCase()}</span>
                   </button>
                 ))}
               </div>
@@ -2746,18 +2757,18 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                       {/* Content details */}
                       <div className="p-4 flex-1 flex flex-col justify-between bg-white space-y-3">
                         <div className="space-y-1">
-                          <span className="text-[9px] font-bold text-[#2874F0] uppercase tracking-wider block">{getProductCategory(product)}</span>
+                          <span className="text-[9px] font-bold text-[var(--store-primary)] uppercase tracking-wider block">{getProductCategory(product)}</span>
                           <h4 
                             onClick={() => setSelectedProduct(product)}
-                            className="font-bold text-gray-900 text-xs hover:text-[#2874F0] cursor-pointer leading-tight line-clamp-2 min-h-[2rem] font-sans"
+                            className="font-bold text-gray-900 text-xs hover:text-[var(--store-primary)] cursor-pointer leading-tight line-clamp-2 min-h-[2rem] font-sans"
                           >
                             {product.name}
                           </h4>
                           
                           {/* Rating Row */}
                           <div className="flex items-center gap-1.5 pt-0.5">
-                            <span className="inline-flex items-center gap-0.5 bg-green-700 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm">
-                              {ratingVal} <span className="text-[7px]">★</span>
+                            <span className="inline-flex items-center gap-0.5 bg-emerald-800 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm">
+                              ⭐ {ratingVal}
                             </span>
                             <span className="text-[10px] text-gray-400 font-semibold">({reviewsCount.toLocaleString()})</span>
                           </div>
@@ -2784,9 +2795,9 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                           <button 
                             type="button"
                             onClick={() => addToCart(product, 1)}
-                            className="w-full text-center py-2 bg-[#FB641B] hover:bg-[#e05615] text-white text-[10px] font-bold uppercase tracking-wider rounded-sm transition-colors shadow-sm animate-pulse"
+                            className="w-full text-center py-2 bg-[var(--store-primary)] hover:bg-[var(--store-primary-dark)] text-white text-[10px] font-bold uppercase tracking-wider rounded-sm transition-all shadow-sm"
                           >
-                            Add To Cart
+                            🛒 ADD TO CART
                           </button>
                         </div>
                       </div>
@@ -3372,7 +3383,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               : selectedTemplate === 'luxe'
                 ? '#FFFFFF'
                 : selectedTemplate === 'artisan'
-                  ? '#2874F0'
+                  ? 'var(--store-primary)'
                   : '#FFFFFF'
           } !important;
           color: ${
@@ -3392,7 +3403,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 : selectedTemplate === 'luxe'
                   ? '1px solid #F3F4F6'
                   : selectedTemplate === 'artisan'
-                    ? '1px solid #1976D2'
+                    ? '1px solid var(--store-primary-dark)'
                     : selectedTemplate === 'admire'
                       ? '1px solid rgba(242, 133, 42, 0.12)'
                       : '1px solid #F3F4F6'
