@@ -898,7 +898,7 @@ export default function OrdersPage() {
                               {extra.payment_status}
                             </span>
                             <span className="block text-[8px] text-muted-foreground font-mono mt-0.5">{extra.payment_method}</span>
-                            {order.payment_screenshot_url && (
+                            {order.payment_screenshot_url ? (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -909,6 +909,10 @@ export default function OrdersPage() {
                               >
                                 <Image className="w-2.5 h-2.5 text-emerald-600" /> Proof Attached ↗
                               </button>
+                            ) : (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-gray-50 text-gray-400 text-[7px] font-bold uppercase tracking-wider mt-1 border border-gray-200">
+                                No Proof Attached
+                              </span>
                             )}
                           </td>
                           <td className="px-6 py-4">
@@ -933,6 +937,15 @@ export default function OrdersPage() {
                           </td>
                           <td className="px-6 py-4 text-right">
                             <div className="flex justify-end gap-1.5">
+                              {order.payment_screenshot_url && (
+                                <button 
+                                  onClick={() => window.open(order.payment_screenshot_url, '_blank')}
+                                  className="p-1 hover:bg-emerald-50 rounded text-emerald-600 transition-all flex items-center justify-center animate-pulse"
+                                  title="View Payment Screenshot Receipt"
+                                >
+                                  <Image className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                               <button 
                                 onClick={() => {
                                   setSelectedOrder(order);
