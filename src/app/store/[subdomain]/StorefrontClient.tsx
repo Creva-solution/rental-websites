@@ -6,7 +6,8 @@ import {
   Truck, Shield, RefreshCw, ArrowRight, Heart, Star, Check, Eye, ArrowUpDown, 
   Sparkles, Package, ShoppingBag, EyeOff, Calendar, Clock, Instagram, Facebook, Twitter, Youtube, Linkedin, MessageCircle,
   CreditCard, Coins, Smartphone, QrCode, CheckCircle2, Lock, Building2, Zap,
-  Upload, Trash2, Image
+  Upload, Trash2, Image,
+  Leaf, Utensils, GlassWater, Tag, Gift, Layers, Video, BookOpen
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -174,19 +175,18 @@ const getYouTubeEmbedUrl = (url: string) => {
   return embedUrl;
 };
 
-const getCategoryEmoji = (category: string) => {
+const renderCategoryIcon = (category: string, className = "w-3.5 h-3.5") => {
   const cat = category.toLowerCase();
-  if (cat.includes('all')) return '🛍️';
-  if (cat.includes('plate') || cat.includes('mattai')) return '🍽️';
-  if (cat.includes('cup') || cat.includes('tumbler')) return '🥛';
-  if (cat.includes('spoon') || cat.includes('fork') || cat.includes('cutlery') || cat.includes('spoons')) return '🍴';
-  if (cat.includes('bowl') || cat.includes('bowls')) return '🥣';
-  if (cat.includes('bag') || cat.includes('bags')) return '🛍️';
-  if (cat.includes('organic') || cat.includes('eco') || cat.includes('nature') || cat.includes('natural')) return '🌱';
-  if (cat.includes('soap') || cat.includes('soaps')) return '🧼';
-  if (cat.includes('ceramic') || cat.includes('clay') || cat.includes('pottery')) return '🏺';
-  if (cat.includes('gift') || cat.includes('combo') || cat.includes('offers')) return '🎁';
-  return '🏷️';
+  if (cat.includes('all')) return <ShoppingBag className={className} />;
+  if (cat.includes('plate') || cat.includes('mattai')) return <Layers className={className} />;
+  if (cat.includes('cup') || cat.includes('tumbler')) return <GlassWater className={className} />;
+  if (cat.includes('spoon') || cat.includes('fork') || cat.includes('cutlery') || cat.includes('spoons') || cat.includes('bowl') || cat.includes('bowls')) return <Utensils className={className} />;
+  if (cat.includes('bag') || cat.includes('bags')) return <ShoppingBag className={className} />;
+  if (cat.includes('organic') || cat.includes('eco') || cat.includes('nature') || cat.includes('natural')) return <Leaf className={className} />;
+  if (cat.includes('soap') || cat.includes('soaps')) return <Sparkles className={className} />;
+  if (cat.includes('ceramic') || cat.includes('clay') || cat.includes('pottery')) return <Package className={className} />;
+  if (cat.includes('gift') || cat.includes('combo') || cat.includes('offers')) return <Gift className={className} />;
+  return <Tag className={className} />;
 };
 
 export default function StorefrontClient({ store, products }: { store: any, products: any[] }) {
@@ -283,7 +283,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   // Parse custom metadata for banner slideshow & announcement bar message
   let parsedDesc = store.description || '';
   let customBanners = [];
-  let announcementText = `✨ EXCLUSIVE SPRING SALE: FREE SHIPPING ON ALL ORDERS OVER ${currencySymbol}500 ✨`;
+  let announcementText = `EXCLUSIVE SPRING SALE: FREE SHIPPING ON ALL ORDERS OVER ${currencySymbol}500`;
   let socialLinks = { instagram: '', facebook: '', twitter: '', youtube: '', linkedin: '' };
   let flashAd: any = null;
   let selectedTemplate: 'minimal' | 'artisan' | 'bold' | 'luxe' | 'retro' | 'admire' = 'minimal';
@@ -627,7 +627,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           isPromo: true,
           image: getProductImage(activePromoProduct) || 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&q=80&w=1200',
           title: activePromoProduct.name,
-          subtitle: `🔥 LIMITED-TIME FLASH SALE: ${offerPercent}% OFF! Original: ${currencySymbol}${originalPrice.toLocaleString()} | Now: ${currencySymbol}${offerPrice.toLocaleString()}`,
+          subtitle: `LIMITED-TIME FLASH SALE: ${offerPercent}% OFF! Original: ${currencySymbol}${originalPrice.toLocaleString()} | Now: ${currencySymbol}${offerPrice.toLocaleString()}`,
           cta: `CLAIM OFFER IN ${timeLeftText}`,
           product: activePromoProduct
         });
@@ -1592,7 +1592,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   {store.logo_url ? (
                     <img src={store.logo_url} alt={store.store_name} className="h-5 w-auto object-contain" />
                   ) : (
-                    <span>💾 {store.store_name}</span>
+                    <span className="flex items-center gap-1"><Package className="w-3.5 h-3.5" /> {store.store_name}</span>
                   )}
                 </Link>
                 
@@ -1710,7 +1710,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     }} 
                     className={`hover:text-[var(--store-primary)] transition-colors py-2 block border-b-2 flex items-center gap-1.5 ${selectedCategory === cat ? 'border-[var(--store-primary)] text-[var(--store-primary)]' : 'border-transparent text-gray-600'}`}
                   >
-                    <span>{getCategoryEmoji(cat)}</span>
+                    {renderCategoryIcon(cat, "w-3.5 h-3.5")}
                     <span>{cat === 'All' ? 'ALL PRODUCTS' : cat.toUpperCase()}</span>
                   </button>
                 ))}
@@ -1919,7 +1919,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     <img src={store.logo_url} alt={store.store_name} className="h-9 md:h-11 w-auto object-contain transition-transform group-hover:scale-102" />
                   ) : (
                     <span className="font-extrabold text-sm sm:text-base md:text-2xl tracking-tight text-[#04113f] group-hover:text-[#f2852a] transition-all font-theme-title truncate max-w-[120px] sm:max-w-none">
-                      🧼 {store.store_name}
+                      {store.store_name}
                     </span>
                   )}
                 </Link>
@@ -2128,14 +2128,14 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
-                        e.currentTarget.parentElement?.classList.add('bg-gradient-to-br', 'from-emerald-800', 'to-emerald-950');
+                        e.currentTarget.parentElement?.classList.add('bg-gradient-to-br', 'from-blue-600', 'to-blue-900');
                       }}
                     />
                     
                     {/* Marketplace banner details */}
                     <div className="absolute inset-0 z-20 flex flex-col justify-center items-start text-left px-8 sm:px-12 max-w-md space-y-3 text-white">
                       <span className="inline-block bg-yellow-400 text-black text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-sm">
-                        🌿 100% ECO-FRIENDLY & BIODEGRADABLE 🌿
+                        SUPER DEALS
                       </span>
                       <h2 className="text-xl sm:text-3xl font-black tracking-tight leading-tight uppercase font-sans drop-shadow-sm">
                         {slide.title}
@@ -2146,9 +2146,9 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                       <div className="pt-2">
                         <a 
                           href="#catalog"
-                          className="inline-block px-5 py-2 bg-[var(--store-primary)] hover:bg-[var(--store-primary-dark)] text-white text-[10px] font-bold uppercase tracking-wider rounded-sm transition-colors shadow-md"
+                          className="inline-block px-5 py-2 bg-[#FB641B] hover:bg-[#e05615] text-white text-[10px] font-bold uppercase tracking-wider rounded-sm transition-colors shadow-md"
                         >
-                          🛒 SHOP NOW
+                          SHOP NOW
                         </a>
                       </div>
                     </div>
@@ -2168,30 +2168,30 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               <div className="lg:col-span-3 grid grid-rows-2 gap-4">
                 <div className="bg-white p-5 rounded-sm border border-gray-200 flex flex-col justify-between text-left shadow-sm relative overflow-hidden group">
                   <div className="z-10 space-y-1.5">
-                    <span className="text-[8px] font-black tracking-wider text-[var(--store-primary)] uppercase block">✨ TODAY'S SPECIAL DEAL ✨</span>
+                    <span className="text-[8px] font-black tracking-wider text-[#2874F0] uppercase block">TODAY'S SPECIAL</span>
                     <h3 className="text-base font-black text-gray-900 tracking-tight leading-tight uppercase font-sans">
                       {artisanHeroTitle}
                     </h3>
                     <p className="text-[10px] text-gray-500 font-medium line-clamp-2">{artisanHeroSubtitle}</p>
                   </div>
                   <div className="pt-4 z-10">
-                    <a href="#catalog" className="inline-block text-[9px] font-black text-[var(--store-primary)] hover:underline uppercase tracking-wider">
-                      🛍️ Shop Deal →
+                    <a href="#catalog" className="inline-block text-[9px] font-black text-[#2874F0] hover:underline uppercase tracking-wider">
+                      Shop Deal →
                     </a>
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-green-50/30 to-amber-50/30 p-5 rounded-sm border border-gray-200 flex flex-col justify-between text-left shadow-sm group">
+                <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-5 rounded-sm border border-orange-100 flex flex-col justify-between text-left shadow-sm group">
                   <div className="space-y-1.5">
-                    <span className="text-[8px] font-black tracking-wider text-[var(--store-primary)] uppercase block">🎉 SPECIAL FESTIVE OFFERS 🎉</span>
+                    <span className="text-[8px] font-black tracking-wider text-orange-600 uppercase block">FESTIVE OFFERS</span>
                     <h3 className="text-base font-black text-gray-900 tracking-tight leading-tight uppercase font-sans">
                       UP TO 60% OFF
                     </h3>
                     <p className="text-[10px] text-gray-500 font-medium">Get huge savings on premium store essentials. Exclusive benefits online.</p>
                   </div>
                   <div className="pt-4">
-                    <button onClick={() => setIsAboutOpen(true)} className="inline-block text-[9px] font-black text-[var(--store-primary)] hover:underline uppercase tracking-wider">
-                      ℹ️ Learn More →
+                    <button onClick={() => setIsAboutOpen(true)} className="inline-block text-[9px] font-black text-orange-600 hover:underline uppercase tracking-wider">
+                      Learn More →
                     </button>
                   </div>
                 </div>
@@ -2373,7 +2373,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               {/* Left Column: Storytelling warm text block */}
               <div className="space-y-6 lg:pr-6 text-left order-2 lg:order-1">
                 <span className="text-[10px] tracking-[0.25em] font-black text-[#f2852a] uppercase block font-theme-body">
-                  ✨ Cold Processed • 100% Organic Essence
+                  Cold Processed • 100% Organic Essence
                 </span>
                 <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-[#04113f] leading-tight font-theme-title">
                   {mainBanner?.title || "Nourish Your Skin with Pure Organic Soaps"}
@@ -2386,7 +2386,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     href="#catalog"
                     className="inline-block px-8 py-3.5 bg-[#f2852a] hover:bg-[#04113f] text-white hover:text-white text-xs font-bold uppercase tracking-wider rounded-[12px] transition-all duration-200 shadow-sm hover:scale-[1.02]"
                   >
-                    {mainBanner?.cta || "🧼 Explore Handmade Soaps"}
+                    {mainBanner?.cta || "Explore Handmade Soaps"}
                   </a>
                   <button 
                     onClick={() => setIsAboutOpen(true)}
@@ -2649,21 +2649,29 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           <section id="catalog" className="px-4 sm:px-6 lg:px-8 py-10 max-w-7xl mx-auto text-[#212121] font-sans animate-in fade-in duration-300">
             {/* Marketplace Shopping Benefits Strip */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white border border-gray-200 p-4 rounded-sm mb-8 text-xs text-gray-600">
-              <div className="flex items-center gap-2 justify-center text-left">
-                <span className="text-base">🌱</span>
-                <span className="font-semibold">{store.subdomain?.includes('pakkumattai') || store.store_name?.toLowerCase().includes('pakkumattai') ? '100% Eco & Natural' : '100% Original Goods'}</span>
+              <div className="flex items-center gap-2.5 justify-center text-left">
+                <svg className="w-5 h-5 text-[#2874F0] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="font-semibold">100% Original Products</span>
               </div>
-              <div className="flex items-center gap-2 justify-center text-left">
-                <span className="text-base">🔄</span>
-                <span className="font-semibold">Easy Replacements</span>
+              <div className="flex items-center gap-2.5 justify-center text-left">
+                <svg className="w-5 h-5 text-[#2874F0] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18" />
+                </svg>
+                <span className="font-semibold">Easy Returns & Refunds</span>
               </div>
-              <div className="flex items-center gap-2 justify-center text-left col-span-2 md:col-span-1">
-                <span className="text-base">🛡️</span>
-                <span className="font-semibold">100% Secure Payments</span>
+              <div className="flex items-center gap-2.5 justify-center text-left col-span-2 md:col-span-1">
+                <svg className="w-5 h-5 text-[#2874F0] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <span className="font-semibold">Secure Transaction Guarantee</span>
               </div>
-              <div className="flex items-center gap-2 justify-center text-left col-span-2 md:col-span-1">
-                <span className="text-base">⚡</span>
-                <span className="font-semibold">Doorstep Delivery</span>
+              <div className="flex items-center gap-2.5 justify-center text-left col-span-2 md:col-span-1">
+                <svg className="w-5 h-5 text-[#2874F0] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span className="font-semibold">Lightning Fast Delivery</span>
               </div>
             </div>
 
@@ -2681,14 +2689,13 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`px-4 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-wider border transition-all flex items-center gap-1.5 ${
+                    className={`px-4 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-wider border transition-all ${
                       selectedCategory === cat 
-                        ? 'bg-[var(--store-primary)] border-[var(--store-primary)] text-white shadow-sm'
+                        ? 'bg-[#2874F0] border-[#2874F0] text-white shadow-sm'
                         : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
                     }`}
                   >
-                    <span>{getCategoryEmoji(cat)}</span>
-                    <span>{cat === 'All' ? 'ALL CATEGORIES' : cat.toUpperCase()}</span>
+                    {cat === 'All' ? 'ALL CATEGORIES' : cat.toUpperCase()}
                   </button>
                 ))}
               </div>
@@ -2757,18 +2764,18 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                       {/* Content details */}
                       <div className="p-4 flex-1 flex flex-col justify-between bg-white space-y-3">
                         <div className="space-y-1">
-                          <span className="text-[9px] font-bold text-[var(--store-primary)] uppercase tracking-wider block">{getProductCategory(product)}</span>
+                          <span className="text-[9px] font-bold text-[#2874F0] uppercase tracking-wider block">{getProductCategory(product)}</span>
                           <h4 
                             onClick={() => setSelectedProduct(product)}
-                            className="font-bold text-gray-900 text-xs hover:text-[var(--store-primary)] cursor-pointer leading-tight line-clamp-2 min-h-[2rem] font-sans"
+                            className="font-bold text-gray-900 text-xs hover:text-[#2874F0] cursor-pointer leading-tight line-clamp-2 min-h-[2rem] font-sans"
                           >
                             {product.name}
                           </h4>
                           
                           {/* Rating Row */}
                           <div className="flex items-center gap-1.5 pt-0.5">
-                            <span className="inline-flex items-center gap-0.5 bg-emerald-800 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm">
-                              ⭐ {ratingVal}
+                            <span className="inline-flex items-center gap-0.5 bg-green-700 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm">
+                              {ratingVal} <span className="text-[7px]">★</span>
                             </span>
                             <span className="text-[10px] text-gray-400 font-semibold">({reviewsCount.toLocaleString()})</span>
                           </div>
@@ -2795,9 +2802,9 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                           <button 
                             type="button"
                             onClick={() => addToCart(product, 1)}
-                            className="w-full text-center py-2 bg-[var(--store-primary)] hover:bg-[var(--store-primary-dark)] text-white text-[10px] font-bold uppercase tracking-wider rounded-sm transition-all shadow-sm"
+                            className="w-full text-center py-2 bg-[#FB641B] hover:bg-[#e05615] text-white text-[10px] font-bold uppercase tracking-wider rounded-sm transition-colors shadow-sm animate-pulse"
                           >
-                            🛒 ADD TO CART
+                            Add To Cart
                           </button>
                         </div>
                       </div>
@@ -2971,8 +2978,8 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                                     <span className="text-[10px] text-zinc-500 line-through block font-black leading-none border-b-2 border-dashed border-zinc-300 w-fit">
                                       {currencySymbol}{originalPrice.toLocaleString()}
                                     </span>
-                                    <span className="text-[7.5px] font-black uppercase tracking-widest text-[#E11D48] block leading-none">
-                                      🔥 -{offerPercent}% OFF (ENDS: {timeLeftText})
+                                    <span className="text-[7.5px] font-black uppercase tracking-widest text-[#E11D48] flex items-center gap-0.5 leading-none">
+                                      <Sparkles className="w-2.5 h-2.5 inline" /> -{offerPercent}% OFF (ENDS: {timeLeftText})
                                     </span>
                                   </div>
                                 ) : (
@@ -3280,8 +3287,8 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                                 <span className="text-[10px] text-gray-400 line-through block leading-none font-medium">
                                   {currencySymbol}{originalPrice.toLocaleString()}
                                 </span>
-                                <span className="text-[8px] text-red-500 font-black uppercase tracking-[0.1em] block leading-none mt-1">
-                                  🔥 SALE ({timeLeftText})
+                                <span className="text-[8px] text-red-500 font-black uppercase tracking-[0.1em] flex items-center gap-0.5 leading-none mt-1">
+                                  <Sparkles className="w-2.5 h-2.5 inline" /> SALE ({timeLeftText})
                                 </span>
                               </div>
                             ) : (
@@ -3383,7 +3390,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               : selectedTemplate === 'luxe'
                 ? '#FFFFFF'
                 : selectedTemplate === 'artisan'
-                  ? 'var(--store-primary)'
+                  ? '#2874F0'
                   : '#FFFFFF'
           } !important;
           color: ${
@@ -3403,7 +3410,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 : selectedTemplate === 'luxe'
                   ? '1px solid #F3F4F6'
                   : selectedTemplate === 'artisan'
-                    ? '1px solid var(--store-primary-dark)'
+                    ? '1px solid #1976D2'
                     : selectedTemplate === 'admire'
                       ? '1px solid rgba(242, 133, 42, 0.12)'
                       : '1px solid #F3F4F6'
@@ -4626,8 +4633,8 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     <span className="text-base text-gray-400 line-through font-bold">
                       {currencySymbol}{Number(selectedProduct.price).toLocaleString()}
                     </span>
-                    <span className="bg-red-100 text-red-700 text-[10px] font-black uppercase px-2 py-0.5 tracking-wider rounded-sm animate-pulse">
-                      🔥 {offerPercent}% OFF FLASH SALE
+                    <span className="bg-red-100 text-red-700 text-[10px] font-black uppercase px-2 py-0.5 tracking-wider rounded-sm animate-pulse flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-red-600" /> {offerPercent}% OFF FLASH SALE
                     </span>
                   </>
                 ) : (
@@ -5358,7 +5365,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 {/* Floating promo badge */}
                 <div className="absolute bottom-4 left-4">
                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase bg-gradient-to-r from-purple-500 via-rose-500 to-pink-500 text-white shadow-lg">
-                    🔥 SPECIAL OFFER
+                    <Sparkles className="w-3 h-3 text-white" /> SPECIAL OFFER
                   </span>
                 </div>
               </div>
@@ -5368,7 +5375,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
             <div className="space-y-4 relative z-10 w-full">
               {!flashAd.image && (
                 <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase bg-gradient-to-r from-purple-500 via-rose-500 to-pink-500 text-white shadow-lg animate-pulse mb-2">
-                  🔥 EXCLUSIVE LIMITED OFFER
+                  <Sparkles className="w-3 h-3 text-white" /> EXCLUSIVE LIMITED OFFER
                 </span>
               )}
               

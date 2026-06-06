@@ -550,7 +550,7 @@ export default function AppearancePage() {
             value={announcement}
             onChange={e => setAnnouncement(e.target.value)}
             className="w-full h-11 px-4 rounded-lg border border-input bg-background text-sm focus:ring-1 focus:ring-primary outline-none"
-            placeholder="e.g. ✨ EXCLUSIVE SPRING SALE: FREE SHIPPING ON ALL ORDERS OVER ₹500 ✨"
+            placeholder="e.g. EXCLUSIVE SPRING SALE: FREE SHIPPING ON ALL ORDERS OVER ₹500"
           />
           <p className="text-xs text-muted-foreground">This message is displayed at the very top of your store storefront announcement bar.</p>
         </div>
@@ -720,7 +720,7 @@ export default function AppearancePage() {
               }}
               className="text-xs px-3 py-1.5 border border-border rounded hover:bg-muted font-medium transition-colors bg-background shadow-sm"
             >
-              🍽️ Organic Plates & Food Presets
+              Organic Plates & Food Presets
             </button>
             <button 
               onClick={() => {
@@ -743,7 +743,7 @@ export default function AppearancePage() {
               }}
               className="text-xs px-3 py-1.5 border border-border rounded hover:bg-muted font-medium transition-colors bg-background shadow-sm"
             >
-              👗 Premium Fashion Presets
+              Premium Fashion Presets
             </button>
             <button 
               type="button"
@@ -767,7 +767,7 @@ export default function AppearancePage() {
               }}
               className="text-xs px-3 py-1.5 border border-border rounded hover:bg-muted font-medium transition-colors bg-background shadow-sm"
             >
-              🧼 Admire Handmade Soaps Presets
+              Admire Handmade Soaps Presets
             </button>
           </div>
         </div>
@@ -814,15 +814,15 @@ export default function AppearancePage() {
                       }}
                       className="w-full h-10 px-3 mt-1.5 rounded border border-input bg-background text-sm cursor-pointer outline-none"
                     >
-                      <option value="Truck">🚚 Shipping Truck</option>
-                      <option value="Shield">🛡️ Security Shield</option>
-                      <option value="RefreshCw">🔄 Return Loop</option>
-                      <option value="Heart">❤️ Heart / Love</option>
-                      <option value="Star">⭐ Review Star</option>
-                      <option value="Sparkles">✨ Special Sparkles</option>
-                      <option value="Package">📦 Delivery Package</option>
-                      <option value="ShoppingBag">🛍️ Shopping Bag</option>
-                      <option value="Clock">⏱️ 24/7 Clock</option>
+                      <option value="Truck">Shipping Truck</option>
+                      <option value="Shield">Security Shield</option>
+                      <option value="RefreshCw">Return Loop</option>
+                      <option value="Heart">Heart / Love</option>
+                      <option value="Star">Review Star</option>
+                      <option value="Sparkles">Special Sparkles</option>
+                      <option value="Package">Delivery Package</option>
+                      <option value="ShoppingBag">Shopping Bag</option>
+                      <option value="Clock">24/7 Clock</option>
                     </select>
                   </div>
 
