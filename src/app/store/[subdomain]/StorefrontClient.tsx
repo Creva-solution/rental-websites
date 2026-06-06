@@ -2111,7 +2111,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
     switch (selectedTemplate) {
       case 'artisan':
         return (
-          <section className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto font-sans animate-in fade-in duration-300 text-left">
+          <section className="px-4 sm:px-6 lg:px-8 pt-6 pb-2 max-w-7xl mx-auto font-sans animate-in fade-in duration-300 text-left">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               
               {/* Left Column: Big Marketplace Carousel Slider (lg: col-span-9) */}
@@ -2203,7 +2203,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
       case 'bold':
         return (
-          <section className="px-4 sm:px-6 lg:px-8 py-10 max-w-7xl mx-auto">
+          <section className="px-4 sm:px-6 lg:px-8 pt-10 pb-2 max-w-7xl mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Hero Block 1 */}
               <div className="border-4 border-black p-8 bg-black text-white flex flex-col justify-between aspect-[16/10] shadow-[6px_6px_0px_#EF4444]">
@@ -2299,7 +2299,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
       case 'retro':
         return (
-          <section className="px-4 sm:px-6 lg:px-8 py-10 max-w-7xl mx-auto font-mono text-[#2B231F] text-left animate-in fade-in duration-300">
+          <section className="px-4 sm:px-6 lg:px-8 pt-10 pb-2 max-w-7xl mx-auto font-mono text-[#2B231F] text-left animate-in fade-in duration-300">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-[#ECE6DA] border-2 border-black p-6 sm:p-10 shadow-[6px_6px_0px_#2B231F] rounded-none">
               
               {/* Left Column: Polaroid Photo Card (Lg: col-span-5) */}
@@ -2367,7 +2367,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
       case 'admire':
         return (
-          <section className="relative px-4 sm:px-6 lg:px-8 py-10 max-w-7xl mx-auto">
+          <section className="relative px-4 sm:px-6 lg:px-8 pt-10 pb-2 max-w-7xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center bg-white p-6 sm:p-10 border border-orange-100/40 rounded-[24px] shadow-sm">
               
               {/* Left Column: Storytelling warm text block */}
@@ -3701,11 +3701,11 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
           {/* Dynamic Shoppable Video Reels Carousel */}
           {videoReels.length > 0 && (
-            <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-gray-100">
+            <section className="pt-2 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-gray-100">
               <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 text-left">
                 <div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-[#f2852a] bg-orange-50 px-3 py-1 rounded-full font-theme-body">
-                    🎥 Shop the Look
+                  <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-[#f2852a] bg-orange-50 px-3 py-1.5 rounded-full font-theme-body">
+                    <Video className="w-3.5 h-3.5" /> Shop the Look
                   </span>
                   <h3 className="text-xl md:text-2xl font-black text-[#04113f] tracking-tight mt-2 font-theme-title">
                     Shoppable Video Reels
