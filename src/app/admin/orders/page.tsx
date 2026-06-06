@@ -899,9 +899,16 @@ export default function OrdersPage() {
                             </span>
                             <span className="block text-[8px] text-muted-foreground font-mono mt-0.5">{extra.payment_method}</span>
                             {order.payment_screenshot_url && (
-                              <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-750 text-[7px] font-black uppercase tracking-wider mt-1 border border-emerald-500/20">
-                                <Image className="w-2.5 h-2.5 text-emerald-600" /> Proof Attached
-                              </span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(order.payment_screenshot_url, '_blank');
+                                }}
+                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-750 text-[7px] font-black uppercase tracking-wider mt-1 border border-emerald-500/20 transition-all cursor-pointer"
+                                title="Click to view full-size payment screenshot receipt"
+                              >
+                                <Image className="w-2.5 h-2.5 text-emerald-600" /> Proof Attached ↗
+                              </button>
                             )}
                           </td>
                           <td className="px-6 py-4">
