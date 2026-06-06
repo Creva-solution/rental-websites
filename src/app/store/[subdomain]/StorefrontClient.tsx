@@ -132,27 +132,46 @@ const renderBenefitIcon = (iconName: string) => {
 
 const getYouTubeEmbedUrl = (url: string) => {
   if (!url) return '';
-  if (url.includes('youtube.com/embed/')) return url;
   
-  // Handle shorts e.g. youtube.com/shorts/ID
-  const shortsMatch = url.match(/youtube\.com\/shorts\/([^/?#]+)/);
-  if (shortsMatch && shortsMatch[1]) {
-    return `https://www.youtube.com/embed/${shortsMatch[1]}`;
+  let embedUrl = url;
+  let videoId = '';
+  
+  if (url.includes('youtube.com/embed/')) {
+    embedUrl = url;
+    const parts = url.split('/embed/');
+    if (parts[1]) {
+      videoId = parts[1].split(/[?#]/)[0];
+    }
+  } else {
+    // Handle shorts e.g. youtube.com/shorts/ID
+    const shortsMatch = url.match(/youtube\.com\/shorts\/([^/?#]+)/);
+    if (shortsMatch && shortsMatch[1]) {
+      videoId = shortsMatch[1];
+      embedUrl = `https://www.youtube.com/embed/${videoId}`;
+    } else {
+      // Handle watch?v=ID
+      const watchMatch = url.match(/[?&]v=([^&#]+)/);
+      if (watchMatch && watchMatch[1]) {
+        videoId = watchMatch[1];
+        embedUrl = `https://www.youtube.com/embed/${videoId}`;
+      } else {
+        // Handle youtu.be/ID
+        const beMatch = url.match(/youtu\.be\/([^/?#]+)/);
+        if (beMatch && beMatch[1]) {
+          videoId = beMatch[1];
+          embedUrl = `https://www.youtube.com/embed/${beMatch[1]}`;
+        }
+      }
+    }
+  }
+
+  // If a YouTube video ID is found, append autoplay, mute, and loop params
+  if (videoId) {
+    const separator = embedUrl.includes('?') ? '&' : '?';
+    return `${embedUrl}${separator}autoplay=1&mute=1&loop=1&playlist=${videoId}`;
   }
   
-  // Handle watch?v=ID
-  const watchMatch = url.match(/[?&]v=([^&#]+)/);
-  if (watchMatch && watchMatch[1]) {
-    return `https://www.youtube.com/embed/${watchMatch[1]}`;
-  }
-  
-  // Handle youtu.be/ID
-  const beMatch = url.match(/youtu\.be\/([^/?#]+)/);
-  if (beMatch && beMatch[1]) {
-    return `https://www.youtube.com/embed/${beMatch[1]}`;
-  }
-  
-  return url;
+  return embedUrl;
 };
 
 export default function StorefrontClient({ store, products }: { store: any, products: any[] }) {
