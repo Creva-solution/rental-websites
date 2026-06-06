@@ -323,7 +323,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       activeCoupons = data.discountCoupons || data.discounts || data.coupons || [];
       blogArticles = data.articles || data.blogPosts || data.blog || [];
       customPages = data.pages || data.staticPages || [];
-      videoReels = data.videoCommerce || data.reels || data.videos || [];
+      videoReels = data.videoReels || data.videoCommerce || data.reels || data.videos || [];
     }
   } catch (e) {
     console.error("Failed to parse store metadata:", e);
