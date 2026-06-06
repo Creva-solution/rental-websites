@@ -1969,7 +1969,7 @@ export default function OrdersPage() {
                 <button
                   type="button"
                   onClick={() => handleVerifyPayment(activeProofOrder)}
-                  className="flex-1 px-4 py-2.5 bg-emerald-650 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all text-center shadow-md shadow-emerald-650/10 flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98]"
+                  className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all text-center shadow-md shadow-emerald-600/10 flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98]"
                 >
                   <Check className="w-3.5 h-3.5" /> Verify Payment
                 </button>

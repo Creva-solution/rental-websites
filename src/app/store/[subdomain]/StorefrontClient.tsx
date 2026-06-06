@@ -664,6 +664,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   const [activePaymentTab, setActivePaymentTab] = useState<'upi' | 'gateway'>('upi');
   const [copiedPhone, setCopiedPhone] = useState(false);
   const [paymentStageText, setPaymentStageText] = useState('Initiating secure gateway...');
+  const [orderSuccessData, setOrderSuccessData] = useState<any | null>(null);
 
   // Simulated Card payment inputs
   const [cardNumber, setCardNumber] = useState('');
@@ -1405,6 +1406,15 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       setCardCvv('');
       setCardName('');
       
+      const orderSuccessObj = {
+        id: orderData ? orderData.id : 'order_' + Math.random().toString(36).substring(2, 9),
+        total_amount: finalTotalAmount,
+        customer_name: customerName,
+        payment_method: actualMethod,
+        whatsapp_url: storePhone ? `https://wa.me/${storePhone}?text=${encodedMessage}` : null
+      };
+      setOrderSuccessData(orderSuccessObj);
+
       if (storePhone) {
         window.open(`https://wa.me/${storePhone}?text=${encodedMessage}`, '_blank');
       } else {
@@ -4508,6 +4518,62 @@ export default function StorefrontClient({ store, products }: { store: any, prod
               </>
             )}
 
+          </div>
+        </div>
+      )}
+
+      {/* Congratulations / Order Success Modal */}
+      {orderSuccessData && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 font-sans animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 flex flex-col transition-all duration-300 relative text-left p-6 md:p-8 space-y-6 animate-in zoom-in-95">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 animate-bounce shadow-inner shadow-emerald-500/10">
+                <CheckCircle2 className="w-10 h-10 stroke-[1.5]" />
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="font-black text-slate-900 text-lg tracking-tight">🎉 Congratulations!</h3>
+                <h4 className="font-extrabold text-emerald-600 text-[10.5px] uppercase tracking-[0.15em]">Order Placed Successfully</h4>
+              </div>
+              <p className="text-xs text-gray-500 max-w-[280px] leading-relaxed">
+                Thank you, <span className="font-bold text-slate-800">{orderSuccessData.customer_name}</span>! Your order has been registered in our database. We have opened WhatsApp to confirm your details and track delivery status.
+              </p>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-4 space-y-2.5 text-xs">
+              <div className="flex justify-between items-center text-slate-500">
+                <span>Order ID</span>
+                <span className="font-mono font-bold text-slate-800 uppercase">#{orderSuccessData.id.substring(0, 8).toUpperCase()}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-500">
+                <span>Payment Method</span>
+                <span className="font-bold text-slate-800">{orderSuccessData.payment_method}</span>
+              </div>
+              <div className="h-px bg-slate-200/60" />
+              <div className="flex justify-between items-center text-slate-900 font-extrabold">
+                <span>Total Amount</span>
+                <span className="text-purple-700 font-black text-sm">{currencySymbol}{Number(orderSuccessData.total_amount).toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-1">
+              {orderSuccessData.whatsapp_url && (
+                <a
+                  href={orderSuccessData.whatsapp_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.15em] text-center shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                >
+                  <MessageCircle className="w-4 h-4 fill-current" /> Send Order Details to WhatsApp
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => setOrderSuccessData(null)}
+                className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-[0.15em] transition-all text-center"
+              >
+                Continue Shopping
+              </button>
+            </div>
           </div>
         </div>
       )}
