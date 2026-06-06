@@ -315,6 +315,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   let blogArticles: any[] = [];
   let customPages: any[] = [];
   let videoReels: any[] = [];
+  let ga4MeasurementId = '';
 
   try {
     if (store.description && store.description.startsWith('{')) {
@@ -360,6 +361,12 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       blogArticles = data.articles || data.blogPosts || data.blog || [];
       customPages = data.pages || data.staticPages || [];
       videoReels = data.videoReels || data.videoCommerce || data.reels || data.videos || [];
+
+      // Extract GA4 integration key
+      const ga4Integration = data.integrations?.find((i: any) => i.id === 'ga4');
+      if (ga4Integration && ga4Integration.connected && data.integrationSettings?.ga4?.measurementId) {
+        ga4MeasurementId = data.integrationSettings.ga4.measurementId;
+      }
     }
   } catch (e) {
     console.error("Failed to parse store metadata:", e);
@@ -425,6 +432,34 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       }
     }
   }, [flashAd, store.id]);
+
+  // Inject Google Analytics 4 (GA4) script tags dynamically if enabled
+  useEffect(() => {
+    if (!ga4MeasurementId || typeof window === 'undefined') return;
+
+    // Inject GA4 gtag script tag
+    const script1 = document.createElement('script');
+    script1.src = `https://www.googletagmanager.com/gtag/js?id=${ga4MeasurementId}`;
+    script1.async = true;
+    document.head.appendChild(script1);
+
+    // Inject GA4 config initialization script tag
+    const script2 = document.createElement('script');
+    script2.innerHTML = `
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '${ga4MeasurementId}', {
+        page_path: window.location.pathname,
+      });
+    `;
+    document.head.appendChild(script2);
+
+    return () => {
+      document.head.removeChild(script1);
+      document.head.removeChild(script2);
+    };
+  }, [ga4MeasurementId]);
 
   // Dynamically update favicon in the browser tab based on the uploaded store logo
   useEffect(() => {
@@ -519,6 +554,11 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       }
     } catch (e) {}
     return product.category || 'Collection';
+  };
+
+  const isOutOfStock = (product: any) => {
+    if (!product) return false;
+    return product.inventory_quantity !== undefined && product.inventory_quantity !== null && Number(product.inventory_quantity) <= 0;
   };
 
   const getProductDescription = (product: any) => {
@@ -1076,6 +1116,10 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   };
 
   const addToCart = (product: any, quantity: number = 1, size: string = '', color: string = '') => {
+    if (isOutOfStock(product)) {
+      alert("This product is currently out of stock!");
+      return;
+    }
     const pricedProduct = getProductWithActivePrice(product);
     setCart(prev => {
       const existing = prev.find(item => 
@@ -1594,7 +1638,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       case 'retro':
         return (
           <header className="header-theme sticky top-0 z-40 transition-all border-b-2 border-black bg-[#F4EFE6] text-[#2B231F] font-mono shadow-[0_2px_0px_#000]">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            <div className="max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
               
               {/* Left Logo / Desktop Nav */}
               <div className="flex items-center gap-6">
@@ -1647,7 +1691,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         return (
           <header className="sticky top-0 z-40 transition-all bg-[var(--store-primary)] text-white border-b border-[var(--store-primary-dark)] font-sans">
             {/* Top Row: Logo, Search Bar, Action Icons */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            <div className="max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
               
               {/* Brand Logo / Link */}
               <div className="flex items-center gap-2 md:gap-4">
@@ -1746,7 +1790,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       case 'bold':
         return (
           <header className="header-theme sticky top-0 z-40 transition-all bg-white border-b-4 border-black">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+            <div className="max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
               {/* Left Aligned Heavy Brand Logo */}
               <div className="flex items-center gap-6">
                 <Link href="/" className="group flex items-center">
@@ -1820,7 +1864,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       case 'luxe':
         return (
           <header className="sticky top-0 z-40 transition-all bg-white text-gray-900 border-b border-gray-100 font-sans shadow-sm">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between relative gap-4">
+            <div className="max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between relative gap-4">
               
               {/* Left Side: Brand Logo */}
               <div className="flex items-center gap-2 md:gap-6">
@@ -1904,7 +1948,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       case 'admire':
         return (
           <header className="header-theme sticky top-0 z-40 bg-white border-b border-orange-100/40 shadow-sm transition-all duration-300">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+            <div className="max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
               {/* Left: Mobile Menu Trigger & Desktop Navigation */}
               <div className="flex items-center gap-2 md:gap-6">
                 <button 
@@ -2007,7 +2051,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       default:
         return (
           <header className="header-theme sticky top-0 z-40 transition-all bg-white border-b border-gray-100">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between relative gap-4">
+            <div className="max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between relative gap-4">
               <button 
                 onClick={() => setIsMobileMenuOpen(true)}
                 className="p-2 -ml-2 text-gray-900 hover:text-black transition-colors md:hidden"
@@ -2121,7 +2165,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
     switch (selectedTemplate) {
       case 'artisan':
         return (
-          <section className="px-4 sm:px-6 lg:px-8 pt-6 pb-2 max-w-7xl mx-auto font-sans animate-in fade-in duration-300 text-left">
+          <section className="px-4 sm:px-6 lg:px-8 pt-6 pb-2 max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto font-sans animate-in fade-in duration-300 text-left">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               
               {/* Left Column: Big Marketplace Carousel Slider (lg: col-span-9) */}
@@ -2213,7 +2257,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
       case 'bold':
         return (
-          <section className="px-4 sm:px-6 lg:px-8 pt-10 pb-2 max-w-7xl mx-auto">
+          <section className="px-4 sm:px-6 lg:px-8 pt-10 pb-2 max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Hero Block 1 */}
               <div className="border-4 border-black p-8 bg-black text-white flex flex-col justify-between aspect-[16/10] shadow-[6px_6px_0px_#EF4444]">
@@ -2268,7 +2312,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
         return (
           <section className="relative h-auto py-12 md:py-20 w-full overflow-hidden bg-white border-b border-gray-100 font-sans flex items-center animate-in fade-in duration-300">
             {/* Split layout: text left, image right (very premium Shopify DTC look) */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full grid grid-cols-1 md:grid-cols-12 gap-8 items-center h-full">
+            <div className="max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 w-full grid grid-cols-1 md:grid-cols-12 gap-8 items-center h-full">
               
               {/* Left text box (col-span-5) */}
               <div className="md:col-span-5 text-left space-y-6 z-10 py-4">
@@ -2309,7 +2353,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
       case 'retro':
         return (
-          <section className="px-4 sm:px-6 lg:px-8 pt-10 pb-2 max-w-7xl mx-auto font-mono text-[#2B231F] text-left animate-in fade-in duration-300">
+          <section className="px-4 sm:px-6 lg:px-8 pt-10 pb-2 max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto font-mono text-[#2B231F] text-left animate-in fade-in duration-300">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-[#ECE6DA] border-2 border-black p-6 sm:p-10 shadow-[6px_6px_0px_#2B231F] rounded-none">
               
               {/* Left Column: Polaroid Photo Card (Lg: col-span-5) */}
@@ -2377,7 +2421,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
       case 'admire':
         return (
-          <section className="relative px-4 sm:px-6 lg:px-8 pt-10 pb-2 max-w-7xl mx-auto">
+          <section className="relative px-4 sm:px-6 lg:px-8 pt-10 pb-2 max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center bg-white p-6 sm:p-10 border border-orange-100/40 rounded-[24px] shadow-sm">
               
               {/* Left Column: Storytelling warm text block */}
@@ -2529,7 +2573,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 [ ERROR_404: NO PRODUCTS FOUND ]
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 sm:gap-6">
                 {processedProducts.map((product, idx) => {
                   const isLiked = favorites.includes(product.id);
                   let originalPrice = Number(product.price);
@@ -2656,7 +2700,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
       case 'artisan':
         return (
-          <section id="catalog" className="px-4 sm:px-6 lg:px-8 py-10 max-w-7xl mx-auto text-[#212121] font-sans animate-in fade-in duration-300">
+          <section id="catalog" className="px-4 sm:px-6 lg:px-8 py-10 max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto text-[#212121] font-sans animate-in fade-in duration-300">
             {/* Marketplace Shopping Benefits Strip */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white border border-gray-200 p-4 rounded-sm mb-8 text-xs text-gray-600">
               <div className="flex items-center gap-2.5 justify-center text-left">
@@ -2717,7 +2761,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 No items found in this section.
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 sm:gap-6">
                 {processedProducts.map((product) => {
                   const isLiked = favorites.includes(product.id);
                   let originalPrice = Number(product.price);
@@ -2828,7 +2872,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
       case 'bold':
         return (
-          <section id="catalog" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 text-black">
+          <section id="catalog" className="max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 py-14 text-black">
             <h3 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-black mb-10 border-b-4 border-black pb-4">
               {displayCatalogTitle()}
             </h3>
@@ -2899,7 +2943,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                     [ DATABASE EMPTY ]
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                     {processedProducts.map((product) => {
                       const isLiked = favorites.includes(product.id);
                       let originalPrice = Number(product.price);
@@ -3019,7 +3063,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
       case 'luxe':
         return (
-          <section id="catalog" className="bg-white px-4 sm:px-6 lg:px-8 py-16 text-gray-900 max-w-7xl mx-auto animate-in fade-in duration-300 font-sans">
+          <section id="catalog" className="bg-white px-4 sm:px-6 lg:px-8 py-16 text-gray-900 max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto animate-in fade-in duration-300 font-sans">
             
             {/* DTC Brand Catalog Header */}
             <div className="border-b border-gray-100 pb-8 flex flex-col sm:flex-row items-center justify-between gap-6 mb-12 text-left">
@@ -3054,7 +3098,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 No items available in this collection yet.
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-x-6 gap-y-10">
                 {processedProducts.map((product) => {
                   const isLiked = favorites.includes(product.id);
                   let originalPrice = Number(product.price);
@@ -3168,7 +3212,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       case 'minimal':
       default:
         return (
-          <section id="catalog" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-gray-950 flex-1">
+          <section id="catalog" className="max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 py-20 text-gray-950 flex-1">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 pb-6 border-b border-gray-100">
               <h3 className="text-2xl md:text-3xl font-light tracking-[0.2em] uppercase text-gray-950">
                 {displayCatalogTitle()}
@@ -3213,7 +3257,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
                 <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">No Products</h3>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-8">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8">
                 {processedProducts.map((product) => {
                   const isLiked = favorites.includes(product.id);
                   let originalPrice = Number(product.price);
@@ -3711,7 +3755,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
           {/* Dynamic Shoppable Video Reels Carousel */}
           {videoReels.length > 0 && (
-            <section className="pt-2 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-gray-100">
+            <section className="pt-2 pb-8 px-4 sm:px-6 lg:px-8 max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto border-b border-gray-100">
               <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 text-left">
                 <div>
                   <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-[#f2852a] bg-orange-50 px-3 py-1.5 rounded-full font-theme-body">
@@ -3777,7 +3821,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
           {/* Dynamic Blog Storyteller Showcase */}
           {blogArticles.length > 0 && (
-            <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-gray-100">
+            <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto border-t border-gray-100">
               <div className="text-center max-w-3xl mx-auto space-y-3 mb-12">
                 <span className="text-[10px] font-black uppercase tracking-widest text-[#f2852a] bg-orange-50 px-3 py-1 rounded-full font-theme-body">
                   📖 The Storyteller
@@ -4806,10 +4850,15 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
               <div className="flex flex-col gap-3 pt-2">
                 <button
+                  disabled={isOutOfStock(selectedProduct)}
                   onClick={() => addToCart(selectedProduct, 1, selectedSize, selectedColor)}
-                  className="w-full py-3.5 btn-theme-primary text-white font-black uppercase text-xs tracking-[0.2em]"
+                  className={`w-full py-3.5 text-white font-black uppercase text-xs tracking-[0.2em] ${
+                    isOutOfStock(selectedProduct)
+                      ? 'bg-gray-300 cursor-not-allowed opacity-50'
+                      : 'btn-theme-primary'
+                  }`}
                 >
-                  Add to Cart
+                  {isOutOfStock(selectedProduct) ? 'Out of Stock' : 'Add to Cart'}
                 </button>
               </div>
             </div>
@@ -5481,7 +5530,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       {/* Trust Benefits Section placed directly above the Footer */}
       {benefits.enabled && (
         <section className="bg-white border-t border-b border-gray-100 py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8">
             <div className={`grid grid-cols-1 md:grid-cols-${Math.min(3, benefits.items.length)} gap-8 divide-y md:divide-y-0 md:divide-x divide-gray-100 text-center`}>
               {benefits.items.map((item: any, idx: number) => (
                 <div key={idx} className="flex items-center justify-center gap-4 px-4 py-4 md:py-0">
@@ -5499,7 +5548,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
 
       {/* Elegant Footer Area */}
       <footer id="contact" className="bg-gray-950 text-white border-t border-white/5 py-20 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
             
             <div className="space-y-4">
