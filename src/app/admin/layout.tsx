@@ -507,22 +507,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden h-full">
         <header className="h-16 flex items-center justify-between px-4 sm:px-6 border-b border-border bg-background flex-shrink-0">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <button 
               type="button" 
               onClick={() => setIsMobileOpen(true)}
-              className="p-2 -ml-2 hover:bg-muted rounded-lg transition-colors md:hidden"
+              className="p-2 -ml-2 hover:bg-muted rounded-lg transition-colors md:hidden shrink-0"
             >
               <Menu className="w-5 h-5 text-foreground" />
             </button>
-            <h1 className="text-base sm:text-xl font-bold capitalize truncate max-w-[150px] sm:max-w-none">
+            <a 
+              href={storeUrl} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-xs flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-md hover:bg-primary/90 font-medium transition-colors shrink-0"
+            >
+              <ExternalLink className="w-3.5 h-3.5" /> <span>View Store</span>
+            </a>
+            <h1 className="text-base sm:text-xl font-bold capitalize truncate max-w-[150px] sm:max-w-none border-l border-border pl-3 ml-1">
               {pathname === '/admin' ? 'Dashboard Overview' : pathname.replace('/admin/', '')}
             </h1>
           </div>
-          <div className="flex items-center gap-2 sm:gap-4">
-            <a href={storeUrl} target="_blank" rel="noopener noreferrer" className="text-xs sm:text-sm flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-md hover:bg-primary/90 font-medium transition-colors">
-              <ExternalLink className="w-3.5 h-3.5" /> <span className="hidden sm:inline">View Store</span>
-            </a>
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <button onClick={handleLogout} className="text-xs sm:text-sm bg-muted px-3 py-2 rounded-md hover:bg-muted/80 font-medium transition-colors">
               Log out
             </button>
