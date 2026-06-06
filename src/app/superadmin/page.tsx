@@ -115,7 +115,6 @@ export default function SuperAdminDashboard() {
   const [globalIntegrations, setGlobalIntegrations] = useState<Record<string, boolean>>({
     shiprocket: false,
     delhivery: false,
-    whatsapp_api: false,
     ga4: false
   });
 
@@ -3976,7 +3975,6 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                           {[
                             { id: 'shiprocket', name: 'Shiprocket Logistics', desc: 'Allow store owners to sync courier shipments.' },
                             { id: 'delhivery', name: 'Delivery Shipping', desc: 'Allow store owners to integrate Delhivery API.' },
-                            { id: 'whatsapp_api', name: 'Creva WhatsApp Bot', desc: 'Allow store owners to automate notification workflows.' },
                             { id: 'ga4', name: 'Google Analytics 4', desc: 'Allow tracking checkouts and traffic metrics.' }
                           ].map((integration) => {
                             const isEnabled = !!globalIntegrations[integration.id];

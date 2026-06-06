@@ -33,7 +33,6 @@ export default function IntegrationsPage() {
     { id: 'payu', name: 'PayU', category: 'Payments', desc: 'Process enterprise payments through PayU Biz gateways.', connected: false, logo: 'creditcard' },
     { id: 'shiprocket', name: 'Shiprocket Logistics', category: 'Logistics', desc: 'Sync orders, print labels, and coordinate courier dispatches.', connected: false, logo: 'package' },
     { id: 'delhivery', name: 'Delivery Shipping', category: 'Shipping', desc: 'Fast local express shipping API with automated status webhooks.', connected: false, logo: 'truck' },
-    { id: 'whatsapp_api', name: 'Creva WhatsApp Bot', category: 'Automations', desc: 'Real-time automatic order confirmation & UPI screenshot verification bot.', connected: false, logo: 'message' },
     { id: 'ga4', name: 'Google Analytics 4', category: 'Analytics', desc: 'Track customer funnel dropoffs and product checkout conversion rates.', connected: false, logo: 'barchart' }
   ]);
 
@@ -46,7 +45,6 @@ export default function IntegrationsPage() {
     payu: { merchantKey: '', merchantSalt: '' },
     shiprocket: { email: '', password: '' },
     delhivery: { apiKey: '', clientName: '' },
-    whatsapp_api: { phone: '', alertType: 'all' },
     ga4: { measurementId: '' }
   });
 
@@ -216,7 +214,6 @@ export default function IntegrationsPage() {
   };
 
   const isIntegrationVisible = (id: string) => {
-    if (id === 'whatsapp_api') return true;
     if (!globalIntegrations) return false;
     return !!globalIntegrations[id];
   };
@@ -230,7 +227,6 @@ export default function IntegrationsPage() {
     if (id === 'payu') return !!(creds.merchantKey && creds.merchantSalt);
     if (id === 'shiprocket') return !!(creds.email && creds.password);
     if (id === 'delhivery') return !!(creds.apiKey && creds.clientName);
-    if (id === 'whatsapp_api') return !!creds.phone;
     if (id === 'ga4') return !!creds.measurementId;
     return false;
   };
@@ -475,29 +471,6 @@ export default function IntegrationsPage() {
         </div>
       )}
 
-      {/* Integration SLA security badge */}
-      <div className="bg-blue-50/40 text-slate-800 rounded-3xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm relative overflow-hidden border border-blue-100">
-        <div className="flex items-start gap-4 text-left">
-          <Shield className="w-10 h-10 text-blue-600 shrink-0 mt-1" />
-          <div className="space-y-1">
-            <h4 className="font-bold text-sm text-slate-850 flex items-center gap-2">
-              Enterprise-Grade Encryption & Isolation
-            </h4>
-            <p className="text-[11px] text-slate-650 leading-normal max-w-xl font-medium">
-              Creva Webzz channels all payment webhook payloads and logistics integrations over sandboxed SSL endpoints. API credentials are stored under client-isolated databases for total merchant privacy.
-            </p>
-          </div>
-        </div>
-        <a
-          href="https://crevasolution.in/developer/api-keys"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="bg-white hover:bg-slate-50 text-slate-700 font-bold uppercase tracking-widest text-[10px] px-5 py-3 rounded-xl flex items-center gap-1.5 shrink-0 border border-slate-200 transition-all self-stretch sm:self-auto justify-center shadow-sm"
-        >
-          Developer Keys <ExternalLink className="w-3.5 h-3.5" />
-        </a>
-      </div>
-
       {/* Configure Modal */}
       <AnimatePresence>
         {activeSetupIntegration && (
@@ -711,36 +684,6 @@ export default function IntegrationsPage() {
                         placeholder="e.g. MyShopRetail"
                         className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm placeholder:text-slate-400"
                       />
-                    </div>
-                  </>
-                )}
-
-                {activeSetupIntegration.id === 'whatsapp_api' && (
-                  <>
-                    <div className="bg-blue-50/40 border border-blue-100 text-[11px] text-slate-650 p-4 rounded-xl leading-relaxed">
-                      <strong>WhatsApp Notification Settings:</strong> Specify the phone number to receive real-time order alerts. Include the country prefix code without spaces or symbols.
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-slate-650 uppercase tracking-wider">Owner Support Number *</label>
-                      <input
-                        type="tel"
-                        required
-                        value={settingsData.whatsapp_api?.phone || ''}
-                        onChange={(e) => updateSettings('whatsapp_api', 'phone', e.target.value)}
-                        placeholder="e.g. +919876543210"
-                        className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm placeholder:text-slate-400"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-slate-650 uppercase tracking-wider">Dispatched Alerts *</label>
-                      <select
-                        value={settingsData.whatsapp_api?.alertType || 'all'}
-                        onChange={(e) => updateSettings('whatsapp_api', 'alertType', e.target.value)}
-                        className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm"
-                      >
-                        <option value="all">Send for all orders & verification steps</option>
-                        <option value="success_only">Only when payments succeed</option>
-                      </select>
                     </div>
                   </>
                 )}
