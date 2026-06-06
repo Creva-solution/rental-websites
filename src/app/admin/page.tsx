@@ -67,7 +67,16 @@ export default function DashboardHome() {
       const { data: prodData } = await supabase.from('products').select('*').eq('store_id', storeData.id);
       if (prodData) setProducts(prodData);
       const { data: ordData } = await supabase.from('orders').select('*').eq('store_id', storeData.id).order('created_at', { ascending: false });
-      if (ordData) setOrders(ordData);
+      if (ordData) {
+        const processed = ordData.map((o: any) => {
+          let email = o.customer_email || '';
+          if (email.includes('|')) {
+            email = email.split('|')[0];
+          }
+          return { ...o, customer_email: email };
+        });
+        setOrders(processed);
+      }
     }
 
     // Fetch global onboarding video link

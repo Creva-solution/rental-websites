@@ -1333,7 +1333,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       const { data: orderData, error } = await supabase.from('orders').insert([{
         store_id: store.id,
         customer_name: customerName,
-        customer_email: customerPhone + '@whatsapp.com',
+        customer_email: `${customerPhone}@whatsapp.com|${screenshotUrl || ''}|${actualMethod}|${paymentStatus}`,
         customer_phone: customerPhone,
         shipping_address: readableAddr,
         total_amount: finalTotalAmount,

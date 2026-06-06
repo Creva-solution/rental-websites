@@ -139,7 +139,31 @@ export default function OrdersPage() {
         `)
         .eq('store_id', storeData.id)
         .order('created_at', { ascending: false });
-      if (ordData) setOrders(ordData);
+      if (ordData) {
+        const processed = ordData.map((o: any) => {
+          let email = o.customer_email || '';
+          let screenshotUrl = o.payment_screenshot_url || '';
+          let method = o.payment_method || '';
+          let status = o.payment_status || '';
+
+          if (email.includes('|')) {
+            const parts = email.split('|');
+            email = parts[0];
+            if (parts[1]) screenshotUrl = parts[1];
+            if (parts[2]) method = parts[2];
+            if (parts[3]) status = parts[3];
+          }
+
+          return { 
+            ...o, 
+            customer_email: email, 
+            payment_screenshot_url: screenshotUrl || null, 
+            payment_method: method || 'WhatsApp Cash', 
+            payment_status: status || 'unpaid' 
+          };
+        });
+        setOrders(processed);
+      }
     }
     
     // Fetch global SaaS settings
@@ -215,9 +239,25 @@ export default function OrdersPage() {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...fields } : o));
 
     try {
+      const order = orders.find(o => o.id === orderId);
+      const updatePayload: any = { ...fields };
+      
+      if (order) {
+        const cleanEmail = order.customer_email?.includes('|')
+          ? order.customer_email.split('|')[0]
+          : (order.customer_email || `${order.customer_phone || 'customer'}@whatsapp.com`);
+        
+        const screenshotUrl = fields.payment_status === 'paid' || fields.payment_status === 'processing'
+          ? ''
+          : (order.payment_screenshot_url || '');
+
+        updatePayload.customer_email = `${cleanEmail}|${screenshotUrl}|${fields.payment_method || order.payment_method || 'WhatsApp Cash'}|${fields.payment_status || order.payment_status || 'unpaid'}`;
+        updatePayload.payment_screenshot_url = screenshotUrl || null;
+      }
+
       await supabase
         .from('orders')
-        .update(fields)
+        .update(updatePayload)
         .eq('id', orderId);
     } catch (e) {
       console.warn("Extra columns not present in database, relying on local sandbox:", e);
@@ -303,6 +343,20 @@ export default function OrdersPage() {
         updatePayload.payment_screenshot_url = null;
       }
 
+      if (orderToUpdate) {
+        const cleanEmail = orderToUpdate.customer_email?.includes('|')
+          ? orderToUpdate.customer_email.split('|')[0]
+          : (orderToUpdate.customer_email || `${orderToUpdate.customer_phone || 'customer'}@whatsapp.com`);
+        
+        const currentExtra = getExtraFields(orderToUpdate);
+        const updatedScreenshot = isConfirmed ? '' : (screenshot || '');
+        const updatedPayStatus = isConfirmed ? 'paid' : (currentExtra.payment_status || 'unpaid');
+        
+        updatePayload.customer_email = `${cleanEmail}|${updatedScreenshot}|${currentExtra.payment_method || 'WhatsApp Cash'}|${updatedPayStatus}`;
+        updatePayload.payment_screenshot_url = isConfirmed ? null : (screenshot || null);
+        updatePayload.payment_status = updatedPayStatus;
+      }
+
       const { error } = await supabase
         .from('orders')
         .update(updatePayload)
@@ -322,7 +376,8 @@ export default function OrdersPage() {
           ? { 
               ...order, 
               status: newStatus,
-              payment_screenshot_url: isConfirmed ? null : order.payment_screenshot_url
+              payment_screenshot_url: isConfirmed ? null : order.payment_screenshot_url,
+              customer_email: isConfirmed && order.customer_email?.includes('|') ? order.customer_email.split('|')[0] : order.customer_email
             } 
           : order
       ));
@@ -331,7 +386,8 @@ export default function OrdersPage() {
         setSelectedOrder({
           ...selectedOrder,
           status: newStatus,
-          payment_screenshot_url: isConfirmed ? null : selectedOrder.payment_screenshot_url
+          payment_screenshot_url: isConfirmed ? null : selectedOrder.payment_screenshot_url,
+          customer_email: isConfirmed && selectedOrder.customer_email?.includes('|') ? selectedOrder.customer_email.split('|')[0] : selectedOrder.customer_email
         });
       }
     } catch (err) {
@@ -356,17 +412,32 @@ export default function OrdersPage() {
         });
       }
 
-      const updatePayload: any = { status: newStatus };
-      if (isConfirmed && screenshotsToDelete.length > 0) {
-        updatePayload.payment_screenshot_url = null;
-      }
+      // Update each order individually/in parallel to avoid overwriting email addresses
+      await Promise.all(selectedOrderIds.map(async (orderId) => {
+        const o = orders.find(ord => ord.id === orderId);
+        if (!o) return;
 
-      const { error } = await supabase
-        .from('orders')
-        .update(updatePayload)
-        .in('id', selectedOrderIds);
+        const cleanEmail = o.customer_email?.includes('|')
+          ? o.customer_email.split('|')[0]
+          : (o.customer_email || `${o.customer_phone || 'customer'}@whatsapp.com`);
+        
+        const currentExtra = getExtraFields(o);
+        const screenshot = o.payment_screenshot_url;
+        const updatedScreenshot = isConfirmed ? '' : (screenshot || '');
+        const updatedPayStatus = isConfirmed ? 'paid' : (currentExtra.payment_status || 'unpaid');
 
-      if (error) throw error;
+        const payload: any = {
+          status: newStatus,
+          customer_email: `${cleanEmail}|${updatedScreenshot}|${currentExtra.payment_method || 'WhatsApp Cash'}|${updatedPayStatus}`,
+          payment_screenshot_url: isConfirmed ? null : (screenshot || null),
+          payment_status: updatedPayStatus
+        };
+
+        await supabase
+          .from('orders')
+          .update(payload)
+          .eq('id', orderId);
+      }));
 
       if (screenshotsToDelete.length > 0) {
         supabase.storage.from('payment-screenshots').remove(screenshotsToDelete).catch(err => {
@@ -379,7 +450,8 @@ export default function OrdersPage() {
           return {
             ...o,
             status: newStatus,
-            payment_screenshot_url: isConfirmed ? null : o.payment_screenshot_url
+            payment_screenshot_url: isConfirmed ? null : o.payment_screenshot_url,
+            customer_email: isConfirmed && o.customer_email?.includes('|') ? o.customer_email.split('|')[0] : o.customer_email
           };
         }
         return o;
@@ -389,7 +461,8 @@ export default function OrdersPage() {
         setSelectedOrder({
           ...selectedOrder,
           status: newStatus,
-          payment_screenshot_url: isConfirmed ? null : selectedOrder.payment_screenshot_url
+          payment_screenshot_url: isConfirmed ? null : selectedOrder.payment_screenshot_url,
+          customer_email: isConfirmed && selectedOrder.customer_email?.includes('|') ? selectedOrder.customer_email.split('|')[0] : selectedOrder.customer_email
         });
       }
 
