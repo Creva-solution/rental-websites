@@ -226,6 +226,7 @@ export default function SuperAdminDashboard() {
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const msgEndRef = useRef<HTMLDivElement | null>(null);
 
   // 4 Licensing Officers States
   const [officers, setOfficers] = useState<any[]>([
@@ -1835,10 +1836,30 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
     }
   };
 
-  // Load support tickets when switching to that view
+  // Load support tickets when switching to that view + refresh every 30s
   useEffect(() => {
-    if (mainView === 'support') loadSupportTickets();
+    if (mainView !== 'support') return;
+    loadSupportTickets();
+    const interval = setInterval(loadSupportTickets, 30000);
+    return () => clearInterval(interval);
   }, [mainView]);
+
+  // Auto-refresh messages every 10 seconds while a ticket is open
+  useEffect(() => {
+    if (!selectedTicket) return;
+    const interval = setInterval(async () => {
+      try {
+        const data = await supportApiFetch(`/support-tickets/${selectedTicket.id}`);
+        setTicketMessages(data.messages || []);
+      } catch {}
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [selectedTicket?.id]);
+
+  // Scroll to bottom when messages update
+  useEffect(() => {
+    msgEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [ticketMessages]);
 
   // ─── Superadmin Notification Helpers ─────────────────────────────────────
   const loadSuperAdminNotifications = async () => {
@@ -2778,6 +2799,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                         );
                       })
                     )}
+                    <div ref={msgEndRef} />
                   </div>
 
                   {/* Reply Box */}

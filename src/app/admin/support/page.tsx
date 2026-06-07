@@ -251,10 +251,23 @@ function VoiceRecorder({ onRecorded, disabled }: { onRecorded: (att: Attachment)
     setState('idle');
   };
 
-  const attach = () => {
+  const attach = async () => {
     if (!audioUrl) return;
     const name = `voice_note_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.webm`;
-    onRecorded({ name, url: audioUrl, type: 'audio/webm' });
+    // Convert blob URL → base64 data URL so recipients can play it cross-browser
+    try {
+      const res = await fetch(audioUrl);
+      const blob = await res.blob();
+      const dataUrl = await new Promise<string>(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+      onRecorded({ name, url: dataUrl, type: 'audio/webm' });
+    } catch {
+      onRecorded({ name, url: audioUrl, type: 'audio/webm' });
+    }
+    URL.revokeObjectURL(audioUrl);
     setAudioUrl(null);
     setSecs(0);
     setState('idle');
