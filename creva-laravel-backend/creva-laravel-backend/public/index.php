@@ -64,6 +64,7 @@ if ($requestUri === '/' || empty($routeParts[0]) || $routeParts[0] === 'status')
         'status' => 'API Engine Active',
         'engine' => 'Creva Webzz Premium PHP Engine',
         'database_driver' => 'PostgreSQL (Active)',
+        'version' => 'v3-video-fix-2026-06-07',
         'timestamp' => date('Y-m-d H:i:s')
     ]);
     exit;
