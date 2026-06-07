@@ -5,8 +5,7 @@ const API_BASE_URL = 'https://rentalwebsite-backend-vn40.onrender.com/api';
 
 // ─── Token Management ────────────────────────────────────────────────────────
 // Tokens are stored in localStorage for cross-tab persistence.
-// The backend also sets an httpOnly cookie (creva_auth) for additional security.
-// All requests include credentials: 'include' to send the cookie automatically.
+// Auth is JWT Bearer token only — no cookies are used or set by the backend.
 
 function getStoredToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -62,7 +61,6 @@ async function apiFetch(path: string, options: RequestInit = {}): Promise<Respon
   return fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers,
-    credentials: 'include', // Send httpOnly cookies automatically
   });
 }
 
