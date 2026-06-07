@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   ShoppingCart, Menu, Search, X, Loader2, User, ChevronLeft, ChevronRight, 
   Truck, Shield, RefreshCw, ArrowRight, Heart, Star, Check, Eye, ArrowUpDown, 
@@ -413,7 +413,15 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
 
   const [cart, setCart] = useState<{product: any, quantity: number, size?: string, color?: string}[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
-  
+
+  // Video Reels Carousel
+  const reelsScrollRef = useRef<HTMLDivElement>(null);
+  const scrollReels = (dir: 'prev' | 'next') => {
+    if (!reelsScrollRef.current) return;
+    const cardWidth = 296; // 280px card + 16px gap
+    reelsScrollRef.current.scrollBy({ left: dir === 'next' ? cardWidth : -cardWidth, behavior: 'smooth' });
+  };
+
   // Modals & Sidebars States
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
@@ -3232,20 +3240,26 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
       case 'minimal':
       default:
         return (
-          <section id="catalog" className="max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 py-20 text-gray-950 flex-1">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 pb-6 border-b border-gray-100">
-              <h3 className="text-2xl md:text-3xl font-light tracking-[0.2em] uppercase text-gray-950">
-                {displayCatalogTitle()}
-              </h3>
+          <section id="catalog" className="max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 py-12 text-gray-950 flex-1">
+            {/* Section title + subtitle + filters */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 pb-6 border-b border-gray-100">
+              <div>
+                <h3 className="text-2xl md:text-3xl font-black tracking-tight uppercase text-gray-950 font-theme-title">
+                  {displayCatalogTitle()}
+                </h3>
+                {parsedDesc && (
+                  <p className="text-xs text-[#f2852a] mt-1 font-theme-body">{parsedDesc}</p>
+                )}
+              </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {categoriesList.map(cat => (
                     <button
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
-                      className={`px-4 py-2 text-[9px] font-black uppercase tracking-wider border transition-all ${
-                        selectedCategory === cat 
+                      className={`px-4 py-2 text-[9px] font-black uppercase tracking-wider border transition-all rounded-sm ${
+                        selectedCategory === cat
                           ? 'bg-black border-black text-white'
                           : 'bg-white border-gray-200 text-gray-500 hover:border-black hover:text-black'
                       }`}
@@ -3255,10 +3269,10 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                   ))}
                 </div>
 
-                <div className="flex items-center gap-2 border border-gray-200 rounded-none px-3 py-1.5 bg-white shadow-sm ml-auto">
+                <div className="flex items-center gap-2 border border-gray-200 px-3 py-1.5 bg-white shadow-sm ml-auto rounded-sm">
                   <ArrowUpDown className="w-3.5 h-3.5 text-gray-500" />
-                  <select 
-                    value={sortBy} 
+                  <select
+                    value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
                     className="text-[9px] bg-transparent outline-none border-none font-bold uppercase tracking-wider text-gray-600 cursor-pointer"
                   >
@@ -3314,70 +3328,75 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                   } catch (e) {}
 
                   return (
-                    <div key={product.id} className="flex flex-col group relative bg-white border border-gray-100 p-3 hover:border-gray-300 transition-all">
+                    <div key={product.id} className="flex flex-col group relative bg-white border border-gray-100 hover:border-gray-300 transition-all duration-200 overflow-hidden">
+                      {/* Product Image */}
                       <div className="relative aspect-[4/5] w-full bg-gray-50 overflow-hidden cursor-pointer" onClick={() => setSelectedProduct(product)}>
                         {getProductImage(product) ? (
-                          <img 
-                            src={getProductImage(product)} 
-                            alt={product.name} 
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-103"
+                          <img
+                            src={getProductImage(product)}
+                            alt={product.name}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
                           />
                         ) : (
-                          <div className="absolute inset-0 flex items-center justify-center text-gray-300 text-3xl font-light">M</div>
+                          <div className="absolute inset-0 flex items-center justify-center text-gray-300 text-3xl font-light">
+                            {store.store_name?.[0] || 'S'}
+                          </div>
                         )}
 
+                        {/* Sale badge */}
                         {hasActiveOffer && (
-                          <span className="absolute top-2.5 left-2.5 bg-black text-white text-[7.5px] font-black uppercase tracking-[0.2em] px-2.5 py-1">
-                            SALE: -{offerPercent}%
+                          <span className="absolute top-2.5 left-2.5 bg-black text-white text-[7.5px] font-black uppercase tracking-[0.2em] px-2.5 py-1 z-10">
+                            SALE -{offerPercent}%
                           </span>
                         )}
 
-                        <button 
+                        {/* Wishlist heart */}
+                        <button
                           onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
-                          className="absolute top-2.5 right-2.5 p-2 bg-white text-gray-400 hover:text-red-500 shadow-sm transition-colors z-20"
+                          className="absolute top-2.5 right-2.5 w-7 h-7 flex items-center justify-center bg-white/90 hover:bg-white text-gray-400 hover:text-red-500 shadow-sm transition-colors z-10 rounded-full"
                         >
-                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-black text-black' : 'text-gray-400'}`} />
+                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
                         </button>
+
+                        {/* ADD TO BAG — hover overlay at bottom of image */}
+                        {!isOutOfStock(product) && (
+                          <div className="absolute bottom-0 inset-x-0 translate-y-full group-hover:translate-y-0 transition-transform duration-200 z-10">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); addToCart(product, 1); }}
+                              className="w-full py-2.5 bg-black/90 hover:bg-black text-white text-[8.5px] font-black uppercase tracking-[0.18em] transition-colors"
+                            >
+                              Add to Bag
+                            </button>
+                          </div>
+                        )}
+                        {isOutOfStock(product) && (
+                          <div className="absolute bottom-0 inset-x-0 bg-gray-800/80 py-2 text-center text-[8px] font-black uppercase tracking-widest text-white">
+                            Out of Stock
+                          </div>
+                        )}
                       </div>
 
-                      <div className="p-3 space-y-2 flex-1 flex flex-col justify-between bg-white mt-2">
-                        <div className="space-y-1">
-                          <span className="text-[8px] font-black text-gray-400 tracking-[0.2em] uppercase block">{getProductCategory(product)}</span>
-                          <h4 
-                            onClick={() => setSelectedProduct(product)}
-                            className="font-light text-gray-950 text-xs md:text-sm hover:underline cursor-pointer tracking-wider line-clamp-2 min-h-[2.2rem]"
-                          >
-                            {product.name}
-                          </h4>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 border-t border-gray-100 pt-2.5">
-                          <div className="flex flex-col">
-                            {hasActiveOffer ? (
-                              <div className="space-y-0.5">
-                                <span className="font-extrabold text-black text-xs md:text-sm block">
-                                  {currencySymbol}{displayPrice.toLocaleString()}
-                                </span>
-                                <span className="text-[10px] text-gray-400 line-through block leading-none font-medium">
-                                  {currencySymbol}{originalPrice.toLocaleString()}
-                                </span>
-                                <span className="text-[8px] text-red-500 font-black uppercase tracking-[0.1em] flex items-center gap-0.5 leading-none mt-1">
-                                  <Sparkles className="w-2.5 h-2.5 inline" /> SALE ({timeLeftText})
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="font-extrabold text-black text-xs md:text-sm">
-                                {currencySymbol}{displayPrice.toLocaleString()}
-                              </span>
-                            )}
+                      {/* Name + Price */}
+                      <div className="px-3 py-3 flex flex-col gap-1 bg-white">
+                        <h4
+                          onClick={() => setSelectedProduct(product)}
+                          className="font-semibold text-gray-900 text-xs md:text-sm cursor-pointer hover:underline line-clamp-2 leading-snug font-theme-title"
+                        >
+                          {product.name}
+                        </h4>
+                        {hasActiveOffer ? (
+                          <div className="flex items-baseline gap-2">
+                            <span className="font-black text-gray-950 text-sm">{currencySymbol}{displayPrice.toLocaleString()}</span>
+                            <span className="text-[10px] text-gray-400 line-through font-medium">{currencySymbol}{originalPrice.toLocaleString()}</span>
                           </div>
-                          <button 
-                            onClick={() => addToCart(product, 1)}
-                            className="w-full sm:w-auto text-center px-3.5 py-2 bg-black hover:opacity-85 text-white text-[8.5px] font-black uppercase tracking-[0.15em] rounded-none transition-all"
-                          >
-                            ADD TO BAG
-                          </button>
-                        </div>
+                        ) : (
+                          <span className="font-black text-gray-950 text-sm">{currencySymbol}{displayPrice.toLocaleString()}</span>
+                        )}
+                        {hasActiveOffer && (
+                          <span className="text-[8px] text-red-500 font-black uppercase tracking-[0.1em]">
+                            Flash Sale ends in {timeLeftText}
+                          </span>
+                        )}
                       </div>
                     </div>
                   );
@@ -3775,39 +3794,66 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
 
           {/* Dynamic Shoppable Video Reels Carousel */}
           {allVideoReels.length > 0 && (
-            <section className="py-10 border-b border-gray-100 bg-gray-50/60">
+            <section className="py-10 bg-white border-b border-gray-100">
               <div className="max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8">
-                {/* Section Header */}
-                <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-6 gap-3">
+
+                {/* Section Header: label + title + arrows */}
+                <div className="flex items-start justify-between mb-6">
                   <div>
-                    <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-[#f2852a] bg-orange-100/60 px-3 py-1.5 rounded-full font-theme-body">
-                      <Video className="w-3.5 h-3.5" /> Shop the Look
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[#f2852a] font-theme-body">
+                      <ArrowRight className="w-3 h-3" /> Shop the Look
                     </span>
-                    <h3 className="text-xl md:text-2xl font-black text-[#04113f] tracking-tight mt-2 font-theme-title">
+                    <h3 className="text-2xl md:text-3xl font-black text-gray-950 tracking-tight mt-1 font-theme-title">
                       Shoppable Video Reels
                     </h3>
-                    <p className="text-xs text-muted-foreground mt-0.5 font-theme-body">Watch our latest reels and buy tagged products instantly.</p>
+                    <p className="text-xs text-gray-500 mt-1 font-theme-body">
+                      Watch our latest reels and buy tagged products instantly.
+                    </p>
                   </div>
-                  {allVideoReels.length > 3 && (
-                    <span className="text-[10px] text-gray-400 font-theme-body hidden sm:block">Scroll to explore →</span>
+
+                  {/* Navigation Arrows — shown on desktop when > 1 reel */}
+                  {allVideoReels.length > 1 && (
+                    <div className="hidden sm:flex items-center gap-2 mt-1 shrink-0">
+                      <button
+                        onClick={() => scrollReels('prev')}
+                        aria-label="Previous reel"
+                        className="w-9 h-9 flex items-center justify-center border border-gray-300 bg-white hover:bg-gray-50 transition-colors rounded-sm"
+                      >
+                        <ChevronLeft className="w-4 h-4 text-gray-700" />
+                      </button>
+                      <button
+                        onClick={() => scrollReels('next')}
+                        aria-label="Next reel"
+                        className="w-9 h-9 flex items-center justify-center border border-gray-300 bg-white hover:bg-gray-50 transition-colors rounded-sm"
+                      >
+                        <ChevronRight className="w-4 h-4 text-gray-700" />
+                      </button>
+                    </div>
                   )}
                 </div>
 
-                {/* Horizontal Scroll Carousel — centers when few cards, scrolls when many */}
-                <div className={`flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide ${allVideoReels.length <= 3 ? 'justify-center' : ''}`}
-                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                {/* Horizontal Scroll Track — hides scrollbar, nav arrows control scroll */}
+                <div
+                  ref={reelsScrollRef}
+                  className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
                 >
                   {allVideoReels.map((reel: any, idx: number) => {
                     const embedUrl = getYouTubeEmbedUrl(reel.videoUrl || reel.url);
                     const taggedProd = displayProducts.find(p => p.id === reel.productId);
+                    const isFirst = idx === 0;
 
                     return (
                       <div
                         key={idx}
-                        className="snap-start shrink-0 w-[260px] sm:w-[280px] card-theme overflow-hidden flex flex-col bg-white shadow-sm border border-gray-100 rounded-xl"
+                        className={`snap-start shrink-0 w-[220px] sm:w-[260px] flex flex-col overflow-hidden bg-white rounded-xl transition-all ${
+                          isFirst
+                            ? 'border-2 border-indigo-400 shadow-md shadow-indigo-100/50'
+                            : 'border border-gray-200 shadow-sm'
+                        }`}
                       >
-                        {/* 9:16 Video Frame */}
-                        <div className="relative w-full bg-black rounded-t-xl overflow-hidden" style={{ paddingBottom: '177.78%' }}>
+                        {/* 9:16 Portrait Video Frame */}
+                        <div className="relative w-full bg-gray-900 overflow-hidden rounded-t-xl" style={{ paddingBottom: '177.78%' }}>
                           <iframe
                             src={embedUrl}
                             title={reel.title || `Reel ${idx + 1}`}
@@ -3817,24 +3863,26 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                           />
                         </div>
 
-                        {/* Tagged Product Banner */}
-                        <div className="p-3 flex flex-col gap-2 flex-grow">
-                          <h4 className="font-extrabold text-[#04113f] text-xs line-clamp-1 font-theme-title">{reel.title || 'Shoppable Reel'}</h4>
+                        {/* Product Info Footer */}
+                        <div className="p-3 flex flex-col gap-2 flex-grow bg-white">
                           {taggedProd ? (
-                            <div className="flex items-center justify-between gap-2 bg-orange-50/70 p-2 rounded-lg border border-orange-100/40">
-                              <div className="min-w-0">
-                                <p className="text-[10px] font-bold text-gray-900 truncate font-theme-body">{taggedProd.name}</p>
-                                <p className="text-[10px] font-black text-[#f2852a] mt-0.5 font-theme-body">{currencySymbol}{Number(taggedProd.price).toLocaleString()}</p>
+                            <>
+                              <span className="text-[9px] font-black uppercase tracking-widest text-[#f2852a] font-theme-body">Featured</span>
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold text-gray-900 truncate font-theme-title">{taggedProd.name}</p>
+                                  <p className="text-sm font-black text-[#f2852a] mt-0.5 font-theme-body">{currencySymbol}{Number(taggedProd.price).toLocaleString()}</p>
+                                </div>
+                                <button
+                                  onClick={() => addToCart(taggedProd, 1)}
+                                  className="shrink-0 px-3 py-1.5 bg-gray-950 hover:bg-[#f2852a] text-white text-[9px] font-black uppercase tracking-wider transition-colors font-theme-body rounded-sm"
+                                >
+                                  Buy
+                                </button>
                               </div>
-                              <button
-                                onClick={() => addToCart(taggedProd, 1)}
-                                className="shrink-0 px-2.5 py-1 bg-[#f2852a] hover:bg-[#04113f] text-white text-[9px] font-black uppercase tracking-wider rounded-lg transition-colors font-theme-body"
-                              >
-                                BUY
-                              </button>
-                            </div>
+                            </>
                           ) : (
-                            <p className="text-[10px] text-gray-400 font-theme-body">No product tagged</p>
+                            <p className="text-xs font-semibold text-gray-700 font-theme-title line-clamp-1">{reel.title || 'Shoppable Reel'}</p>
                           )}
                         </div>
                       </div>
