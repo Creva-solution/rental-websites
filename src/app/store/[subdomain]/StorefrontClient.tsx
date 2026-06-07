@@ -384,11 +384,20 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
 
   // Merge video_sessions from DB (primary) with any legacy videoReels from store.description JSON
   const normalizedVideoSessions = videoSessions.map((vs: any) => {
-    const urls: string[] = vs.video_urls?.length ? vs.video_urls : [vs.video_url].filter(Boolean);
+    // Build per-video items — support new video_items format and old video_urls + product_ids
+    const videoItems: { video_url: string; product_id: string | null }[] = vs.video_items?.length
+      ? vs.video_items
+      : (() => {
+          const urls: string[] = vs.video_urls?.length ? vs.video_urls : [vs.video_url].filter(Boolean);
+          return urls.map((url: string, i: number) => ({
+            video_url: url,
+            product_id: vs.product_ids?.[i] || vs.product_ids?.[0] || null,
+          }));
+        })();
     return {
       title: vs.title,
       videoUrl: vs.video_url,
-      videoUrls: urls,
+      videoItems,
       url: vs.video_url,
       productId: vs.product_ids?.[0] || null,
     };
@@ -3438,12 +3447,20 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                   style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
                 >
                   {allVideoReels.flatMap((reel: any, reelIdx: number) => {
-                    const videoUrls: string[] = reel.videoUrls?.length ? reel.videoUrls : [reel.videoUrl || reel.url].filter(Boolean);
-                    const taggedProd = displayProducts.find((p: any) => p.id === reel.productId);
-                    const hasMultiple = videoUrls.length > 1;
+                    // Support new videoItems (per-video product) and legacy format
+                    const videoItems: { video_url: string; product_id: string | null }[] =
+                      reel.videoItems?.length
+                        ? reel.videoItems
+                        : (() => {
+                            const urls: string[] = reel.videoUrls?.length ? reel.videoUrls : [reel.videoUrl || reel.url].filter(Boolean);
+                            return urls.map((url: string) => ({ video_url: url, product_id: reel.productId || null }));
+                          })();
 
-                    return videoUrls.map((url: string, vidIdx: number) => {
-                      const embedUrl = getYouTubeEmbedUrl(url);
+                    const hasMultiple = videoItems.length > 1;
+
+                    return videoItems.map((item: { video_url: string; product_id: string | null }, vidIdx: number) => {
+                      const embedUrl = getYouTubeEmbedUrl(item.video_url);
+                      const taggedProd = displayProducts.find((p: any) => p.id === item.product_id);
                       const isFirst = reelIdx === 0 && vidIdx === 0;
 
                       return (
@@ -3465,15 +3482,14 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                               allowFullScreen
                               loading="lazy"
                             />
-                            {/* Position badge — only shown when reel has multiple videos */}
                             {hasMultiple && (
                               <span className="absolute top-2 left-2 z-10 bg-black/65 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full select-none">
-                                {vidIdx + 1}/{videoUrls.length}
+                                {vidIdx + 1}/{videoItems.length}
                               </span>
                             )}
                           </div>
 
-                          {/* Product Info Footer */}
+                          {/* Product Info Footer — unique per video */}
                           <div className="p-3 flex flex-col gap-2 flex-grow bg-white">
                             {taggedProd ? (
                               <>
