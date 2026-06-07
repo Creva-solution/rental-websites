@@ -1184,7 +1184,8 @@ try {
     // Pattern: GET /api/{table}[?filters] · GET /api/{table}/{id}
     //          POST /api/{table} · PUT /api/{table}/{id} · DELETE /api/{table}[/{id}]
     $genericTables = ['categories', 'discounts', 'blog_posts', 'pages', 'video_sessions',
-                      'integrations', 'platform_settings'];
+                      'integrations', 'platform_settings',
+                      'support_tickets', 'support_messages', 'support_notifications'];
 
     if (in_array($routeParts[0], $genericTables, true)) {
         $table = $routeParts[0];
@@ -1192,7 +1193,8 @@ try {
 
         // Fields allowed as WHERE filters in GET/DELETE (prevents arbitrary column injection)
         $filterableFields = ['store_id', 'type', 'status', 'is_active', 'is_enabled',
-                             'key', 'owner_id', 'slug', 'category_id', 'order_id'];
+                             'key', 'owner_id', 'slug', 'category_id', 'order_id',
+                             'ticket_id', 'for_role', 'sender_role', 'priority'];
 
         // Encode PHP arrays to JSON strings before storing in PostgreSQL TEXT/JSONB columns
         $encodeBody = function(array $row): array {
