@@ -19,6 +19,7 @@ export default function AppearancePage() {
 
   const [logoUrl, setLogoUrl] = useState('');
   const [description, setDescription] = useState('');
+  const [collectionTitle, setCollectionTitle] = useState('');
   const [banners, setBanners] = useState<any[]>([]);
   const [announcement, setAnnouncement] = useState('');
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -185,6 +186,9 @@ export default function AppearancePage() {
               items: data.benefits.items || parsedBenefits.items
             };
           }
+          if (data.collectionTitle !== undefined) {
+            setCollectionTitle(data.collectionTitle);
+          }
         }
       } catch (e) {
         console.error("Failed to parse store metadata description:", e);
@@ -337,13 +341,23 @@ export default function AppearancePage() {
     setSaving(true);
     setMessage('');
 
+    // Merge with existing store.description so other admin pages' settings are preserved
+    let existingData: Record<string, any> = {};
+    try {
+      if (store.description && store.description.startsWith('{')) {
+        existingData = JSON.parse(store.description);
+      }
+    } catch (e) {}
+
     const compiledDescription = JSON.stringify({
+      ...existingData,
       description: description,
       banners: banners,
       announcement: announcement,
       flashAd: flashAd,
       selectedTemplate: selectedTemplate,
-      benefits: benefits
+      benefits: benefits,
+      collectionTitle: collectionTitle.trim(),
     });
 
     try {
@@ -538,6 +552,27 @@ export default function AppearancePage() {
         </div>
       </div>
 
+      {/* Collection Section Title */}
+      <div className="bg-card text-card-foreground rounded-xl border border-border shadow-sm overflow-hidden p-6 space-y-4">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <Layers className="w-5 h-5 text-primary" /> Product Collection Title
+        </h3>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Collection Section Heading</label>
+          <input
+            type="text"
+            value={collectionTitle}
+            onChange={e => setCollectionTitle(e.target.value)}
+            className="w-full h-11 px-4 rounded-lg border border-input bg-background text-sm focus:ring-1 focus:ring-primary outline-none"
+            placeholder="e.g. Featured Products, Best Sellers, Our Collection, Trending Now"
+            maxLength={60}
+          />
+          <p className="text-xs text-muted-foreground">
+            This title appears above your product catalog on the storefront. Leave blank to use the template default (e.g. "Featured Products").
+          </p>
+        </div>
+      </div>
+
       {/* Announcement Bar Settings Section */}
       <div className="bg-card text-card-foreground rounded-xl border border-border shadow-sm overflow-hidden p-6 space-y-4">
         <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -545,8 +580,8 @@ export default function AppearancePage() {
         </h3>
         <div className="space-y-2">
           <label className="text-sm font-medium">Announcement Bar Text</label>
-          <input 
-            type="text" 
+          <input
+            type="text"
             value={announcement}
             onChange={e => setAnnouncement(e.target.value)}
             className="w-full h-11 px-4 rounded-lg border border-input bg-background text-sm focus:ring-1 focus:ring-primary outline-none"

@@ -189,7 +189,7 @@ const renderCategoryIcon = (category: string, className = "w-3.5 h-3.5") => {
   return <Tag className={className} />;
 };
 
-export default function StorefrontClient({ store, products }: { store: any, products: any[] }) {
+export default function StorefrontClient({ store, products, videoSessions = [] }: { store: any, products: any[], videoSessions?: any[] }) {
   const primaryColor = useMemo(() => {
     const raw = store.subdomain?.includes('pakkumattai') || store.store_name?.toLowerCase().includes('pakkumattai')
       ? (store.primary_color && store.primary_color !== '#3B82F6' ? store.primary_color : '#1b4332')
@@ -316,6 +316,7 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   let customPages: any[] = [];
   let videoReels: any[] = [];
   let ga4MeasurementId = '';
+  let collectionTitle = '';
 
   try {
     if (store.description && store.description.startsWith('{')) {
@@ -362,6 +363,9 @@ export default function StorefrontClient({ store, products }: { store: any, prod
       customPages = data.pages || data.staticPages || [];
       videoReels = data.videoReels || data.videoCommerce || data.reels || data.videos || [];
 
+      // Extract configurable collection section title
+      collectionTitle = data.collectionTitle || '';
+
       // Extract GA4 integration key
       const ga4Integration = data.integrations?.find((i: any) => i.id === 'ga4');
       if (ga4Integration && ga4Integration.connected && data.integrationSettings?.ga4?.measurementId) {
@@ -371,6 +375,17 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   } catch (e) {
     console.error("Failed to parse store metadata:", e);
   }
+
+  // Merge video_sessions from DB (primary) with any legacy videoReels from store.description JSON
+  const normalizedVideoSessions = videoSessions.map((vs: any) => ({
+    title: vs.title,
+    videoUrl: vs.video_url,
+    url: vs.video_url,
+    productId: vs.product_ids?.[0] || null,
+  }));
+  const allVideoReels = normalizedVideoSessions.length > 0
+    ? normalizedVideoSessions
+    : videoReels;
 
   const defaultBanners = [
     {
@@ -2524,18 +2539,23 @@ export default function StorefrontClient({ store, products }: { store: any, prod
   const renderCatalog = () => {
     // Shared parameters
     const displayCatalogTitle = () => {
+      // Use admin-configured title first
+      if (collectionTitle && collectionTitle.trim()) return collectionTitle.trim();
+      // User-friendly template-specific defaults
       switch (selectedTemplate) {
         case 'artisan':
-          return "Our Curated Earth Goods";
+          return "Our Products";
         case 'bold':
-          return "ACQUIRE HARDWARE CO.";
+          return "SHOP ALL";
         case 'luxe':
-          return "The Salon Curations";
+          return "Our Collection";
         case 'retro':
-          return "FOLDER: ALL_ITEMS.DIR";
+          return "ALL ITEMS";
+        case 'admire':
+          return "Featured Products";
         case 'minimal':
         default:
-          return "Copenhagen Collection";
+          return "Featured Products";
       }
     };
 
@@ -3754,64 +3774,73 @@ export default function StorefrontClient({ store, products }: { store: any, prod
           {renderHero()}
 
           {/* Dynamic Shoppable Video Reels Carousel */}
-          {videoReels.length > 0 && (
-            <section className="pt-2 pb-8 px-4 sm:px-6 lg:px-8 max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto border-b border-gray-100">
-              <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 text-left">
-                <div>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-[#f2852a] bg-orange-50 px-3 py-1.5 rounded-full font-theme-body">
-                    <Video className="w-3.5 h-3.5" /> Shop the Look
-                  </span>
-                  <h3 className="text-xl md:text-2xl font-black text-[#04113f] tracking-tight mt-2 font-theme-title">
-                    Shoppable Video Reels
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5 font-theme-body">Watch our latest handcrafted reels and buy tagged catalog products instantly!</p>
+          {allVideoReels.length > 0 && (
+            <section className="py-10 border-b border-gray-100 bg-gray-50/60">
+              <div className="max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8">
+                {/* Section Header */}
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-6 gap-3">
+                  <div>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-[#f2852a] bg-orange-100/60 px-3 py-1.5 rounded-full font-theme-body">
+                      <Video className="w-3.5 h-3.5" /> Shop the Look
+                    </span>
+                    <h3 className="text-xl md:text-2xl font-black text-[#04113f] tracking-tight mt-2 font-theme-title">
+                      Shoppable Video Reels
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-0.5 font-theme-body">Watch our latest reels and buy tagged products instantly.</p>
+                  </div>
+                  {allVideoReels.length > 3 && (
+                    <span className="text-[10px] text-gray-400 font-theme-body hidden sm:block">Scroll to explore →</span>
+                  )}
                 </div>
-              </div>
 
-              {/* Reels Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {videoReels.map((reel: any, idx: number) => {
-                  const embedUrl = getYouTubeEmbedUrl(reel.videoUrl || reel.url);
-                  const taggedProd = displayProducts.find(p => p.id === reel.productId);
-                  
-                  return (
-                    <div key={idx} className="card-theme overflow-hidden flex flex-col justify-between h-[450px] relative bg-white shadow-sm">
-                      {/* Video Player Frame */}
-                      <div className="relative w-full h-[320px] bg-black">
-                        <iframe 
-                          src={embedUrl}
-                          title={reel.title || `Reel ${idx + 1}`}
-                          className="absolute inset-0 w-full h-full border-none"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        ></iframe>
-                      </div>
-                      
-                      {/* Tagged Product Checkout Banner */}
-                      <div className="p-4 bg-white flex flex-col justify-between flex-grow border-t border-gray-100">
-                        <div className="text-left flex flex-col justify-between h-full">
-                          <h4 className="font-extrabold text-[#04113f] text-xs line-clamp-1 font-theme-title">{reel.title || "Organic Soap Story"}</h4>
+                {/* Horizontal Scroll Carousel — centers when few cards, scrolls when many */}
+                <div className={`flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide ${allVideoReels.length <= 3 ? 'justify-center' : ''}`}
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                  {allVideoReels.map((reel: any, idx: number) => {
+                    const embedUrl = getYouTubeEmbedUrl(reel.videoUrl || reel.url);
+                    const taggedProd = displayProducts.find(p => p.id === reel.productId);
+
+                    return (
+                      <div
+                        key={idx}
+                        className="snap-start shrink-0 w-[260px] sm:w-[280px] card-theme overflow-hidden flex flex-col bg-white shadow-sm border border-gray-100 rounded-xl"
+                      >
+                        {/* 9:16 Video Frame */}
+                        <div className="relative w-full bg-black rounded-t-xl overflow-hidden" style={{ paddingBottom: '177.78%' }}>
+                          <iframe
+                            src={embedUrl}
+                            title={reel.title || `Reel ${idx + 1}`}
+                            className="absolute inset-0 w-full h-full border-none"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+
+                        {/* Tagged Product Banner */}
+                        <div className="p-3 flex flex-col gap-2 flex-grow">
+                          <h4 className="font-extrabold text-[#04113f] text-xs line-clamp-1 font-theme-title">{reel.title || 'Shoppable Reel'}</h4>
                           {taggedProd ? (
-                            <div className="mt-1.5 flex items-center justify-between gap-2 bg-orange-50/50 p-2 rounded-lg border border-orange-100/30">
+                            <div className="flex items-center justify-between gap-2 bg-orange-50/70 p-2 rounded-lg border border-orange-100/40">
                               <div className="min-w-0">
                                 <p className="text-[10px] font-bold text-gray-900 truncate font-theme-body">{taggedProd.name}</p>
                                 <p className="text-[10px] font-black text-[#f2852a] mt-0.5 font-theme-body">{currencySymbol}{Number(taggedProd.price).toLocaleString()}</p>
                               </div>
-                              <button 
+                              <button
                                 onClick={() => addToCart(taggedProd, 1)}
-                                className="px-2.5 py-1 bg-[#f2852a] hover:bg-[#04113f] text-white text-[9px] font-black uppercase tracking-wider rounded transition-colors font-theme-body shrink-0"
+                                className="shrink-0 px-2.5 py-1 bg-[#f2852a] hover:bg-[#04113f] text-white text-[9px] font-black uppercase tracking-wider rounded-lg transition-colors font-theme-body"
                               >
-                                Buy
+                                BUY
                               </button>
                             </div>
                           ) : (
-                            <p className="text-[10px] text-gray-400 mt-2 font-theme-body">No product tagged</p>
+                            <p className="text-[10px] text-gray-400 font-theme-body">No product tagged</p>
                           )}
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </section>
           )}

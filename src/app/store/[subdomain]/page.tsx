@@ -62,6 +62,12 @@ export default async function StorefrontPage({ params }: { params: { subdomain: 
     .eq('store_id', store.id)
     .eq('is_active', true);
 
+  const { data: videoSessions } = await supabase
+    .from('video_sessions')
+    .select('*')
+    .eq('store_id', store.id)
+    .order('created_at', { ascending: false });
+
   // Set CSS variables for the store's primary color
   const customStyles = {
     '--store-primary': store.primary_color || '#3B82F6',
@@ -69,7 +75,7 @@ export default async function StorefrontPage({ params }: { params: { subdomain: 
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans" style={customStyles}>
-      <StorefrontClient store={store} products={products || []} />
+      <StorefrontClient store={store} products={products || []} videoSessions={videoSessions || []} />
       
       {/* Simple Footer */}
       <footer className="mt-auto border-t bg-white py-12">

@@ -79,13 +79,19 @@ export default async function CustomDomainStorefrontPage({ params }: { params: {
     .eq('store_id', store.id)
     .eq('is_active', true);
 
+  const { data: videoSessions } = await supabase
+    .from('video_sessions')
+    .select('*')
+    .eq('store_id', store.id)
+    .order('created_at', { ascending: false });
+
   const customStyles = {
     '--store-primary': store.primary_color || '#3B82F6',
   } as React.CSSProperties;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans" style={customStyles}>
-      <StorefrontClient store={store} products={products || []} />
+      <StorefrontClient store={store} products={products || []} videoSessions={videoSessions || []} />
       
       {/* Simple Footer */}
       <footer className="mt-auto border-t bg-white py-12">
