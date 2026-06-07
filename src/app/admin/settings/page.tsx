@@ -16,7 +16,11 @@ export default function SettingsPage() {
     description: '',
     contact_email: '',
     contact_phone: '',
-    address: '', // Mock field for now
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    gst_number: '',
     primary_color: '#3B82F6',
     subdomain: '',
     custom_domain: '',
@@ -31,6 +35,14 @@ export default function SettingsPage() {
     cod_enabled: true,
     online_payment_enabled: true,
     payment_upi_id: '',
+    bank_account_number: '',
+    bank_ifsc: '',
+    bank_beneficiary_name: '',
+    bank_name: '',
+    bank_branch: '',
+    bank_account_type: 'Savings',
+    invoice_notes: '',
+    invoice_terms: '',
   });
 
   const [verifyingDomain, setVerifyingDomain] = useState(false);
@@ -99,6 +111,10 @@ export default function SettingsPage() {
       let codEnabled = true;
       let onlinePaymentEnabled = true;
       let paymentUpiId = '';
+      let address = ''; let city = ''; let state = ''; let pincode = ''; let gstNumber = '';
+      let bankAccountNumber = ''; let bankIfsc = ''; let bankBeneficiaryName = '';
+      let bankName = ''; let bankBranch = ''; let bankAccountType = 'Savings';
+      let invoiceNotes = ''; let invoiceTerms = '';
 
       try {
         if (storeData.description && storeData.description.startsWith('{')) {
@@ -115,6 +131,19 @@ export default function SettingsPage() {
           codEnabled = parsed.codEnabled !== undefined ? parsed.codEnabled : true;
           onlinePaymentEnabled = parsed.onlinePaymentEnabled !== undefined ? parsed.onlinePaymentEnabled : true;
           paymentUpiId = parsed.paymentUpiId || '';
+          address = parsed.address || '';
+          city = parsed.city || '';
+          state = parsed.state || '';
+          pincode = parsed.pincode || '';
+          gstNumber = parsed.gst_number || '';
+          bankAccountNumber = parsed.bank_account_number || '';
+          bankIfsc = parsed.bank_ifsc || '';
+          bankBeneficiaryName = parsed.bank_beneficiary_name || '';
+          bankName = parsed.bank_name || '';
+          bankBranch = parsed.bank_branch || '';
+          bankAccountType = parsed.bank_account_type || 'Savings';
+          invoiceNotes = parsed.invoice_notes || '';
+          invoiceTerms = parsed.invoice_terms || '';
         }
       } catch (e) {
         console.error("Failed to parse description JSON:", e);
@@ -125,7 +154,7 @@ export default function SettingsPage() {
         description: descText,
         contact_email: storeData.contact_email || '',
         contact_phone: storeData.contact_phone || '',
-        address: '', // Currently not in DB schema
+        address, city, state, pincode, gst_number: gstNumber,
         primary_color: storeData.primary_color || '#3B82F6',
         subdomain: storeData.subdomain || '',
         custom_domain: storeData.custom_domain || '',
@@ -140,6 +169,14 @@ export default function SettingsPage() {
         cod_enabled: codEnabled,
         online_payment_enabled: onlinePaymentEnabled,
         payment_upi_id: paymentUpiId,
+        bank_account_number: bankAccountNumber,
+        bank_ifsc: bankIfsc,
+        bank_beneficiary_name: bankBeneficiaryName,
+        bank_name: bankName,
+        bank_branch: bankBranch,
+        bank_account_type: bankAccountType,
+        invoice_notes: invoiceNotes,
+        invoice_terms: invoiceTerms,
       });
 
       if (storeData.custom_domain) {
@@ -351,6 +388,19 @@ export default function SettingsPage() {
           codEnabled: formData.cod_enabled,
           onlinePaymentEnabled: formData.online_payment_enabled,
           paymentUpiId: formData.payment_upi_id,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          pincode: formData.pincode,
+          gst_number: formData.gst_number,
+          bank_account_number: formData.bank_account_number,
+          bank_ifsc: formData.bank_ifsc,
+          bank_beneficiary_name: formData.bank_beneficiary_name,
+          bank_name: formData.bank_name,
+          bank_branch: formData.bank_branch,
+          bank_account_type: formData.bank_account_type,
+          invoice_notes: formData.invoice_notes,
+          invoice_terms: formData.invoice_terms,
         };
         finalDescription = JSON.stringify(merged);
         
@@ -459,27 +509,49 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-sm font-medium">Store Name</label>
-              <input 
-                type="text" 
-                value={formData.store_name} 
+              <input
+                type="text"
+                value={formData.store_name}
                 onChange={e => setFormData({...formData, store_name: e.target.value})}
                 className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Store Address</label>
-              <input 
-                type="text" 
-                placeholder="123 Store Street, City"
-                value={formData.address} 
-                onChange={e => setFormData({...formData, address: e.target.value})}
+              <label className="text-sm font-medium">GST Number <span className="text-muted-foreground text-xs">(optional)</span></label>
+              <input
+                type="text"
+                placeholder="27AAPFU0939F1ZV"
+                value={formData.gst_number}
+                onChange={e => setFormData({...formData, gst_number: e.target.value})}
                 className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none"
               />
             </div>
             <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium">Street Address</label>
+              <input
+                type="text"
+                placeholder="123, Main Street, Area"
+                value={formData.address}
+                onChange={e => setFormData({...formData, address: e.target.value})}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">City</label>
+              <input type="text" placeholder="Salem" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">State</label>
+              <input type="text" placeholder="Tamil Nadu" value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Pincode</label>
+              <input type="text" placeholder="636001" value={formData.pincode} onChange={e => setFormData({...formData, pincode: e.target.value})} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none" />
+            </div>
+            <div className="space-y-2 md:col-span-2">
               <label className="text-sm font-medium">Store Description</label>
-              <textarea 
-                value={formData.description} 
+              <textarea
+                value={formData.description}
                 onChange={e => setFormData({...formData, description: e.target.value})}
                 className="w-full p-3 rounded-md border border-input bg-background min-h-[100px] focus:ring-2 focus:ring-primary outline-none"
               />
@@ -1233,6 +1305,115 @@ export default function SettingsPage() {
                   </div>
                 );
               })()}
+            </div>
+          </div>
+        </div>
+
+        {/* Bank Details Section */}
+        <div className="p-6 border-t border-border space-y-6 bg-muted/10">
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-primary" /> Bank Details
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">Bank account details printed on customer invoices. Leave blank to hide the bank section from invoices.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Beneficiary Name</label>
+              <input
+                type="text"
+                placeholder="Your Name or Business Name"
+                value={formData.bank_beneficiary_name}
+                onChange={e => setFormData({...formData, bank_beneficiary_name: e.target.value})}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Account Number</label>
+              <input
+                type="text"
+                placeholder="1234567890"
+                value={formData.bank_account_number}
+                onChange={e => setFormData({...formData, bank_account_number: e.target.value})}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">IFSC Code</label>
+              <input
+                type="text"
+                placeholder="SBIN0001234"
+                value={formData.bank_ifsc}
+                onChange={e => setFormData({...formData, bank_ifsc: e.target.value.toUpperCase()})}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none text-sm font-mono"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Bank Name</label>
+              <input
+                type="text"
+                placeholder="State Bank of India"
+                value={formData.bank_name}
+                onChange={e => setFormData({...formData, bank_name: e.target.value})}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Branch</label>
+              <input
+                type="text"
+                placeholder="Salem Main Branch"
+                value={formData.bank_branch}
+                onChange={e => setFormData({...formData, bank_branch: e.target.value})}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Account Type</label>
+              <select
+                value={formData.bank_account_type}
+                onChange={e => setFormData({...formData, bank_account_type: e.target.value})}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none text-sm"
+              >
+                <option value="Savings">Savings</option>
+                <option value="Current">Current</option>
+                <option value="OD">Overdraft (OD)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Invoice Settings Section */}
+        <div className="p-6 border-t border-border space-y-6">
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Invoice Settings
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">Custom text printed at the bottom of customer invoices. Leave blank to skip.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Invoice Notes <span className="text-muted-foreground text-xs">(optional)</span></label>
+              <textarea
+                placeholder="e.g. Thank you for your order! Goods once sold will not be returned."
+                value={formData.invoice_notes}
+                onChange={e => setFormData({...formData, invoice_notes: e.target.value})}
+                rows={3}
+                className="w-full p-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none text-sm resize-none"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Terms & Conditions <span className="text-muted-foreground text-xs">(optional)</span></label>
+              <textarea
+                placeholder="e.g. Payment due within 7 days. Subject to local jurisdiction."
+                value={formData.invoice_terms}
+                onChange={e => setFormData({...formData, invoice_terms: e.target.value})}
+                rows={3}
+                className="w-full p-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none text-sm resize-none"
+              />
             </div>
           </div>
         </div>
