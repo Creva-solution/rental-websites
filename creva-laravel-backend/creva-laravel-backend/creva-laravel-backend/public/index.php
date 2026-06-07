@@ -54,7 +54,12 @@ if (file_exists($envFile)) {
 // 3. Route Parser & Health Check
 $requestMethod = $_SERVER['REQUEST_METHOD'];
 $requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$route = str_replace('/api/', '', $requestUri);
+// Strip /api/, /index.php/api/, or /index.php/ prefix — handles all Render/Apache configurations
+$route = preg_replace('#^(/index\.php)?/api/#', '', $requestUri);
+if ($route === $requestUri) {
+    // Fallback: plain str_replace for older PHP/Apache setups
+    $route = str_replace('/api/', '', $requestUri);
+}
 $routeParts = explode('/', trim($route, '/'));
 
 // Basic health check to satisfy Render deployer instantly
@@ -987,6 +992,148 @@ try {
         }
     }
     
+    // ─── SUPPORT TICKETS (checked before generic CRUD to avoid route conflicts) ─
+    if ($routeParts[0] === 'support-tickets') {
+        $ticketId  = $routeParts[1] ?? null;
+        $subAction = $routeParts[2] ?? null;
+
+        // GET /api/support-tickets/{id}/messages
+        if ($ticketId && $subAction === 'messages' && $requestMethod === 'GET') {
+            $stmt = $pdo->prepare('SELECT * FROM "support_messages" WHERE ticket_id = ? ORDER BY created_at ASC');
+            $stmt->execute([$ticketId]);
+            jsonResponse($stmt->fetchAll());
+        }
+
+        // POST /api/support-tickets/{id}/messages — add a reply
+        if ($ticketId && $subAction === 'messages' && $requestMethod === 'POST') {
+            $msgId      = 'msg_' . uniqid('', true);
+            $senderId   = $body['sender_id']   ?? '';
+            $senderRole = $body['sender_role'] ?? 'owner';
+            $senderName = $body['sender_name'] ?? '';
+            $message    = $body['message']     ?? '';
+            $attachments = json_encode($body['attachments'] ?? []);
+            $stmt = $pdo->prepare('INSERT INTO "support_messages" (id, ticket_id, sender_id, sender_role, sender_name, message, attachments) VALUES (?,?,?,?,?,?,?)');
+            $stmt->execute([$msgId, $ticketId, $senderId, $senderRole, $senderName, $message, $attachments]);
+            $pdo->prepare('UPDATE "support_tickets" SET updated_at = NOW() WHERE id = ?')->execute([$ticketId]);
+            if ($senderRole === 'superadmin') {
+                try {
+                    $tRow = $pdo->prepare('SELECT store_id, subject FROM "support_tickets" WHERE id = ?');
+                    $tRow->execute([$ticketId]);
+                    $tData = $tRow->fetch();
+                    if ($tData) {
+                        $nId = 'notif_' . uniqid('', true);
+                        $pdo->prepare('INSERT INTO "support_notifications" (id,type,for_role,store_id,ticket_id,title,body) VALUES (?,?,?,?,?,?,?)')->execute([
+                            $nId, 'admin_reply', 'owner', $tData->store_id ?? $tData['store_id'], $ticketId,
+                            'Support team replied to your ticket',
+                            'New reply on: "' . ($tData->subject ?? $tData['subject']) . '"'
+                        ]);
+                    }
+                } catch (PDOException $ignored) {}
+            }
+            $stmt = $pdo->prepare('SELECT * FROM "support_messages" WHERE id = ?');
+            $stmt->execute([$msgId]);
+            jsonResponse($stmt->fetch(), 201);
+        }
+
+        // PATCH /api/support-tickets/{id}
+        if ($ticketId && !$subAction && in_array($requestMethod, ['PATCH', 'PUT'])) {
+            $sets = []; $params = [];
+            if (isset($body['status']))   { $sets[] = 'status = ?';   $params[] = $body['status']; }
+            if (isset($body['priority'])) { $sets[] = 'priority = ?'; $params[] = $body['priority']; }
+            $sets[] = 'updated_at = NOW()';
+            $params[] = $ticketId;
+            if (count($sets) > 1) {
+                $pdo->prepare('UPDATE "support_tickets" SET ' . implode(', ', $sets) . ' WHERE id = ?')->execute($params);
+            }
+            $stmt = $pdo->prepare('SELECT * FROM "support_tickets" WHERE id = ?');
+            $stmt->execute([$ticketId]);
+            jsonResponse($stmt->fetch());
+        }
+
+        // GET /api/support-tickets/{id}
+        if ($ticketId && !$subAction && $requestMethod === 'GET') {
+            $stmt = $pdo->prepare('SELECT * FROM "support_tickets" WHERE id = ?');
+            $stmt->execute([$ticketId]);
+            $ticket = $stmt->fetch();
+            if (!$ticket) jsonResponse(['error' => 'Ticket not found'], 404);
+            $stmt = $pdo->prepare('SELECT * FROM "support_messages" WHERE ticket_id = ? ORDER BY created_at ASC');
+            $stmt->execute([$ticketId]);
+            $ticket->messages = $stmt->fetchAll();
+            jsonResponse($ticket);
+        }
+
+        // GET /api/support-tickets
+        if (!$ticketId && $requestMethod === 'GET') {
+            $where = []; $params = [];
+            if (!empty($query['store_id']))  { $where[] = 'store_id = ?';  $params[] = $query['store_id']; }
+            if (!empty($query['status']))    { $where[] = 'status = ?';    $params[] = $query['status']; }
+            if (!empty($query['priority']))  { $where[] = 'priority = ?';  $params[] = $query['priority']; }
+            $sql = 'SELECT * FROM "support_tickets"' . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . ' ORDER BY created_at DESC';
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            jsonResponse($stmt->fetchAll());
+        }
+
+        // POST /api/support-tickets
+        if (!$ticketId && $requestMethod === 'POST') {
+            $tktId      = 'tkt_' . uniqid('', true);
+            $tktNum     = 'TKT-' . strtoupper(substr(md5(uniqid()), 0, 6));
+            $storeId    = $body['store_id']    ?? '';
+            $ownerId    = $body['owner_id']    ?? '';
+            $ownerEmail = $body['owner_email'] ?? '';
+            $storeName  = $body['store_name']  ?? '';
+            $subject    = $body['subject']     ?? '';
+            $category   = $body['category']   ?? 'other';
+            $stmt = $pdo->prepare('INSERT INTO "support_tickets" (id,ticket_number,store_id,owner_id,owner_email,store_name,subject,category) VALUES (?,?,?,?,?,?,?,?)');
+            $stmt->execute([$tktId, $tktNum, $storeId, $ownerId, $ownerEmail, $storeName, $subject, $category]);
+            if (!empty($body['message'])) {
+                $msgId       = 'msg_' . uniqid('', true);
+                $attachments = json_encode($body['attachments'] ?? []);
+                $senderName  = $body['sender_name'] ?? $storeName;
+                $stmt = $pdo->prepare('INSERT INTO "support_messages" (id,ticket_id,sender_id,sender_role,sender_name,message,attachments) VALUES (?,?,?,?,?,?,?)');
+                $stmt->execute([$msgId, $tktId, $ownerId, 'owner', $senderName, $body['message'], $attachments]);
+            }
+            try {
+                $nId = 'notif_' . uniqid('', true);
+                $pdo->prepare('INSERT INTO "support_notifications" (id,type,for_role,store_id,ticket_id,title,body) VALUES (?,?,?,?,?,?,?)')->execute([
+                    $nId, 'new_ticket', 'superadmin', $storeId, $tktId,
+                    'New Support Ticket: ' . $subject,
+                    'Store "' . $storeName . '" submitted a ' . $category . ' ticket. Ticket #' . $tktNum
+                ]);
+            } catch (PDOException $ignored) {}
+            $stmt = $pdo->prepare('SELECT * FROM "support_tickets" WHERE id = ?');
+            $stmt->execute([$tktId]);
+            jsonResponse($stmt->fetch(), 201);
+        }
+
+        // Fallback for unmatched support-tickets sub-routes
+        jsonResponse(['error' => 'Support endpoint not found', 'route' => implode('/', $routeParts), 'method' => $requestMethod], 404);
+    }
+
+    // ─── NOTIFICATIONS ──────────────────────────────────────────────────────────
+    if ($routeParts[0] === 'notifications') {
+        $notifId = $routeParts[1] ?? null;
+        if ($notifId && $requestMethod === 'PATCH') {
+            $pdo->prepare('UPDATE "support_notifications" SET is_read = TRUE WHERE id = ?')->execute([$notifId]);
+            jsonResponse(['success' => true]);
+        }
+        if ($notifId === 'all' && $requestMethod === 'DELETE') {
+            $role = $body['for_role'] ?? ($query['for_role'] ?? 'superadmin');
+            $pdo->prepare('UPDATE "support_notifications" SET is_read = TRUE WHERE for_role = ?')->execute([$role]);
+            jsonResponse(['success' => true]);
+        }
+        if (!$notifId && $requestMethod === 'GET') {
+            $where = []; $params = [];
+            if (!empty($query['for_role'])) { $where[] = 'for_role = ?'; $params[] = $query['for_role']; }
+            if (!empty($query['store_id'])) { $where[] = 'store_id = ?'; $params[] = $query['store_id']; }
+            $sql = 'SELECT * FROM "support_notifications"' . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . ' ORDER BY created_at DESC LIMIT 50';
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            jsonResponse($stmt->fetchAll());
+        }
+        jsonResponse(['error' => 'Notifications endpoint not found'], 404);
+    }
+
     // ─── Generic CRUD for Admin / Platform Tables ────────────────────────────────
     // Routes: categories, discounts, blog_posts, pages, video_sessions,
     //         integrations, platform_settings, users
@@ -1151,151 +1298,6 @@ try {
         }
     }
 
-    // ─── SUPPORT TICKETS ─────────────────────────────────────────────────────
-    if ($routeParts[0] === 'support-tickets') {
-        $ticketId  = $routeParts[1] ?? null;
-        $subAction = $routeParts[2] ?? null;
-
-        // GET /api/support-tickets/{id}/messages
-        if ($ticketId && $subAction === 'messages' && $requestMethod === 'GET') {
-            $stmt = $pdo->prepare('SELECT * FROM "support_messages" WHERE ticket_id = ? ORDER BY created_at ASC');
-            $stmt->execute([$ticketId]);
-            jsonResponse($stmt->fetchAll());
-        }
-
-        // POST /api/support-tickets/{id}/messages — add a reply
-        if ($ticketId && $subAction === 'messages' && $requestMethod === 'POST') {
-            $msgId      = 'msg_' . uniqid('', true);
-            $senderId   = $body['sender_id']   ?? '';
-            $senderRole = $body['sender_role'] ?? 'owner';
-            $senderName = $body['sender_name'] ?? '';
-            $message    = $body['message']     ?? '';
-            $attachments = json_encode($body['attachments'] ?? []);
-            $stmt = $pdo->prepare('INSERT INTO "support_messages" (id, ticket_id, sender_id, sender_role, sender_name, message, attachments) VALUES (?,?,?,?,?,?,?)');
-            $stmt->execute([$msgId, $ticketId, $senderId, $senderRole, $senderName, $message, $attachments]);
-            $pdo->prepare('UPDATE "support_tickets" SET updated_at = NOW() WHERE id = ?')->execute([$ticketId]);
-            // If superadmin replied, notify the store owner
-            if ($senderRole === 'superadmin') {
-                try {
-                    $tRow = $pdo->prepare('SELECT store_id, subject FROM "support_tickets" WHERE id = ?');
-                    $tRow->execute([$ticketId]);
-                    $tData = $tRow->fetch();
-                    if ($tData) {
-                        $nId = 'notif_' . uniqid('', true);
-                        $pdo->prepare('INSERT INTO "support_notifications" (id,type,for_role,store_id,ticket_id,title,body) VALUES (?,?,?,?,?,?,?)')->execute([
-                            $nId, 'admin_reply', 'owner', $tData['store_id'], $ticketId,
-                            'Support team replied to your ticket',
-                            'New reply on: "' . $tData['subject'] . '"'
-                        ]);
-                    }
-                } catch (PDOException $ignored) {}
-            }
-            $stmt = $pdo->prepare('SELECT * FROM "support_messages" WHERE id = ?');
-            $stmt->execute([$msgId]);
-            jsonResponse($stmt->fetch(), 201);
-        }
-
-        // PATCH /api/support-tickets/{id} — update status / priority
-        if ($ticketId && !$subAction && in_array($requestMethod, ['PATCH', 'PUT'])) {
-            $sets = []; $params = [];
-            if (isset($body['status']))   { $sets[] = 'status = ?';   $params[] = $body['status']; }
-            if (isset($body['priority'])) { $sets[] = 'priority = ?'; $params[] = $body['priority']; }
-            $sets[] = 'updated_at = NOW()';
-            $params[] = $ticketId;
-            if (count($sets) > 1) {
-                $pdo->prepare('UPDATE "support_tickets" SET ' . implode(', ', $sets) . ' WHERE id = ?')->execute($params);
-            }
-            $stmt = $pdo->prepare('SELECT * FROM "support_tickets" WHERE id = ?');
-            $stmt->execute([$ticketId]);
-            jsonResponse($stmt->fetch());
-        }
-
-        // GET /api/support-tickets/{id} — single ticket with messages
-        if ($ticketId && !$subAction && $requestMethod === 'GET') {
-            $stmt = $pdo->prepare('SELECT * FROM "support_tickets" WHERE id = ?');
-            $stmt->execute([$ticketId]);
-            $ticket = $stmt->fetch();
-            if (!$ticket) jsonResponse(['error' => 'Ticket not found'], 404);
-            $stmt = $pdo->prepare('SELECT * FROM "support_messages" WHERE ticket_id = ? ORDER BY created_at ASC');
-            $stmt->execute([$ticketId]);
-            $ticket->messages = $stmt->fetchAll();
-            jsonResponse($ticket);
-        }
-
-        // GET /api/support-tickets — list (filter by store_id, status, priority)
-        if (!$ticketId && $requestMethod === 'GET') {
-            $where = []; $params = [];
-            if (!empty($query['store_id']))  { $where[] = 'store_id = ?';  $params[] = $query['store_id']; }
-            if (!empty($query['status']))    { $where[] = 'status = ?';    $params[] = $query['status']; }
-            if (!empty($query['priority']))  { $where[] = 'priority = ?';  $params[] = $query['priority']; }
-            $sql = 'SELECT * FROM "support_tickets"' . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . ' ORDER BY created_at DESC';
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($params);
-            jsonResponse($stmt->fetchAll());
-        }
-
-        // POST /api/support-tickets — create ticket + optional first message
-        if (!$ticketId && $requestMethod === 'POST') {
-            $tktId   = 'tkt_' . uniqid('', true);
-            $tktNum  = 'TKT-' . strtoupper(substr(md5(uniqid()), 0, 6));
-            $storeId    = $body['store_id']    ?? '';
-            $ownerId    = $body['owner_id']    ?? '';
-            $ownerEmail = $body['owner_email'] ?? '';
-            $storeName  = $body['store_name']  ?? '';
-            $subject    = $body['subject']     ?? '';
-            $category   = $body['category']   ?? 'other';
-            $stmt = $pdo->prepare('INSERT INTO "support_tickets" (id,ticket_number,store_id,owner_id,owner_email,store_name,subject,category) VALUES (?,?,?,?,?,?,?,?)');
-            $stmt->execute([$tktId, $tktNum, $storeId, $ownerId, $ownerEmail, $storeName, $subject, $category]);
-            if (!empty($body['message'])) {
-                $msgId = 'msg_' . uniqid('', true);
-                $attachments = json_encode($body['attachments'] ?? []);
-                $senderName  = $body['sender_name'] ?? $storeName;
-                $stmt = $pdo->prepare('INSERT INTO "support_messages" (id,ticket_id,sender_id,sender_role,sender_name,message,attachments) VALUES (?,?,?,?,?,?,?)');
-                $stmt->execute([$msgId, $tktId, $ownerId, 'owner', $senderName, $body['message'], $attachments]);
-            }
-            // Notify superadmin of new ticket
-            try {
-                $nId = 'notif_' . uniqid('', true);
-                $pdo->prepare('INSERT INTO "support_notifications" (id,type,for_role,store_id,ticket_id,title,body) VALUES (?,?,?,?,?,?,?)')->execute([
-                    $nId, 'new_ticket', 'superadmin', $storeId, $tktId,
-                    'New Support Ticket: ' . $subject,
-                    'Store "' . $storeName . '" submitted a ' . $category . ' ticket. Ticket #' . $tktNum
-                ]);
-            } catch (PDOException $ignored) {}
-            $stmt = $pdo->prepare('SELECT * FROM "support_tickets" WHERE id = ?');
-            $stmt->execute([$tktId]);
-            jsonResponse($stmt->fetch(), 201);
-        }
-    }
-
-    // ─── NOTIFICATIONS ───────────────────────────────────────────────────────
-    if ($routeParts[0] === 'notifications') {
-        $notifId = $routeParts[1] ?? null;
-
-        // PATCH /api/notifications/{id} — mark as read
-        if ($notifId && $requestMethod === 'PATCH') {
-            $pdo->prepare('UPDATE "support_notifications" SET is_read = TRUE WHERE id = ?')->execute([$notifId]);
-            jsonResponse(['success' => true]);
-        }
-
-        // DELETE /api/notifications/all — mark all read for a role
-        if ($notifId === 'all' && $requestMethod === 'DELETE') {
-            $role = $query['for_role'] ?? 'superadmin';
-            $pdo->prepare('UPDATE "support_notifications" SET is_read = TRUE WHERE for_role = ?')->execute([$role]);
-            jsonResponse(['success' => true]);
-        }
-
-        // GET /api/notifications
-        if (!$notifId && $requestMethod === 'GET') {
-            $where = []; $params = [];
-            if (!empty($query['for_role'])) { $where[] = 'for_role = ?'; $params[] = $query['for_role']; }
-            if (!empty($query['store_id'])) { $where[] = 'store_id = ?'; $params[] = $query['store_id']; }
-            $sql = 'SELECT * FROM "support_notifications"' . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . ' ORDER BY created_at DESC LIMIT 50';
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($params);
-            jsonResponse($stmt->fetchAll());
-        }
-    }
 
     jsonResponse(['error' => 'Endpoint Not Found'], 404);
 } catch (Exception $e) {
