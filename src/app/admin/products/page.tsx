@@ -493,15 +493,17 @@ export default function ProductsPage() {
                   <tr key={product.id} className="hover:bg-muted/30 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        {getProductImage(product) ? (
-                          <div className="w-10 h-10 rounded overflow-hidden border border-border bg-muted flex-shrink-0">
-                            <img src={getProductImage(product)} alt={product.name} className="w-full h-full object-cover" />
-                          </div>
-                        ) : (
-                          <div className="w-10 h-10 rounded bg-muted flex items-center justify-center text-xs font-black text-muted-foreground border border-border flex-shrink-0">
-                            IMG
-                          </div>
-                        )}
+                        <div className="w-10 h-10 rounded overflow-hidden border border-border bg-muted flex-shrink-0 relative">
+                          <div className="absolute inset-0 flex items-center justify-center text-xs font-black text-muted-foreground">IMG</div>
+                          {getProductImage(product) && (
+                            <img
+                              src={getProductImage(product)}
+                              alt={product.name}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                            />
+                          )}
+                        </div>
                         <div>
                           <div className="font-medium text-foreground">{product.name}</div>
                           {descText && <div className="text-xs text-muted-foreground truncate max-w-[200px]">{descText}</div>}

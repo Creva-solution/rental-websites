@@ -2610,17 +2610,16 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
             className="relative aspect-[4/5] bg-gray-50 overflow-hidden cursor-pointer"
             onClick={() => setSelectedProduct(product)}
           >
-            {imgUrl ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+              <Package className="w-10 h-10 text-gray-200" />
+            </div>
+            {imgUrl && (
               <img
                 src={imgUrl}
                 alt={product.name}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
               />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-                <Package className="w-10 h-10 text-gray-200" />
-              </div>
             )}
 
             {/* Sale / New badge */}
@@ -3802,13 +3801,17 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                 <div className="space-y-4">
                   {cart.map((item) => (
                     <div key={item.product.id} className="flex gap-4 bg-white p-4 border border-gray-100 shadow-sm">
-                      <div className="w-16 h-20 bg-gray-50 border border-gray-100 flex-shrink-0 relative">
-                        {getProductImage(item.product) ? (
-                          <img src={getProductImage(item.product)} alt={item.product.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="absolute inset-0 flex items-center justify-center font-bold text-gray-300 bg-gray-100 text-lg">
-                            {item.product.name[0]}
-                          </div>
+                      <div className="w-16 h-20 bg-gray-50 border border-gray-100 flex-shrink-0 relative overflow-hidden">
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+                          <Package className="w-6 h-6 text-gray-200" />
+                        </div>
+                        {getProductImage(item.product) && (
+                          <img
+                            src={getProductImage(item.product)}
+                            alt={item.product.name}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                          />
                         )}
                       </div>
                       
@@ -4326,11 +4329,17 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                     if (!prod) return null;
                     return (
                       <div key={prod.id} className="flex gap-4 bg-white p-3 border border-gray-100 shadow-sm items-center">
-                        <div className="w-12 h-16 bg-gray-50 flex-shrink-0 relative">
-                          {getProductImage(prod) ? (
-                            <img src={getProductImage(prod)} alt={prod.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="absolute inset-0 flex items-center justify-center font-bold text-gray-300 text-xs">{prod.name[0]}</div>
+                        <div className="w-12 h-16 bg-gray-50 flex-shrink-0 relative overflow-hidden">
+                          <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+                            <Package className="w-5 h-5 text-gray-200" />
+                          </div>
+                          {getProductImage(prod) && (
+                            <img
+                              src={getProductImage(prod)}
+                              alt={prod.name}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                            />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -4376,12 +4385,16 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
 
             <div className="w-full md:w-1/2 bg-[#FCFCFC] p-6 flex flex-col justify-center items-center border-r border-gray-100">
               <div className="relative aspect-square w-full max-w-sm border border-gray-200 shadow-sm bg-white overflow-hidden">
-                {getProductImage(selectedProduct) ? (
-                  <img src={getProductImage(selectedProduct)} alt={selectedProduct.name} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center font-bold text-gray-300 text-5xl bg-gray-100">
-                    {selectedProduct.name.charAt(0).toUpperCase()}
-                  </div>
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+                  <Package className="w-16 h-16 text-gray-200" />
+                </div>
+                {getProductImage(selectedProduct) && (
+                  <img
+                    src={getProductImage(selectedProduct)}
+                    alt={selectedProduct.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  />
                 )}
               </div>
             </div>
