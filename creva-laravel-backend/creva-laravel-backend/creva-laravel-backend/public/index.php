@@ -158,6 +158,31 @@ try {
     )");
 } catch (PDOException $ignored) {}
 
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS \"orders\" (
+        \"id\"                      VARCHAR(255) PRIMARY KEY,
+        \"store_id\"                VARCHAR(255) NOT NULL DEFAULT '',
+        \"customer_name\"           VARCHAR(500) NOT NULL DEFAULT '',
+        \"customer_email\"          VARCHAR(500) DEFAULT NULL,
+        \"customer_phone\"          VARCHAR(100) DEFAULT '',
+        \"shipping_address\"        TEXT DEFAULT '',
+        \"total_amount\"            NUMERIC(12,2) DEFAULT 0,
+        \"status\"                  VARCHAR(50) NOT NULL DEFAULT 'pending',
+        \"payment_method\"          VARCHAR(100) DEFAULT 'cod',
+        \"payment_status\"          VARCHAR(50) DEFAULT 'unpaid',
+        \"payment_screenshot_url\"  TEXT DEFAULT NULL,
+        \"created_at\"              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        \"updated_at\"              TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS \"order_items\" (
+        \"id\"                 VARCHAR(255) PRIMARY KEY,
+        \"order_id\"           VARCHAR(255) NOT NULL,
+        \"product_id\"         VARCHAR(255) NOT NULL,
+        \"quantity\"           INTEGER NOT NULL DEFAULT 1,
+        \"price_at_purchase\"  NUMERIC(12,2) DEFAULT 0
+    )");
+} catch (PDOException $ignored) {}
+
 // Get body payloads
 $rawBody = file_get_contents('php://input');
 $body = json_decode($rawBody, true) ?: [];
@@ -898,8 +923,9 @@ try {
             // Insert order items if present
             if (isset($body['items']) && is_array($body['items'])) {
                 foreach ($body['items'] as $item) {
-                    $stmtItem = $pdo->prepare('INSERT INTO "order_items" (order_id, product_id, quantity, price_at_purchase) VALUES (?, ?, ?, ?)');
+                    $stmtItem = $pdo->prepare('INSERT INTO "order_items" (id, order_id, product_id, quantity, price_at_purchase) VALUES (?, ?, ?, ?, ?)');
                     $stmtItem->execute([
+                        'oi_' . uniqid(),
                         $orderId,
                         $item['product_id'],
                         $item['quantity'],

@@ -1515,7 +1515,7 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
     }
   };
 
-  const handleScreenshotUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleScreenshotUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -1524,42 +1524,45 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image size should be less than 5MB.');
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Image size should be less than 10MB.');
       return;
     }
 
     setUploadingScreenshot(true);
-    try {
-      const fileName = `order-receipts/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-      const { data, error } = await supabase.storage
-        .from('payment-screenshots')
-        .upload(fileName, file);
-
-      if (error) throw error;
-
-      const { data: urlData } = supabase.storage
-        .from('payment-screenshots')
-        .getPublicUrl(data.path);
-
-      setScreenshotUrl(urlData.publicUrl);
-    } catch (err: any) {
-      console.error('Failed to upload screenshot:', err);
-      alert('Failed to upload screenshot: ' + (err.message || String(err)));
-    } finally {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = document.createElement('img') as HTMLImageElement;
+      img.onload = () => {
+        const MAX = 1024;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+          else { width = Math.round(width * MAX / height); height = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+        setScreenshotUrl(dataUrl);
+        setUploadingScreenshot(false);
+      };
+      img.onerror = () => {
+        alert('Failed to read image.');
+        setUploadingScreenshot(false);
+      };
+      img.src = ev.target!.result as string;
+    };
+    reader.onerror = () => {
+      alert('Failed to read file.');
       setUploadingScreenshot(false);
-    }
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleRemoveScreenshot = async () => {
-    if (!screenshotUrl) return;
-    const oldUrl = screenshotUrl;
+  const handleRemoveScreenshot = () => {
     setScreenshotUrl(null);
-    try {
-      await supabase.storage.from('payment-screenshots').remove([oldUrl]);
-    } catch (err) {
-      console.warn('Failed to delete removed screenshot from server:', err);
-    }
   };
 
   const handleWhatsAppCheckout = async (e: React.FormEvent) => {
