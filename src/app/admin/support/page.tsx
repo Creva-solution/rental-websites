@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import {
   Plus, Search, Send, X, Clock, CheckCircle2,
   AlertCircle, Circle, XCircle, Loader2, Image, FileText,
-  Mic, Video, MessageSquare, RefreshCw, ArrowLeft, Play, Bell
+  Mic, MicOff, Video, MessageSquare, RefreshCw, ArrowLeft, Play, Bell, Square
 } from 'lucide-react';
 
 // ─── Direct API helper (bypasses supabase client URL mapping) ────────────────
@@ -200,6 +200,100 @@ function AttachmentPreview({ att, onRemove }: { att: Attachment; onRemove: () =>
       <FileText className="w-4 h-4 text-orange-500 shrink-0" />
       <p className="text-[10px] font-bold text-orange-700 truncate flex-1">{att.name}</p>
       <button onClick={onRemove} className="text-orange-400 hover:text-red-500 transition-colors"><X className="w-3.5 h-3.5" /></button>
+    </div>
+  );
+}
+
+// ─── Voice Recorder Component ──────────────────────────────────────────────────
+function VoiceRecorder({ onRecorded, disabled }: { onRecorded: (att: Attachment) => void; disabled?: boolean }) {
+  const [state, setState] = useState<'idle' | 'recording' | 'preview'>('idle');
+  const [secs, setSecs] = useState(0);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const mediaRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const start = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      chunksRef.current = [];
+      mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      mr.onstop = () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
+        setState('preview');
+      };
+      mr.start();
+      mediaRef.current = mr;
+      setSecs(0);
+      setState('recording');
+      timerRef.current = setInterval(() => setSecs(s => s + 1), 1000);
+    } catch (e) {
+      alert('Microphone access denied. Please allow microphone in browser settings.');
+    }
+  };
+
+  const stop = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    mediaRef.current?.stop();
+    mediaRef.current = null;
+  };
+
+  const discard = () => {
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
+    setAudioUrl(null);
+    setSecs(0);
+    setState('idle');
+  };
+
+  const attach = () => {
+    if (!audioUrl) return;
+    const name = `voice_note_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.webm`;
+    onRecorded({ name, url: audioUrl, type: 'audio/webm' });
+    setAudioUrl(null);
+    setSecs(0);
+    setState('idle');
+  };
+
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+  if (state === 'idle') return (
+    <button
+      type="button"
+      onClick={start}
+      disabled={disabled}
+      className="inline-flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-full border transition-colors select-none cursor-pointer text-purple-700 border-purple-200 bg-purple-50 hover:bg-purple-100 disabled:opacity-50"
+    >
+      <Mic className="w-3.5 h-3.5" /> Voice Notes
+    </button>
+  );
+
+  if (state === 'recording') return (
+    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-red-300 bg-red-50">
+      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+      <span className="text-[10px] font-bold text-red-700">{fmt(secs)}</span>
+      <button
+        type="button"
+        onClick={stop}
+        className="inline-flex items-center gap-1 text-[10px] font-bold text-red-700 hover:text-red-900 transition-colors"
+      >
+        <Square className="w-3 h-3 fill-current" /> Stop
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-xl px-3 py-2 max-w-xs">
+      <Mic className="w-4 h-4 text-purple-500 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-bold text-purple-700">{fmt(secs)} recorded</p>
+        {audioUrl && <audio controls src={audioUrl} style={{ height: 24 }} className="w-full mt-0.5" />}
+      </div>
+      <button type="button" onClick={attach} className="text-[9px] font-black text-purple-700 bg-purple-200 hover:bg-purple-300 px-2 py-1 rounded-lg transition-colors shrink-0">Use</button>
+      <button type="button" onClick={discard} className="text-purple-400 hover:text-red-500 transition-colors"><X className="w-3.5 h-3.5" /></button>
     </div>
   );
 }
@@ -604,9 +698,18 @@ export default function AdminSupportPage() {
               {selected.status !== 'closed' ? (
                 <div className="px-5 py-4 border-t border-border bg-background shrink-0 space-y-3">
 
-                  {/* 4 attachment buttons — <label> wraps <input> for reliable file picker */}
+                  {/* Attachment buttons: file pickers for screenshot/video/doc, live recorder for voice */}
                   <div className="flex flex-wrap gap-2">
                     {(Object.entries(ATTACHMENT_TYPES) as [AttachmentCategory, (typeof ATTACHMENT_TYPES)[AttachmentCategory]][]).map(([key, cfg]) => {
+                      if (key === 'voice') {
+                        return (
+                          <VoiceRecorder
+                            key="voice"
+                            disabled={uploading}
+                            onRecorded={att => setAttachments(prev => [...prev, att])}
+                          />
+                        );
+                      }
                       const Icon = cfg.icon;
                       return (
                         <label
@@ -616,7 +719,6 @@ export default function AdminSupportPage() {
                         >
                           <Icon className="w-3.5 h-3.5" />
                           {cfg.label}
-                          {/* display:none works with <label> clicks — only programmatic .click() is blocked */}
                           <input
                             type="file"
                             multiple
@@ -730,11 +832,20 @@ export default function AdminSupportPage() {
                 />
               </div>
 
-              {/* Attachment buttons — functional file pickers */}
+              {/* Attachment buttons — file pickers + live voice recorder */}
               <div className="space-y-2">
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Attach files (optional)</p>
                 <div className="flex flex-wrap gap-2">
                   {(Object.entries(ATTACHMENT_TYPES) as [AttachmentCategory, (typeof ATTACHMENT_TYPES)[AttachmentCategory]][]).map(([key, cfg]) => {
+                    if (key === 'voice') {
+                      return (
+                        <VoiceRecorder
+                          key="voice"
+                          disabled={newTicketUploading || creating}
+                          onRecorded={att => setNewTicketAttachments(prev => [...prev, att])}
+                        />
+                      );
+                    }
                     const Icon = cfg.icon;
                     return (
                       <label
