@@ -14,12 +14,14 @@ $allowedOrigins = [
     'https://crevasolution.in',
     'https://www.crevasolution.in',
     'http://localhost:3000',
+    'http://localhost:3001',
     'http://127.0.0.1:3000',
 ];
 $requestOrigin = $_SERVER['HTTP_ORIGIN'] ?? '';
-$corsOrigin = in_array($requestOrigin, $allowedOrigins, true)
-    ? $requestOrigin
-    : 'https://rweb.crevasolution.in';
+// Allow any *.crevasolution.in subdomain (store subdomains)
+$isAllowed = in_array($requestOrigin, $allowedOrigins, true)
+    || (preg_match('#^https://[a-z0-9\-]+\.crevasolution\.in$#i', $requestOrigin));
+$corsOrigin = $isAllowed ? $requestOrigin : 'https://rweb.crevasolution.in';
 
 header('Access-Control-Allow-Origin: ' . $corsOrigin);
 header('Access-Control-Allow-Credentials: true');
@@ -871,8 +873,14 @@ try {
         
         if ($requestMethod === 'POST') {
             $orderId = $body['id'] ?? 'order_' . uniqid();
-            
-            $stmt = $pdo->prepare('INSERT INTO "orders" (id, store_id, customer_name, customer_email, customer_phone, shipping_address, total_amount, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+            // Ensure payment columns exist (safe migration on every request)
+            try {
+                $pdo->exec('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "payment_method" VARCHAR(100) DEFAULT \'cod\'');
+                $pdo->exec('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "payment_status" VARCHAR(50) DEFAULT \'unpaid\'');
+                $pdo->exec('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "payment_screenshot_url" TEXT DEFAULT NULL');
+            } catch (\PDOException $ignored) {}
+
+            $stmt = $pdo->prepare('INSERT INTO "orders" (id, store_id, customer_name, customer_email, customer_phone, shipping_address, total_amount, status, payment_method, payment_status, payment_screenshot_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
             $stmt->execute([
                 $orderId,
                 $body['store_id'] ?? '',
@@ -881,7 +889,10 @@ try {
                 $body['customer_phone'] ?? '',
                 $body['shipping_address'] ?? '',
                 $body['total_amount'] ?? 0,
-                $body['status'] ?? 'pending'
+                $body['status'] ?? 'pending',
+                $body['payment_method'] ?? 'cod',
+                $body['payment_status'] ?? 'unpaid',
+                $body['payment_screenshot_url'] ?? null,
             ]);
             
             // Insert order items if present

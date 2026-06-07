@@ -61,6 +61,7 @@ async function apiFetch(path: string, options: RequestInit = {}): Promise<Respon
   return fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers,
+    cache: 'no-store', // Always fetch fresh data — prevents Next.js SSR fetch cache stale hits
   });
 }
 
