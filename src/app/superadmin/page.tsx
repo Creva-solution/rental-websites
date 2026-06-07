@@ -1128,8 +1128,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
 
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('mock_supabase_token') : null;
-      const API_BASE_URL = 'https://rentalwebsite-backend-vn40.onrender.com/api';
-      const response = await fetch(`${API_BASE_URL}/auth/superadmin-reset-password`, {
+      const response = await fetch(`/api/backend/auth/superadmin-reset-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1755,7 +1754,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
       : null;
     const headers: Record<string, string> = { Accept: 'application/json', 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    const res = await fetch(`https://rentalwebsite-backend-vn40.onrender.com/api${path}`, { ...options, headers });
+    const res = await fetch(`/api/backend${path}`, { ...options, headers });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();
   };
