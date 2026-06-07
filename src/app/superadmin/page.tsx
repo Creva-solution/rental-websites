@@ -1777,35 +1777,35 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
             >
               <Bell className="w-4.5 h-4.5" />
               {notifications.filter(n => !n.read).length > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-gray-950 animate-pulse" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white animate-pulse" />
               )}
             </button>
 
             {showNotifications && (
               <div 
                 onClick={(e) => e.stopPropagation()}
-                className="absolute right-0 mt-2 w-80 rounded-xl border border-gray-800 bg-gray-900 text-gray-100 shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left header-dropdown-container"
+                className="absolute right-0 mt-2 w-80 rounded-xl border border-gray-200 bg-white text-gray-900 shadow-xl z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left header-dropdown-container"
               >
-                <div className="px-4 py-2 border-b border-gray-800 flex justify-between items-center">
+                <div className="px-4 py-2 border-b border-gray-100 flex justify-between items-center">
                   <span className="font-bold text-xs uppercase tracking-wider text-[#3C77C3]">Notifications</span>
-                  <button 
+                  <button
                     onClick={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
-                    className="text-[10px] text-gray-400 hover:text-white transition-colors uppercase font-black tracking-widest"
+                    className="text-[10px] text-gray-400 hover:text-[#3C77C3] transition-colors uppercase font-black tracking-widest"
                   >
                     Mark all read
                   </button>
                 </div>
-                <div className="max-h-64 overflow-y-auto divide-y divide-gray-800">
+                <div className="max-h-64 overflow-y-auto divide-y divide-gray-50">
                   {notifications.length === 0 ? (
                     <div className="px-4 py-6 text-center text-xs text-gray-400">
                       No new notifications
                     </div>
                   ) : (
                     notifications.map(n => (
-                      <div key={n.id} className={`px-4 py-3 hover:bg-gray-800/40 transition-colors text-left ${n.read ? 'opacity-70' : ''}`}>
-                        <p className="text-xs font-bold text-gray-200 leading-snug">{n.title}</p>
-                        <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">{n.description}</p>
-                        <span className="text-[9px] text-gray-500 mt-1.5 block font-mono">{n.time}</span>
+                      <div key={n.id} className={`px-4 py-3 hover:bg-blue-50/50 transition-colors text-left ${n.read ? 'opacity-60' : ''}`}>
+                        <p className="text-xs font-bold text-gray-800 leading-snug">{n.title}</p>
+                        <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">{n.description}</p>
+                        <span className="text-[9px] text-gray-400 mt-1.5 block font-mono">{n.time}</span>
                       </div>
                     ))
                   )}
@@ -1827,7 +1827,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
           </a>
 
           {/* Vertical Separator */}
-          <span className="h-6 w-px bg-gray-800 shrink-0" />
+          <span className="h-6 w-px bg-gray-200 shrink-0" />
 
           {/* Profile Dropdown */}
           <div className="relative">
@@ -1837,36 +1837,36 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                 setShowProfileDropdown(prev => !prev);
                 setShowNotifications(false);
               }}
-              className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-gray-800 transition-colors border border-transparent hover:border-gray-800 text-left header-dropdown-trigger"
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-gray-100 transition-colors border border-transparent hover:border-gray-200 text-left header-dropdown-trigger"
             >
               <div className="w-8 h-8 rounded-full bg-[#3C77C3]/10 text-[#3C77C3] flex items-center justify-center font-bold text-xs uppercase shadow-sm">
                 SA
               </div>
               <div className="hidden md:flex flex-col text-left">
-                <span className="text-xs font-bold text-gray-200 truncate max-w-[120px]">
+                <span className="text-xs font-bold text-gray-800 truncate max-w-[120px]">
                   Super Admin
                 </span>
-                <span className="text-[10px] text-gray-400 truncate max-w-[120px]">
+                <span className="text-[10px] text-gray-500 truncate max-w-[120px]">
                   {user?.email || 'admin@crevasolution.in'}
                 </span>
               </div>
-              <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+              <ChevronDown className="w-3.5 h-3.5 text-gray-500 shrink-0" />
             </button>
 
             {showProfileDropdown && (
               <div 
                 onClick={(e) => e.stopPropagation()}
-                className="absolute right-0 mt-2 w-56 rounded-xl border border-gray-800 bg-gray-900 text-gray-100 shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left header-dropdown-container"
+                className="absolute right-0 mt-2 w-56 rounded-xl border border-gray-200 bg-white text-gray-900 shadow-xl z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left header-dropdown-container"
               >
-                <div className="px-4 py-2 border-b border-gray-800">
-                  <p className="text-xs font-black text-gray-200 truncate">Platform Administrator</p>
-                  <p className="text-[10px] text-gray-400 truncate mt-0.5">{user?.email}</p>
+                <div className="px-4 py-2 border-b border-gray-100">
+                  <p className="text-xs font-black text-gray-900 truncate">Platform Administrator</p>
+                  <p className="text-[10px] text-gray-500 truncate mt-0.5">{user?.email}</p>
                 </div>
-                
+
                 <div className="p-1.5">
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold text-rose-400 hover:bg-rose-950/40 hover:text-rose-500 transition-all text-left"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-all text-left"
                   >
                     <LogOut className="w-4 h-4 text-rose-500" />
                     Logout Account

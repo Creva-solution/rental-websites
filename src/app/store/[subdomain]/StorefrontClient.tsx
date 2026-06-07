@@ -104,14 +104,20 @@ const SAMPLE_PRODUCTS = [
   }
 ];
 
-const getProductImage = (product: any) => {
+const getProductImage = (product: any): string => {
+  // 1. Try description JSON field first (admin products page stores image_url here)
   try {
-    if (product.description && product.description.startsWith('{')) {
+    if (product.description && typeof product.description === 'string' && product.description.trim().startsWith('{')) {
       const parsed = JSON.parse(product.description);
-      return parsed.image_url || '';
+      const url = parsed.image_url;
+      if (url && typeof url === 'string' && url.trim().length > 0) return url.trim();
     }
   } catch (e) {}
-  return product.image_url || '';
+  // 2. Fall back to direct image_url column
+  if (product.image_url && typeof product.image_url === 'string' && product.image_url.trim().length > 0) {
+    return product.image_url.trim();
+  }
+  return '';
 };
 
 const renderBenefitIcon = (iconName: string) => {
@@ -2567,6 +2573,136 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
       }
     };
 
+    // ─── Shared Premium Product Card ─────────────────────────────────────────
+    const renderProductCard = (product: any) => {
+      const isLiked = favorites.includes(product.id);
+      const imgUrl = getProductImage(product);
+      let originalPrice = Number(product.price);
+      let displayPrice = originalPrice;
+      let hasActiveOffer = false;
+      let offerPercent = 0;
+      let timeLeftText = '';
+      const outOfStock = isOutOfStock(product);
+
+      try {
+        if (product.description && product.description.startsWith('{')) {
+          const parsed = JSON.parse(product.description);
+          if (parsed.offer_ends_at && parsed.offer_price) {
+            const endTime = new Date(parsed.offer_ends_at).getTime();
+            const now = Date.now();
+            if (endTime > now) {
+              hasActiveOffer = true;
+              displayPrice = Number(parsed.offer_price);
+              offerPercent = Number(parsed.offer_percent) || 50;
+              const diffMs = endTime - now;
+              const diffHrs = Math.floor(diffMs / 3600000);
+              const diffMins = Math.floor((diffMs % 3600000) / 60000);
+              timeLeftText = diffHrs > 0 ? `${diffHrs}h ${diffMins}m` : `${diffMins}m`;
+            }
+          }
+        }
+      } catch (e) {}
+
+      return (
+        <div key={product.id} className="group flex flex-col bg-white overflow-hidden relative border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300">
+          {/* ── Image Area ── */}
+          <div
+            className="relative aspect-[4/5] bg-gray-50 overflow-hidden cursor-pointer"
+            onClick={() => setSelectedProduct(product)}
+          >
+            {imgUrl ? (
+              <img
+                src={imgUrl}
+                alt={product.name}
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+                <Package className="w-10 h-10 text-gray-200" />
+              </div>
+            )}
+
+            {/* Sale / New badge */}
+            {hasActiveOffer && (
+              <span className="absolute top-2.5 left-2.5 bg-black text-white text-[7.5px] font-black uppercase tracking-[0.18em] px-2.5 py-1 z-10">
+                -{offerPercent}% OFF
+              </span>
+            )}
+            {product.is_new && !hasActiveOffer && (
+              <span className="absolute top-2.5 left-2.5 bg-[#3B82F6] text-white text-[7.5px] font-black uppercase tracking-[0.18em] px-2.5 py-1 z-10">
+                NEW
+              </span>
+            )}
+
+            {/* Wishlist heart */}
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
+              className="absolute top-2.5 right-2.5 w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-md transition-all z-10 hover:scale-110 border border-gray-100"
+            >
+              <Heart className={`w-4 h-4 transition-colors ${isLiked ? 'fill-red-500 text-red-500' : 'text-gray-400 hover:text-red-400'}`} />
+            </button>
+
+            {/* ADD TO BAG slide-up overlay */}
+            {!outOfStock ? (
+              <div className="absolute bottom-0 inset-x-0 translate-y-full group-hover:translate-y-0 transition-transform duration-200 z-10">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); addToCart(product, 1); }}
+                  className="w-full py-3 bg-black/90 hover:bg-black text-white text-[8px] font-black uppercase tracking-[0.22em] transition-colors"
+                >
+                  Add to Bag
+                </button>
+              </div>
+            ) : (
+              <div className="absolute bottom-0 inset-x-0 bg-gray-800/80 py-2.5 text-center text-[8px] font-black uppercase tracking-widest text-white z-10">
+                Out of Stock
+              </div>
+            )}
+          </div>
+
+          {/* ── Card Footer ── */}
+          <div className="px-3 pt-3 pb-4">
+            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+              {getProductCategory(product)}
+            </span>
+            <h4
+              onClick={() => setSelectedProduct(product)}
+              className="font-semibold text-gray-900 text-xs leading-snug cursor-pointer hover:underline line-clamp-2 min-h-[2rem]"
+            >
+              {product.name}
+            </h4>
+            <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                {hasActiveOffer ? (
+                  <div className="flex items-baseline gap-1.5 flex-wrap">
+                    <span className="font-black text-gray-950 text-sm">{currencySymbol}{displayPrice.toLocaleString()}</span>
+                    <span className="text-[10px] text-gray-400 line-through font-medium">{currencySymbol}{originalPrice.toLocaleString()}</span>
+                  </div>
+                ) : (
+                  <span className="font-black text-gray-950 text-sm">{currencySymbol}{displayPrice.toLocaleString()}</span>
+                )}
+                {hasActiveOffer && timeLeftText && (
+                  <p className="text-[8px] text-red-500 font-bold uppercase tracking-wide mt-0.5">Ends {timeLeftText}</p>
+                )}
+              </div>
+              {!outOfStock && (
+                <button
+                  type="button"
+                  onClick={() => addToCart(product, 1)}
+                  className="shrink-0 text-[7.5px] font-black uppercase tracking-wider border border-gray-300 hover:border-black px-2.5 py-1.5 hover:bg-black hover:text-white transition-all duration-200 whitespace-nowrap"
+                >
+                  Add to Bag
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+    // ─────────────────────────────────────────────────────────────────────────
+
     switch (selectedTemplate) {
       case 'retro':
         return (
@@ -2601,126 +2737,8 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                 [ ERROR_404: NO PRODUCTS FOUND ]
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 sm:gap-6">
-                {processedProducts.map((product, idx) => {
-                  const isLiked = favorites.includes(product.id);
-                  let originalPrice = Number(product.price);
-                  let displayPrice = originalPrice;
-                  let hasActiveOffer = false;
-                  let offerPercent = 0;
-                  let timeLeftText = '';
-
-                  try {
-                    if (product.description && product.description.startsWith('{')) {
-                      const parsed = JSON.parse(product.description);
-                      if (parsed.offer_ends_at && parsed.offer_price) {
-                        const endTime = new Date(parsed.offer_ends_at).getTime();
-                        const now = Date.now();
-                        if (endTime > now) {
-                          hasActiveOffer = true;
-                          displayPrice = Number(parsed.offer_price);
-                          offerPercent = Number(parsed.offer_percent) || 50;
-                          
-                          const diffMs = endTime - now;
-                          const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
-                          const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                          const diffSecs = Math.floor((diffMs % (1000 * 60)) / 1000);
-                          if (diffHrs > 0) {
-                            timeLeftText = `${diffHrs}h ${diffMins}m`;
-                          } else if (diffMins > 0) {
-                            timeLeftText = `${diffMins}m ${diffSecs}s`;
-                          } else {
-                            timeLeftText = `${diffSecs}s`;
-                          }
-                        }
-                      }
-                    }
-                  } catch (e) {}
-
-                  return (
-                    <div key={product.id} className="border-2 border-black bg-white rounded-none overflow-hidden flex flex-col justify-between shadow-[4px_4px_0px_#2B231F] hover:shadow-[6px_6px_0px_#E25B45] transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] duration-300">
-                      {/* OS Folder Window Header */}
-                      <div className="bg-stone-100 text-[#2B231F] h-7 px-3 flex items-center justify-between border-b-2 border-black text-[9px] font-black tracking-wider uppercase select-none">
-                        <span>ITEM_{idx + 1 < 10 ? '0' + (idx + 1) : idx + 1}.SYS</span>
-                        <div className="flex gap-1">
-                          <button 
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }} 
-                            className={`w-3.5 h-3.5 border border-black flex items-center justify-center font-bold text-[8px] cursor-pointer ${isLiked ? 'bg-red-500 text-white' : 'bg-white text-gray-500 hover:text-red-500'}`}
-                          >
-                            ♥
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Image Frame */}
-                      <div className="aspect-square relative w-full bg-stone-50 overflow-hidden border-b-2 border-black group cursor-pointer" onClick={() => setSelectedProduct(product)}>
-                        {getProductImage(product) ? (
-                          <img 
-                            src={getProductImage(product)} 
-                            alt={product.name} 
-                            className="w-full h-full object-cover group-hover:scale-105 transition-all duration-500"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 flex items-center justify-center text-zinc-300 font-bold text-4xl">?</div>
-                        )}
-                        
-                        {/* Neon retro badges */}
-                        {hasActiveOffer && (
-                          <span className="absolute top-2 left-2 bg-[#E25B45] text-white border border-black font-black uppercase text-[7px] px-2 py-0.5 shadow-[1px_1px_0px_#000]">
-                            -{offerPercent}%
-                          </span>
-                        )}
-                        {product.is_new && !hasActiveOffer && (
-                          <span className="absolute top-2 left-2 bg-yellow-300 text-black border border-black font-black uppercase text-[7px] px-2 py-0.5 shadow-[1px_1px_0px_#000]">
-                            NEW
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Info Frame */}
-                      <div className="p-4 space-y-2 flex-1 flex flex-col justify-between bg-white text-left">
-                        <div className="space-y-1">
-                          <span className="text-[8px] text-stone-400 font-bold tracking-widest uppercase block">&gt; {getProductCategory(product).toUpperCase()}</span>
-                          <h4 
-                            onClick={() => setSelectedProduct(product)}
-                            className="font-black text-[#2B231F] text-xs hover:text-[#E25B45] transition-colors cursor-pointer uppercase tracking-wider line-clamp-2 min-h-[2rem]"
-                          >
-                            {product.name}
-                          </h4>
-                        </div>
-
-                        <div className="space-y-3">
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t border-stone-100">
-                            <div className="flex flex-col">
-                              {hasActiveOffer ? (
-                                <div className="space-y-0.5">
-                                  <span className="font-black text-[#E25B45] text-sm block">
-                                    {currencySymbol}{displayPrice.toLocaleString()}
-                                  </span>
-                                  <span className="text-[9px] text-stone-400 line-through block font-bold leading-none">
-                                    {currencySymbol}{originalPrice.toLocaleString()}
-                                  </span>
-                                </div>
-                              ) : (
-                                <span className="font-black text-[#2B231F] text-sm">
-                                  {currencySymbol}{displayPrice.toLocaleString()}
-                                </span>
-                              )}
-                            </div>
-                            <button 
-                              type="button"
-                              onClick={() => addToCart(product, 1)}
-                              className="w-full sm:w-auto text-center px-3 py-1.5 bg-[#E25B45] hover:bg-[#C84C37] text-white border-2 border-black font-black uppercase text-[8px] shadow-[2px_2px_0px_rgba(43,35,31,0.2)] transition-colors"
-                            >
-                              [ ORDER ]
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
+                {processedProducts.map(renderProductCard)}
               </div>
             )}
           </section>
@@ -2789,110 +2807,8 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                 No items found in this section.
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 sm:gap-6">
-                {processedProducts.map((product) => {
-                  const isLiked = favorites.includes(product.id);
-                  let originalPrice = Number(product.price);
-                  let displayPrice = originalPrice;
-                  let hasActiveOffer = false;
-                  let offerPercent = 0;
-
-                  try {
-                    if (product.description && product.description.startsWith('{')) {
-                      const parsed = JSON.parse(product.description);
-                      if (parsed.offer_ends_at && parsed.offer_price) {
-                        const endTime = new Date(parsed.offer_ends_at).getTime();
-                        const now = Date.now();
-                        if (endTime > now) {
-                          hasActiveOffer = true;
-                          displayPrice = Number(parsed.offer_price);
-                          offerPercent = Number(parsed.offer_percent) || 12;
-                        }
-                      }
-                    }
-                  } catch (e) {}
-
-                  // Stable rating generator based on product details for realistic feel
-                  const ratingVal = ((product.name.charCodeAt(0) % 5) * 0.2 + 4.0).toFixed(1);
-                  const reviewsCount = (product.name.charCodeAt(product.name.length - 1) % 90) + 12;
-
-                  return (
-                    <div 
-                      key={product.id} 
-                      className="card-theme flex flex-col bg-white border border-gray-200 rounded-sm overflow-hidden group shadow-sm hover:shadow-md transition-all duration-300 relative text-left"
-                    >
-                      {/* Image frame */}
-                      <div className="relative aspect-square bg-gray-50 overflow-hidden cursor-pointer" onClick={() => setSelectedProduct(product)}>
-                        {getProductImage(product) ? (
-                          <img 
-                            src={getProductImage(product)} 
-                            alt={product.name} 
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 flex items-center justify-center font-bold text-gray-300 text-3xl">P</div>
-                        )}
-
-                        {/* Favorite Button */}
-                        <button 
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
-                          className="absolute top-2.5 right-2.5 p-2 rounded-full bg-white text-gray-400 hover:text-red-500 transition-colors border border-gray-100 shadow-sm"
-                        >
-                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-rose-600 text-rose-600' : 'text-gray-400'}`} />
-                        </button>
-                      </div>
-
-                      {/* Content details */}
-                      <div className="p-4 flex-1 flex flex-col justify-between bg-white space-y-3">
-                        <div className="space-y-1">
-                          <span className="text-[9px] font-bold text-[#2874F0] uppercase tracking-wider block">{getProductCategory(product)}</span>
-                          <h4 
-                            onClick={() => setSelectedProduct(product)}
-                            className="font-bold text-gray-900 text-xs hover:text-[#2874F0] cursor-pointer leading-tight line-clamp-2 min-h-[2rem] font-sans"
-                          >
-                            {product.name}
-                          </h4>
-                          
-                          {/* Rating Row */}
-                          <div className="flex items-center gap-1.5 pt-0.5">
-                            <span className="inline-flex items-center gap-0.5 bg-green-700 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm">
-                              {ratingVal} <span className="text-[7px]">★</span>
-                            </span>
-                            <span className="text-[10px] text-gray-400 font-semibold">({reviewsCount.toLocaleString()})</span>
-                          </div>
-                        </div>
-
-                        {/* Price & Buy Block */}
-                        <div className="pt-2 border-t border-gray-100 flex flex-col gap-2">
-                          <div className="flex items-baseline gap-1.5 flex-wrap">
-                            <span className="font-bold text-gray-900 text-base">
-                              {currencySymbol}{displayPrice.toLocaleString()}
-                            </span>
-                            {hasActiveOffer && (
-                              <>
-                                <span className="text-xs text-gray-400 line-through font-semibold">
-                                  {currencySymbol}{originalPrice.toLocaleString()}
-                                </span>
-                                <span className="text-[10px] text-green-700 font-bold">
-                                  {offerPercent}% off
-                                </span>
-                              </>
-                            )}
-                          </div>
-                          
-                          <button 
-                            type="button"
-                            onClick={() => addToCart(product, 1)}
-                            className="w-full text-center py-2 bg-[#FB641B] hover:bg-[#e05615] text-white text-[10px] font-bold uppercase tracking-wider rounded-sm transition-colors shadow-sm animate-pulse"
-                          >
-                            Add To Cart
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
+                {processedProducts.map(renderProductCard)}
               </div>
             )}
           </section>
@@ -2971,116 +2887,8 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                     [ DATABASE EMPTY ]
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {processedProducts.map((product) => {
-                      const isLiked = favorites.includes(product.id);
-                      let originalPrice = Number(product.price);
-                      let displayPrice = originalPrice;
-                      let hasActiveOffer = false;
-                      let offerPercent = 0;
-                      let timeLeftText = '';
-
-                      try {
-                        if (product.description && product.description.startsWith('{')) {
-                          const parsed = JSON.parse(product.description);
-                          if (parsed.offer_ends_at && parsed.offer_price) {
-                            const endTime = new Date(parsed.offer_ends_at).getTime();
-                            const now = Date.now();
-                            if (endTime > now) {
-                              hasActiveOffer = true;
-                              displayPrice = Number(parsed.offer_price);
-                              offerPercent = Number(parsed.offer_percent) || 50;
-                              
-                              const diffMs = endTime - now;
-                              const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
-                              const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                              const diffSecs = Math.floor((diffMs % (1000 * 60)) / 1000);
-                              if (diffHrs > 0) {
-                                timeLeftText = `${diffHrs}h ${diffMins}m`;
-                              } else if (diffMins > 0) {
-                                timeLeftText = `${diffMins}m ${diffSecs}s`;
-                              } else {
-                                timeLeftText = `${diffSecs}s`;
-                              }
-                            }
-                          }
-                        }
-                      } catch (e) {}
-
-                      return (
-                        <div key={product.id} className="border-4 border-black bg-white rounded-none flex flex-col justify-between group shadow-[4px_4px_0px_#000] hover:shadow-[6px_6px_0px_#E11D48] transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] overflow-hidden">
-                          <div className="relative aspect-square w-full bg-gray-50 overflow-hidden cursor-pointer" onClick={() => setSelectedProduct(product)}>
-                            {getProductImage(product) ? (
-                              <img 
-                                src={getProductImage(product)} 
-                                alt={product.name} 
-                                className="w-full h-full object-cover transition-all group-hover:scale-105 duration-300"
-                              />
-                            ) : (
-                              <div className="absolute inset-0 flex items-center justify-center font-bold text-gray-400">B</div>
-                            )}
-
-                            {/* Heavy Bold Tags */}
-                            {hasActiveOffer ? (
-                              <span className="absolute top-2 left-2 bg-yellow-300 text-black border-2 border-black font-black uppercase text-[8px] px-2 py-0.5 tracking-wider shadow-[2px_2px_0px_#000]">
-                                FLASH: -{offerPercent}%
-                              </span>
-                            ) : (
-                              <span className="absolute top-2 left-2 bg-[#E11D48] text-white border-2 border-black font-black uppercase text-[8px] px-2 py-0.5 tracking-wider">
-                                FAST RELEASE
-                              </span>
-                            )}
-
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
-                              className="absolute top-2 right-2 p-2 border-2 border-black bg-white text-black hover:bg-yellow-300 transition-colors z-20 shadow-[2px_2px_0_0_#000]"
-                            >
-                              <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
-                            </button>
-                          </div>
-
-                          <div className="p-4 flex-1 flex flex-col justify-between space-y-4 border-t-4 border-black bg-white">
-                            <div className="space-y-1">
-                              <span className="inline-block bg-yellow-300 text-black border border-black font-black uppercase text-[7px] px-1.5 py-0.5">{getProductCategory(product)}</span>
-                              <h4 
-                                onClick={() => setSelectedProduct(product)}
-                                className="font-extrabold text-black text-xs sm:text-sm hover:underline cursor-pointer uppercase tracking-tight block line-clamp-2 min-h-[2.5rem] mt-1"
-                              >
-                                {product.name}
-                              </h4>
-                            </div>
-
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
-                              <div className="flex flex-col">
-                                {hasActiveOffer ? (
-                                  <div className="space-y-1">
-                                    <span className="font-black text-[#E11D48] text-sm sm:text-base block">
-                                      {currencySymbol}{displayPrice.toLocaleString()}
-                                    </span>
-                                    <span className="text-[10px] text-zinc-500 line-through block font-black leading-none border-b-2 border-dashed border-zinc-300 w-fit">
-                                      {currencySymbol}{originalPrice.toLocaleString()}
-                                    </span>
-                                    <span className="text-[7.5px] font-black uppercase tracking-widest text-[#E11D48] flex items-center gap-0.5 leading-none">
-                                      <Sparkles className="w-2.5 h-2.5 inline" /> -{offerPercent}% OFF (ENDS: {timeLeftText})
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <span className="font-black text-black text-sm sm:text-base">
-                                    {currencySymbol}{displayPrice.toLocaleString()}
-                                  </span>
-                                )}
-                              </div>
-                              <button 
-                                onClick={() => addToCart(product, 1)}
-                                className="w-full sm:w-auto text-center px-3.5 py-2 bg-black text-white hover:bg-[#E11D48] border-2 border-black font-black text-[8px] uppercase tracking-widest shadow-[2px_2px_0_0_#fff]"
-                              >
-                                BUY [EX]
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
+                    {processedProducts.map(renderProductCard)}
                   </div>
                 )}
               </div>
@@ -3126,112 +2934,8 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                 No items available in this collection yet.
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-x-6 gap-y-10">
-                {processedProducts.map((product) => {
-                  const isLiked = favorites.includes(product.id);
-                  let originalPrice = Number(product.price);
-                  let displayPrice = originalPrice;
-                  let hasActiveOffer = false;
-                  let offerPercent = 0;
-
-                  try {
-                    if (product.description && product.description.startsWith('{')) {
-                      const parsed = JSON.parse(product.description);
-                      if (parsed.offer_ends_at && parsed.offer_price) {
-                        const endTime = new Date(parsed.offer_ends_at).getTime();
-                        const now = Date.now();
-                        if (endTime > now) {
-                          hasActiveOffer = true;
-                          displayPrice = Number(parsed.offer_price);
-                          offerPercent = Number(parsed.offer_percent) || 15;
-                        }
-                      }
-                    }
-                  } catch (e) {}
-
-                  return (
-                    <div key={product.id} className="group flex flex-col justify-between text-left relative bg-white">
-                      
-                      {/* Image container */}
-                      <div className="relative aspect-[3/4] bg-gray-50 overflow-hidden cursor-pointer mb-4" onClick={() => setSelectedProduct(product)}>
-                        {getProductImage(product) ? (
-                          <img 
-                            src={getProductImage(product)} 
-                            alt={product.name} 
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-102"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 flex items-center justify-center text-gray-200 font-sans text-xl font-bold">L</div>
-                        )}
-                        
-                        {/* Elegant minimalist offer badge */}
-                        {hasActiveOffer && (
-                          <span className="absolute top-3 left-3 bg-black text-white text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 shadow-sm">
-                            -{offerPercent}%
-                          </span>
-                        )}
-
-                        {/* Direct Add To Cart overlay on hover (desktop) */}
-                        <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/20 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300 hidden md:block z-10">
-                          <button 
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); addToCart(product, 1); }}
-                            className="w-full bg-white text-black hover:bg-black hover:text-white py-2 text-[9px] font-bold uppercase tracking-wider transition-colors shadow-md"
-                          >
-                            Quick Add
-                          </button>
-                        </div>
-
-                        {/* Favorite button */}
-                        <button 
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
-                          className="absolute top-3 right-3 p-2 bg-white/95 text-gray-400 hover:text-red-500 rounded-full border border-gray-100 shadow-sm transition-colors z-20"
-                        >
-                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-rose-700 text-rose-700' : 'text-gray-400'}`} />
-                        </button>
-                      </div>
-
-                      {/* Content block */}
-                      <div className="space-y-2 flex-1 flex flex-col justify-between">
-                        <div className="space-y-1">
-                          <span className="text-[8px] font-bold text-gray-400 tracking-wider uppercase block">{getProductCategory(product)}</span>
-                          <h4 
-                            onClick={() => setSelectedProduct(product)}
-                            className="font-bold text-gray-900 text-xs hover:underline cursor-pointer tracking-normal line-clamp-2 min-h-[2rem]"
-                          >
-                            {product.name}
-                          </h4>
-                          <p className="text-[10px] text-gray-400 line-clamp-2 leading-relaxed font-medium">
-                            {getProductDescription(product) || 'Expertly manufactured using finest grade DTC fabrics and materials.'}
-                          </p>
-                        </div>
-
-                        <div className="pt-2 border-t border-gray-100 flex flex-col gap-2.5">
-                          <div className="flex items-baseline gap-2">
-                            <span className="font-bold text-gray-900 text-sm">
-                              {currencySymbol}{displayPrice.toLocaleString()}
-                            </span>
-                            {hasActiveOffer && (
-                              <span className="text-xs text-gray-400 line-through">
-                                {currencySymbol}{originalPrice.toLocaleString()}
-                              </span>
-                            )}
-                          </div>
-                          
-                          {/* Mobile cart add button */}
-                          <button 
-                            type="button"
-                            onClick={() => addToCart(product, 1)}
-                            className="w-full md:hidden text-center py-2 bg-black hover:bg-gray-800 text-white text-[9px] font-bold uppercase tracking-wider transition-colors rounded-sm"
-                          >
-                            Add To Bag
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
+                {processedProducts.map(renderProductCard)}
               </div>
             )}
           </section>
@@ -3291,116 +2995,8 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                 <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">No Products</h3>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8">
-                {processedProducts.map((product) => {
-                  const isLiked = favorites.includes(product.id);
-                  let originalPrice = Number(product.price);
-                  let displayPrice = originalPrice;
-                  let hasActiveOffer = false;
-                  let offerPercent = 0;
-                  let timeLeftText = '';
-
-                  try {
-                    if (product.description && product.description.startsWith('{')) {
-                      const parsed = JSON.parse(product.description);
-                      if (parsed.offer_ends_at && parsed.offer_price) {
-                        const endTime = new Date(parsed.offer_ends_at).getTime();
-                        const now = Date.now();
-                        if (endTime > now) {
-                          hasActiveOffer = true;
-                          displayPrice = Number(parsed.offer_price);
-                          offerPercent = Number(parsed.offer_percent) || 50;
-                          
-                          const diffMs = endTime - now;
-                          const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
-                          const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                          const diffSecs = Math.floor((diffMs % (1000 * 60)) / 1000);
-                          if (diffHrs > 0) {
-                            timeLeftText = `${diffHrs}h ${diffMins}m`;
-                          } else if (diffMins > 0) {
-                            timeLeftText = `${diffMins}m ${diffSecs}s`;
-                          } else {
-                            timeLeftText = `${diffSecs}s`;
-                          }
-                        }
-                      }
-                    }
-                  } catch (e) {}
-
-                  return (
-                    <div key={product.id} className="flex flex-col group relative bg-white border border-gray-100 hover:border-gray-300 transition-all duration-200 overflow-hidden">
-                      {/* Product Image */}
-                      <div className="relative aspect-[4/5] w-full bg-gray-50 overflow-hidden cursor-pointer" onClick={() => setSelectedProduct(product)}>
-                        {getProductImage(product) ? (
-                          <img
-                            src={getProductImage(product)}
-                            alt={product.name}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 flex items-center justify-center text-gray-300 text-3xl font-light">
-                            {store.store_name?.[0] || 'S'}
-                          </div>
-                        )}
-
-                        {/* Sale badge */}
-                        {hasActiveOffer && (
-                          <span className="absolute top-2.5 left-2.5 bg-black text-white text-[7.5px] font-black uppercase tracking-[0.2em] px-2.5 py-1 z-10">
-                            SALE -{offerPercent}%
-                          </span>
-                        )}
-
-                        {/* Wishlist heart */}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
-                          className="absolute top-2.5 right-2.5 w-7 h-7 flex items-center justify-center bg-white/90 hover:bg-white text-gray-400 hover:text-red-500 shadow-sm transition-colors z-10 rounded-full"
-                        >
-                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
-                        </button>
-
-                        {/* ADD TO BAG — hover overlay at bottom of image */}
-                        {!isOutOfStock(product) && (
-                          <div className="absolute bottom-0 inset-x-0 translate-y-full group-hover:translate-y-0 transition-transform duration-200 z-10">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); addToCart(product, 1); }}
-                              className="w-full py-2.5 bg-black/90 hover:bg-black text-white text-[8.5px] font-black uppercase tracking-[0.18em] transition-colors"
-                            >
-                              Add to Bag
-                            </button>
-                          </div>
-                        )}
-                        {isOutOfStock(product) && (
-                          <div className="absolute bottom-0 inset-x-0 bg-gray-800/80 py-2 text-center text-[8px] font-black uppercase tracking-widest text-white">
-                            Out of Stock
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Name + Price */}
-                      <div className="px-3 py-3 flex flex-col gap-1 bg-white">
-                        <h4
-                          onClick={() => setSelectedProduct(product)}
-                          className="font-semibold text-gray-900 text-xs md:text-sm cursor-pointer hover:underline line-clamp-2 leading-snug font-theme-title"
-                        >
-                          {product.name}
-                        </h4>
-                        {hasActiveOffer ? (
-                          <div className="flex items-baseline gap-2">
-                            <span className="font-black text-gray-950 text-sm">{currencySymbol}{displayPrice.toLocaleString()}</span>
-                            <span className="text-[10px] text-gray-400 line-through font-medium">{currencySymbol}{originalPrice.toLocaleString()}</span>
-                          </div>
-                        ) : (
-                          <span className="font-black text-gray-950 text-sm">{currencySymbol}{displayPrice.toLocaleString()}</span>
-                        )}
-                        {hasActiveOffer && (
-                          <span className="text-[8px] text-red-500 font-black uppercase tracking-[0.1em]">
-                            Flash Sale ends in {timeLeftText}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
+                {processedProducts.map(renderProductCard)}
               </div>
             )}
           </section>

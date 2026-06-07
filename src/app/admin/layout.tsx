@@ -525,28 +525,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {showNotifications && (
                 <div 
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute right-0 mt-2 w-80 rounded-xl border border-border bg-white dark:bg-zinc-950 text-foreground shadow-2xl z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left header-dropdown-container"
+                  className="absolute right-0 mt-2 w-80 rounded-xl border border-gray-200 bg-white text-gray-900 shadow-xl z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left header-dropdown-container"
                 >
-                  <div className="px-4 py-2 border-b border-border flex justify-between items-center">
+                  <div className="px-4 py-2 border-b border-gray-100 flex justify-between items-center">
                     <span className="font-bold text-xs uppercase tracking-wider text-[#3C77C3]">Notifications</span>
-                    <button 
+                    <button
                       onClick={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
-                      className="text-[10px] text-muted-foreground hover:text-primary transition-colors uppercase font-black tracking-widest"
+                      className="text-[10px] text-gray-400 hover:text-[#3C77C3] transition-colors uppercase font-black tracking-widest"
                     >
                       Mark all read
                     </button>
                   </div>
-                  <div className="max-h-64 overflow-y-auto divide-y divide-border">
+                  <div className="max-h-64 overflow-y-auto divide-y divide-gray-50">
                     {notifications.length === 0 ? (
-                      <div className="px-4 py-6 text-center text-xs text-muted-foreground">
+                      <div className="px-4 py-6 text-center text-xs text-gray-400">
                         No new notifications
                       </div>
                     ) : (
                       notifications.map(n => (
-                        <div key={n.id} className={`px-4 py-3 hover:bg-muted/40 transition-colors text-left ${n.read ? 'opacity-70' : ''}`}>
-                          <p className="text-xs font-bold text-foreground leading-snug">{n.title}</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{n.description}</p>
-                          <span className="text-[9px] text-muted-foreground mt-1.5 block font-mono">{n.time}</span>
+                        <div key={n.id} className={`px-4 py-3 hover:bg-blue-50/50 transition-colors text-left ${n.read ? 'opacity-60' : ''}`}>
+                          <p className="text-xs font-bold text-gray-800 leading-snug">{n.title}</p>
+                          <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">{n.description}</p>
+                          <span className="text-[9px] text-gray-400 mt-1.5 block font-mono">{n.time}</span>
                         </div>
                       ))
                     )}
@@ -597,17 +597,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {showProfileDropdown && (
                 <div 
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute right-0 mt-2 w-56 rounded-xl border border-border bg-white dark:bg-zinc-950 text-foreground shadow-2xl z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left header-dropdown-container"
+                  className="absolute right-0 mt-2 w-56 rounded-xl border border-gray-200 bg-white text-gray-900 shadow-xl z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left header-dropdown-container"
                 >
-                  <div className="px-4 py-2 border-b border-border">
-                    <p className="text-xs font-black text-foreground truncate">{store.store_name}</p>
-                    <p className="text-[10px] text-muted-foreground truncate mt-0.5">{user?.email}</p>
+                  <div className="px-4 py-2 border-b border-gray-100">
+                    <p className="text-xs font-black text-gray-900 truncate">{store.store_name}</p>
+                    <p className="text-[10px] text-gray-500 truncate mt-0.5">{user?.email}</p>
                   </div>
-                  
+
                   <div className="p-1.5">
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50/50 hover:text-rose-700 transition-all text-left"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-all text-left"
                     >
                       <LogOut className="w-4 h-4 text-rose-500" />
                       Logout Account
