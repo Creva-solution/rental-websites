@@ -3400,54 +3400,51 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
           {/* Dynamic Hero Banner */}
           {renderHero()}
 
-          {/* Dynamic Shoppable Video Reels Carousel */}
+          {/* Shoppable Video Reels — Instagram-style separate cards */}
           {allVideoReels.length > 0 && (
-            <section className="py-10 bg-white border-b border-gray-100">
+            <section className="py-12 bg-gray-950">
               <div className="max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8">
 
-                {/* Section Header: label + title + arrows */}
-                <div className="flex items-start justify-between mb-6">
+                {/* Section header */}
+                <div className="flex items-end justify-between mb-8">
                   <div>
                     <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[#f2852a] font-theme-body">
                       <ArrowRight className="w-3 h-3" /> Shop the Look
                     </span>
-                    <h3 className="text-2xl md:text-3xl font-black text-gray-950 tracking-tight mt-1 font-theme-title">
+                    <h3 className="text-2xl md:text-3xl font-black text-white tracking-tight mt-1 font-theme-title">
                       Shoppable Video Reels
                     </h3>
-                    <p className="text-xs text-gray-500 mt-1 font-theme-body">
-                      Watch our latest reels and buy tagged products instantly.
+                    <p className="text-xs text-gray-400 mt-1 font-theme-body">
+                      Watch and shop — each video features its own product.
                     </p>
                   </div>
 
-                  {/* Navigation Arrows — shown on desktop when > 1 reel */}
-                  {allVideoReels.length > 1 && (
-                    <div className="hidden sm:flex items-center gap-2 mt-1 shrink-0">
-                      <button
-                        onClick={() => scrollReels('prev')}
-                        aria-label="Previous reel"
-                        className="w-9 h-9 flex items-center justify-center border border-gray-300 bg-white hover:bg-gray-50 transition-colors rounded-sm"
-                      >
-                        <ChevronLeft className="w-4 h-4 text-gray-700" />
-                      </button>
-                      <button
-                        onClick={() => scrollReels('next')}
-                        aria-label="Next reel"
-                        className="w-9 h-9 flex items-center justify-center border border-gray-300 bg-white hover:bg-gray-50 transition-colors rounded-sm"
-                      >
-                        <ChevronRight className="w-4 h-4 text-gray-700" />
-                      </button>
-                    </div>
-                  )}
+                  {/* Desktop nav arrows */}
+                  <div className="hidden sm:flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => scrollReels('prev')}
+                      aria-label="Previous reel"
+                      className="w-9 h-9 flex items-center justify-center border border-gray-700 bg-gray-800 hover:bg-gray-700 text-white transition-colors rounded-full"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => scrollReels('next')}
+                      aria-label="Next reel"
+                      className="w-9 h-9 flex items-center justify-center border border-gray-700 bg-gray-800 hover:bg-gray-700 text-white transition-colors rounded-full"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
-                {/* Horizontal Scroll Track — hides scrollbar, nav arrows control scroll */}
+                {/* Horizontal scroll — max 5 cards visible on large screens */}
                 <div
                   ref={reelsScrollRef}
-                  className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory"
+                  className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory"
                   style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
                 >
                   {allVideoReels.flatMap((reel: any, reelIdx: number) => {
-                    // Support new videoItems (per-video product) and legacy format
                     const videoItems: { video_url: string; product_id: string | null }[] =
                       reel.videoItems?.length
                         ? reel.videoItems
@@ -3456,24 +3453,17 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                             return urls.map((url: string) => ({ video_url: url, product_id: reel.productId || null }));
                           })();
 
-                    const hasMultiple = videoItems.length > 1;
-
                     return videoItems.map((item: { video_url: string; product_id: string | null }, vidIdx: number) => {
                       const embedUrl = getYouTubeEmbedUrl(item.video_url);
                       const taggedProd = displayProducts.find((p: any) => p.id === item.product_id);
-                      const isFirst = reelIdx === 0 && vidIdx === 0;
 
                       return (
                         <div
                           key={`${reelIdx}-${vidIdx}`}
-                          className={`snap-start shrink-0 w-[220px] sm:w-[260px] flex flex-col overflow-hidden bg-white rounded-xl transition-all ${
-                            isFirst
-                              ? 'border-2 border-indigo-400 shadow-md shadow-indigo-100/50'
-                              : 'border border-gray-200 shadow-sm'
-                          }`}
+                          className="snap-start shrink-0 flex flex-col w-[72vw] max-w-[220px] sm:w-[200px] md:w-[220px] lg:w-[260px] xl:w-[280px]"
                         >
-                          {/* 9:16 Portrait Video Frame */}
-                          <div className="relative w-full bg-gray-900 overflow-hidden rounded-t-xl" style={{ paddingBottom: '177.78%' }}>
+                          {/* 9:16 Video frame with gradient title overlay */}
+                          <div className="relative w-full bg-gray-800 rounded-2xl overflow-hidden" style={{ paddingBottom: '177.78%' }}>
                             <iframe
                               src={embedUrl}
                               title={reel.title || `Reel ${reelIdx + 1}`}
@@ -3482,33 +3472,31 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                               allowFullScreen
                               loading="lazy"
                             />
-                            {hasMultiple && (
-                              <span className="absolute top-2 left-2 z-10 bg-black/65 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full select-none">
-                                {vidIdx + 1}/{videoItems.length}
-                              </span>
-                            )}
+                            {/* Bottom gradient + title overlay */}
+                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent pt-10 pb-3 px-3 pointer-events-none">
+                              <p className="text-white text-[11px] font-bold line-clamp-2 leading-snug font-theme-title drop-shadow">
+                                {reel.title || 'Shoppable Reel'}
+                              </p>
+                            </div>
                           </div>
 
-                          {/* Product Info Footer — unique per video */}
-                          <div className="p-3 flex flex-col gap-2 flex-grow bg-white">
+                          {/* Product info — below the video card */}
+                          <div className="mt-3 px-0.5">
                             {taggedProd ? (
                               <>
-                                <span className="text-[9px] font-black uppercase tracking-widest text-[#f2852a] font-theme-body">Featured</span>
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="min-w-0">
-                                    <p className="text-xs font-bold text-gray-900 truncate font-theme-title">{taggedProd.name}</p>
-                                    <p className="text-sm font-black text-[#f2852a] mt-0.5 font-theme-body">{currencySymbol}{Number(taggedProd.price).toLocaleString()}</p>
-                                  </div>
+                                <p className="text-white text-xs font-bold truncate font-theme-title leading-snug">{taggedProd.name}</p>
+                                <div className="flex items-center justify-between mt-2 gap-2">
+                                  <p className="text-[#f2852a] text-sm font-black font-theme-body">{currencySymbol}{Number(taggedProd.price).toLocaleString()}</p>
                                   <button
                                     onClick={() => addToCart(taggedProd, 1)}
-                                    className="shrink-0 px-3 py-1.5 bg-gray-950 hover:bg-[#f2852a] text-white text-[9px] font-black uppercase tracking-wider transition-colors font-theme-body rounded-sm"
+                                    className="shrink-0 px-3 py-1.5 bg-white hover:bg-[#f2852a] hover:text-white text-gray-950 text-[9px] font-black uppercase tracking-wider transition-colors font-theme-body rounded-sm touch-manipulation"
                                   >
                                     Buy
                                   </button>
                                 </div>
                               </>
                             ) : (
-                              <p className="text-xs font-semibold text-gray-700 font-theme-title line-clamp-1">{reel.title || 'Shoppable Reel'}</p>
+                              <p className="text-gray-400 text-[11px] font-semibold font-theme-body">{reel.title || 'Watch & Shop'}</p>
                             )}
                           </div>
                         </div>
