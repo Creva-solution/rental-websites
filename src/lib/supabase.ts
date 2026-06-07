@@ -282,15 +282,25 @@ class AuthClient {
     try {
       if (typeof window === 'undefined') return { data: { user: null }, error: null };
 
-      // Try stored user first for performance
       const token = getStoredToken() || localStorage.getItem('mock_supabase_token');
-      const stored = getStoredUser();
-      if (token && stored) {
-        return { data: { user: stored }, error: null };
+      if (!token) return { data: { user: null }, error: null };
+
+      // Always fetch from API so role changes in DB are reflected immediately.
+      // localStorage is only a fallback if the network call fails.
+      const response = await apiFetch('/auth/user');
+      if (response.ok) {
+        const user = await response.json();
+        setStoredUser(user); // keep cache in sync
+        return { data: { user }, error: null };
       }
+
+      // Token rejected by server — clear stale session
+      clearStoredToken();
       return { data: { user: null }, error: null };
     } catch {
-      return { data: { user: null }, error: null };
+      // Network offline — fall back to cached user
+      const stored = getStoredUser();
+      return { data: { user: stored ?? null }, error: null };
     }
   }
 
