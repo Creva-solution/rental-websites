@@ -55,7 +55,11 @@ export default function SuperAdminDashboard() {
   }, []);
 
   useEffect(() => {
-    const handleOutsideClick = () => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('.header-dropdown-trigger') || target.closest('.header-dropdown-container')) {
+        return;
+      }
       setShowProfileDropdown(false);
       setShowNotifications(false);
     };
@@ -1732,12 +1736,19 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
     <div className="min-h-screen bg-gray-900 text-gray-100 font-sans flex flex-col">
       {/* Redesigned Top SaaS Header Navigation */}
       <header className="h-16 flex items-center justify-between px-4 sm:px-6 border-b border-gray-800 bg-gray-950 flex-shrink-0 select-none z-40">
-        {/* Left section: Controls & Navigation & Page Title */}
-        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+        {/* Left section: Controls & Page Title */}
+        <div className="flex items-center gap-3 min-w-0">
+          <h1 className="text-base sm:text-lg font-bold capitalize truncate">
+            Super Admin Control
+          </h1>
+        </div>
+
+        {/* Right section: Profile, Visit Store, Notifications, Fullscreen */}
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           {/* Full Screen Toggle */}
           <button
             onClick={toggleFullscreen}
-            className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors shrink-0"
+            className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors shrink-0 header-dropdown-trigger"
             title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
           >
             {isFullscreen ? (
@@ -1755,7 +1766,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                 setShowNotifications(prev => !prev);
                 setShowProfileDropdown(false);
               }}
-              className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors relative"
+              className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors relative header-dropdown-trigger"
               title="Notifications"
             >
               <Bell className="w-4.5 h-4.5" />
@@ -1767,7 +1778,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
             {showNotifications && (
               <div 
                 onClick={(e) => e.stopPropagation()}
-                className="absolute left-0 mt-2 w-80 rounded-xl border border-gray-800 bg-gray-900 text-gray-100 shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left"
+                className="absolute right-0 mt-2 w-80 rounded-xl border border-gray-800 bg-gray-900 text-gray-100 shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left header-dropdown-container"
               >
                 <div className="px-4 py-2 border-b border-gray-800 flex justify-between items-center">
                   <span className="font-bold text-xs uppercase tracking-wider text-[#3C77C3]">Notifications</span>
@@ -1797,27 +1808,22 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
             )}
           </div>
 
-          {/* Visit Store globe link */}
+          {/* Visit Store globe button */}
           <a 
             href="/" 
             target="_blank" 
             rel="noopener noreferrer" 
-            className="text-xs flex items-center gap-1.5 text-gray-400 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0 font-bold uppercase tracking-wider"
+            className="text-xs flex items-center gap-1.5 text-[#3C77C3] border border-[#3C77C3]/20 bg-[#3C77C3]/5 hover:bg-[#3C77C3]/10 px-3 py-1.5 rounded-lg transition-colors shrink-0 font-bold uppercase tracking-wider"
             title="Visit Platform Portal"
           >
-            <Globe className="w-4.5 h-4.5 text-[#3C77C3]" />
-            <span className="hidden sm:inline">Visit Store</span>
+            <Globe className="w-4 h-4 text-[#3C77C3]" />
+            <span>Visit Store</span>
           </a>
 
-          {/* Separator & Page Title */}
-          <span className="h-4 w-px bg-gray-800 shrink-0 hidden min-[450px]:inline" />
-          <h1 className="text-xs sm:text-sm font-black text-gray-400 uppercase tracking-widest truncate max-w-[120px] sm:max-w-none hidden min-[450px]:inline">
-            Super Admin Control
-          </h1>
-        </div>
+          {/* Vertical Separator */}
+          <span className="h-6 w-px bg-gray-800 shrink-0" />
 
-        {/* Right section: Profile dropdown */}
-        <div className="flex items-center gap-2 shrink-0">
+          {/* Profile Dropdown */}
           <div className="relative">
             <button
               onClick={(e) => {
@@ -1825,7 +1831,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                 setShowProfileDropdown(prev => !prev);
                 setShowNotifications(false);
               }}
-              className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-gray-800 transition-colors border border-transparent hover:border-gray-800 text-left"
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-gray-800 transition-colors border border-transparent hover:border-gray-800 text-left header-dropdown-trigger"
             >
               <div className="w-8 h-8 rounded-full bg-[#3C77C3]/10 text-[#3C77C3] flex items-center justify-center font-bold text-xs uppercase shadow-sm">
                 SA
@@ -1844,7 +1850,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
             {showProfileDropdown && (
               <div 
                 onClick={(e) => e.stopPropagation()}
-                className="absolute right-0 mt-2 w-56 rounded-xl border border-gray-800 bg-gray-900 text-gray-100 shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left"
+                className="absolute right-0 mt-2 w-56 rounded-xl border border-gray-800 bg-gray-900 text-gray-100 shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left header-dropdown-container"
               >
                 <div className="px-4 py-2 border-b border-gray-800">
                   <p className="text-xs font-black text-gray-200 truncate">Platform Administrator</p>

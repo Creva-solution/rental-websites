@@ -41,7 +41,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, []);
 
   useEffect(() => {
-    const handleOutsideClick = () => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('.header-dropdown-trigger') || target.closest('.header-dropdown-container')) {
+        return;
+      }
       setShowProfileDropdown(false);
       setShowNotifications(false);
     };
@@ -546,8 +550,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden h-full">
         <header className="h-16 flex items-center justify-between px-4 sm:px-6 border-b border-border bg-background flex-shrink-0 select-none">
-          {/* Left section: Controls & Navigation & Page Title */}
-          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          {/* Left section: Controls & Page Title */}
+          <div className="flex items-center gap-3 min-w-0">
             {/* Mobile Sidebar Toggle */}
             <button 
               type="button" 
@@ -557,11 +561,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             >
               <Menu className="w-5 h-5 text-foreground" />
             </button>
+            <h1 className="text-base sm:text-lg font-bold capitalize truncate">
+              {pathname === '/admin' ? 'Dashboard Overview' : pathname.replace('/admin/', '').replace(/-/g, ' ')}
+            </h1>
+          </div>
 
+          {/* Right section: Profile, Visit Store, Notifications, Fullscreen */}
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             {/* Full Screen Toggle */}
             <button
               onClick={toggleFullscreen}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors shrink-0"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors shrink-0 header-dropdown-trigger"
               title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
             >
               {isFullscreen ? (
@@ -579,19 +589,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   setShowNotifications(prev => !prev);
                   setShowProfileDropdown(false);
                 }}
-                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors relative"
+                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors relative header-dropdown-trigger"
                 title="Notifications"
               >
                 <Bell className="w-4.5 h-4.5" />
                 {notifications.filter(n => !n.read).length > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full ring-2 ring-background animate-pulse" />
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-background animate-pulse" />
                 )}
               </button>
 
               {showNotifications && (
                 <div 
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute left-0 mt-2 w-80 rounded-xl border border-border bg-popover text-popover-foreground shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left"
+                  className="absolute right-0 mt-2 w-80 rounded-xl border border-border bg-popover text-popover-foreground shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left header-dropdown-container"
                 >
                   <div className="px-4 py-2 border-b border-border flex justify-between items-center">
                     <span className="font-bold text-xs uppercase tracking-wider text-[#3C77C3]">Notifications</span>
@@ -621,27 +631,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               )}
             </div>
 
-            {/* Visit Store globe link */}
+            {/* Visit Store globe button */}
             <a 
               href={storeUrl} 
               target="_blank" 
               rel="noopener noreferrer" 
-              className="text-xs flex items-center gap-1.5 text-muted-foreground hover:text-primary px-2.5 py-1.5 rounded-lg hover:bg-muted/60 transition-colors shrink-0 font-bold uppercase tracking-wider"
+              className="text-xs flex items-center gap-1.5 text-[#3C77C3] border border-[#3C77C3]/20 bg-[#3C77C3]/5 hover:bg-[#3C77C3]/10 px-3 py-1.5 rounded-lg transition-colors shrink-0 font-bold uppercase tracking-wider"
               title="Visit Storefront"
             >
-              <Globe className="w-4.5 h-4.5 text-[#3C77C3]" />
-              <span className="hidden sm:inline">Visit Store</span>
+              <Globe className="w-4 h-4 text-[#3C77C3]" />
+              <span>Visit Store</span>
             </a>
 
-            {/* Separator & Dynamic Page Title */}
-            <span className="h-4 w-px bg-border shrink-0 hidden min-[450px]:inline" />
-            <h1 className="text-xs sm:text-sm font-black text-muted-foreground uppercase tracking-widest truncate max-w-[120px] sm:max-w-none border-l-0 min-[450px]:border-l-0 pl-0 min-[450px]:pl-0 ml-0 min-[450px]:ml-0 hidden min-[450px]:inline">
-              {pathname === '/admin' ? 'Dashboard Overview' : pathname.replace('/admin/', '')}
-            </h1>
-          </div>
+            {/* Vertical Separator */}
+            <span className="h-6 w-px bg-border shrink-0" />
 
-          {/* Right section: Profile dropdown */}
-          <div className="flex items-center gap-2 shrink-0">
+            {/* Profile Dropdown */}
             <div className="relative">
               <button
                 onClick={(e) => {
@@ -649,7 +654,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   setShowProfileDropdown(prev => !prev);
                   setShowNotifications(false);
                 }}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-muted/60 transition-colors border border-transparent hover:border-border text-left"
+                className="flex items-center gap-2 px-2 py-1 rounded-xl hover:bg-muted/60 transition-colors border border-transparent hover:border-border text-left header-dropdown-trigger"
               >
                 <div className="w-8 h-8 rounded-full bg-[#3C77C3]/10 text-[#3C77C3] flex items-center justify-center font-bold text-xs uppercase shadow-sm">
                   {store.store_name?.[0] || 'S'}
@@ -668,7 +673,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {showProfileDropdown && (
                 <div 
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute right-0 mt-2 w-56 rounded-xl border border-border bg-popover text-popover-foreground shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left"
+                  className="absolute right-0 mt-2 w-56 rounded-xl border border-border bg-popover text-popover-foreground shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left header-dropdown-container"
                 >
                   <div className="px-4 py-2 border-b border-border">
                     <p className="text-xs font-black text-foreground truncate">{store.store_name}</p>
