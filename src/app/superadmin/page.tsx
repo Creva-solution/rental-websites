@@ -38,9 +38,15 @@ export default function SuperAdminDashboard() {
           router.push('/login');
           return;
         }
+        // SECURITY: Enforce superadmin role — any merchant who navigates here is redirected
+        if (authUser.role !== 'superadmin') {
+          router.push('/admin');
+          return;
+        }
         setUser(authUser);
       } catch (e) {
         console.error("Auth check failed:", e);
+        router.push('/login');
       }
     };
     fetchUser();

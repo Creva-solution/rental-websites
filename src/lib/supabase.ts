@@ -1,16 +1,82 @@
-// Creva Webzz Premium Custom HTTP REST API Client (Supabase Emulator)
-// Connects Next.js perfectly to our native Laravel PHP + MySQL backend without breaking code syntax
+// Creva Webzz API Client
+// Custom HTTP client that connects Next.js to the Laravel PHP + PostgreSQL backend.
 
 const API_BASE_URL = 'https://rentalwebsite-backend-vn40.onrender.com/api';
 
-class MockSupabaseQueryBuilder {
+// ─── Token Management ────────────────────────────────────────────────────────
+// Tokens are stored in localStorage for cross-tab persistence.
+// The backend also sets an httpOnly cookie (creva_auth) for additional security.
+// All requests include credentials: 'include' to send the cookie automatically.
+
+function getStoredToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('creva_token');
+}
+
+function setStoredToken(token: string): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem('creva_token', token);
+}
+
+function clearStoredToken(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem('creva_token');
+  localStorage.removeItem('creva_user');
+  // Legacy key cleanup
+  localStorage.removeItem('mock_supabase_token');
+  localStorage.removeItem('mock_supabase_user');
+}
+
+function getStoredUser(): any {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('creva_user') || localStorage.getItem('mock_supabase_user');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setStoredUser(user: any): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem('creva_user', JSON.stringify(user));
+}
+
+// ─── Base Fetch Helper ───────────────────────────────────────────────────────
+
+async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
+  const token = getStoredToken() || (typeof window !== 'undefined' ? localStorage.getItem('mock_supabase_token') : null);
+  const headers: Record<string, string> = {
+    'Accept': 'application/json',
+    ...(options.headers as Record<string, string> || {}),
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  return fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers,
+    credentials: 'include', // Send httpOnly cookies automatically
+  });
+}
+
+// ─── Query Builder ────────────────────────────────────────────────────────────
+
+class QueryBuilder {
   private tableName: string;
   private filters: Record<string, any> = {};
   private excludeFilters: { field: string; value: any }[] = [];
   private sortField: string | null = null;
-  private sortAscending: boolean = true;
-  private selectFields: string = '*';
-  private isSingle: boolean = false;
+  private sortAscending = true;
+  private isSingle = false;
+  private limitCount: number | null = null;
+  private offsetCount: number | null = null;
   private action: 'select' | 'insert' | 'update' | 'delete' = 'select';
   private actionData: any = null;
 
@@ -18,8 +84,7 @@ class MockSupabaseQueryBuilder {
     this.tableName = tableName;
   }
 
-  select(fields: string = '*') {
-    this.selectFields = fields;
+  select(_fields = '*') {
     if (this.action !== 'insert' && this.action !== 'update' && this.action !== 'delete') {
       this.action = 'select';
     }
@@ -47,6 +112,23 @@ class MockSupabaseQueryBuilder {
     return this;
   }
 
+  limit(count: number) {
+    this.limitCount = count;
+    return this;
+  }
+
+  range(from: number, to: number) {
+    this.offsetCount = from;
+    this.limitCount = to - from + 1;
+    return this;
+  }
+
+  or(filterString: string) {
+    const match = filterString.match(/custom_domain\.eq\.([^,)]+)/);
+    if (match?.[1]) this.filters['custom_domain'] = match[1];
+    return this;
+  }
+
   single() {
     this.isSingle = true;
     return this;
@@ -54,14 +136,6 @@ class MockSupabaseQueryBuilder {
 
   maybeSingle() {
     this.isSingle = true;
-    return this;
-  }
-
-  or(filterString: string) {
-    const match = filterString.match(/custom_domain\.eq\.([^,)]+)/);
-    if (match && match[1]) {
-      this.filters['custom_domain'] = match[1];
-    }
     return this;
   }
 
@@ -82,166 +156,118 @@ class MockSupabaseQueryBuilder {
     return this;
   }
 
-  // Executes query and behaves like a Promise to support `await supabase.from()`
-  async then(onfulfilled?: (value: any) => any, onrejected?: (reason: any) => any) {
+  async then(onfulfilled?: (value: any) => any, _onrejected?: (reason: any) => any) {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('mock_supabase_token') : null;
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      let url = `${API_BASE_URL}/${this.tableName}`;
+      let url = `/${this.tableName}`;
       let response: Response;
 
       if (this.action === 'select') {
         const params = new URLSearchParams();
-        Object.entries(this.filters).forEach(([key, val]) => {
-          params.append(key, val);
-        });
+        Object.entries(this.filters).forEach(([k, v]) => params.append(k, String(v)));
         if (this.sortField) {
           params.append('_sort', this.sortField);
           params.append('_order', this.sortAscending ? 'asc' : 'desc');
         }
-        url = `${url}?${params.toString()}`;
-        response = await fetch(url, { headers });
+        if (this.limitCount !== null) params.append('_limit', String(this.limitCount));
+        if (this.offsetCount !== null) params.append('_offset', String(this.offsetCount));
+        const qs = params.toString();
+        response = await apiFetch(`${url}${qs ? '?' + qs : ''}`);
       } else if (this.action === 'insert') {
-        const bodyData = Array.isArray(this.actionData) ? (this.actionData[0] || {}) : this.actionData;
-        if (!bodyData.id) {
-          bodyData.id = this.tableName.substring(0, 4) + '_' + Math.random().toString(36).substring(2, 11);
+        const body = Array.isArray(this.actionData) ? (this.actionData[0] || {}) : this.actionData;
+        if (!body.id) {
+          body.id = this.tableName.substring(0, 4) + '_' + Math.random().toString(36).substring(2, 11);
         }
-        response = await fetch(url, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(bodyData)
-        });
+        response = await apiFetch(url, { method: 'POST', body: JSON.stringify(body) });
       } else if (this.action === 'update') {
         let targetId = this.filters['id'];
         if (!targetId) {
-          // Dynamic ID resolution fallback using query filters (e.g. subdomain)
           try {
             const params = new URLSearchParams();
-            Object.entries(this.filters).forEach(([key, val]) => {
-              params.append(key, val);
-            });
-            const fetchUrl = `${API_BASE_URL}/${this.tableName}?${params.toString()}`;
-            const fetchRes = await fetch(fetchUrl, { headers });
-            if (fetchRes.ok) {
-              const rows = await fetchRes.json();
-              const singleRow = Array.isArray(rows) ? (rows[0] || null) : rows;
-              if (singleRow && singleRow.id) {
-                targetId = singleRow.id;
-              }
+            Object.entries(this.filters).forEach(([k, v]) => params.append(k, String(v)));
+            const res = await apiFetch(`${url}?${params.toString()}`);
+            if (res.ok) {
+              const rows = await res.json();
+              const row = Array.isArray(rows) ? rows[0] : rows;
+              if (row?.id) targetId = row.id;
             }
           } catch (e) {
-            console.warn("Failed to auto-resolve target ID for update:", e);
+            console.warn('Auto-resolve ID failed:', e);
           }
         }
-
-        if (!targetId) {
-          throw new Error("Updates must target a specific ID using .eq('id', value)");
-        }
-        url = `${url}/${targetId}`;
-        response = await fetch(url, {
-          method: 'PUT',
-          headers,
-          body: JSON.stringify(this.actionData)
-        });
-      } else if (this.action === 'delete') {
+        if (!targetId) throw new Error("Updates must target a specific ID via .eq('id', value)");
+        response = await apiFetch(`${url}/${targetId}`, { method: 'PUT', body: JSON.stringify(this.actionData) });
+      } else {
         const targetId = this.filters['id'];
         if (targetId) {
-          url = `${url}/${targetId}`;
+          response = await apiFetch(`${url}/${targetId}`, { method: 'DELETE' });
         } else {
           const params = new URLSearchParams();
-          Object.entries(this.filters).forEach(([key, val]) => {
-            params.append(key, val);
-          });
-          url = `${url}?${params.toString()}`;
+          Object.entries(this.filters).forEach(([k, v]) => params.append(k, String(v)));
+          response = await apiFetch(`${url}?${params.toString()}`, { method: 'DELETE' });
         }
-        response = await fetch(url, {
-          method: 'DELETE',
-          headers
-        });
-      } else {
-        throw new Error(`Unsupported action ${this.action}`);
       }
 
       if (!response.ok) {
         const errJson = await response.json().catch(() => ({}));
-        throw new Error(errJson.error || `HTTP ${response.status} Error`);
+        throw new Error(errJson.error || `HTTP ${response.status}`);
       }
 
-      const data = await response.json();
-      
-      let finalData = data;
+      let data = await response.json();
+
       if (this.action === 'select' && Array.isArray(data)) {
-        let filtered = [...data];
         this.excludeFilters.forEach(({ field, value }) => {
-          filtered = filtered.filter(item => item[field] !== value);
+          data = data.filter((item: any) => item[field] !== value);
         });
-        finalData = filtered;
+        if (this.isSingle) data = data[0] ?? null;
+      } else if (this.action === 'select' && this.isSingle && !Array.isArray(data)) {
+        // already single object
       }
 
-      if (this.action === 'select' && this.isSingle) {
-        finalData = Array.isArray(finalData) ? (finalData[0] || null) : finalData;
-      }
-
-      const result = { data: finalData, error: null };
+      const result = { data, error: null };
       return onfulfilled ? onfulfilled(result) : result;
     } catch (err: any) {
-      console.error(`Mock Query Error on ${this.tableName} [${this.action}]:`, err);
+      console.error(`API Error [${this.tableName}/${this.action}]:`, err.message);
       const result = { data: null, error: { message: err.message || String(err) } };
       return onfulfilled ? onfulfilled(result) : result;
     }
   }
 }
 
-class MockSupabaseAuth {
-  async signInWithPassword({ email, password }: any) {
+// ─── Auth Client ───────────────────────────────────────────────────────────────
+
+class AuthClient {
+  async signInWithPassword({ email, password }: { email: string; password: string }) {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await apiFetch('/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password }),
       });
-
       if (!response.ok) {
-        const errJson = await response.json().catch(() => ({}));
-        throw new Error(errJson.error || 'Invalid email or password');
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'Invalid email or password');
       }
-
       const data = await response.json();
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('mock_supabase_token', data.session.access_token);
-        localStorage.setItem('mock_supabase_user', JSON.stringify(data.user));
-      }
+      setStoredToken(data.session.access_token);
+      setStoredUser(data.user);
       return { data, error: null };
     } catch (err: any) {
       return { data: null, error: { message: err.message || String(err) } };
     }
   }
 
-  async signUp({ email, password, options }: any) {
+  async signUp({ email, password, options }: { email: string; password: string; options?: any }) {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      const response = await apiFetch('/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ email, password, name: options?.data?.full_name })
+        body: JSON.stringify({ email, password, name: options?.data?.full_name }),
       });
-
       if (!response.ok) {
-        const errJson = await response.json().catch(() => ({}));
-        throw new Error(errJson.error || 'Registration failed');
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'Registration failed');
       }
-
       const data = await response.json();
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('mock_supabase_token', data.session.access_token);
-        localStorage.setItem('mock_supabase_user', JSON.stringify(data.user));
-      }
+      setStoredToken(data.session.access_token);
+      setStoredUser(data.user);
       return { data, error: null };
     } catch (err: any) {
       return { data: null, error: { message: err.message || String(err) } };
@@ -249,52 +275,90 @@ class MockSupabaseAuth {
   }
 
   async signOut() {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('mock_supabase_token');
-      localStorage.removeItem('mock_supabase_user');
-    }
+    await apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
+    clearStoredToken();
     return { error: null };
   }
 
   async getUser() {
     try {
-      if (typeof window === 'undefined') {
-        return { data: { user: null }, error: null };
+      if (typeof window === 'undefined') return { data: { user: null }, error: null };
+
+      // Try stored user first for performance
+      const token = getStoredToken() || localStorage.getItem('mock_supabase_token');
+      const stored = getStoredUser();
+      if (token && stored) {
+        return { data: { user: stored }, error: null };
       }
-      const token = localStorage.getItem('mock_supabase_token');
-      const userStr = localStorage.getItem('mock_supabase_user');
-      
-      if (!token || !userStr) {
-        return { data: { user: null }, error: null };
+      return { data: { user: null }, error: null };
+    } catch {
+      return { data: { user: null }, error: null };
+    }
+  }
+
+  async getSession() {
+    try {
+      if (typeof window === 'undefined') return { data: { session: null }, error: null };
+
+      let token = getStoredToken() || localStorage.getItem('mock_supabase_token');
+      let user = getStoredUser();
+
+      // Check URL for token from password reset link
+      if (!token) {
+        const hash = window.location.hash;
+        const search = window.location.search;
+        let urlToken: string | null = null;
+
+        if (hash) {
+          const params = new URLSearchParams(hash.substring(1));
+          urlToken = params.get('access_token');
+        }
+        if (!urlToken && search) {
+          const params = new URLSearchParams(search);
+          urlToken = params.get('token') || params.get('access_token');
+        }
+
+        if (urlToken) {
+          const res = await apiFetch('/auth/verify-token', {
+            method: 'POST',
+            body: JSON.stringify({ token: urlToken }),
+          });
+          if (res.ok) {
+            const verifyData = await res.json();
+            if (verifyData.user) {
+              token = urlToken;
+              user = verifyData.user;
+              setStoredToken(urlToken);
+              setStoredUser(verifyData.user);
+              window.history.replaceState({}, document.title, window.location.pathname);
+            }
+          }
+        }
       }
 
-      const user = JSON.parse(userStr);
-      return { data: { user }, error: null };
-    } catch (e) {
-      return { data: { user: null }, error: null };
+      if (!token || !user) return { data: { session: null }, error: null };
+
+      return {
+        data: { session: { access_token: token, user } },
+        error: null,
+      };
+    } catch {
+      return { data: { session: null }, error: null };
     }
   }
 
   async resetPasswordForEmail(email: string, options?: { redirectTo?: string }) {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+      const response = await apiFetch('/auth/forgot-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ email, redirectTo: options?.redirectTo })
+        body: JSON.stringify({ email, redirectTo: options?.redirectTo }),
       });
-
       if (!response.ok) {
-        const errJson = await response.json().catch(() => ({}));
-        throw new Error(errJson.error || 'Failed to send reset link');
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to send reset link');
       }
-
       const data = await response.json();
-      if (data.debug_link) {
-        console.log("MOCK RESET LINK (LOCAL DEV ONLY):", data.debug_link);
-        if (typeof window !== 'undefined') {
-          (window as any).lastResetLink = data.debug_link;
-        }
-      }
+      // SECURITY: Never expose reset tokens to browser globals
       return { data, error: null };
     } catch (err: any) {
       return { data: null, error: { message: err.message || String(err) } };
@@ -303,24 +367,16 @@ class MockSupabaseAuth {
 
   async updateUser({ password }: { password?: string }) {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('mock_supabase_token') : null;
-      const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+      const token = getStoredToken();
+      const response = await apiFetch('/auth/reset-password', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Accept': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : ''
-        },
-        body: JSON.stringify({ password, token })
+        body: JSON.stringify({ password, token }),
       });
-
       if (!response.ok) {
-        const errJson = await response.json().catch(() => ({}));
-        throw new Error(errJson.error || 'Failed to update password');
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to update password');
       }
-
-      const data = await response.json();
-      return { data, error: null };
+      return { data: await response.json(), error: null };
     } catch (err: any) {
       return { data: null, error: { message: err.message || String(err) } };
     }
@@ -328,194 +384,84 @@ class MockSupabaseAuth {
 
   async changePassword({ currentPassword, newPassword }: { currentPassword?: string; newPassword?: string }) {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('mock_supabase_token') : null;
-      const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+      const response = await apiFetch('/auth/change-password', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Accept': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : ''
-        },
-        body: JSON.stringify({ currentPassword, newPassword })
+        body: JSON.stringify({ currentPassword, newPassword }),
       });
-
       if (!response.ok) {
-        const errJson = await response.json().catch(() => ({}));
-        throw new Error(errJson.error || 'Failed to update password');
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to change password');
       }
-
-      const data = await response.json();
-      return { data, error: null };
+      return { data: await response.json(), error: null };
     } catch (err: any) {
       return { data: null, error: { message: err.message || String(err) } };
     }
   }
-
-  async getSession() {
-    try {
-      if (typeof window === 'undefined') {
-        return { data: { session: null }, error: null };
-      }
-      
-      let token = localStorage.getItem('mock_supabase_token');
-      let userStr = localStorage.getItem('mock_supabase_user');
-      
-      if (!token) {
-        const hash = window.location.hash;
-        const search = window.location.search;
-        let urlToken: string | null = null;
-        
-        if (hash) {
-          const params = new URLSearchParams(hash.substring(1));
-          urlToken = params.get('access_token');
-        }
-        
-        if (!urlToken && search) {
-          const params = new URLSearchParams(search);
-          urlToken = params.get('token') || params.get('access_token');
-        }
-        
-        if (urlToken) {
-          const verifyResponse = await fetch(`${API_BASE_URL}/auth/verify-token`, {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json', 
-              'Accept': 'application/json',
-              'Authorization': `Bearer ${urlToken}`
-            },
-            body: JSON.stringify({ token: urlToken })
-          });
-          
-          if (verifyResponse.ok) {
-            const verifyData = await verifyResponse.json();
-            if (verifyData.user) {
-              token = urlToken;
-              userStr = JSON.stringify(verifyData.user);
-              localStorage.setItem('mock_supabase_token', token);
-              localStorage.setItem('mock_supabase_user', userStr);
-              
-              if (window.history.replaceState) {
-                window.history.replaceState({}, document.title, window.location.pathname);
-              }
-            }
-          }
-        }
-      }
-      
-      if (!token || !userStr) {
-        return { data: { session: null }, error: null };
-      }
-
-      const user = JSON.parse(userStr);
-      return {
-        data: {
-          session: {
-            access_token: token,
-            user
-          }
-        },
-        error: null
-      };
-    } catch (e) {
-      return { data: { session: null }, error: null };
-    }
-  }
 }
 
-class MockStorageBucket {
-  private bucketName: string;
+// ─── Storage Client ────────────────────────────────────────────────────────────
 
-  constructor(bucketName: string) {
-    this.bucketName = bucketName;
-  }
+class StorageBucket {
+  constructor(_bucketName: string) {}
 
-  async upload(filePath: string, file: any, options?: any) {
+  async upload(filePath: string, file: any, _options?: any) {
     try {
-      const formData = new FormData();
-      
       if (typeof file === 'string' && file.startsWith('data:image/')) {
-        // Base64 string upload support
-        const response = await fetch(`${API_BASE_URL}/storage/upload`, {
+        const response = await apiFetch('/storage/upload', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify({ base64: file })
+          body: JSON.stringify({ base64: file }),
         });
         const data = await response.json();
-        const url = data.url || data.publicUrl;
         if (!response.ok) throw new Error(data.error || 'Base64 upload failed');
-        if (typeof window !== 'undefined') {
-          if (!(window as any).mockStorageCache) (window as any).mockStorageCache = {};
-          (window as any).mockStorageCache[filePath] = url;
-        }
-        return { data: { path: url }, error: null };
-      } else {
-        // Standard Binary upload support
-        formData.append('file', file);
-        formData.append('filePath', filePath);
-
-        const response = await fetch(`${API_BASE_URL}/storage/upload`, {
-          method: 'POST',
-          headers: { 'Accept': 'application/json' },
-          body: formData
-        });
-        const data = await response.json();
-        const url = data.url || data.publicUrl;
-        if (!response.ok) throw new Error(data.error || 'File upload failed');
-        if (typeof window !== 'undefined') {
-          if (!(window as any).mockStorageCache) (window as any).mockStorageCache = {};
-          (window as any).mockStorageCache[filePath] = url;
-        }
-        return { data: { path: url }, error: null };
+        return { data: { path: data.url || data.publicUrl }, error: null };
       }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('filePath', filePath);
+
+      const token = getStoredToken() || (typeof window !== 'undefined' ? localStorage.getItem('mock_supabase_token') : null);
+      const headers: Record<string, string> = { Accept: 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const response = await fetch(`${API_BASE_URL}/storage/upload`, {
+        method: 'POST',
+        headers,
+        body: formData,
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Upload failed');
+      return { data: { path: data.url || data.publicUrl }, error: null };
     } catch (err: any) {
       return { data: null, error: { message: err.message || String(err) } };
     }
   }
 
   getPublicUrl(filePath: string) {
-    // If filePath is already an absolute HTTP URL, return it directly
     if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
       return { data: { publicUrl: filePath } };
     }
-    
-    // Check global cache
-    if (typeof window !== 'undefined' && (window as any).mockStorageCache?.[filePath]) {
-      return { data: { publicUrl: (window as any).mockStorageCache[filePath] } };
-    }
-
     const cleanPath = filePath.startsWith('uploads/') ? filePath : `uploads/${filePath}`;
-    const BACKEND_BASE_URL = API_BASE_URL.replace('/api', '');
-    const publicUrl = `${BACKEND_BASE_URL}/${cleanPath}`;
-    return { data: { publicUrl } };
+    const base = API_BASE_URL.replace('/api', '');
+    return { data: { publicUrl: `${base}/${cleanPath}` } };
   }
 
   async remove(filePaths: string[]) {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('mock_supabase_token') : null;
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
       for (const path of filePaths) {
         if (!path) continue;
         let cleanPath = path;
         if (path.startsWith('http://') || path.startsWith('https://')) {
           try {
-            const urlObj = new URL(path);
-            cleanPath = urlObj.pathname.substring(1); // removes leading '/' (e.g. 'uploads/filename.ext')
-          } catch (e) {
+            cleanPath = new URL(path).pathname.substring(1);
+          } catch {
             cleanPath = path;
           }
         }
-        
-        await fetch(`${API_BASE_URL}/storage/delete`, {
+        await apiFetch('/storage/delete', {
           method: 'POST',
-          headers,
-          body: JSON.stringify({ filePath: cleanPath })
+          body: JSON.stringify({ filePath: cleanPath }),
         });
       }
       return { data: filePaths, error: null };
@@ -525,17 +471,44 @@ class MockStorageBucket {
   }
 }
 
-class MockSupabaseStorage {
+class StorageClient {
   from(bucketName: string) {
-    return new MockStorageBucket(bucketName);
+    return new StorageBucket(bucketName);
   }
 }
 
+// ─── Platform Settings Helper ─────────────────────────────────────────────────
+
+export async function getPlatformSettings(): Promise<Record<string, any>> {
+  try {
+    const res = await apiFetch('/platform-settings');
+    if (!res.ok) return {};
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      return data.reduce((acc: any, row: any) => {
+        try { acc[row.key] = JSON.parse(row.value); } catch { acc[row.key] = row.value; }
+        return acc;
+      }, {});
+    }
+    return data;
+  } catch {
+    return {};
+  }
+}
+
+export async function setPlatformSetting(key: string, value: any): Promise<void> {
+  await apiFetch(`/platform-settings/${key}`, {
+    method: 'PUT',
+    body: JSON.stringify({ value: JSON.stringify(value) }),
+  });
+}
+
+// ─── Main Export ───────────────────────────────────────────────────────────────
+
 export const supabase = {
   from(tableName: string) {
-    return new MockSupabaseQueryBuilder(tableName);
+    return new QueryBuilder(tableName);
   },
-  auth: new MockSupabaseAuth(),
-  storage: new MockSupabaseStorage()
+  auth: new AuthClient(),
+  storage: new StorageClient(),
 };
-

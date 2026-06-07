@@ -2,268 +2,324 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Plus, FileText, Trash2, Edit3, Sparkles, Upload } from 'lucide-react';
+import { Loader2, Plus, FileText, Trash2, Edit3, X, Check, Eye, EyeOff, Upload } from 'lucide-react';
 
 interface BlogPost {
   id: string;
+  store_id: string;
   title: string;
-  excerpt: string;
-  content: string;
-  coverImage: string;
-  createdAt: string;
+  slug: string;
+  content: string | null;
+  excerpt: string | null;
+  cover_image: string | null;
+  status: 'draft' | 'published';
+  published_at: string | null;
+  created_at: string;
 }
+
+const emptyForm = {
+  title: '',
+  slug: '',
+  content: '',
+  excerpt: '',
+  cover_image: '',
+  status: 'draft' as 'draft' | 'published',
+};
 
 export default function BlogPage() {
   const [store, setStore] = useState<any>(null);
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [form, setForm] = useState(emptyForm);
 
-  // New Post Form States
-  const [title, setTitle] = useState('');
-  const [excerpt, setExcerpt] = useState('');
-  const [content, setContent] = useState('');
-  const [coverImage, setCoverImage] = useState('');
+  useEffect(() => { fetchData(); }, []);
 
-  useEffect(() => {
-    fetchPosts();
-  }, []);
-
-  const fetchPosts = async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
-      const { data: storeData } = await supabase
-        .from('stores')
-        .select('*')
-        .eq('owner_id', user.id)
-        .neq('subdomain', '__creva_saas_global_settings__')
-        .single();
-
-      if (storeData) {
-        setStore(storeData);
-
-        // Fetch posts from description metadata
-        try {
-          if (storeData.description && storeData.description.startsWith('{')) {
-            const parsed = JSON.parse(storeData.description);
-            if (parsed.blogPosts && Array.isArray(parsed.blogPosts)) {
-              setPosts(parsed.blogPosts);
-            }
-          }
-        } catch (e) {}
-      }
-    } catch (err) {
-      console.error("Failed to load blog posts:", err);
+      const { data: storeData } = await supabase.from('stores').select('*').eq('owner_id', user.id).maybeSingle();
+      if (!storeData) return;
+      setStore(storeData);
+      const { data } = await supabase.from('blog_posts').select('*').eq('store_id', storeData.id).order('created_at', { ascending: false });
+      setPosts(data || []);
     } finally {
       setLoading(false);
     }
   };
 
-  const persistPosts = async (updatedPosts: BlogPost[]) => {
-    setSaving(true);
+  const openCreate = () => {
+    setEditingPost(null);
+    setForm(emptyForm);
+    setMessage('');
+    setShowModal(true);
+  };
+
+  const openEdit = (post: BlogPost) => {
+    setEditingPost(post);
+    setForm({
+      title: post.title,
+      slug: post.slug,
+      content: post.content || '',
+      excerpt: post.excerpt || '',
+      cover_image: post.cover_image || '',
+      status: post.status,
+    });
+    setMessage('');
+    setShowModal(true);
+  };
+
+  const handleTitleChange = (title: string) => {
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    setForm(f => ({ ...f, title, slug }));
+  };
+
+  const uploadCover = async (file: File) => {
+    setUploading(true);
     try {
-      setPosts(updatedPosts);
-
-      let currentDesc = {};
-      try {
-        if (store.description && store.description.startsWith('{')) {
-          currentDesc = JSON.parse(store.description);
-        }
-      } catch (e) {}
-
-      const updatedDesc = {
-        ...currentDesc,
-        blogPosts: updatedPosts
-      };
-
-      const { error } = await supabase
-        .from('stores')
-        .update({ description: JSON.stringify(updatedDesc) })
-        .eq('id', store.id);
-
+      const ext = file.name.split('.').pop();
+      const path = `blog-covers/${Math.random().toString(36).slice(2)}-${Date.now()}.${ext}`;
+      const { data, error } = await supabase.storage.from('assets').upload(path, file);
       if (error) throw error;
-      setStore({ ...store, description: JSON.stringify(updatedDesc) });
-    } catch (err: any) {
-      console.error(err);
-      alert("Failed to save article: " + err.message);
+      const { data: { publicUrl } } = supabase.storage.from('assets').getPublicUrl(data.path);
+      setForm(f => ({ ...f, cover_image: publicUrl }));
+    } catch (e: any) {
+      setMessage('Upload failed: ' + e.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!form.title.trim()) { setMessage('Post title is required.'); return; }
+    setSaving(true);
+    setMessage('');
+    try {
+      if (editingPost) {
+        const { error } = await supabase.from('blog_posts').update({
+          title: form.title, slug: form.slug, content: form.content,
+          excerpt: form.excerpt, cover_image: form.cover_image, status: form.status,
+        }).eq('id', editingPost.id);
+        if (error) throw error;
+        setMessage('Post updated.');
+      } else {
+        const { error } = await supabase.from('blog_posts').insert([{ ...form, store_id: store.id }]);
+        if (error) throw error;
+        setMessage('Post created.');
+      }
+      setShowModal(false);
+      await fetchData();
+    } catch (e: any) {
+      setMessage('Error: ' + e.message);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleCreatePost = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim() || !content.trim()) {
-      alert("Please fill in a title and write some content first!");
-      return;
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this post permanently?')) return;
+    try {
+      await supabase.from('blog_posts').delete().eq('id', id);
+      await fetchData();
+    } catch (e: any) {
+      setMessage('Error: ' + e.message);
     }
-
-    const newPost: BlogPost = {
-      id: `post_${Date.now()}`,
-      title: title.trim(),
-      excerpt: excerpt.trim() || `${content.substring(0, 100).trim()}...`,
-      content: content.trim(),
-      coverImage: coverImage.trim() || 'https://images.unsplash.com/photo-1607006342411-92fc0a4173d2?auto=format&fit=crop&q=80&w=600',
-      createdAt: new Date().toISOString()
-    };
-
-    const updated = [newPost, ...posts];
-    await persistPosts(updated);
-
-    // Reset Form fields
-    setTitle('');
-    setExcerpt('');
-    setContent('');
-    setCoverImage('');
-    alert("🎉 Article published successfully!");
   };
 
-  const handleDeletePost = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this blog post?")) return;
-    const updated = posts.filter(p => p.id !== id);
-    await persistPosts(updated);
+  const toggleStatus = async (post: BlogPost) => {
+    const newStatus = post.status === 'published' ? 'draft' : 'published';
+    await supabase.from('blog_posts').update({ status: newStatus }).eq('id', post.id);
+    await fetchData();
   };
 
-  if (loading) return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto pb-12">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6 border-border/40">
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full flex items-center gap-1.5 w-fit">
-            <Sparkles className="w-3.5 h-3.5" /> Content Engine
-          </span>
-          <h2 className="text-2xl md:text-3xl font-black tracking-tight mt-3">
-            📰 Brand Blog & Articles
+          <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
+            <FileText className="w-6 h-6 text-primary" />
+            Blog
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Write engaging storytelling posts, tutorials, and organic ingredient secrets to build brand authority and customer trust.
-          </p>
+          <p className="text-sm text-muted-foreground mt-1">Write articles to attract customers and boost SEO.</p>
         </div>
+        <button onClick={openCreate} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity">
+          <Plus className="w-4 h-4" />
+          New Post
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left: Compose Post Card */}
-        <div className="lg:col-span-1 bg-card text-card-foreground p-6 rounded-2xl border border-border/50 shadow-md space-y-4 h-fit">
-          <div className="flex items-center gap-2 border-b pb-3">
-            <Edit3 className="w-4 h-4 text-primary" />
-            <h3 className="font-bold text-sm uppercase tracking-wider">Compose Article</h3>
-          </div>
-
-          <form onSubmit={handleCreatePost} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase">Article Title *</label>
-              <input
-                type="text"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                placeholder="e.g. Benefits of Cold Processed Soaps"
-                className="w-full h-10 px-3 rounded-xl border border-input bg-background focus:ring-2 focus:ring-primary/20 outline-none text-xs font-semibold"
-                required
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase">Cover Image Link</label>
-              <input
-                type="text"
-                value={coverImage}
-                onChange={e => setCoverImage(e.target.value)}
-                placeholder="e.g. https://images.unsplash.com/..."
-                className="w-full h-10 px-3 rounded-xl border border-input bg-background focus:ring-2 focus:ring-primary/20 outline-none text-xs font-mono"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase">Short Excerpt (Summary)</label>
-              <input
-                type="text"
-                value={excerpt}
-                onChange={e => setExcerpt(e.target.value)}
-                placeholder="Brief summary of the article..."
-                className="w-full h-10 px-3 rounded-xl border border-input bg-background focus:ring-2 focus:ring-primary/20 outline-none text-xs"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase">Article Body Content *</label>
-              <textarea
-                value={content}
-                onChange={e => setContent(e.target.value)}
-                placeholder="Write your article storytelling and details here..."
-                rows={8}
-                className="w-full p-3 rounded-xl border border-input bg-background focus:ring-2 focus:ring-primary/20 outline-none text-xs leading-relaxed resize-y min-h-[160px]"
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={saving}
-              className="w-full py-3 bg-primary text-primary-foreground font-black text-xs uppercase tracking-widest rounded-xl hover:bg-primary/95 transition-all flex items-center justify-center gap-1.5 shadow-sm"
-            >
-              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-              Publish Article
-            </button>
-          </form>
+      {message && !showModal && (
+        <div className={`text-sm px-4 py-3 rounded-xl border font-medium ${message.startsWith('Error') ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
+          {message}
         </div>
+      )}
 
-        {/* Right: Published list */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-card text-card-foreground rounded-2xl border border-border/50 shadow-md p-6 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-sm uppercase tracking-wider flex items-center gap-2">
-                <FileText className="w-4 h-4 text-primary" /> Published Articles
-              </h3>
-              <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded font-black font-mono">
-                {posts.length} Posts
-              </span>
+      {posts.length === 0 ? (
+        <div className="bg-muted/30 border border-border rounded-2xl p-12 text-center">
+          <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-40" />
+          <h3 className="font-bold text-lg mb-2">No blog posts yet</h3>
+          <p className="text-muted-foreground text-sm mb-6">Start writing to grow your audience and improve SEO.</p>
+          <button onClick={openCreate} className="bg-primary text-primary-foreground px-6 py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            Write First Post
+          </button>
+        </div>
+      ) : (
+        <div className="bg-background border border-border rounded-2xl overflow-hidden divide-y divide-border">
+          {posts.map(post => (
+            <div key={post.id} className="flex items-center gap-4 p-4 hover:bg-muted/30 transition-colors">
+              {post.cover_image ? (
+                <img src={post.cover_image} alt={post.title} className="w-16 h-12 rounded-xl object-cover border border-border flex-shrink-0" />
+              ) : (
+                <div className="w-16 h-12 rounded-xl bg-muted flex items-center justify-center border border-border flex-shrink-0">
+                  <FileText className="w-5 h-5 text-muted-foreground" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-sm truncate">{post.title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {post.excerpt ? post.excerpt.substring(0, 80) + (post.excerpt.length > 80 ? '...' : '') : 'No excerpt'}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-1 font-mono">/{post.slug}</p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  onClick={() => toggleStatus(post)}
+                  className={`text-xs px-3 py-1 rounded-full font-bold border transition-colors flex items-center gap-1 ${
+                    post.status === 'published'
+                      ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                      : 'bg-muted text-muted-foreground border-border hover:bg-muted/60'
+                  }`}
+                >
+                  {post.status === 'published' ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                  {post.status === 'published' ? 'Published' : 'Draft'}
+                </button>
+                <button onClick={() => openEdit(post)} className="p-2 text-muted-foreground hover:text-primary hover:bg-muted rounded-lg transition-colors">
+                  <Edit3 className="w-4 h-4" />
+                </button>
+                <button onClick={() => handleDelete(post.id)} className="p-2 text-muted-foreground hover:text-destructive hover:bg-red-50 rounded-lg transition-colors">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-background border border-border rounded-2xl w-full max-w-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[92vh]">
+            <div className="flex items-center justify-between p-6 border-b border-border flex-shrink-0">
+              <h3 className="font-black text-lg">{editingPost ? 'Edit Post' : 'New Blog Post'}</h3>
+              <button onClick={() => setShowModal(false)} className="p-1.5 hover:bg-muted rounded-lg transition-colors"><X className="w-4 h-4" /></button>
             </div>
 
-            {posts.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground text-xs italic">
-                No blog posts written yet. Storytelling is the secret of branding, write your first post today!
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {/* Cover Image */}
+              <div>
+                <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block mb-2">Cover Image</label>
+                {form.cover_image && <img src={form.cover_image} alt="" className="w-full h-36 object-cover rounded-xl border border-border mb-2" />}
+                <label className="cursor-pointer block">
+                  <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && uploadCover(e.target.files[0])} />
+                  <span className="flex items-center gap-2 text-sm border border-dashed border-border rounded-xl px-4 py-3 text-muted-foreground hover:text-foreground hover:border-primary transition-colors font-medium justify-center">
+                    {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                    {uploading ? 'Uploading...' : form.cover_image ? 'Change cover image' : 'Upload cover image'}
+                  </span>
+                </label>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {posts.map((post) => (
-                  <div key={post.id} className="p-4 border border-border/60 bg-muted/20 rounded-2xl flex flex-col md:flex-row gap-4 items-start shadow-sm group transition-all hover:bg-muted/30 text-left">
-                    {/* Cover thumbnail */}
-                    {post.coverImage && (
-                      <div className="w-full md:w-32 aspect-video md:aspect-square rounded-xl overflow-hidden bg-muted border border-border/40 shrink-0">
-                        <img src={post.coverImage} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                      </div>
-                    )}
-                    
-                    <div className="flex-1 space-y-2 text-left min-w-0">
-                      <div className="flex justify-between items-start gap-2">
-                        <h4 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors truncate">{post.title}</h4>
-                        <button
-                          onClick={() => handleDeletePost(post.id)}
-                          disabled={saving}
-                          className="text-muted-foreground hover:text-red-500 transition-colors"
-                          title="Delete article"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-                        Published on {new Date(post.createdAt).toLocaleDateString()}
-                      </p>
-                      <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                        {post.excerpt}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+
+              {/* Title */}
+              <div>
+                <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block mb-1.5">Title *</label>
+                <input
+                  type="text"
+                  value={form.title}
+                  onChange={e => handleTitleChange(e.target.value)}
+                  placeholder="Your post title"
+                  className="w-full border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-background font-bold"
+                />
               </div>
-            )}
+
+              {/* Slug */}
+              <div>
+                <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block mb-1.5">URL Slug</label>
+                <input
+                  type="text"
+                  value={form.slug}
+                  onChange={e => setForm(f => ({ ...f, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') }))}
+                  className="w-full border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-background font-mono"
+                />
+              </div>
+
+              {/* Excerpt */}
+              <div>
+                <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block mb-1.5">Excerpt</label>
+                <textarea
+                  value={form.excerpt}
+                  onChange={e => setForm(f => ({ ...f, excerpt: e.target.value }))}
+                  placeholder="Short description shown in post listings..."
+                  rows={2}
+                  className="w-full border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-background resize-none"
+                />
+              </div>
+
+              {/* Content */}
+              <div>
+                <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block mb-1.5">Content</label>
+                <textarea
+                  value={form.content}
+                  onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
+                  placeholder="Write your blog post content here..."
+                  rows={12}
+                  className="w-full border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-background resize-none font-mono"
+                />
+              </div>
+
+              {/* Status */}
+              <div>
+                <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block mb-1.5">Status</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['draft', 'published'] as const).map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, status: s }))}
+                      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-bold transition-all capitalize ${
+                        form.status === s ? 'border-primary bg-primary/5 text-primary' : 'border-border text-muted-foreground hover:border-primary/30'
+                      }`}
+                    >
+                      {s === 'published' ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {message && <p className={`text-xs font-medium ${message.startsWith('Error') ? 'text-destructive' : 'text-green-600'}`}>{message}</p>}
+            </div>
+
+            <div className="flex gap-3 p-6 border-t border-border flex-shrink-0">
+              <button onClick={() => setShowModal(false)} className="flex-1 border border-border rounded-xl py-2.5 text-sm font-bold hover:bg-muted transition-colors">Cancel</button>
+              <button
+                onClick={handleSave}
+                disabled={saving || uploading}
+                className="flex-1 bg-primary text-primary-foreground rounded-xl py-2.5 text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                {saving ? 'Saving...' : editingPost ? 'Update Post' : 'Create Post'}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

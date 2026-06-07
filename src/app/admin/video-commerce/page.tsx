@@ -2,300 +2,261 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Plus, Video, Trash2, Tag, Sparkles, AlertCircle, Play } from 'lucide-react';
+import { Loader2, Plus, Video, Trash2, Tag, Sparkles, AlertCircle, Edit3, X, Check } from 'lucide-react';
 
-interface Reel {
+interface VideoSession {
   id: string;
+  store_id: string;
   title: string;
-  videoUrl: string;
-  productId: string;
+  video_url: string;
+  product_ids: string[];
+  created_at: string;
 }
+
+const normalizeVideoUrl = (url: string): string => {
+  const u = url.trim();
+  if (u.includes('youtu.be/')) {
+    const id = u.split('youtu.be/')[1]?.split(/[?#]/)[0] || '';
+    if (id) return `https://www.youtube.com/embed/${id}`;
+  } else if (u.includes('youtube.com/shorts/')) {
+    const id = u.split('shorts/')[1]?.split(/[?#]/)[0] || '';
+    if (id) return `https://www.youtube.com/embed/${id}`;
+  } else if (u.includes('youtube.com/watch')) {
+    const id = new URLSearchParams(u.split('?')[1] || '').get('v') || '';
+    if (id) return `https://www.youtube.com/embed/${id}`;
+  }
+  return u;
+};
+
+const emptyForm = { title: '', video_url: '', product_id: '' };
 
 export default function VideoCommercePage() {
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
-  const [reels, setReels] = useState<Reel[]>([]);
+  const [sessions, setSessions] = useState<VideoSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [editingSession, setEditingSession] = useState<VideoSession | null>(null);
+  const [form, setForm] = useState(emptyForm);
 
-  // New Reel Form
-  const [title, setTitle] = useState('');
-  const [videoUrl, setVideoUrl] = useState('');
-  const [productId, setProductId] = useState('');
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
+    setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
-      const { data: storeData } = await supabase
-        .from('stores')
-        .select('*')
-        .eq('owner_id', user.id)
-        .neq('subdomain', '__creva_saas_global_settings__')
-        .single();
-
-      if (storeData) {
-        setStore(storeData);
-        
-        // Fetch products to link to reels
-        const { data: prodData } = await supabase
-          .from('products')
-          .select('*')
-          .eq('store_id', storeData.id);
-        if (prodData) setProducts(prodData);
-
-        // Fetch reels from description
-        try {
-          if (storeData.description && storeData.description.startsWith('{')) {
-            const parsed = JSON.parse(storeData.description);
-            if (parsed.videoReels && Array.isArray(parsed.videoReels)) {
-              setReels(parsed.videoReels);
-            }
-          }
-        } catch (e) {}
-      }
-    } catch (err) {
-      console.error("Failed to load Shoppable Video settings:", err);
+      const { data: storeData } = await supabase.from('stores').select('*').eq('owner_id', user.id).maybeSingle();
+      if (!storeData) return;
+      setStore(storeData);
+      const { data: prodData } = await supabase.from('products').select('id,name,price').eq('store_id', storeData.id).order('name', { ascending: true });
+      const { data: sessData } = await supabase.from('video_sessions').select('*').eq('store_id', storeData.id).order('created_at', { ascending: false });
+      setProducts(prodData || []);
+      setSessions(sessData || []);
     } finally {
       setLoading(false);
     }
   };
 
-  const persistReels = async (updatedReels: Reel[]) => {
+  const openCreate = () => {
+    setEditingSession(null);
+    setForm(emptyForm);
+    setMessage('');
+    setShowModal(true);
+  };
+
+  const openEdit = (session: VideoSession) => {
+    setEditingSession(session);
+    setForm({
+      title: session.title,
+      video_url: session.video_url,
+      product_id: session.product_ids?.[0] || '',
+    });
+    setMessage('');
+    setShowModal(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.title.trim()) { setMessage('Title is required.'); return; }
+    if (!form.video_url.trim()) { setMessage('Video URL is required.'); return; }
     setSaving(true);
+    setMessage('');
     try {
-      setReels(updatedReels);
-
-      let currentDesc = {};
-      try {
-        if (store.description && store.description.startsWith('{')) {
-          currentDesc = JSON.parse(store.description);
-        }
-      } catch (e) {}
-
-      const updatedDesc = {
-        ...currentDesc,
-        videoReels: updatedReels
+      const payload = {
+        title: form.title.trim(),
+        video_url: normalizeVideoUrl(form.video_url),
+        product_ids: form.product_id ? [form.product_id] : [],
       };
-
-      const { error } = await supabase
-        .from('stores')
-        .update({ description: JSON.stringify(updatedDesc) })
-        .eq('id', store.id);
-
-      if (error) throw error;
-      setStore({ ...store, description: JSON.stringify(updatedDesc) });
-    } catch (err: any) {
-      console.error(err);
-      alert("Failed to save reel: " + err.message);
+      if (editingSession) {
+        const { error } = await supabase.from('video_sessions').update(payload).eq('id', editingSession.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('video_sessions').insert([{ ...payload, store_id: store.id }]);
+        if (error) throw error;
+      }
+      setShowModal(false);
+      await fetchData();
+    } catch (e: any) {
+      setMessage('Error: ' + e.message);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleCreateReel = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim() || !videoUrl.trim() || !productId) {
-      alert("Please fill in all fields to create a reels channel!");
-      return;
+  const handleDelete = async (id: string) => {
+    if (!confirm('Remove this shoppable reel?')) return;
+    try {
+      await supabase.from('video_sessions').delete().eq('id', id);
+      await fetchData();
+    } catch (e: any) {
+      setMessage('Error: ' + e.message);
     }
-
-    // Normalizing video url (e.g. YouTube watch -> embed or Instagram Reels urls)
-    let finalVideoUrl = videoUrl.trim();
-    if (finalVideoUrl.includes('youtube.com/watch') || finalVideoUrl.includes('youtu.be/')) {
-      // standard watch link conversion helper
-      try {
-        let videoId = '';
-        if (finalVideoUrl.includes('youtu.be/')) {
-          videoId = finalVideoUrl.split('youtu.be/')[1]?.split(/[?#]/)[0] || '';
-        } else {
-          const urlParams = new URLSearchParams(finalVideoUrl.split('?')[1] || '');
-          videoId = urlParams.get('v') || '';
-        }
-        if (videoId) {
-          finalVideoUrl = `https://www.youtube.com/embed/${videoId}`;
-        }
-      } catch (e) {}
-    } else if (finalVideoUrl.includes('youtube.com/shorts/')) {
-      try {
-        const videoId = finalVideoUrl.split('shorts/')[1]?.split(/[?#]/)[0] || '';
-        if (videoId) {
-          finalVideoUrl = `https://www.youtube.com/embed/${videoId}`;
-        }
-      } catch (e) {}
-    }
-
-    const newReel: Reel = {
-      id: `reel_${Date.now()}`,
-      title: title.trim(),
-      videoUrl: finalVideoUrl,
-      productId
-    };
-
-    const updated = [...reels, newReel];
-    await persistReels(updated);
-
-    // Reset Form
-    setTitle('');
-    setVideoUrl('');
-    setProductId('');
-    alert("🎉 Shoppable reel video linked successfully!");
   };
 
-  const handleDeleteReel = async (id: string) => {
-    if (!confirm("Are you sure you want to remove this shoppable reel?")) return;
-    const updated = reels.filter(r => r.id !== id);
-    await persistReels(updated);
-  };
-
-  if (loading) return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto pb-12">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6 border-border/40">
+    <div className="max-w-5xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full flex items-center gap-1.5 w-fit">
-            <Sparkles className="w-3.5 h-3.5" /> Video Commerce Center
+          <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full flex items-center gap-1.5 w-fit mb-2">
+            <Sparkles className="w-3.5 h-3.5" /> Video Commerce
           </span>
-          <h2 className="text-2xl md:text-3xl font-black tracking-tight mt-3">
-            🎥 Video Commerce (Shoppable Reels)
+          <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
+            <Video className="w-6 h-6 text-primary" />
+            Shoppable Reels
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Display beautiful vertical product reels (YouTube Shorts, Reels, or direct videos) tagged with active catalog products.
-          </p>
+          <p className="text-sm text-muted-foreground mt-1">Link YouTube Shorts or embed videos to products in your store.</p>
         </div>
+        <button onClick={openCreate} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity">
+          <Plus className="w-4 h-4" />
+          New Reel
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left: Create Reels Card */}
-        <div className="bg-card text-card-foreground p-6 rounded-2xl border border-border/50 shadow-md space-y-4 h-fit">
-          <div className="flex items-center gap-2 border-b pb-3">
-            <Video className="w-4 h-4 text-primary" />
-            <h3 className="font-bold text-sm uppercase tracking-wider">Link Shoppable Reel</h3>
-          </div>
+      {message && !showModal && (
+        <div className={`text-sm px-4 py-3 rounded-xl border font-medium ${message.startsWith('Error') ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
+          {message}
+        </div>
+      )}
 
-          <form onSubmit={handleCreateReel} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase">Video Title</label>
-              <input
-                type="text"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                placeholder="e.g. Lavender Soap Making Process"
-                className="w-full h-10 px-3 rounded-xl border border-input bg-background focus:ring-2 focus:ring-primary/20 outline-none text-xs"
-                required
-              />
+      {sessions.length === 0 ? (
+        <div className="bg-muted/30 border border-border rounded-2xl p-12 text-center">
+          <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-40" />
+          <h3 className="font-bold text-lg mb-2">No shoppable reels yet</h3>
+          <p className="text-muted-foreground text-sm mb-6">Add YouTube Shorts or embed videos and tag products to make your store interactive.</p>
+          <button onClick={openCreate} className="bg-primary text-primary-foreground px-6 py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            Add First Reel
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {sessions.map(session => {
+            const taggedProducts = products.filter(p => session.product_ids?.includes(p.id));
+            return (
+              <div key={session.id} className="bg-background border border-border rounded-2xl overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-all">
+                <div className="aspect-[9/16] max-h-72 bg-black relative overflow-hidden">
+                  <iframe
+                    className="w-full h-full border-none"
+                    src={session.video_url}
+                    title={session.title}
+                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+                <div className="p-4 flex-1 flex flex-col gap-3">
+                  <div>
+                    <p className="font-bold text-sm truncate">{session.title}</p>
+                    {taggedProducts.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {taggedProducts.map(p => (
+                          <span key={p.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[10px] font-bold">
+                            <Tag className="w-2.5 h-2.5" />
+                            {p.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-border mt-auto">
+                    <button onClick={() => openEdit(session)} className="p-2 text-muted-foreground hover:text-primary hover:bg-muted rounded-lg transition-colors">
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => handleDelete(session.id)} className="p-2 text-muted-foreground hover:text-destructive hover:bg-red-50 rounded-lg transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-background border border-border rounded-2xl w-full max-w-lg shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <h3 className="font-black text-lg">{editingSession ? 'Edit Reel' : 'New Shoppable Reel'}</h3>
+              <button onClick={() => setShowModal(false)} className="p-1.5 hover:bg-muted rounded-lg"><X className="w-4 h-4" /></button>
             </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase">Video Embed / Shorts URL</label>
-              <input
-                type="text"
-                value={videoUrl}
-                onChange={e => setVideoUrl(e.target.value)}
-                placeholder="e.g. https://youtube.com/shorts/..."
-                className="w-full h-10 px-3 rounded-xl border border-input bg-background focus:ring-2 focus:ring-primary/20 outline-none text-xs font-mono"
-                required
-              />
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block mb-1.5">Title *</label>
+                <input
+                  type="text"
+                  value={form.title}
+                  onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                  placeholder="e.g. Summer Collection Showcase"
+                  className="w-full border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-background font-bold"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block mb-1.5">Video URL *</label>
+                <input
+                  type="text"
+                  value={form.video_url}
+                  onChange={e => setForm(f => ({ ...f, video_url: e.target.value }))}
+                  placeholder="YouTube Shorts, embed URL, or direct video link"
+                  className="w-full border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-background font-mono"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">YouTube watch/shorts links are automatically converted to embed format.</p>
+              </div>
+              <div>
+                <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block mb-1.5">Tag Product (optional)</label>
+                <select
+                  value={form.product_id}
+                  onChange={e => setForm(f => ({ ...f, product_id: e.target.value }))}
+                  className="w-full border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-background"
+                >
+                  <option value="">— No product tagged —</option>
+                  {products.map(p => (
+                    <option key={p.id} value={p.id}>{p.name} (₹{p.price})</option>
+                  ))}
+                </select>
+                {products.length === 0 && (
+                  <p className="text-[10px] text-muted-foreground mt-1">Add products to your catalog first to tag them in reels.</p>
+                )}
+              </div>
+              {message && <p className={`text-xs font-medium ${message.startsWith('Error') ? 'text-destructive' : 'text-green-600'}`}>{message}</p>}
             </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase">Tag Product Shown In Video</label>
-              <select
-                value={productId}
-                onChange={e => setProductId(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl border border-input bg-background focus:ring-2 focus:ring-primary/20 outline-none text-xs cursor-pointer"
-                required
+            <div className="flex gap-3 p-6 border-t border-border">
+              <button onClick={() => setShowModal(false)} className="flex-1 border border-border rounded-xl py-2.5 text-sm font-bold hover:bg-muted transition-colors">Cancel</button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex-1 bg-primary text-primary-foreground rounded-xl py-2.5 text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                <option value="">-- Select Product to Tag --</option>
-                {products.map(p => (
-                  <option key={p.id} value={p.id}>{p.name} (₹{p.price})</option>
-                ))}
-              </select>
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                {saving ? 'Saving...' : editingSession ? 'Update Reel' : 'Publish Reel'}
+              </button>
             </div>
-
-            <button
-              type="submit"
-              disabled={saving}
-              className="w-full py-3 bg-primary text-primary-foreground font-black text-xs uppercase tracking-widest rounded-xl hover:bg-primary/95 transition-all flex items-center justify-center gap-1.5 shadow-sm"
-            >
-              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-              Publish Reel Channel
-            </button>
-          </form>
-        </div>
-
-        {/* Right: Reels Channels Grid */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-card text-card-foreground rounded-2xl border border-border/50 shadow-md p-6 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-sm uppercase tracking-wider flex items-center gap-2">
-                Active Shoppable Reels
-              </h3>
-              <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded font-black font-mono">
-                {reels.length} Active Reels
-              </span>
-            </div>
-
-            {reels.length === 0 ? (
-              <div className="text-center py-12 border-2 border-dashed border-border/60 rounded-xl bg-muted/20 flex flex-col items-center justify-center text-muted-foreground">
-                <AlertCircle className="w-12 h-12 mb-3 opacity-20" />
-                <p className="text-sm font-semibold">No Shoppable Reels configured yet.</p>
-                <p className="text-xs">Publish YouTube Shorts or Reels to make your store interactive!</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {reels.map((reel) => {
-                  const taggedProd = products.find(p => p.id === reel.productId);
-                  return (
-                    <div key={reel.id} className="bg-muted/10 border border-border/60 rounded-2xl overflow-hidden flex flex-col justify-between shadow-sm hover:shadow-md transition-all">
-                      {/* Video Widescreen Embed container */}
-                      <div className="aspect-[9/16] max-h-[320px] bg-black relative flex items-center justify-center overflow-hidden border-b border-border/40">
-                        <iframe
-                          className="w-full h-full border-none"
-                          src={reel.videoUrl}
-                          title={reel.title}
-                          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        ></iframe>
-                      </div>
-
-                      {/* Info & Untagging Controls */}
-                      <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
-                        <div className="space-y-1 text-left">
-                          <h4 className="font-bold text-xs truncate text-foreground">{reel.title}</h4>
-                          {taggedProd && (
-                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-primary/10 text-primary border border-primary/20 text-[9px] font-black uppercase tracking-wider mt-1.5 shadow-sm">
-                              <Tag className="w-3 h-3" />
-                              Tagged: {taggedProd.name} (₹{taggedProd.price})
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex justify-end pt-3 border-t border-border/40 mt-2">
-                          <button
-                            onClick={() => handleDeleteReel(reel.id)}
-                            disabled={saving}
-                            className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 hover:text-red-600 px-3 py-1.5 border border-transparent hover:border-red-200 rounded-xl transition-all"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" /> Remove Reel
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

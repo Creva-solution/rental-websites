@@ -2,251 +2,295 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Plus, Layout, Trash2, Tag, Sparkles, SlidersHorizontal } from 'lucide-react';
+import { Loader2, Plus, Layout, Trash2, Edit3, X, Check, Eye, EyeOff, GripVertical } from 'lucide-react';
 
-interface CustomPage {
-  slug: string;
+interface Page {
+  id: string;
+  store_id: string;
   title: string;
-  content: string;
-  isActive: boolean;
+  slug: string;
+  content: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
 }
 
-export default function PagesManagerPage() {
+const emptyForm = {
+  title: '',
+  slug: '',
+  content: '',
+  is_active: true,
+  sort_order: 0,
+};
+
+export default function PagesPage() {
   const [store, setStore] = useState<any>(null);
-  const [pages, setPages] = useState<CustomPage[]>([]);
+  const [pages, setPages] = useState<Page[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [editingPage, setEditingPage] = useState<Page | null>(null);
+  const [form, setForm] = useState(emptyForm);
 
-  // New Page States
-  const [title, setTitle] = useState('');
-  const [slug, setSlug] = useState('');
-  const [content, setContent] = useState('');
+  useEffect(() => { fetchData(); }, []);
 
-  useEffect(() => {
-    fetchPages();
-  }, []);
-
-  const fetchPages = async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
-      const { data: storeData } = await supabase
-        .from('stores')
-        .select('*')
-        .eq('owner_id', user.id)
-        .neq('subdomain', '__creva_saas_global_settings__')
-        .single();
-
-      if (storeData) {
-        setStore(storeData);
-
-        // Fetch pages from description metadata
-        try {
-          if (storeData.description && storeData.description.startsWith('{')) {
-            const parsed = JSON.parse(storeData.description);
-            if (parsed.customPages && Array.isArray(parsed.customPages)) {
-              setPages(parsed.customPages);
-            }
-          }
-        } catch (e) {}
-      }
-    } catch (err) {
-      console.error("Failed to load custom page configurations:", err);
+      const { data: storeData } = await supabase.from('stores').select('*').eq('owner_id', user.id).maybeSingle();
+      if (!storeData) return;
+      setStore(storeData);
+      const { data } = await supabase.from('pages').select('*').eq('store_id', storeData.id).order('sort_order', { ascending: true });
+      setPages(data || []);
     } finally {
       setLoading(false);
     }
   };
 
-  const persistPages = async (updatedPages: CustomPage[]) => {
+  const openCreate = () => {
+    setEditingPage(null);
+    setForm({ ...emptyForm, sort_order: pages.length });
+    setMessage('');
+    setShowModal(true);
+  };
+
+  const openEdit = (page: Page) => {
+    setEditingPage(page);
+    setForm({
+      title: page.title,
+      slug: page.slug,
+      content: page.content || '',
+      is_active: page.is_active,
+      sort_order: page.sort_order,
+    });
+    setMessage('');
+    setShowModal(true);
+  };
+
+  const handleTitleChange = (title: string) => {
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    setForm(f => ({ ...f, title, slug }));
+  };
+
+  const handleSave = async () => {
+    if (!form.title.trim()) { setMessage('Page title is required.'); return; }
     setSaving(true);
+    setMessage('');
     try {
-      setPages(updatedPages);
-
-      let currentDesc = {};
-      try {
-        if (store.description && store.description.startsWith('{')) {
-          currentDesc = JSON.parse(store.description);
-        }
-      } catch (e) {}
-
-      const updatedDesc = {
-        ...currentDesc,
-        customPages: updatedPages
-      };
-
-      const { error } = await supabase
-        .from('stores')
-        .update({ description: JSON.stringify(updatedDesc) })
-        .eq('id', store.id);
-
-      if (error) throw error;
-      setStore({ ...store, description: JSON.stringify(updatedDesc) });
-    } catch (err: any) {
-      console.error(err);
-      alert("Failed to save page: " + err.message);
+      if (editingPage) {
+        const { error } = await supabase.from('pages').update({
+          title: form.title, slug: form.slug, content: form.content,
+          is_active: form.is_active, sort_order: form.sort_order,
+        }).eq('id', editingPage.id);
+        if (error) throw error;
+        setMessage('Page updated.');
+      } else {
+        const { error } = await supabase.from('pages').insert([{ ...form, store_id: store.id }]);
+        if (error) throw error;
+        setMessage('Page created.');
+      }
+      setShowModal(false);
+      await fetchData();
+    } catch (e: any) {
+      setMessage('Error: ' + e.message);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleCreatePage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const formattedSlug = slug.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').trim();
-    if (!title.trim() || !formattedSlug) {
-      alert("Please fill in a title and valid URL slug first!");
-      return;
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this page permanently?')) return;
+    try {
+      await supabase.from('pages').delete().eq('id', id);
+      await fetchData();
+    } catch (e: any) {
+      setMessage('Error: ' + e.message);
     }
-
-    if (pages.some(p => p.slug === formattedSlug)) {
-      alert("⚠️ A page with this URL slug already exists!");
-      return;
-    }
-
-    const newPage: CustomPage = {
-      slug: formattedSlug,
-      title: title.trim(),
-      content: content.trim(),
-      isActive: true
-    };
-
-    const updated = [...pages, newPage];
-    await persistPages(updated);
-
-    // Reset fields
-    setTitle('');
-    setSlug('');
-    setContent('');
-    alert(`🎉 Custom page "${title}" created successfully!`);
   };
 
-  const handleDeletePage = async (pageSlug: string) => {
-    if (!confirm(`Are you sure you want to delete static page with slug "${pageSlug}"?`)) return;
-    const updated = pages.filter(p => p.slug !== pageSlug);
-    await persistPages(updated);
+  const toggleActive = async (page: Page) => {
+    await supabase.from('pages').update({ is_active: !page.is_active }).eq('id', page.id);
+    await fetchData();
   };
 
-  if (loading) return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto pb-12">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6 border-border/40">
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full flex items-center gap-1.5 w-fit">
-            <Sparkles className="w-3.5 h-3.5" /> Pages Engine
-          </span>
-          <h2 className="text-2xl md:text-3xl font-black tracking-tight mt-3">
-            📄 Custom Static Pages
+          <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
+            <Layout className="w-6 h-6 text-primary" />
+            Content Pages
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Publish custom standalone pages such as About Us, Frequently Asked Questions (FAQs), and store return policies.
-          </p>
+          <p className="text-sm text-muted-foreground mt-1">Create pages like About Us, FAQ, Privacy Policy, and Terms.</p>
         </div>
+        <button onClick={openCreate} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity">
+          <Plus className="w-4 h-4" />
+          New Page
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left: Compose Custom Page Card */}
-        <div className="bg-card text-card-foreground p-6 rounded-2xl border border-border/50 shadow-md space-y-4 h-fit">
-          <div className="flex items-center gap-2 border-b pb-3">
-            <Layout className="w-4 h-4 text-primary" />
-            <h3 className="font-bold text-sm uppercase tracking-wider">Create Custom Page</h3>
-          </div>
+      {message && !showModal && (
+        <div className={`text-sm px-4 py-3 rounded-xl border font-medium ${message.startsWith('Error') ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
+          {message}
+        </div>
+      )}
 
-          <form onSubmit={handleCreatePage} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase">Page Title *</label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => {
-                  setTitle(e.target.value);
-                  // Auto slug generation
-                  setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
-                }}
-                placeholder="e.g. Frequently Asked Questions"
-                className="w-full h-10 px-3 rounded-xl border border-input bg-background focus:ring-2 focus:ring-primary/20 outline-none text-xs font-semibold"
-                required
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase">URL Path Slug *</label>
-              <input
-                type="text"
-                value={slug}
-                onChange={e => setSlug(e.target.value)}
-                placeholder="e.g. faq"
-                className="w-full h-10 px-3 rounded-xl border border-input bg-background focus:ring-2 focus:ring-primary/20 outline-none text-xs font-mono"
-                required
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase">Page Body HTML / Text Content *</label>
-              <textarea
-                value={content}
-                onChange={e => setContent(e.target.value)}
-                placeholder="Enter rich text page content or HTML segments..."
-                rows={8}
-                className="w-full p-3 rounded-xl border border-input bg-background focus:ring-2 focus:ring-primary/20 outline-none text-xs leading-relaxed resize-y min-h-[160px]"
-                required
-              />
-            </div>
-
+      {/* Quick Templates */}
+      {pages.length === 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {['About Us', 'FAQ', 'Privacy Policy', 'Return Policy'].map(title => (
             <button
-              type="submit"
-              disabled={saving}
-              className="w-full py-3 bg-primary text-primary-foreground font-black text-xs uppercase tracking-widest rounded-xl hover:bg-primary/95 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+              key={title}
+              onClick={() => {
+                setEditingPage(null);
+                const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                setForm({ title, slug, content: `# ${title}\n\nWrite your ${title.toLowerCase()} content here.`, is_active: true, sort_order: pages.length });
+                setMessage('');
+                setShowModal(true);
+              }}
+              className="flex flex-col items-center gap-2 p-4 bg-muted/30 border border-border border-dashed rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-colors text-center"
             >
-              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-              Publish Static Page
+              <Layout className="w-5 h-5 text-muted-foreground" />
+              <span className="text-xs font-bold text-muted-foreground">{title}</span>
             </button>
-          </form>
+          ))}
         </div>
+      )}
 
-        {/* Right: Published list */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-card text-card-foreground rounded-2xl border border-border/50 shadow-md p-6 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-sm uppercase tracking-wider flex items-center gap-2">
-                Active Pages
-              </h3>
-              <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded font-black font-mono">
-                {pages.length} Pages
-              </span>
+      {pages.length === 0 ? (
+        <div className="bg-muted/30 border border-border rounded-2xl p-12 text-center">
+          <Layout className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-40" />
+          <h3 className="font-bold text-lg mb-2">No pages yet</h3>
+          <p className="text-muted-foreground text-sm mb-6">Add informational pages like About Us, FAQ, or Privacy Policy.</p>
+          <button onClick={openCreate} className="bg-primary text-primary-foreground px-6 py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            Create First Page
+          </button>
+        </div>
+      ) : (
+        <div className="bg-background border border-border rounded-2xl overflow-hidden divide-y divide-border">
+          {pages.map(page => (
+            <div key={page.id} className="flex items-center gap-4 p-4 hover:bg-muted/30 transition-colors">
+              <GripVertical className="w-4 h-4 text-muted-foreground/40 cursor-grab flex-shrink-0" />
+              <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
+                <Layout className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-sm truncate">{page.title}</p>
+                <p className="text-xs text-muted-foreground font-mono truncate">/{page.slug}</p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  onClick={() => toggleActive(page)}
+                  className={`text-xs px-3 py-1 rounded-full font-bold border transition-colors flex items-center gap-1 ${
+                    page.is_active
+                      ? 'bg-green-50 text-green-700 border-green-200'
+                      : 'bg-muted text-muted-foreground border-border'
+                  }`}
+                >
+                  {page.is_active ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                  {page.is_active ? 'Visible' : 'Hidden'}
+                </button>
+                <button onClick={() => openEdit(page)} className="p-2 text-muted-foreground hover:text-primary hover:bg-muted rounded-lg transition-colors">
+                  <Edit3 className="w-4 h-4" />
+                </button>
+                <button onClick={() => handleDelete(page.id)} className="p-2 text-muted-foreground hover:text-destructive hover:bg-red-50 rounded-lg transition-colors">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-background border border-border rounded-2xl w-full max-w-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[92vh]">
+            <div className="flex items-center justify-between p-6 border-b border-border flex-shrink-0">
+              <h3 className="font-black text-lg">{editingPage ? 'Edit Page' : 'New Page'}</h3>
+              <button onClick={() => setShowModal(false)} className="p-1.5 hover:bg-muted rounded-lg"><X className="w-4 h-4" /></button>
             </div>
 
-            {pages.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground text-xs italic">
-                No custom sub-pages published yet. Custom pages will display links in your storefront footer!
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div>
+                <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block mb-1.5">Page Title *</label>
+                <input
+                  type="text"
+                  value={form.title}
+                  onChange={e => handleTitleChange(e.target.value)}
+                  placeholder="e.g. About Us"
+                  className="w-full border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-background font-bold"
+                />
               </div>
-            ) : (
-              <div className="space-y-4">
-                {pages.map((p) => (
-                  <div key={p.slug} className="p-4 border border-border/60 bg-muted/20 rounded-2xl flex items-center justify-between shadow-sm hover:bg-muted/30 transition-all text-left">
-                    <div className="text-left space-y-1.5 min-w-0">
-                      <h4 className="font-bold text-xs text-foreground">{p.title}</h4>
-                      <div className="inline-flex items-center gap-1 bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full text-[9px] font-mono">
-                        URL Slug: /{p.slug}
-                      </div>
-                    </div>
-                    
+
+              <div>
+                <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block mb-1.5">URL Slug</label>
+                <input
+                  type="text"
+                  value={form.slug}
+                  onChange={e => setForm(f => ({ ...f, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') }))}
+                  className="w-full border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-background font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block mb-1.5">Page Content</label>
+                <textarea
+                  value={form.content}
+                  onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
+                  placeholder="Write your page content here. HTML is supported."
+                  rows={16}
+                  className="w-full border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-background resize-none font-mono"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block mb-1.5">Display Order</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={form.sort_order}
+                    onChange={e => setForm(f => ({ ...f, sort_order: parseInt(e.target.value) || 0 }))}
+                    className="w-full border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-background"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <label className="flex items-center justify-between w-full cursor-pointer bg-muted/30 rounded-xl px-4 py-2.5 border border-border">
+                    <span className="text-sm font-bold">Visible</span>
                     <button
-                      onClick={() => handleDeletePage(p.slug)}
-                      disabled={saving}
-                      className="p-2 hover:bg-red-50 text-red-500 rounded-xl transition-colors border border-transparent hover:border-red-200 shrink-0"
-                      title="Delete page"
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, is_active: !f.is_active }))}
+                      className={`w-10 h-5.5 rounded-full transition-colors flex items-center px-0.5 ${form.is_active ? 'bg-primary' : 'bg-muted-foreground/30'}`}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <div className={`w-4.5 h-4.5 rounded-full bg-white shadow transition-transform ${form.is_active ? 'translate-x-4.5' : 'translate-x-0'}`} />
                     </button>
-                  </div>
-                ))}
+                  </label>
+                </div>
               </div>
-            )}
+
+              {message && <p className={`text-xs font-medium ${message.startsWith('Error') ? 'text-destructive' : 'text-green-600'}`}>{message}</p>}
+            </div>
+
+            <div className="flex gap-3 p-6 border-t border-border flex-shrink-0">
+              <button onClick={() => setShowModal(false)} className="flex-1 border border-border rounded-xl py-2.5 text-sm font-bold hover:bg-muted transition-colors">Cancel</button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex-1 bg-primary text-primary-foreground rounded-xl py-2.5 text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                {saving ? 'Saving...' : editingPage ? 'Update Page' : 'Create Page'}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
