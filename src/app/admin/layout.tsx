@@ -601,7 +601,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {showNotifications && (
                 <div 
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute right-0 mt-2 w-80 rounded-xl border border-border bg-popover text-popover-foreground shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left header-dropdown-container"
+                  className="absolute right-0 mt-2 w-80 rounded-xl border border-border bg-white dark:bg-zinc-950 text-foreground shadow-2xl z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left header-dropdown-container"
                 >
                   <div className="px-4 py-2 border-b border-border flex justify-between items-center">
                     <span className="font-bold text-xs uppercase tracking-wider text-[#3C77C3]">Notifications</span>
@@ -673,7 +673,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {showProfileDropdown && (
                 <div 
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute right-0 mt-2 w-56 rounded-xl border border-border bg-popover text-popover-foreground shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left header-dropdown-container"
+                  className="absolute right-0 mt-2 w-56 rounded-xl border border-border bg-white dark:bg-zinc-950 text-foreground shadow-2xl z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left header-dropdown-container"
                 >
                   <div className="px-4 py-2 border-b border-border">
                     <p className="text-xs font-black text-foreground truncate">{store.store_name}</p>
