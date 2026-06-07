@@ -24,6 +24,10 @@ const normalizeVideoUrl = (url: string): string => {
   } else if (u.includes('youtube.com/watch')) {
     const id = new URLSearchParams(u.split('?')[1] || '').get('v') || '';
     if (id) return `https://www.youtube.com/embed/${id}`;
+  } else if (u.includes('instagram.com/reel/') || u.includes('instagram.com/p/')) {
+    // Extract post ID from /reel/POST_ID/ or /p/POST_ID/
+    const match = u.match(/instagram\.com\/(?:reel|p)\/([A-Za-z0-9_-]+)/);
+    if (match?.[1]) return `https://www.instagram.com/p/${match[1]}/embed/`;
   }
   return u;
 };

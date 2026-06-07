@@ -90,6 +90,20 @@ try {
     exit;
 }
 
+// Ensure video_sessions table exists (runs on every request, safe due to IF NOT EXISTS)
+$pdo->exec("CREATE TABLE IF NOT EXISTS \"video_sessions\" (
+    \"id\"           VARCHAR(255) PRIMARY KEY,
+    \"store_id\"     VARCHAR(255) NOT NULL,
+    \"title\"        VARCHAR(500) NOT NULL,
+    \"video_url\"    TEXT,
+    \"product_ids\"  TEXT DEFAULT '[]',
+    \"status\"       VARCHAR(50) DEFAULT 'active',
+    \"scheduled_at\" TIMESTAMP NULL,
+    \"description\"  TEXT NULL,
+    \"created_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    \"updated_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)");
+
 // Get body payloads
 $rawBody = file_get_contents('php://input');
 $body = json_decode($rawBody, true) ?: [];
@@ -912,22 +926,6 @@ try {
     if (in_array($routeParts[0], $genericTables, true)) {
         $table = $routeParts[0];
         $id    = $routeParts[1] ?? null;
-
-        // Auto-create video_sessions table on first use if it doesn't exist
-        if ($table === 'video_sessions') {
-            $pdo->exec("CREATE TABLE IF NOT EXISTS \"video_sessions\" (
-                \"id\"           VARCHAR(255) PRIMARY KEY,
-                \"store_id\"     VARCHAR(255) NOT NULL,
-                \"title\"        VARCHAR(500) NOT NULL,
-                \"video_url\"    TEXT,
-                \"product_ids\"  TEXT DEFAULT '[]',
-                \"status\"       VARCHAR(50) DEFAULT 'active',
-                \"scheduled_at\" TIMESTAMP NULL,
-                \"description\"  TEXT NULL,
-                \"created_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                \"updated_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )");
-        }
 
         // Fields allowed as WHERE filters in GET/DELETE (prevents arbitrary column injection)
         $filterableFields = ['store_id', 'type', 'status', 'is_active', 'is_enabled',
