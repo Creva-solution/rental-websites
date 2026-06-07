@@ -91,18 +91,22 @@ try {
 }
 
 // Ensure video_sessions table exists (runs on every request, safe due to IF NOT EXISTS)
-$pdo->exec("CREATE TABLE IF NOT EXISTS \"video_sessions\" (
-    \"id\"           VARCHAR(255) PRIMARY KEY,
-    \"store_id\"     VARCHAR(255) NOT NULL,
-    \"title\"        VARCHAR(500) NOT NULL,
-    \"video_url\"    TEXT,
-    \"product_ids\"  TEXT DEFAULT '[]',
-    \"status\"       VARCHAR(50) DEFAULT 'active',
-    \"scheduled_at\" TIMESTAMP NULL,
-    \"description\"  TEXT NULL,
-    \"created_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    \"updated_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)");
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS \"video_sessions\" (
+        \"id\"           VARCHAR(255) PRIMARY KEY,
+        \"store_id\"     VARCHAR(255) NOT NULL,
+        \"title\"        VARCHAR(500) NOT NULL,
+        \"video_url\"    TEXT,
+        \"product_ids\"  TEXT DEFAULT '[]',
+        \"status\"       VARCHAR(50) DEFAULT 'active',
+        \"scheduled_at\" TIMESTAMP NULL,
+        \"description\"  TEXT NULL,
+        \"created_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        \"updated_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+} catch (PDOException $ignored) {
+    // Table already exists or insufficient privileges — continue normally
+}
 
 // Get body payloads
 $rawBody = file_get_contents('php://input');
