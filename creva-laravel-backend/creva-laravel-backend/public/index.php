@@ -170,35 +170,43 @@ try {
         ]);
     }
 
-    // One-time migration endpoint — safe to call multiple times (IF NOT EXISTS)
+    // Diagnostic + migration endpoint
     if ($routeParts[0] === 'migrate' && $requestMethod === 'GET') {
-        $results = [];
+        $createSql = "CREATE TABLE IF NOT EXISTS \"video_sessions\" (
+            \"id\"           VARCHAR(255) PRIMARY KEY,
+            \"store_id\"     VARCHAR(255) NOT NULL,
+            \"title\"        VARCHAR(500) NOT NULL,
+            \"video_url\"    TEXT,
+            \"product_ids\"  TEXT DEFAULT '[]',
+            \"status\"       VARCHAR(50) DEFAULT 'active',
+            \"scheduled_at\" TIMESTAMP NULL,
+            \"description\"  TEXT NULL,
+            \"created_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            \"updated_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )";
 
-        $tables = [
-            'video_sessions' => "CREATE TABLE IF NOT EXISTS \"video_sessions\" (
-                \"id\"           VARCHAR(255) PRIMARY KEY,
-                \"store_id\"     VARCHAR(255) NOT NULL,
-                \"title\"        VARCHAR(500) NOT NULL,
-                \"video_url\"    TEXT,
-                \"product_ids\"  TEXT DEFAULT '[]',
-                \"status\"       VARCHAR(50) DEFAULT 'active',
-                \"scheduled_at\" TIMESTAMP NULL,
-                \"description\"  TEXT NULL,
-                \"created_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                \"updated_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )",
-        ];
-
-        foreach ($tables as $name => $sql) {
-            try {
-                $pdo->exec($sql);
-                $results[$name] = 'ok';
-            } catch (PDOException $e) {
-                $results[$name] = 'error: ' . $e->getMessage();
-            }
+        $createResult = 'ok';
+        try {
+            $pdo->exec($createSql);
+        } catch (PDOException $e) {
+            $createResult = 'error: ' . $e->getMessage();
         }
 
-        jsonResponse(['status' => 'migration complete', 'tables' => $results]);
+        // List all tables so we can confirm
+        $stmt = $pdo->query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name");
+        $existingTables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        // Current DB user and search_path for diagnostics
+        $userRow   = $pdo->query("SELECT current_user, current_database()")->fetch(PDO::FETCH_ASSOC);
+        $pathRow   = $pdo->query("SHOW search_path")->fetch(PDO::FETCH_ASSOC);
+
+        jsonResponse([
+            'create_video_sessions' => $createResult,
+            'video_sessions_exists' => in_array('video_sessions', $existingTables),
+            'all_tables'            => $existingTables,
+            'db_user'               => $userRow,
+            'search_path'           => $pathRow,
+        ]);
     }
 
     // Authentication Endpoints
@@ -1061,7 +1069,28 @@ try {
 
             $cols = implode(', ', array_map(fn($c) => '"' . $col($c) . '"', array_keys($body)));
             $ph   = implode(', ', array_fill(0, count($body), '?'));
-            $pdo->prepare("INSERT INTO \"$table\" ($cols) VALUES ($ph)")->execute(array_values($body));
+            try {
+                $pdo->prepare("INSERT INTO \"$table\" ($cols) VALUES ($ph)")->execute(array_values($body));
+            } catch (PDOException $insertEx) {
+                // If table missing (42P01), create it and retry once
+                if (strpos($insertEx->getMessage(), '42P01') !== false && $table === 'video_sessions') {
+                    $pdo->exec("CREATE TABLE IF NOT EXISTS \"video_sessions\" (
+                        \"id\"           VARCHAR(255) PRIMARY KEY,
+                        \"store_id\"     VARCHAR(255) NOT NULL,
+                        \"title\"        VARCHAR(500) NOT NULL,
+                        \"video_url\"    TEXT,
+                        \"product_ids\"  TEXT DEFAULT '[]',
+                        \"status\"       VARCHAR(50) DEFAULT 'active',
+                        \"scheduled_at\" TIMESTAMP NULL,
+                        \"description\"  TEXT NULL,
+                        \"created_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        \"updated_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )");
+                    $pdo->prepare("INSERT INTO \"$table\" ($cols) VALUES ($ph)")->execute(array_values($body));
+                } else {
+                    throw $insertEx;
+                }
+            }
             $stmt = $pdo->prepare("SELECT * FROM \"$table\" WHERE id = ?");
             $stmt->execute([$body['id']]);
             jsonResponse($decodeRow($stmt->fetch()), 201);
