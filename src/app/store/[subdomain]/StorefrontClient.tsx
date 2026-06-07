@@ -426,8 +426,6 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
 
   // Video Reels Carousel
   const reelsScrollRef = useRef<HTMLDivElement>(null);
-  const [reelVideoIdx, setReelVideoIdx] = useState<Record<number, number>>({});
-  const reelTouchStartX = useRef<number>(0);
   const scrollReels = (dir: 'prev' | 'next') => {
     if (!reelsScrollRef.current) return;
     const cardWidth = 296; // 280px card + 16px gap
@@ -3439,117 +3437,67 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                   className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory"
                   style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
                 >
-                  {allVideoReels.map((reel: any, idx: number) => {
+                  {allVideoReels.flatMap((reel: any, reelIdx: number) => {
                     const videoUrls: string[] = reel.videoUrls?.length ? reel.videoUrls : [reel.videoUrl || reel.url].filter(Boolean);
-                    const currentVidIdx = reelVideoIdx[idx] ?? 0;
-                    const currentUrl = videoUrls[currentVidIdx] || '';
-                    const embedUrl = getYouTubeEmbedUrl(currentUrl);
-                    const taggedProd = displayProducts.find(p => p.id === reel.productId);
-                    const isFirst = idx === 0;
+                    const taggedProd = displayProducts.find((p: any) => p.id === reel.productId);
                     const hasMultiple = videoUrls.length > 1;
 
-                    const goToPrev = () => setReelVideoIdx(prev => ({ ...prev, [idx]: Math.max(0, (prev[idx] ?? 0) - 1) }));
-                    const goToNext = () => setReelVideoIdx(prev => ({ ...prev, [idx]: Math.min(videoUrls.length - 1, (prev[idx] ?? 0) + 1) }));
+                    return videoUrls.map((url: string, vidIdx: number) => {
+                      const embedUrl = getYouTubeEmbedUrl(url);
+                      const isFirst = reelIdx === 0 && vidIdx === 0;
 
-                    return (
-                      <div
-                        key={idx}
-                        className={`snap-start shrink-0 w-[220px] sm:w-[260px] flex flex-col overflow-hidden bg-white rounded-xl transition-all group ${
-                          isFirst
-                            ? 'border-2 border-indigo-400 shadow-md shadow-indigo-100/50'
-                            : 'border border-gray-200 shadow-sm'
-                        }`}
-                      >
-                        {/* 9:16 Portrait Video Frame — only the active video iframe is mounted */}
+                      return (
                         <div
-                          className="relative w-full bg-gray-900 overflow-hidden rounded-t-xl"
-                          style={{ paddingBottom: '177.78%' }}
-                          onTouchStart={hasMultiple ? (e) => { reelTouchStartX.current = e.touches[0].clientX; } : undefined}
-                          onTouchEnd={hasMultiple ? (e) => {
-                            const dx = e.changedTouches[0].clientX - reelTouchStartX.current;
-                            if (Math.abs(dx) < 40) return;
-                            if (dx < 0 && currentVidIdx < videoUrls.length - 1) goToNext();
-                            if (dx > 0 && currentVidIdx > 0) goToPrev();
-                          } : undefined}
+                          key={`${reelIdx}-${vidIdx}`}
+                          className={`snap-start shrink-0 w-[220px] sm:w-[260px] flex flex-col overflow-hidden bg-white rounded-xl transition-all ${
+                            isFirst
+                              ? 'border-2 border-indigo-400 shadow-md shadow-indigo-100/50'
+                              : 'border border-gray-200 shadow-sm'
+                          }`}
                         >
-                          <iframe
-                            key={currentUrl}
-                            src={embedUrl}
-                            title={reel.title || `Reel ${idx + 1}`}
-                            className="absolute inset-0 w-full h-full border-none"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            loading="lazy"
-                          />
-
-                          {hasMultiple && (
-                            <>
-                              {/* Video count badge — top-left */}
+                          {/* 9:16 Portrait Video Frame */}
+                          <div className="relative w-full bg-gray-900 overflow-hidden rounded-t-xl" style={{ paddingBottom: '177.78%' }}>
+                            <iframe
+                              src={embedUrl}
+                              title={reel.title || `Reel ${reelIdx + 1}`}
+                              className="absolute inset-0 w-full h-full border-none"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              loading="lazy"
+                            />
+                            {/* Position badge — only shown when reel has multiple videos */}
+                            {hasMultiple && (
                               <span className="absolute top-2 left-2 z-10 bg-black/65 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full select-none">
-                                {currentVidIdx + 1}/{videoUrls.length}
+                                {vidIdx + 1}/{videoUrls.length}
                               </span>
+                            )}
+                          </div>
 
-                              {/* Prev button — always visible on mobile, hover-only on desktop */}
-                              <button
-                                onClick={goToPrev}
-                                disabled={currentVidIdx === 0}
-                                aria-label="Previous video"
-                                className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-9 h-9 sm:w-7 sm:h-7 rounded-full bg-black/60 flex items-center justify-center text-white disabled:opacity-20 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity touch-manipulation"
-                              >
-                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 1.5L3.5 5l3 3.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                              </button>
-
-                              {/* Next button — always visible on mobile, hover-only on desktop */}
-                              <button
-                                onClick={goToNext}
-                                disabled={currentVidIdx === videoUrls.length - 1}
-                                aria-label="Next video"
-                                className="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-9 h-9 sm:w-7 sm:h-7 rounded-full bg-black/60 flex items-center justify-center text-white disabled:opacity-20 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity touch-manipulation"
-                              >
-                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M3.5 1.5L6.5 5l-3 3.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                              </button>
-
-                              {/* Dot indicators — larger touch area via padding */}
-                              <div className="absolute bottom-1 left-0 right-0 flex justify-center gap-0.5">
-                                {videoUrls.map((_: string, dotIdx: number) => (
+                          {/* Product Info Footer */}
+                          <div className="p-3 flex flex-col gap-2 flex-grow bg-white">
+                            {taggedProd ? (
+                              <>
+                                <span className="text-[9px] font-black uppercase tracking-widest text-[#f2852a] font-theme-body">Featured</span>
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-bold text-gray-900 truncate font-theme-title">{taggedProd.name}</p>
+                                    <p className="text-sm font-black text-[#f2852a] mt-0.5 font-theme-body">{currencySymbol}{Number(taggedProd.price).toLocaleString()}</p>
+                                  </div>
                                   <button
-                                    key={dotIdx}
-                                    onClick={() => setReelVideoIdx(prev => ({ ...prev, [idx]: dotIdx }))}
-                                    aria-label={`Video ${dotIdx + 1}`}
-                                    className="p-2 touch-manipulation"
+                                    onClick={() => addToCart(taggedProd, 1)}
+                                    className="shrink-0 px-3 py-1.5 bg-gray-950 hover:bg-[#f2852a] text-white text-[9px] font-black uppercase tracking-wider transition-colors font-theme-body rounded-sm"
                                   >
-                                    <span className={`block w-1.5 h-1.5 rounded-full transition-all ${dotIdx === currentVidIdx ? 'bg-white scale-125' : 'bg-white/45 hover:bg-white/70'}`} />
+                                    Buy
                                   </button>
-                                ))}
-                              </div>
-                            </>
-                          )}
-                        </div>
-
-                        {/* Product Info Footer */}
-                        <div className="p-3 flex flex-col gap-2 flex-grow bg-white">
-                          {taggedProd ? (
-                            <>
-                              <span className="text-[9px] font-black uppercase tracking-widest text-[#f2852a] font-theme-body">Featured</span>
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="min-w-0">
-                                  <p className="text-xs font-bold text-gray-900 truncate font-theme-title">{taggedProd.name}</p>
-                                  <p className="text-sm font-black text-[#f2852a] mt-0.5 font-theme-body">{currencySymbol}{Number(taggedProd.price).toLocaleString()}</p>
                                 </div>
-                                <button
-                                  onClick={() => addToCart(taggedProd, 1)}
-                                  className="shrink-0 px-3 py-1.5 bg-gray-950 hover:bg-[#f2852a] text-white text-[9px] font-black uppercase tracking-wider transition-colors font-theme-body rounded-sm"
-                                >
-                                  Buy
-                                </button>
-                              </div>
-                            </>
-                          ) : (
-                            <p className="text-xs font-semibold text-gray-700 font-theme-title line-clamp-1">{reel.title || 'Shoppable Reel'}</p>
-                          )}
+                              </>
+                            ) : (
+                              <p className="text-xs font-semibold text-gray-700 font-theme-title line-clamp-1">{reel.title || 'Shoppable Reel'}</p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
+                      );
+                    });
                   })}
                 </div>
               </div>
