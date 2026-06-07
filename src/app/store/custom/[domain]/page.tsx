@@ -79,8 +79,7 @@ export default async function CustomDomainStorefrontPage({ params }: { params: {
     .eq('store_id', store.id)
     .eq('is_active', true);
 
-  const { data: vsPsData } = await supabase.from('platform_settings').select('*').eq('key', `video_sessions_${store.id}`);
-  const videoSessions: any[] = vsPsData?.[0]?.value ? (() => { try { return JSON.parse(vsPsData[0].value); } catch { return []; } })() : [];
+  const videoSessions: any[] = (() => { try { return JSON.parse(store.description || '{}').video_sessions || []; } catch { return []; } })();
 
   const customStyles = {
     '--store-primary': store.primary_color || '#3B82F6',
