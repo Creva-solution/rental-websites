@@ -383,12 +383,16 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
   }
 
   // Merge video_sessions from DB (primary) with any legacy videoReels from store.description JSON
-  const normalizedVideoSessions = videoSessions.map((vs: any) => ({
-    title: vs.title,
-    videoUrl: vs.video_url,
-    url: vs.video_url,
-    productId: vs.product_ids?.[0] || null,
-  }));
+  const normalizedVideoSessions = videoSessions.map((vs: any) => {
+    const urls: string[] = vs.video_urls?.length ? vs.video_urls : [vs.video_url].filter(Boolean);
+    return {
+      title: vs.title,
+      videoUrl: vs.video_url,
+      videoUrls: urls,
+      url: vs.video_url,
+      productId: vs.product_ids?.[0] || null,
+    };
+  });
   const allVideoReels = normalizedVideoSessions.length > 0
     ? normalizedVideoSessions
     : videoReels;
@@ -422,6 +426,8 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
 
   // Video Reels Carousel
   const reelsScrollRef = useRef<HTMLDivElement>(null);
+  const [reelVideoIdx, setReelVideoIdx] = useState<Record<number, number>>({});
+  const reelTouchStartX = useRef<number>(0);
   const scrollReels = (dir: 'prev' | 'next') => {
     if (!reelsScrollRef.current) return;
     const cardWidth = 296; // 280px card + 16px gap
@@ -3434,28 +3440,90 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                   style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
                 >
                   {allVideoReels.map((reel: any, idx: number) => {
-                    const embedUrl = getYouTubeEmbedUrl(reel.videoUrl || reel.url);
+                    const videoUrls: string[] = reel.videoUrls?.length ? reel.videoUrls : [reel.videoUrl || reel.url].filter(Boolean);
+                    const currentVidIdx = reelVideoIdx[idx] ?? 0;
+                    const currentUrl = videoUrls[currentVidIdx] || '';
+                    const embedUrl = getYouTubeEmbedUrl(currentUrl);
                     const taggedProd = displayProducts.find(p => p.id === reel.productId);
                     const isFirst = idx === 0;
+                    const hasMultiple = videoUrls.length > 1;
+
+                    const goToPrev = () => setReelVideoIdx(prev => ({ ...prev, [idx]: Math.max(0, (prev[idx] ?? 0) - 1) }));
+                    const goToNext = () => setReelVideoIdx(prev => ({ ...prev, [idx]: Math.min(videoUrls.length - 1, (prev[idx] ?? 0) + 1) }));
 
                     return (
                       <div
                         key={idx}
-                        className={`snap-start shrink-0 w-[220px] sm:w-[260px] flex flex-col overflow-hidden bg-white rounded-xl transition-all ${
+                        className={`snap-start shrink-0 w-[220px] sm:w-[260px] flex flex-col overflow-hidden bg-white rounded-xl transition-all group ${
                           isFirst
                             ? 'border-2 border-indigo-400 shadow-md shadow-indigo-100/50'
                             : 'border border-gray-200 shadow-sm'
                         }`}
                       >
-                        {/* 9:16 Portrait Video Frame */}
-                        <div className="relative w-full bg-gray-900 overflow-hidden rounded-t-xl" style={{ paddingBottom: '177.78%' }}>
+                        {/* 9:16 Portrait Video Frame — only the active video iframe is mounted */}
+                        <div
+                          className="relative w-full bg-gray-900 overflow-hidden rounded-t-xl"
+                          style={{ paddingBottom: '177.78%' }}
+                          onTouchStart={hasMultiple ? (e) => { reelTouchStartX.current = e.touches[0].clientX; } : undefined}
+                          onTouchEnd={hasMultiple ? (e) => {
+                            const dx = e.changedTouches[0].clientX - reelTouchStartX.current;
+                            if (Math.abs(dx) < 40) return;
+                            if (dx < 0 && currentVidIdx < videoUrls.length - 1) goToNext();
+                            if (dx > 0 && currentVidIdx > 0) goToPrev();
+                          } : undefined}
+                        >
                           <iframe
+                            key={currentUrl}
                             src={embedUrl}
                             title={reel.title || `Reel ${idx + 1}`}
                             className="absolute inset-0 w-full h-full border-none"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
+                            loading="lazy"
                           />
+
+                          {hasMultiple && (
+                            <>
+                              {/* Video count badge — top-left */}
+                              <span className="absolute top-2 left-2 z-10 bg-black/65 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full select-none">
+                                {currentVidIdx + 1}/{videoUrls.length}
+                              </span>
+
+                              {/* Prev button — always visible on mobile, hover-only on desktop */}
+                              <button
+                                onClick={goToPrev}
+                                disabled={currentVidIdx === 0}
+                                aria-label="Previous video"
+                                className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-9 h-9 sm:w-7 sm:h-7 rounded-full bg-black/60 flex items-center justify-center text-white disabled:opacity-20 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity touch-manipulation"
+                              >
+                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 1.5L3.5 5l3 3.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              </button>
+
+                              {/* Next button — always visible on mobile, hover-only on desktop */}
+                              <button
+                                onClick={goToNext}
+                                disabled={currentVidIdx === videoUrls.length - 1}
+                                aria-label="Next video"
+                                className="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-9 h-9 sm:w-7 sm:h-7 rounded-full bg-black/60 flex items-center justify-center text-white disabled:opacity-20 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity touch-manipulation"
+                              >
+                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M3.5 1.5L6.5 5l-3 3.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              </button>
+
+                              {/* Dot indicators — larger touch area via padding */}
+                              <div className="absolute bottom-1 left-0 right-0 flex justify-center gap-0.5">
+                                {videoUrls.map((_: string, dotIdx: number) => (
+                                  <button
+                                    key={dotIdx}
+                                    onClick={() => setReelVideoIdx(prev => ({ ...prev, [idx]: dotIdx }))}
+                                    aria-label={`Video ${dotIdx + 1}`}
+                                    className="p-2 touch-manipulation"
+                                  >
+                                    <span className={`block w-1.5 h-1.5 rounded-full transition-all ${dotIdx === currentVidIdx ? 'bg-white scale-125' : 'bg-white/45 hover:bg-white/70'}`} />
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
                         </div>
 
                         {/* Product Info Footer */}

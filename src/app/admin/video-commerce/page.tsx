@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Plus, Video, Trash2, Tag, Sparkles, AlertCircle, Edit3, X, Check } from 'lucide-react';
+import { Loader2, Plus, Video, Trash2, Tag, Sparkles, AlertCircle, Edit3, X, Check, Link2, Youtube, Instagram, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface VideoSession {
   id: string;
   store_id: string;
   title: string;
   video_url: string;
+  video_urls: string[];
   product_ids: string[];
   created_at: string;
   updated_at?: string;
@@ -26,14 +27,27 @@ const normalizeVideoUrl = (url: string): string => {
     const id = new URLSearchParams(u.split('?')[1] || '').get('v') || '';
     if (id) return `https://www.youtube.com/embed/${id}`;
   } else if (u.includes('instagram.com/reel/') || u.includes('instagram.com/p/')) {
-    // Extract post ID from /reel/POST_ID/ or /p/POST_ID/
     const match = u.match(/instagram\.com\/(?:reel|p)\/([A-Za-z0-9_-]+)/);
     if (match?.[1]) return `https://www.instagram.com/p/${match[1]}/embed/`;
   }
   return u;
 };
 
-const emptyForm = { title: '', video_url: '', product_id: '' };
+const detectPlatform = (url: string) => {
+  if (url.includes('youtube') || url.includes('youtu.be')) return 'youtube';
+  if (url.includes('instagram')) return 'instagram';
+  return 'direct';
+};
+
+const PlatformBadge = ({ url }: { url: string }) => {
+  const p = detectPlatform(url);
+  if (p === 'youtube') return <span className="inline-flex items-center gap-1 text-[9px] font-bold text-red-600 bg-red-50 border border-red-100 px-1.5 py-0.5 rounded-full"><Youtube className="w-2.5 h-2.5" /> YouTube</span>;
+  if (p === 'instagram') return <span className="inline-flex items-center gap-1 text-[9px] font-bold text-purple-600 bg-purple-50 border border-purple-100 px-1.5 py-0.5 rounded-full"><Instagram className="w-2.5 h-2.5" /> Instagram</span>;
+  return <span className="inline-flex items-center gap-1 text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded-full"><Link2 className="w-2.5 h-2.5" /> Direct</span>;
+};
+
+const MAX_VIDEOS = 5;
+const emptyForm = { title: '', video_urls: [''], product_id: '' };
 
 export default function VideoCommercePage() {
   const [store, setStore] = useState<any>(null);
@@ -45,6 +59,8 @@ export default function VideoCommercePage() {
   const [showModal, setShowModal] = useState(false);
   const [editingSession, setEditingSession] = useState<VideoSession | null>(null);
   const [form, setForm] = useState(emptyForm);
+  // Track which video is currently previewing per card
+  const [previewIdx, setPreviewIdx] = useState<Record<string, number>>({});
 
   useEffect(() => { fetchData(); }, []);
 
@@ -76,25 +92,47 @@ export default function VideoCommercePage() {
     setEditingSession(session);
     setForm({
       title: session.title,
-      video_url: session.video_url,
+      video_urls: session.video_urls?.length ? session.video_urls.slice() : [session.video_url || ''],
       product_id: session.product_ids?.[0] || '',
     });
     setMessage('');
     setShowModal(true);
   };
 
+  const updateVideoUrl = (idx: number, val: string) => {
+    setForm(f => {
+      const urls = [...f.video_urls];
+      urls[idx] = val;
+      return { ...f, video_urls: urls };
+    });
+  };
+
+  const addVideoSlot = () => {
+    if (form.video_urls.length >= MAX_VIDEOS) return;
+    setForm(f => ({ ...f, video_urls: [...f.video_urls, ''] }));
+  };
+
+  const removeVideoSlot = (idx: number) => {
+    if (form.video_urls.length <= 1) return;
+    setForm(f => ({ ...f, video_urls: f.video_urls.filter((_, i) => i !== idx) }));
+  };
+
   const handleSave = async () => {
     if (!form.title.trim()) { setMessage('Title is required.'); return; }
-    if (!form.video_url.trim()) { setMessage('Video URL is required.'); return; }
+    const validUrls = form.video_urls.map(u => u.trim()).filter(Boolean);
+    if (validUrls.length === 0) { setMessage('At least one video URL is required.'); return; }
+
     setSaving(true);
     setMessage('');
     try {
+      const normalizedUrls = validUrls.map(normalizeVideoUrl);
       const payload = {
         title: form.title.trim(),
-        video_url: normalizeVideoUrl(form.video_url),
+        video_url: normalizedUrls[0],
+        video_urls: normalizedUrls,
         product_ids: form.product_id ? [form.product_id] : [],
       };
-      // Read current store description JSON, update video_sessions, write back
+
       const { data: freshStore } = await supabase.from('stores').select('description').eq('id', store.id).maybeSingle();
       const desc = (() => { try { return JSON.parse(freshStore?.description || '{}'); } catch { return {}; } })();
       let currentSessions: VideoSession[] = desc.video_sessions || [];
@@ -154,7 +192,7 @@ export default function VideoCommercePage() {
             <Video className="w-6 h-6 text-primary" />
             Shoppable Reels
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">Link YouTube Shorts or embed videos to products in your store.</p>
+          <p className="text-sm text-muted-foreground mt-1">Link YouTube Shorts or Instagram Reels to products. Each reel supports up to 5 videos.</p>
         </div>
         <button onClick={openCreate} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity">
           <Plus className="w-4 h-4" />
@@ -172,7 +210,7 @@ export default function VideoCommercePage() {
         <div className="bg-muted/30 border border-border rounded-2xl p-12 text-center">
           <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-40" />
           <h3 className="font-bold text-lg mb-2">No shoppable reels yet</h3>
-          <p className="text-muted-foreground text-sm mb-6">Add YouTube Shorts or embed videos and tag products to make your store interactive.</p>
+          <p className="text-muted-foreground text-sm mb-6">Add YouTube Shorts or Instagram Reels and tag products to make your store interactive.</p>
           <button onClick={openCreate} className="bg-primary text-primary-foreground px-6 py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2">
             <Plus className="w-4 h-4" />
             Add First Reel
@@ -181,23 +219,60 @@ export default function VideoCommercePage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {sessions.map(session => {
+            const urls = session.video_urls?.length ? session.video_urls : [session.video_url].filter(Boolean);
+            const idx = previewIdx[session.id] || 0;
             const taggedProducts = products.filter(p => session.product_ids?.includes(p.id));
             return (
               <div key={session.id} className="bg-background border border-border rounded-2xl overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-all">
+                {/* Video preview with prev/next if multiple */}
                 <div className="aspect-[9/16] max-h-72 bg-black relative overflow-hidden">
                   <iframe
+                    key={urls[idx]}
                     className="w-full h-full border-none"
-                    src={session.video_url}
+                    src={urls[idx]}
                     title={session.title}
                     allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                   />
+                  {urls.length > 1 && (
+                    <>
+                      <button
+                        onClick={() => setPreviewIdx(p => ({ ...p, [session.id]: Math.max(0, (p[session.id] || 0) - 1) }))}
+                        disabled={idx === 0}
+                        className="absolute left-1 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center disabled:opacity-30 transition-colors"
+                      ><ChevronLeft className="w-4 h-4" /></button>
+                      <button
+                        onClick={() => setPreviewIdx(p => ({ ...p, [session.id]: Math.min(urls.length - 1, (p[session.id] || 0) + 1) }))}
+                        disabled={idx === urls.length - 1}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center disabled:opacity-30 transition-colors"
+                      ><ChevronRight className="w-4 h-4" /></button>
+                      {/* Dot indicators */}
+                      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                        {urls.map((_, i) => (
+                          <button key={i} onClick={() => setPreviewIdx(p => ({ ...p, [session.id]: i }))}
+                            className={`w-1.5 h-1.5 rounded-full transition-all ${i === idx ? 'bg-white scale-125' : 'bg-white/50'}`}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  {/* Video count badge */}
+                  {urls.length > 1 && (
+                    <span className="absolute top-2 right-2 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                      {idx + 1}/{urls.length}
+                    </span>
+                  )}
                 </div>
                 <div className="p-4 flex-1 flex flex-col gap-3">
                   <div>
-                    <p className="font-bold text-sm truncate">{session.title}</p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-bold text-sm truncate flex-1">{session.title}</p>
+                      {urls.length > 1 && (
+                        <span className="shrink-0 text-[9px] font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">{urls.length} videos</span>
+                      )}
+                    </div>
                     {taggedProducts.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
+                      <div className="flex flex-wrap gap-1 mt-1">
                         {taggedProducts.map(p => (
                           <span key={p.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[10px] font-bold">
                             <Tag className="w-2.5 h-2.5" />
@@ -224,12 +299,13 @@ export default function VideoCommercePage() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-background border border-border rounded-2xl w-full max-w-lg shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between p-6 border-b border-border">
+          <div className="bg-background border border-border rounded-2xl w-full max-w-lg shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-border shrink-0">
               <h3 className="font-black text-lg">{editingSession ? 'Edit Reel' : 'New Shoppable Reel'}</h3>
               <button onClick={() => setShowModal(false)} className="p-1.5 hover:bg-muted rounded-lg"><X className="w-4 h-4" /></button>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-5 overflow-y-auto flex-1">
+              {/* Title */}
               <div>
                 <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block mb-1.5">Title *</label>
                 <input
@@ -240,17 +316,55 @@ export default function VideoCommercePage() {
                   className="w-full border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-background font-bold"
                 />
               </div>
+
+              {/* Multiple Video URLs */}
               <div>
-                <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block mb-1.5">Video URL *</label>
-                <input
-                  type="text"
-                  value={form.video_url}
-                  onChange={e => setForm(f => ({ ...f, video_url: e.target.value }))}
-                  placeholder="YouTube Shorts, embed URL, or direct video link"
-                  className="w-full border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-background font-mono"
-                />
-                <p className="text-[10px] text-muted-foreground mt-1">YouTube watch/shorts links are automatically converted to embed format.</p>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">
+                    Videos * <span className="normal-case font-normal text-muted-foreground/60">({form.video_urls.length}/{MAX_VIDEOS})</span>
+                  </label>
+                </div>
+                <div className="space-y-2">
+                  {form.video_urls.map((url, i) => (
+                    <div key={i} className="flex gap-2 items-start">
+                      <div className="flex-1 space-y-1">
+                        <div className="flex gap-2 items-center">
+                          <span className="text-[10px] font-black text-muted-foreground w-4 shrink-0">{i + 1}.</span>
+                          <input
+                            type="text"
+                            value={url}
+                            onChange={e => updateVideoUrl(i, e.target.value)}
+                            placeholder="YouTube Shorts, Instagram Reel, or direct URL"
+                            className="flex-1 border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-background font-mono"
+                          />
+                        </div>
+                        {url.trim() && (
+                          <div className="ml-5">
+                            <PlatformBadge url={url} />
+                          </div>
+                        )}
+                      </div>
+                      {form.video_urls.length > 1 && (
+                        <button onClick={() => removeVideoSlot(i)} className="mt-1.5 p-1.5 text-muted-foreground hover:text-destructive hover:bg-red-50 rounded-lg transition-colors shrink-0">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {form.video_urls.length < MAX_VIDEOS && (
+                  <button
+                    onClick={addVideoSlot}
+                    className="mt-3 flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary/80 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add Another Video
+                  </button>
+                )}
+                <p className="text-[10px] text-muted-foreground mt-2">YouTube Shorts/Watch/youtu.be and Instagram Reels are automatically converted to embed format. Max {MAX_VIDEOS} videos per reel.</p>
               </div>
+
+              {/* Tag Product */}
               <div>
                 <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block mb-1.5">Tag Product (optional)</label>
                 <select
@@ -267,9 +381,10 @@ export default function VideoCommercePage() {
                   <p className="text-[10px] text-muted-foreground mt-1">Add products to your catalog first to tag them in reels.</p>
                 )}
               </div>
+
               {message && <p className={`text-xs font-medium ${message.startsWith('Error') ? 'text-destructive' : 'text-green-600'}`}>{message}</p>}
             </div>
-            <div className="flex gap-3 p-6 border-t border-border">
+            <div className="flex gap-3 p-6 border-t border-border shrink-0">
               <button onClick={() => setShowModal(false)} className="flex-1 border border-border rounded-xl py-2.5 text-sm font-bold hover:bg-muted transition-colors">Cancel</button>
               <button
                 onClick={handleSave}

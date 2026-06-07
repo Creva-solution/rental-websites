@@ -7,6 +7,18 @@ use Illuminate\Support\Str;
 
 class StorageController extends Controller
 {
+    private const ALLOWED_MIME_TYPES = [
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/webp',
+        'image/gif',
+    ];
+
+    private const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+
+    private const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+
     public function upload(Request $request)
     {
         $publicDir = public_path('uploads');
@@ -14,67 +26,121 @@ class StorageController extends Controller
             mkdir($publicDir, 0755, true);
         }
 
-        // Support base64 image uploads (commonly used in product cropper)
+        // ── Base64 image upload (product/logo cropper) ──────────────────────
         if ($request->has('base64')) {
             $base64Data = $request->input('base64');
-            if (preg_match('/^data:image\/(\w+);base64,/', $base64Data, $type)) {
-                $base64Data = substr($base64Data, strpos($base64Data, ',') + 1);
-                $type = strtolower($type[1]); // png, jpg, jpeg
-                if (!in_array($type, ['jpg', 'jpeg', 'gif', 'png', 'webp'])) {
-                    return response()->json(['error' => 'Invalid image type'], 400);
-                }
-                $data = base64_decode($base64Data);
-                if ($data === false) {
-                    return response()->json(['error' => 'Base64 decode failed'], 400);
-                }
-            } else {
-                return response()->json(['error' => 'Invalid base64 structure'], 400);
+
+            if (!preg_match('/^data:image\/(\w+);base64,/', $base64Data, $match)) {
+                return response()->json(['error' => 'Invalid base64 image format.'], 400);
             }
 
-            $fileName = Str::random(10) . '_' . time() . '.' . $type;
-            file_put_contents($publicDir . '/' . $fileName, $data);
+            $ext = strtolower($match[1]);
+            if (!in_array($ext, self::ALLOWED_EXTENSIONS, true)) {
+                return response()->json(['error' => 'Unsupported image type. Allowed: jpg, png, webp, gif.'], 400);
+            }
 
-            $publicUrl = asset('uploads/' . $fileName);
-            return response()->json([
-                'url' => $publicUrl,
-                'publicUrl' => $publicUrl,
-                'filePath' => 'uploads/' . $fileName
-            ]);
+            $raw = base64_decode(substr($base64Data, strpos($base64Data, ',') + 1));
+            if ($raw === false) {
+                return response()->json(['error' => 'Base64 decode failed.'], 400);
+            }
+
+            if (strlen($raw) > self::MAX_FILE_SIZE_BYTES) {
+                return response()->json(['error' => 'Image exceeds maximum size of 5 MB.'], 400);
+            }
+
+            // Verify it's actually an image by checking magic bytes
+            if (!$this->isValidImageBytes($raw)) {
+                return response()->json(['error' => 'File content does not match a valid image.'], 400);
+            }
+
+            $fileName = Str::random(16) . '_' . time() . '.' . $ext;
+            file_put_contents($publicDir . '/' . $fileName, $raw);
+
+            $url = asset('uploads/' . $fileName);
+            return response()->json(['url' => $url, 'publicUrl' => $url, 'filePath' => 'uploads/' . $fileName]);
         }
 
-        // Support standard multipart form file uploads
+        // ── Multipart file upload ────────────────────────────────────────────
         if ($request->hasFile('file')) {
             $file = $request->file('file');
-            $fileName = Str::random(10) . '_' . time() . '.' . $file->getClientOriginalExtension();
+
+            if (!$file->isValid()) {
+                return response()->json(['error' => 'File upload failed or was corrupted.'], 400);
+            }
+
+            if ($file->getSize() > self::MAX_FILE_SIZE_BYTES) {
+                return response()->json(['error' => 'File exceeds maximum size of 5 MB.'], 400);
+            }
+
+            $mimeType = $file->getMimeType();
+            if (!in_array($mimeType, self::ALLOWED_MIME_TYPES, true)) {
+                return response()->json(['error' => 'Unsupported file type. Only images (JPG, PNG, WebP, GIF) are allowed.'], 400);
+            }
+
+            $ext = strtolower($file->getClientOriginalExtension());
+            if (!in_array($ext, self::ALLOWED_EXTENSIONS, true)) {
+                // Derive extension from mime type as fallback
+                $ext = explode('/', $mimeType)[1] ?? 'jpg';
+                $ext = $ext === 'jpeg' ? 'jpg' : $ext;
+            }
+
+            $fileName = Str::random(16) . '_' . time() . '.' . $ext;
             $file->move($publicDir, $fileName);
 
-            $publicUrl = asset('uploads/' . $fileName);
-            return response()->json([
-                'url' => $publicUrl,
-                'publicUrl' => $publicUrl,
-                'filePath' => 'uploads/' . $fileName
-            ]);
+            $url = asset('uploads/' . $fileName);
+            return response()->json(['url' => $url, 'publicUrl' => $url, 'filePath' => 'uploads/' . $fileName]);
         }
 
-        return response()->json(['error' => 'No file provided'], 400);
+        return response()->json(['error' => 'No file provided.'], 400);
     }
 
     public function delete(Request $request)
     {
         $filePath = $request->input('filePath');
         if (!$filePath) {
-            return response()->json(['error' => 'No file path provided'], 400);
+            return response()->json(['error' => 'No file path provided.'], 400);
         }
 
-        // Clean up the path to prevent directory traversal
+        // Prevent directory traversal attacks
         $fileName = basename($filePath);
+        if ($fileName !== $filePath && !str_starts_with($filePath, 'uploads/')) {
+            return response()->json(['error' => 'Invalid file path.'], 400);
+        }
+
         $fullPath = public_path('uploads/' . $fileName);
 
-        if (file_exists($fullPath)) {
-            unlink($fullPath);
+        // Ensure path is inside uploads directory
+        $uploadsDir = realpath(public_path('uploads'));
+        $resolvedPath = realpath($fullPath);
+
+        if ($resolvedPath && $uploadsDir && !str_starts_with($resolvedPath, $uploadsDir)) {
+            return response()->json(['error' => 'Access denied.'], 403);
+        }
+
+        if ($resolvedPath && file_exists($resolvedPath)) {
+            unlink($resolvedPath);
             return response()->json(['success' => true]);
         }
 
-        return response()->json(['error' => 'File not found on disk'], 404);
+        return response()->json(['error' => 'File not found.'], 404);
+    }
+
+    private function isValidImageBytes(string $data): bool
+    {
+        // Check magic bytes for common image formats
+        if (strlen($data) < 4) return false;
+
+        $bytes = substr($data, 0, 4);
+
+        // JPEG: FF D8 FF
+        if (substr($bytes, 0, 3) === "\xFF\xD8\xFF") return true;
+        // PNG: 89 50 4E 47
+        if ($bytes === "\x89PNG") return true;
+        // GIF: 47 49 46 38
+        if (substr($bytes, 0, 3) === 'GIF') return true;
+        // WebP: check RIFF....WEBP
+        if (substr($bytes, 0, 4) === 'RIFF' && substr($data, 8, 4) === 'WEBP') return true;
+
+        return false;
     }
 }

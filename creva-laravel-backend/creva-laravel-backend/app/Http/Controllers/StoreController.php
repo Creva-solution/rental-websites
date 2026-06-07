@@ -97,14 +97,68 @@ class StoreController extends Controller
     public function destroy(Request $request, $id = null)
     {
         if ($id) {
-            $deleted = DB::table('stores')->where('id', $id)->delete();
+            DB::table('stores')->where('id', $id)->delete();
         } else {
             $query = DB::table('stores');
             if ($request->has('owner_id')) {
                 $query->where('owner_id', $request->input('owner_id'));
             }
-            $deleted = $query->delete();
+            $query->delete();
         }
         return response()->json(['success' => true]);
+    }
+
+    // ── Super Admin Methods ────────────────────────────────────────────────────
+
+    public function adminIndex(Request $request)
+    {
+        $query = DB::table('stores')
+            ->join('users', 'stores.owner_id', '=', 'users.id')
+            ->select(
+                'stores.*',
+                'users.name as owner_name',
+                'users.email as owner_email'
+            )
+            ->where('stores.subdomain', '!=', '__creva_saas_global_settings__');
+
+        if ($request->has('search')) {
+            $s = '%' . $request->input('search') . '%';
+            $query->where(function ($q) use ($s) {
+                $q->where('stores.store_name', 'ilike', $s)
+                  ->orWhere('stores.subdomain', 'ilike', $s)
+                  ->orWhere('users.email', 'ilike', $s);
+            });
+        }
+
+        if ($request->has('status')) {
+            $query->where('stores.status', $request->input('status'));
+        }
+
+        if ($request->has('is_paused')) {
+            $query->where('stores.is_paused', filter_var($request->input('is_paused'), FILTER_VALIDATE_BOOLEAN));
+        }
+
+        $stores = $query->orderBy('stores.created_at', 'desc')->get();
+        return response()->json($stores);
+    }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $store = DB::table('stores')->where('id', $id)->first();
+        if (!$store) {
+            return response()->json(['error' => 'Store not found'], 404);
+        }
+
+        $data = [];
+        if ($request->has('is_paused')) {
+            $data['is_paused'] = (bool) $request->input('is_paused');
+        }
+        if ($request->has('status')) {
+            $data['status'] = $request->input('status');
+        }
+        $data['updated_at'] = now();
+
+        DB::table('stores')->where('id', $id)->update($data);
+        return response()->json(DB::table('stores')->where('id', $id)->first());
     }
 }
