@@ -3,26 +3,26 @@
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
-  Plus, Search, Send, Paperclip, X, ChevronRight, Clock, CheckCircle2,
-  AlertCircle, Circle, XCircle, Loader2, Upload, Image, FileText,
-  Mic, Video, MessageSquare, Tag, Filter, RefreshCw, ArrowLeft
+  Plus, Search, Send, X, ChevronRight, Clock, CheckCircle2,
+  AlertCircle, Circle, XCircle, Loader2, Image, FileText,
+  Mic, Video, MessageSquare, RefreshCw, ArrowLeft, Play
 } from 'lucide-react';
 
 const CATEGORIES = [
-  { value: 'technical', label: 'Technical Issue' },
-  { value: 'payment', label: 'Payment Issue' },
-  { value: 'subscription', label: 'Subscription Issue' },
-  { value: 'design', label: 'Store Design Issue' },
-  { value: 'feature', label: 'Feature Request' },
-  { value: 'other', label: 'Other' },
+  { value: 'technical',    label: 'Technical Issue' },
+  { value: 'payment',     label: 'Payment Issue' },
+  { value: 'subscription',label: 'Subscription Issue' },
+  { value: 'design',      label: 'Store Design Issue' },
+  { value: 'feature',     label: 'Feature Request' },
+  { value: 'other',       label: 'Other' },
 ];
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  open:                { label: 'Open',                 color: 'text-blue-600 bg-blue-50 border-blue-200',    icon: Circle },
-  in_progress:         { label: 'In Progress',          color: 'text-amber-600 bg-amber-50 border-amber-200', icon: Clock },
-  waiting_for_customer:{ label: 'Waiting for You',     color: 'text-purple-600 bg-purple-50 border-purple-200', icon: AlertCircle },
-  resolved:            { label: 'Resolved',             color: 'text-green-600 bg-green-50 border-green-200', icon: CheckCircle2 },
-  closed:              { label: 'Closed',               color: 'text-gray-500 bg-gray-100 border-gray-200',   icon: XCircle },
+  open:                 { label: 'Open',             color: 'text-blue-600 bg-blue-50 border-blue-200',       icon: Circle },
+  in_progress:          { label: 'In Progress',      color: 'text-amber-600 bg-amber-50 border-amber-200',    icon: Clock },
+  waiting_for_customer: { label: 'Waiting for You',  color: 'text-purple-600 bg-purple-50 border-purple-200', icon: AlertCircle },
+  resolved:             { label: 'Resolved',         color: 'text-green-600 bg-green-50 border-green-200',    icon: CheckCircle2 },
+  closed:               { label: 'Closed',           color: 'text-gray-500 bg-gray-100 border-gray-200',      icon: XCircle },
 };
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
@@ -31,6 +31,48 @@ const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high:     { label: 'High',     color: 'text-orange-600 bg-orange-50' },
   critical: { label: 'Critical', color: 'text-red-600 bg-red-50' },
 };
+
+// Validation
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
+const ATTACHMENT_TYPES = {
+  screenshot: {
+    label: 'Screenshots',
+    accept: '.png,.jpg,.jpeg,.webp',
+    mimes: ['image/png', 'image/jpeg', 'image/webp', 'image/jpg'],
+    desc: 'PNG, JPG, JPEG, WEBP · max 10 MB',
+    icon: Image,
+    color: 'text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100',
+  },
+  voice: {
+    label: 'Voice Notes',
+    accept: '.mp3,.wav,.m4a,.ogg',
+    mimes: ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a', 'audio/aac'],
+    desc: 'MP3, WAV, M4A, OGG · max 10 MB',
+    icon: Mic,
+    color: 'text-purple-600 border-purple-200 bg-purple-50 hover:bg-purple-100',
+  },
+  video: {
+    label: 'Screen Recordings',
+    accept: '.mp4,.webm,.mov',
+    mimes: ['video/mp4', 'video/webm', 'video/quicktime'],
+    desc: 'MP4, WEBM, MOV · max 10 MB',
+    icon: Video,
+    color: 'text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100',
+  },
+  doc: {
+    label: 'Documents',
+    accept: '.pdf,.doc,.docx,.txt',
+    mimes: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'],
+    desc: 'PDF, DOC, DOCX, TXT · max 10 MB',
+    icon: FileText,
+    color: 'text-orange-600 border-orange-200 bg-orange-50 hover:bg-orange-100',
+  },
+} as const;
+
+type AttachmentCategory = keyof typeof ATTACHMENT_TYPES;
+
+interface Attachment { name: string; url: string; type: string }
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.open;
@@ -51,10 +93,116 @@ function PriorityBadge({ priority }: { priority: string }) {
   );
 }
 
+/** Renders an attachment inline — images, audio player, video player, or download link */
+function AttachmentRenderer({ att, isOwner }: { att: Attachment; isOwner: boolean }) {
+  const linkCls = `flex items-center gap-1.5 text-[10px] font-bold underline mt-1 ${isOwner ? 'text-primary-foreground/80' : 'text-primary'}`;
+
+  if (att.type?.startsWith('image/')) {
+    return (
+      <a href={att.url} target="_blank" rel="noopener noreferrer" className="mt-1.5 block">
+        <img
+          src={att.url}
+          alt={att.name}
+          className="max-w-full rounded-xl max-h-52 object-cover border border-white/15 shadow-sm"
+        />
+        <span className={`text-[9px] mt-0.5 block ${isOwner ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>{att.name}</span>
+      </a>
+    );
+  }
+
+  if (att.type?.startsWith('audio/')) {
+    return (
+      <div className="mt-1.5">
+        <p className={`text-[9px] mb-0.5 flex items-center gap-1 ${isOwner ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+          <Mic className="w-3 h-3" /> {att.name}
+        </p>
+        <audio controls src={att.url} style={{ height: 32, maxWidth: 260 }} className="w-full" />
+      </div>
+    );
+  }
+
+  if (att.type?.startsWith('video/')) {
+    return (
+      <div className="mt-1.5">
+        <video controls src={att.url} className="rounded-xl max-h-48 w-full max-w-xs border border-white/15" />
+        <span className={`text-[9px] mt-0.5 block ${isOwner ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>{att.name}</span>
+      </div>
+    );
+  }
+
+  return (
+    <a href={att.url} target="_blank" rel="noopener noreferrer" className={linkCls}>
+      <FileText className="w-3 h-3 shrink-0" /> {att.name}
+    </a>
+  );
+}
+
+/** Preview chip shown before sending */
+function AttachmentPreview({ att, onRemove }: { att: Attachment; onRemove: () => void }) {
+  if (att.type?.startsWith('image/')) {
+    return (
+      <div className="relative group shrink-0">
+        <img src={att.url} alt={att.name} className="h-16 w-16 object-cover rounded-lg border border-border shadow-sm" />
+        <button
+          onClick={onRemove}
+          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+        >
+          <X className="w-3 h-3" />
+        </button>
+        <p className="text-[8px] text-center text-muted-foreground mt-0.5 truncate w-16">{att.name}</p>
+      </div>
+    );
+  }
+
+  if (att.type?.startsWith('audio/')) {
+    return (
+      <div className="flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-xl px-3 py-2 max-w-[240px] shrink-0">
+        <Mic className="w-4 h-4 text-purple-500 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-bold text-purple-700 truncate">{att.name}</p>
+          <audio controls src={att.url} style={{ height: 24 }} className="w-full mt-0.5" />
+        </div>
+        <button onClick={onRemove} className="text-purple-400 hover:text-red-500 transition-colors">
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    );
+  }
+
+  if (att.type?.startsWith('video/')) {
+    return (
+      <div className="relative group shrink-0">
+        <video src={att.url} className="h-16 w-24 object-cover rounded-lg border border-border shadow-sm" />
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
+          <Play className="w-5 h-5 text-white drop-shadow" />
+        </div>
+        <button
+          onClick={onRemove}
+          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+        >
+          <X className="w-3 h-3" />
+        </button>
+        <p className="text-[8px] text-center text-muted-foreground mt-0.5 truncate w-24">{att.name}</p>
+      </div>
+    );
+  }
+
+  // Document
+  return (
+    <div className="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2 max-w-[200px] shrink-0">
+      <FileText className="w-4 h-4 text-orange-500 shrink-0" />
+      <p className="text-[10px] font-bold text-orange-700 truncate flex-1">{att.name}</p>
+      <button onClick={onRemove} className="text-orange-400 hover:text-red-500 transition-colors">
+        <X className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
+
 export default function AdminSupportPage() {
-  const [store, setStore]     = useState<any>(null);
-  const [user, setUser]       = useState<any>(null);
-  const [tickets, setTickets] = useState<any[]>([]);
+  const [store, setStore]       = useState<any>(null);
+  const [user, setUser]         = useState<any>(null);
+  const [tickets, setTickets]   = useState<any[]>([]);
   const [selected, setSelected] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -62,16 +210,19 @@ export default function AdminSupportPage() {
   const [creating, setCreating] = useState(false);
   const [search, setSearch]     = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [showNew, setShowNew] = useState(false);
-  const [reply, setReply] = useState('');
-  const [attachments, setAttachments] = useState<{ name: string; url: string; type: string }[]>([]);
+  const [showNew, setShowNew]   = useState(false);
+  const [reply, setReply]       = useState('');
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const msgEndRef = useRef<HTMLDivElement>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const [form, setForm] = useState({
-    subject: '', category: 'technical', message: '',
-  });
+  const screenshotRef = useRef<HTMLInputElement>(null);
+  const voiceRef      = useRef<HTMLInputElement>(null);
+  const videoRef      = useRef<HTMLInputElement>(null);
+  const docRef        = useRef<HTMLInputElement>(null);
+  const msgEndRef     = useRef<HTMLDivElement>(null);
+
+  const [form, setForm] = useState({ subject: '', category: 'technical', message: '' });
 
   useEffect(() => { init(); }, []);
   useEffect(() => { if (selected) loadMessages(selected.id); }, [selected]);
@@ -123,26 +274,56 @@ export default function AdminSupportPage() {
     } finally { setCreating(false); }
   };
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, category: AttachmentCategory) => {
     const files = e.target.files;
     if (!files?.length) return;
+
+    setUploadError(null);
     setUploading(true);
-    const uploaded: { name: string; url: string; type: string }[] = [];
+
+    const cfg = ATTACHMENT_TYPES[category];
+    const uploaded: Attachment[] = [];
+
     for (const file of Array.from(files)) {
+      // Size check
+      if (file.size > MAX_FILE_SIZE) {
+        setUploadError(`"${file.name}" exceeds the 10 MB limit. Please choose a smaller file.`);
+        continue;
+      }
+      // Type check — allow by MIME or by extension fallback
+      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+      const acceptedExts = cfg.accept.replace(/\./g, '').split(',');
+      const typeOk = (cfg.mimes as readonly string[]).includes(file.type) || acceptedExts.includes(ext);
+      if (!typeOk) {
+        setUploadError(`"${file.name}" is not allowed here. Accepted: ${cfg.desc}`);
+        continue;
+      }
+
+      // Read as data URL for instant preview
       const reader = new FileReader();
-      const dataUrl = await new Promise<string>(res => { reader.onload = () => res(reader.result as string); reader.readAsDataURL(file); });
+      const dataUrl = await new Promise<string>(res => {
+        reader.onload = () => res(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+
+      // Try uploading to storage; fall back to data URL so preview always works
       try {
-        const { data } = await supabase.storage.from('uploads').upload(`support/${Date.now()}_${file.name}`, dataUrl);
-        if ((data as any)?.url) uploaded.push({ name: file.name, url: (data as any).url, type: file.type });
-        else uploaded.push({ name: file.name, url: dataUrl, type: file.type });
+        const { data } = await supabase.storage
+          .from('uploads')
+          .upload(`support/${Date.now()}_${file.name}`, dataUrl);
+        uploaded.push({ name: file.name, url: (data as any)?.url || dataUrl, type: file.type });
       } catch {
         uploaded.push({ name: file.name, url: dataUrl, type: file.type });
       }
     }
+
     setAttachments(prev => [...prev, ...uploaded]);
     setUploading(false);
     e.target.value = '';
   };
+
+  const removeAttachment = (i: number) =>
+    setAttachments(prev => prev.filter((_, idx) => idx !== i));
 
   const handleSendReply = async () => {
     if (!reply.trim() && attachments.length === 0) return;
@@ -159,23 +340,30 @@ export default function AdminSupportPage() {
       }]);
       setReply('');
       setAttachments([]);
+      setUploadError(null);
       await loadMessages(selected.id);
       await loadTickets();
     } finally { setSending(false); }
   };
 
   const filtered = tickets.filter(t => {
-    const matchSearch = !search || t.subject?.toLowerCase().includes(search.toLowerCase()) || t.ticket_number?.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search ||
+      t.subject?.toLowerCase().includes(search.toLowerCase()) ||
+      t.ticket_number?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'all' || t.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
-  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-7 h-7 animate-spin text-primary" /></div>;
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-7 h-7 animate-spin text-primary" />
+    </div>
+  );
 
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col">
 
-      {/* ── Page Header ── */}
+      {/* Page Header */}
       <div className="px-6 py-5 border-b border-border bg-background flex items-start justify-between shrink-0">
         <div>
           <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full flex items-center gap-1.5 w-fit mb-2">
@@ -192,13 +380,11 @@ export default function AdminSupportPage() {
         </button>
       </div>
 
-      {/* ── Main Layout ── */}
+      {/* Main Layout */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* ── Ticket List Panel ── */}
+        {/* Ticket List Panel */}
         <div className={`w-full md:w-80 border-r border-border flex flex-col bg-background shrink-0 ${selected ? 'hidden md:flex' : 'flex'}`}>
-
-          {/* Search + Filter */}
           <div className="p-3 border-b border-border space-y-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -221,7 +407,6 @@ export default function AdminSupportPage() {
             </div>
           </div>
 
-          {/* Ticket Items */}
           <div className="flex-1 overflow-y-auto divide-y divide-border">
             {filtered.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground">
@@ -249,7 +434,6 @@ export default function AdminSupportPage() {
             ))}
           </div>
 
-          {/* Refresh */}
           <div className="p-3 border-t border-border">
             <button onClick={() => loadTickets()} className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground hover:text-foreground transition-colors">
               <RefreshCw className="w-3 h-3" /> Refresh
@@ -257,7 +441,7 @@ export default function AdminSupportPage() {
           </div>
         </div>
 
-        {/* ── Ticket Detail / Chat Panel ── */}
+        {/* Ticket Detail / Chat Panel */}
         <div className={`flex-1 flex flex-col bg-muted/10 ${selected ? 'flex' : 'hidden md:flex'}`}>
           {!selected ? (
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
@@ -280,14 +464,14 @@ export default function AdminSupportPage() {
                       <PriorityBadge priority={selected.priority} />
                     </div>
                     <h3 className="text-sm font-black mt-1 truncate">{selected.subject}</h3>
-                    <p className="text-[10px] text-muted-foreground">{CATEGORIES.find(c => c.value === selected.category)?.label} · Opened {new Date(selected.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {CATEGORIES.find(c => c.value === selected.category)?.label} · Opened {new Date(selected.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </p>
                   </div>
                 </div>
-
-                {/* Response promise */}
                 <div className="mt-3 flex items-center gap-2 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
                   <Clock className="w-3 h-3 shrink-0" />
-                  Our support team will review and respond within <strong>24 hours</strong>.
+                  Our support team will review and respond within <strong className="ml-0.5">24 hours</strong>.
                 </div>
               </div>
 
@@ -298,7 +482,9 @@ export default function AdminSupportPage() {
                 )}
                 {messages.map(msg => {
                   const isOwner = msg.sender_role === 'owner';
-                  const atts: any[] = (() => { try { return JSON.parse(msg.attachments || '[]'); } catch { return []; } })();
+                  const atts: Attachment[] = (() => {
+                    try { return JSON.parse(msg.attachments || '[]'); } catch { return []; }
+                  })();
                   return (
                     <div key={msg.id} className={`flex ${isOwner ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${isOwner ? 'bg-primary text-primary-foreground rounded-tr-sm' : 'bg-background border border-border rounded-tl-sm'}`}>
@@ -307,17 +493,13 @@ export default function AdminSupportPage() {
                         </p>
                         {msg.message && <p className="text-xs leading-relaxed whitespace-pre-wrap">{msg.message}</p>}
                         {atts.length > 0 && (
-                          <div className="mt-2 space-y-1">
-                            {atts.map((att: any, i: number) => (
-                              <a key={i} href={att.url} target="_blank" rel="noopener noreferrer"
-                                className={`flex items-center gap-1.5 text-[10px] font-bold underline ${isOwner ? 'text-primary-foreground/80' : 'text-primary'}`}>
-                                {att.type?.startsWith('image') ? <Image className="w-3 h-3" /> : att.type?.startsWith('audio') ? <Mic className="w-3 h-3" /> : att.type?.startsWith('video') ? <Video className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
-                                {att.name}
-                              </a>
+                          <div className="mt-1 space-y-2">
+                            {atts.map((att, i) => (
+                              <AttachmentRenderer key={i} att={att} isOwner={isOwner} />
                             ))}
                           </div>
                         )}
-                        <p className={`text-[9px] mt-1 ${isOwner ? 'text-primary-foreground/50' : 'text-muted-foreground'}`}>
+                        <p className={`text-[9px] mt-1.5 ${isOwner ? 'text-primary-foreground/50' : 'text-muted-foreground'}`}>
                           {new Date(msg.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
@@ -328,21 +510,56 @@ export default function AdminSupportPage() {
               </div>
 
               {/* Reply Box */}
-              {selected.status !== 'closed' && (
-                <div className="px-5 py-4 border-t border-border bg-background shrink-0">
+              {selected.status !== 'closed' ? (
+                <div className="px-5 py-4 border-t border-border bg-background shrink-0 space-y-3">
+
+                  {/* 4 Attachment Type Buttons */}
+                  <div className="flex flex-wrap gap-2">
+                    {(Object.entries(ATTACHMENT_TYPES) as [AttachmentCategory, typeof ATTACHMENT_TYPES[AttachmentCategory]][]).map(([key, cfg]) => {
+                      const Icon = cfg.icon;
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => {
+                            setUploadError(null);
+                            if (key === 'screenshot') screenshotRef.current?.click();
+                            else if (key === 'voice')  voiceRef.current?.click();
+                            else if (key === 'video')  videoRef.current?.click();
+                            else                       docRef.current?.click();
+                          }}
+                          disabled={uploading}
+                          className={`flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-full border transition-colors disabled:opacity-50 ${cfg.color}`}
+                          title={cfg.desc}
+                        >
+                          {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Icon className="w-3.5 h-3.5" />}
+                          {cfg.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Upload Error */}
+                  {uploadError && (
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span className="flex-1">{uploadError}</span>
+                      <button onClick={() => setUploadError(null)} className="text-red-400 hover:text-red-600">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Attachment Previews */}
                   {attachments.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-3">
+                    <div className="flex flex-wrap gap-2 p-3 bg-muted/30 rounded-xl border border-border">
                       {attachments.map((att, i) => (
-                        <div key={i} className="flex items-center gap-1.5 bg-muted rounded-lg px-2 py-1 text-[10px] font-bold">
-                          <FileText className="w-3 h-3" /> {att.name}
-                          <button onClick={() => setAttachments(prev => prev.filter((_, idx) => idx !== i))} className="ml-1 text-muted-foreground hover:text-destructive">
-                            <X className="w-2.5 h-2.5" />
-                          </button>
-                        </div>
+                        <AttachmentPreview key={i} att={att} onRemove={() => removeAttachment(i)} />
                       ))}
                     </div>
                   )}
-                  <div className="flex gap-2">
+
+                  {/* Text + Send */}
+                  <div className="flex gap-2 items-end">
                     <textarea
                       value={reply}
                       onChange={e => setReply(e.target.value)}
@@ -351,31 +568,28 @@ export default function AdminSupportPage() {
                       rows={3}
                       className="flex-1 border border-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none bg-background"
                     />
-                    <div className="flex flex-col gap-2">
-                      <button
-                        onClick={() => fileRef.current?.click()}
-                        disabled={uploading}
-                        className="w-9 h-9 flex items-center justify-center border border-border rounded-lg hover:bg-muted transition-colors text-muted-foreground"
-                        title="Attach file (image, voice, video, doc)"
-                      >
-                        {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
-                      </button>
-                      <button
-                        onClick={handleSendReply}
-                        disabled={sending || (!reply.trim() && attachments.length === 0)}
-                        className="w-9 h-9 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-40"
-                      >
-                        {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                      </button>
-                    </div>
+                    <button
+                      onClick={handleSendReply}
+                      disabled={sending || (!reply.trim() && attachments.length === 0)}
+                      className="w-10 h-10 flex items-center justify-center bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40 shrink-0"
+                    >
+                      {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    </button>
                   </div>
-                  <p className="text-[9px] text-muted-foreground mt-1.5">Attach screenshots, images, voice notes, screen recordings, or files.</p>
-                  <input ref={fileRef} type="file" multiple accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.txt" className="hidden" onChange={handleUpload} />
+
+                  <p className="text-[9px] text-muted-foreground">Max 10 MB per file. Images, audio, video, and documents accepted.</p>
+
+                  {/* Hidden file inputs — one per type */}
+                  <input ref={screenshotRef} type="file" multiple accept=".png,.jpg,.jpeg,.webp"   className="hidden" onChange={e => handleUpload(e, 'screenshot')} />
+                  <input ref={voiceRef}      type="file" multiple accept=".mp3,.wav,.m4a,.ogg"     className="hidden" onChange={e => handleUpload(e, 'voice')} />
+                  <input ref={videoRef}      type="file" multiple accept=".mp4,.webm,.mov"          className="hidden" onChange={e => handleUpload(e, 'video')} />
+                  <input ref={docRef}        type="file" multiple accept=".pdf,.doc,.docx,.txt"     className="hidden" onChange={e => handleUpload(e, 'doc')} />
                 </div>
-              )}
-              {selected.status === 'closed' && (
+              ) : (
                 <div className="px-5 py-4 border-t border-border text-center text-xs text-muted-foreground bg-background">
-                  This ticket is closed. <button onClick={() => setShowNew(true)} className="text-primary font-bold hover:underline">Open a new ticket</button> if you need more help.
+                  This ticket is closed.{' '}
+                  <button onClick={() => setShowNew(true)} className="text-primary font-bold hover:underline">Open a new ticket</button>
+                  {' '}if you need more help.
                 </div>
               )}
             </>
@@ -383,7 +597,7 @@ export default function AdminSupportPage() {
         </div>
       </div>
 
-      {/* ── New Ticket Modal ── */}
+      {/* New Ticket Modal */}
       {showNew && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-background border border-border rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
@@ -392,11 +606,12 @@ export default function AdminSupportPage() {
                 <h3 className="font-black text-lg">Create Support Ticket</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">We respond within 24 hours.</p>
               </div>
-              <button onClick={() => setShowNew(false)} className="p-1.5 hover:bg-muted rounded-lg"><X className="w-4 h-4" /></button>
+              <button onClick={() => setShowNew(false)} className="p-1.5 hover:bg-muted rounded-lg">
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             <div className="p-6 space-y-4 overflow-y-auto flex-1">
-              {/* Subject */}
               <div>
                 <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block mb-1.5">Subject *</label>
                 <input
@@ -408,7 +623,6 @@ export default function AdminSupportPage() {
                 />
               </div>
 
-              {/* Category */}
               <div>
                 <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block mb-1.5">Category *</label>
                 <div className="grid grid-cols-2 gap-2">
@@ -424,7 +638,6 @@ export default function AdminSupportPage() {
                 </div>
               </div>
 
-              {/* Message */}
               <div>
                 <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block mb-1.5">Describe your issue *</label>
                 <textarea
@@ -436,13 +649,13 @@ export default function AdminSupportPage() {
                 />
               </div>
 
-              {/* Attachment types info */}
               <div className="bg-muted/40 rounded-xl p-3">
                 <p className="text-[10px] font-bold text-muted-foreground mb-2">After creating the ticket you can attach:</p>
                 <div className="flex flex-wrap gap-2">
-                  {[['🖼', 'Screenshots'], ['🎙', 'Voice Notes'], ['📹', 'Screen Recordings'], ['📄', 'Documents']].map(([icon, label]) => (
-                    <span key={label} className="text-[10px] font-bold bg-background border border-border rounded-full px-2 py-1">{icon} {label}</span>
-                  ))}
+                  <span className="text-[10px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-full px-2 py-1 flex items-center gap-1"><Image className="w-3 h-3" /> Screenshots</span>
+                  <span className="text-[10px] font-bold bg-purple-50 border border-purple-200 text-purple-700 rounded-full px-2 py-1 flex items-center gap-1"><Mic className="w-3 h-3" /> Voice Notes</span>
+                  <span className="text-[10px] font-bold bg-blue-50 border border-blue-200 text-blue-700 rounded-full px-2 py-1 flex items-center gap-1"><Video className="w-3 h-3" /> Screen Recordings</span>
+                  <span className="text-[10px] font-bold bg-orange-50 border border-orange-200 text-orange-700 rounded-full px-2 py-1 flex items-center gap-1"><FileText className="w-3 h-3" /> Documents</span>
                 </div>
               </div>
             </div>
