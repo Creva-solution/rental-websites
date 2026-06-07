@@ -25,10 +25,7 @@ export default function SuperAdminDashboard() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([
-    { id: 1, title: 'Welcome to Super Admin Control Panel', description: 'Monitor registration compliance and system transactions.', time: 'Just now', read: false },
-    { id: 2, title: 'System health is optimal', description: 'All cron synchronization jobs completed successfully.', time: '2 hours ago', read: false }
-  ]);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -1844,6 +1841,63 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
     if (mainView === 'support') loadSupportTickets();
   }, [mainView]);
 
+  // ─── Superadmin Notification Helpers ─────────────────────────────────────
+  const loadSuperAdminNotifications = async () => {
+    try {
+      const data = await supportApiFetch('/notifications?for_role=superadmin');
+      const arr = Array.isArray(data) ? data : [];
+      const fmt = (ts: string) => {
+        if (!ts) return '';
+        const diff = Date.now() - new Date(ts).getTime();
+        const m = Math.floor(diff / 60000);
+        if (m < 1) return 'Just now';
+        if (m < 60) return `${m}m ago`;
+        const h = Math.floor(m / 60);
+        if (h < 24) return `${h}h ago`;
+        return `${Math.floor(h / 24)}d ago`;
+      };
+      setNotifications(arr.map((n: any) => ({
+        id: n.id,
+        title: n.title,
+        description: n.body || '',
+        time: fmt(n.created_at),
+        read: !!n.is_read,
+        ticket_id: n.ticket_id,
+      })));
+    } catch (e) {
+      console.error('Failed to load superadmin notifications:', e);
+    }
+  };
+
+  const markSuperAdminNotifRead = async (id: string | number) => {
+    try {
+      await supportApiFetch(`/notifications/${id}`, { method: 'PATCH' });
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    } catch (e) {
+      console.error('Failed to mark notification read:', e);
+    }
+  };
+
+  const markAllSuperAdminNotifsRead = async () => {
+    try {
+      await supportApiFetch('/notifications/all', {
+        method: 'DELETE',
+        body: JSON.stringify({ for_role: 'superadmin' }),
+      });
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } catch (e) {
+      // Fallback: just update local state
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    }
+  };
+
+  // Load superadmin notifications on mount and refresh every 30s
+  useEffect(() => {
+    loadSuperAdminNotifications();
+    const interval = setInterval(loadSuperAdminNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 font-sans flex flex-col">
       {/* Redesigned Top SaaS Header Navigation */}
@@ -1916,7 +1970,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                 <div className="px-4 py-2 border-b border-gray-100 flex justify-between items-center">
                   <span className="font-bold text-xs uppercase tracking-wider text-[#3C77C3]">Notifications</span>
                   <button
-                    onClick={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
+                    onClick={markAllSuperAdminNotifsRead}
                     className="text-[10px] text-gray-400 hover:text-[#3C77C3] transition-colors uppercase font-black tracking-widest"
                   >
                     Mark all read
@@ -1929,7 +1983,11 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                     </div>
                   ) : (
                     notifications.map(n => (
-                      <div key={n.id} className={`px-4 py-3 hover:bg-blue-50/50 transition-colors text-left ${n.read ? 'opacity-60' : ''}`}>
+                      <div
+                        key={n.id}
+                        onClick={() => { if (!n.read) markSuperAdminNotifRead(n.id); if (n.ticket_id) { setMainView('support'); setShowNotifications(false); } }}
+                        className={`px-4 py-3 hover:bg-blue-50/50 transition-colors text-left cursor-pointer ${n.read ? 'opacity-60' : ''}`}
+                      >
                         <p className="text-xs font-bold text-gray-800 leading-snug">{n.title}</p>
                         <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">{n.description}</p>
                         <span className="text-[9px] text-gray-400 mt-1.5 block font-mono">{n.time}</span>
