@@ -196,16 +196,28 @@ const renderCategoryIcon = (category: string, className = "w-3.5 h-3.5") => {
 };
 
 export default function StorefrontClient({ store, products, videoSessions = [] }: { store: any, products: any[], videoSessions?: any[] }) {
+  const [liveStore, setLiveStore] = useState(store);
+
+  useEffect(() => {
+    fetch(`/api/backend/stores?subdomain=${store.subdomain}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then(data => {
+        const fresh = Array.isArray(data) ? data[0] : data;
+        if (fresh?.id) setLiveStore(fresh);
+      })
+      .catch(() => {});
+  }, [store.subdomain]);
+
   const primaryColor = useMemo(() => {
-    const raw = store.subdomain?.includes('pakkumattai') || store.store_name?.toLowerCase().includes('pakkumattai')
-      ? (store.primary_color && store.primary_color !== '#3B82F6' ? store.primary_color : '#1b4332')
-      : (store.primary_color || '#3B82F6');
+    const raw = liveStore.subdomain?.includes('pakkumattai') || liveStore.store_name?.toLowerCase().includes('pakkumattai')
+      ? (liveStore.primary_color && liveStore.primary_color !== '#3B82F6' ? liveStore.primary_color : '#1b4332')
+      : (liveStore.primary_color || '#3B82F6');
     let clean = raw.replace('#', '');
     if (clean.length === 3) {
       clean = clean.split('').map((char: string) => char + char).join('');
     }
     return '#' + clean;
-  }, [store.primary_color, store.subdomain, store.store_name]);
+  }, [liveStore.primary_color, liveStore.subdomain, liveStore.store_name]);
 
   const hexToRgb = (hex: string) => {
     const cleanHex = hex.replace('#', '');
@@ -287,7 +299,7 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
   }, []);
 
   // Parse custom metadata for banner slideshow & announcement bar message
-  let parsedDesc = store.description || '';
+  let parsedDesc = liveStore.description || '';
   let customBanners = [];
   let announcementText = `EXCLUSIVE SPRING SALE: FREE SHIPPING ON ALL ORDERS OVER ${currencySymbol}500`;
   let socialLinks = { instagram: '', facebook: '', twitter: '', youtube: '', linkedin: '' };
@@ -325,8 +337,8 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
   let collectionTitle = '';
 
   try {
-    if (store.description && store.description.startsWith('{')) {
-      const data = JSON.parse(store.description);
+    if (liveStore.description && liveStore.description.startsWith('{')) {
+      const data = JSON.parse(liveStore.description);
       parsedDesc = data.description || '';
       customBanners = data.banners || [];
       if (data.announcement) {
@@ -382,7 +394,7 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
     console.error("Failed to parse store metadata:", e);
   }
 
-  // Merge video_sessions from DB (primary) with any legacy videoReels from store.description JSON
+  // Merge video_sessions from DB (primary) with any legacy videoReels from liveStore.description JSON
   const normalizedVideoSessions = videoSessions.map((vs: any) => {
     // Build per-video items — support new video_items format and old video_urls + product_ids
     const videoItems: { video_url: string; product_id: string | null }[] = vs.video_items?.length
@@ -506,10 +518,10 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
   // Dynamically update favicon in the browser tab based on the uploaded store logo
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
-    const logo = store.logo_url;
+
+    const logo = liveStore.logo_url;
     if (!logo) return;
-    
+
     // Find or create standard favicon link element
     let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
     if (!link) {
@@ -518,7 +530,7 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
       document.getElementsByTagName('head')[0].appendChild(link);
     }
     link.href = logo;
-    
+
     // Find or create apple touch icon link element
     let appleLink = document.querySelector("link[rel~='apple-touch-icon']") as HTMLLinkElement;
     if (!appleLink) {
@@ -527,7 +539,7 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
       document.getElementsByTagName('head')[0].appendChild(appleLink);
     }
     appleLink.href = logo;
-  }, [store.logo_url]);
+  }, [liveStore.logo_url]);
 
   useEffect(() => {
     if (showToast) {
@@ -757,8 +769,8 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
   // Extract Razorpay connected status from store description JSON
   const razorpayConnected = useMemo(() => {
     try {
-      if (store.description && store.description.startsWith('{')) {
-        const data = JSON.parse(store.description);
+      if (liveStore.description && liveStore.description.startsWith('{')) {
+        const data = JSON.parse(liveStore.description);
         if (data.integrations) {
           const rp = data.integrations.find((int: any) => int.id === 'razorpay');
           if (rp && rp.connected) {
@@ -770,7 +782,7 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
       console.error("Failed to parse Razorpay connection status", e);
     }
     return false;
-  }, [store.description]);
+  }, [liveStore.description]);
 
   // Customer User Authentication States (Flipkart style)
   const [customerUser, setCustomerUser] = useState<{ name: string; email: string; phone: string; address: string } | null>(null);
@@ -1352,8 +1364,8 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
     // Retrieve Key ID from integration settings
     let keyId = 'rzp_test_defaultKeyIdIfEmpty';
     try {
-      if (store.description && store.description.startsWith('{')) {
-        const descData = JSON.parse(store.description);
+      if (liveStore.description && liveStore.description.startsWith('{')) {
+        const descData = JSON.parse(liveStore.description);
         if (descData.integrationSettings && descData.integrationSettings.razorpay) {
           keyId = descData.integrationSettings.razorpay.keyId || keyId;
         }
@@ -1368,7 +1380,7 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
       currency: store.currency || 'INR',
       name: store.store_name,
       description: `Payment for Order at ${store.store_name}`,
-      image: store.logo_url || '',
+      image: liveStore.logo_url || '',
       handler: async function (response: any) {
         setPaymentStageText('Verifying transaction...');
         setPaymentProcessing(true);
@@ -1393,7 +1405,7 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
         email: customerUser?.email || ''
       },
       theme: {
-        color: store.primary_color || '#7C3AED'
+        color: liveStore.primary_color || '#7C3AED'
       },
       modal: {
         ondismiss: function () {
@@ -1689,8 +1701,8 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
               {/* Left Logo / Desktop Nav */}
               <div className="flex items-center gap-6">
                 <Link href="/" className="flex items-center gap-2 font-black uppercase text-[10px] sm:text-xs tracking-wider border-2 border-black bg-white px-3 py-1.5 shadow-[2px_2px_0px_#000] hover:bg-stone-50 transition-colors">
-                  {store.logo_url ? (
-                    <img src={store.logo_url} alt={store.store_name} className="h-5 w-auto object-contain" />
+                  {liveStore.logo_url ? (
+                    <img src={liveStore.logo_url} alt={store.store_name} className="h-5 w-auto object-contain" />
                   ) : (
                     <span className="flex items-center gap-1"><Package className="w-3.5 h-3.5" /> {store.store_name}</span>
                   )}
@@ -1748,8 +1760,8 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                   <Menu className="w-5 h-5 stroke-[2]" />
                 </button>
                 <Link href="/" className="flex flex-col items-start leading-none group">
-                  {store.logo_url ? (
-                    <img src={store.logo_url} alt={store.store_name} className="h-8 w-auto object-contain brightness-0 invert" />
+                  {liveStore.logo_url ? (
+                    <img src={liveStore.logo_url} alt={store.store_name} className="h-8 w-auto object-contain brightness-0 invert" />
                   ) : (
                     <>
                       <span className="font-black text-sm sm:text-lg tracking-tight uppercase group-hover:text-yellow-300 transition-colors italic truncate max-w-[120px] sm:max-w-none">
@@ -1840,8 +1852,8 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
               {/* Left Aligned Heavy Brand Logo */}
               <div className="flex items-center gap-6">
                 <Link href="/" className="group flex items-center">
-                  {store.logo_url ? (
-                    <img src={store.logo_url} alt={store.store_name} className="h-10 w-auto object-contain border-2 border-black shadow-[3px_3px_0px_#000] p-1 bg-white" />
+                  {liveStore.logo_url ? (
+                    <img src={liveStore.logo_url} alt={store.store_name} className="h-10 w-auto object-contain border-2 border-black shadow-[3px_3px_0px_#000] p-1 bg-white" />
                   ) : (
                     <span className="font-extrabold text-2xl tracking-tighter text-black uppercase font-sans border-2 border-black px-3.5 py-1 shadow-[3px_3px_0px_#000] group-hover:bg-yellow-300 transition-colors">
                       {store.store_name}
@@ -1922,8 +1934,8 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                 </button>
 
                 <Link href="/" className="flex items-center group">
-                  {store.logo_url ? (
-                    <img src={store.logo_url} alt={store.store_name} className="h-6 w-auto object-contain" />
+                  {liveStore.logo_url ? (
+                    <img src={liveStore.logo_url} alt={store.store_name} className="h-6 w-auto object-contain" />
                   ) : (
                     <span className="font-extrabold text-sm sm:text-xl tracking-wider text-black uppercase font-sans truncate max-w-[130px] sm:max-w-none">
                       {store.store_name}
@@ -2015,8 +2027,8 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
               {/* Center: Brand Logo */}
               <div className="flex-1 md:flex-none flex items-center justify-center">
                 <Link href="/" className="flex items-center gap-2 group">
-                  {store.logo_url ? (
-                    <img src={store.logo_url} alt={store.store_name} className="h-9 md:h-11 w-auto object-contain transition-transform group-hover:scale-102" />
+                  {liveStore.logo_url ? (
+                    <img src={liveStore.logo_url} alt={store.store_name} className="h-9 md:h-11 w-auto object-contain transition-transform group-hover:scale-102" />
                   ) : (
                     <span className="font-extrabold text-sm sm:text-base md:text-2xl tracking-tight text-[#04113f] group-hover:text-[#f2852a] transition-all font-theme-title truncate max-w-[120px] sm:max-w-none">
                       {store.store_name}
@@ -2107,8 +2119,8 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
 
               <div className="md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 z-10 flex items-center justify-center flex-shrink">
                 <Link href="/" className="flex items-center gap-2 group">
-                  {store.logo_url ? (
-                    <img src={store.logo_url} alt={store.store_name} className="h-8 md:h-9 w-auto object-contain" />
+                  {liveStore.logo_url ? (
+                    <img src={liveStore.logo_url} alt={store.store_name} className="h-8 md:h-9 w-auto object-contain" />
                   ) : (
                     <span className="font-light text-xs sm:text-base md:text-xl tracking-wider md:tracking-[0.2em] text-gray-950 uppercase font-sans truncate max-w-[120px] sm:max-w-none">
                       {store.store_name}
@@ -5402,9 +5414,9 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
 
             {/* Logo / Badge section */}
             <div className="flex flex-col items-center text-center space-y-4 pb-6 border-b border-gray-100">
-              {store.logo_url ? (
+              {liveStore.logo_url ? (
                 <img 
-                  src={store.logo_url} 
+                  src={liveStore.logo_url} 
                   alt={store.store_name} 
                   className="w-16 h-16 rounded-full object-cover border-2 border-purple-200 shadow-md"
                 />
@@ -5629,8 +5641,8 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
         let selectedPlan = '30';
 
         try {
-          if (store.description && store.description.startsWith('{')) {
-            const data = JSON.parse(store.description);
+          if (liveStore.description && liveStore.description.startsWith('{')) {
+            const data = JSON.parse(liveStore.description);
             whatsappNumber = data.whatsappNumber || '';
             whatsappEnabled = data.whatsappEnabled !== false;
             whatsappWelcomeMessage = data.whatsappWelcomeMessage || '';

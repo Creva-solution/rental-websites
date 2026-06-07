@@ -2,9 +2,10 @@ import { notFound } from 'next/navigation';
 import { ShoppingCart, Menu, Search, Star } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { unstable_noStore as noStore } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0; // Disable caching for preview
+export const revalidate = 0;
 
 import StorefrontClient from './StorefrontClient';
 import StorePaused from '@/components/store/StorePaused';
@@ -27,6 +28,7 @@ export async function generateMetadata({ params }: { params: { subdomain: string
 }
 
 export default async function StorefrontPage({ params }: { params: { subdomain: string } }) {
+  noStore();
   // 1. Fetch store data based on subdomain
   const { data: store, error } = await supabase
     .from('stores')
