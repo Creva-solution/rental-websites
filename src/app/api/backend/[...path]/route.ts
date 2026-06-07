@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const RENDER_API = 'https://rentalwebsite-backend-vn40.onrender.com/api';
+const SUPABASE_URL = 'https://yovgvheilukjpysscmkv.supabase.co';
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
 // Forward a request to Render PHP and return parsed JSON (or raw text on failure)
 async function phpFetch(
@@ -14,13 +16,35 @@ async function phpFetch(
     'Content-Type': 'application/json',
   };
   if (auth) headers['Authorization'] = auth;
-
   try {
-    const res = await fetch(`${RENDER_API}${path}`, {
-      method,
-      headers,
-      body,
-      cache: 'no-store',
+    const res = await fetch(`${RENDER_API}${path}`, { method, headers, body, cache: 'no-store' });
+    const text = await res.text();
+    let data: any;
+    try { data = JSON.parse(text); } catch { data = text; }
+    return { ok: res.ok, status: res.status, data };
+  } catch (err: any) {
+    return { ok: false, status: 502, data: { error: err.message } };
+  }
+}
+
+// Call Supabase PostgREST directly (fallback when PHP routing is broken)
+async function sbFetch(
+  method: string,
+  table: string,
+  query: string,
+  body?: string,
+  prefer = 'return=representation',
+): Promise<{ ok: boolean; status: number; data: any }> {
+  const headers: Record<string, string> = {
+    apikey: SUPABASE_KEY,
+    Authorization: `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+    Prefer: prefer,
+  };
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${query}`, {
+      method, headers, body, cache: 'no-store',
     });
     const text = await res.text();
     let data: any;
@@ -31,10 +55,21 @@ async function phpFetch(
   }
 }
 
+// Detect a PHP routing/endpoint-not-found error (vs a real business error)
+function isPhpRoutingError(result: { ok: boolean; status: number; data: any }): boolean {
+  return (
+    !result.ok &&
+    (result.status === 404 || result.status === 405) &&
+    typeof result.data?.error === 'string' &&
+    (result.data.error.toLowerCase().includes('not found') ||
+      result.data.error.toLowerCase().includes('endpoint'))
+  );
+}
+
 // ─── Support-tickets handler ──────────────────────────────────────────────────
-// Vercel's server-side fetch sends a CLEAN URL to Render (no /index.php/ prefix),
-// so PHP's route parser works correctly with the hyphen-based support-tickets handler.
-// Falls back to generic-CRUD approach (support_tickets with underscore) if needed.
+// 1. Try PHP's custom support-tickets handler (hyphen URL).
+// 2. If PHP returns a routing error (Render's PHP is on old code without the handler),
+//    fall back to Supabase PostgREST which stores data persistently.
 async function handleSupportTickets(
   req: NextRequest,
   segments: string[],
@@ -48,91 +83,104 @@ async function handleSupportTickets(
   let rawBody = '';
   if (method !== 'GET' && method !== 'HEAD') rawBody = await req.text();
 
-  // Build the PHP path using HYPHENS — matches PHP's custom support-tickets handler
+  // ── Phase 1: try PHP ──────────────────────────────────────────────────────
   let phpPath = '/support-tickets';
   if (ticketId) phpPath += '/' + ticketId;
   if (subAction) phpPath += '/' + subAction;
   if (qs) phpPath += qs;
 
-  // Try the PHP custom handler first
-  const result = await phpFetch(method, phpPath, auth, rawBody || undefined);
-
-  // If PHP handled it fine (even 4xx that are real responses like "not found"), return as-is
-  // Only fall back if the response looks like a routing/endpoint error
-  const isRoutingError =
-    !result.ok &&
-    (result.status === 404 || result.status === 405) &&
-    (typeof result.data?.error === 'string') &&
-    (result.data.error.includes('Not Found') || result.data.error.includes('not found'));
-
-  if (!isRoutingError) {
+  const phpResult = await phpFetch(method, phpPath, auth, rawBody || undefined);
+  if (!isPhpRoutingError(phpResult)) {
+    // PHP handled it (success or real business error like 404 ticket-not-found) — pass through
     return new NextResponse(
-      typeof result.data === 'string' ? result.data : JSON.stringify(result.data),
-      {
-        status: result.status,
-        headers: { 'Content-Type': 'application/json' },
-      },
+      typeof phpResult.data === 'string' ? phpResult.data : JSON.stringify(phpResult.data),
+      { status: phpResult.status, headers: { 'Content-Type': 'application/json' } },
     );
   }
 
-  // ── Fallback: PHP custom handler missing → use generic CRUD (support_tickets) ──
-  // This path is used when Render hasn't yet deployed the custom support-tickets handler.
-
+  // ── Phase 2: PHP routing failed → use Supabase PostgREST ─────────────────
   const body = rawBody ? (() => { try { return JSON.parse(rawBody); } catch { return {}; } })() : {};
+  const qp = new URLSearchParams(qs.replace(/^\?/, ''));
 
-  // GET list
+  // GET /support-tickets  (list, optionally filtered by store_id)
   if (!ticketId && method === 'GET') {
-    const r = await phpFetch('GET', `/support_tickets${qs}`, auth);
-    return NextResponse.json(Array.isArray(r.data) ? r.data : []);
+    const storeId = qp.get('store_id');
+    const filter = storeId ? `?store_id=eq.${encodeURIComponent(storeId)}&order=created_at.desc` : '?order=created_at.desc';
+    const r = await sbFetch('GET', 'support_tickets', filter);
+    return NextResponse.json(Array.isArray(r.data) ? r.data : [], { status: r.ok ? 200 : r.status });
   }
 
-  // POST create
+  // POST /support-tickets  (create new ticket + initial message)
   if (!ticketId && method === 'POST') {
     const tktId = 'tkt_' + Date.now() + Math.random().toString(36).substring(2, 7);
+    const tktNum = 'TKT-' + Math.floor(100000 + Math.random() * 900000);
     const ticket = {
       id: tktId,
-      ticket_number: 'TKT-' + Math.floor(100000 + Math.random() * 900000),
+      ticket_number: tktNum,
       store_id: body.store_id ?? '',
+      owner_id: body.owner_id ?? '',
+      owner_email: body.owner_email ?? '',
+      store_name: body.store_name ?? '',
       subject: body.subject ?? '',
-      category: body.category ?? 'technical',
-      description: body.description ?? '',
+      category: body.category ?? 'other',
       priority: body.priority ?? 'medium',
       status: 'open',
-      attachments: JSON.stringify(body.attachments ?? []),
     };
-    const r = await phpFetch('POST', '/support_tickets', auth, JSON.stringify(ticket));
-    // Fire-and-forget notification
-    phpFetch('POST', '/support_notifications', auth, JSON.stringify({
-      id: 'notif_' + Date.now(),
+    const tr = await sbFetch('POST', 'support_tickets', '', JSON.stringify(ticket));
+    if (!tr.ok) {
+      return NextResponse.json(
+        { error: 'Failed to create ticket. Please run the Supabase setup SQL first.' },
+        { status: 500 },
+      );
+    }
+    // Insert the initial message if provided
+    if (body.message) {
+      const msgId = 'msg_' + Date.now() + Math.random().toString(36).substring(2, 7);
+      sbFetch('POST', 'support_messages', '', JSON.stringify({
+        id: msgId,
+        ticket_id: tktId,
+        sender_id: body.owner_id ?? '',
+        sender_role: 'owner',
+        sender_name: body.sender_name ?? body.store_name ?? '',
+        message: body.message,
+        attachments: JSON.stringify(body.attachments ?? []),
+      })).catch(() => {});
+    }
+    // Create superadmin notification
+    sbFetch('POST', 'support_notifications', '', JSON.stringify({
+      id: 'notif_' + Date.now() + Math.random().toString(36).substring(2, 6),
       type: 'new_ticket',
       for_role: 'superadmin',
       store_id: body.store_id ?? '',
       ticket_id: tktId,
-      title: 'New ticket: ' + (body.subject ?? ''),
-      body: 'Category: ' + (body.category ?? ''),
+      title: 'New Support Ticket: ' + (body.subject ?? ''),
+      body: 'Store "' + (body.store_name ?? '') + '" submitted a ' + (body.category ?? '') + ' ticket.',
       is_read: false,
     })).catch(() => {});
-    return NextResponse.json(r.ok ? r.data : ticket, { status: 201 });
+    const created = Array.isArray(tr.data) ? tr.data[0] : (tr.data ?? ticket);
+    return NextResponse.json(created, { status: 201 });
   }
 
-  // GET single ticket + messages
+  // GET /support-tickets/:id  (single ticket with messages)
   if (ticketId && !subAction && method === 'GET') {
     const [tr, mr] = await Promise.all([
-      phpFetch('GET', `/support_tickets/${ticketId}`, auth),
-      phpFetch('GET', `/support_messages?ticket_id=${ticketId}`, auth),
+      sbFetch('GET', 'support_tickets', `?id=eq.${ticketId}`),
+      sbFetch('GET', 'support_messages', `?ticket_id=eq.${ticketId}&order=created_at.asc`),
     ]);
+    const ticketRow = Array.isArray(tr.data) ? tr.data[0] : null;
     const messages = Array.isArray(mr.data) ? mr.data : [];
-    const ticket = tr.ok && tr.data ? tr.data : {};
-    return NextResponse.json({ ...ticket, messages });
+    if (!ticketRow) return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
+    return NextResponse.json({ ...ticketRow, messages });
   }
 
-  // PATCH / PUT
+  // PATCH/PUT /support-tickets/:id  (update status/priority)
   if (ticketId && !subAction && (method === 'PATCH' || method === 'PUT')) {
-    const r = await phpFetch('PUT', `/support_tickets/${ticketId}`, auth, rawBody || undefined);
-    return NextResponse.json(r.data ?? {});
+    const r = await sbFetch('PATCH', 'support_tickets', `?id=eq.${ticketId}`, rawBody || undefined, 'return=representation');
+    const updated = Array.isArray(r.data) ? r.data[0] : r.data;
+    return NextResponse.json(updated ?? {});
   }
 
-  // POST message
+  // POST /support-tickets/:id/messages  (add a reply)
   if (ticketId && subAction === 'messages' && method === 'POST') {
     const msgId = 'msg_' + Date.now() + Math.random().toString(36).substring(2, 7);
     const msg = {
@@ -140,14 +188,17 @@ async function handleSupportTickets(
       ticket_id: ticketId,
       sender_id: body.sender_id ?? '',
       sender_role: body.sender_role ?? 'owner',
+      sender_name: body.sender_name ?? '',
       message: body.message ?? '',
       attachments: JSON.stringify(body.attachments ?? []),
     };
-    const r = await phpFetch('POST', '/support_messages', auth, JSON.stringify(msg));
+    const r = await sbFetch('POST', 'support_messages', '', JSON.stringify(msg));
     if (body.sender_role === 'superadmin') {
-      phpFetch('PUT', `/support_tickets/${ticketId}`, auth, JSON.stringify({ status: 'in_progress' })).catch(() => {});
-      phpFetch('POST', '/support_notifications', auth, JSON.stringify({
-        id: 'notif_' + Date.now(),
+      // Mark ticket in_progress and notify owner
+      sbFetch('PATCH', 'support_tickets', `?id=eq.${ticketId}`,
+        JSON.stringify({ status: 'in_progress' }), 'return=minimal').catch(() => {});
+      sbFetch('POST', 'support_notifications', '', JSON.stringify({
+        id: 'notif_' + Date.now() + Math.random().toString(36).substring(2, 6),
         type: 'new_reply',
         for_role: 'owner',
         store_id: body.store_id ?? '',
@@ -157,7 +208,8 @@ async function handleSupportTickets(
         is_read: false,
       })).catch(() => {});
     }
-    return NextResponse.json(r.ok ? r.data : msg, { status: 201 });
+    const created = Array.isArray(r.data) ? r.data[0] : (r.data ?? msg);
+    return NextResponse.json(created, { status: 201 });
   }
 
   return NextResponse.json({ error: 'Support endpoint not found' }, { status: 404 });
@@ -175,43 +227,50 @@ async function handleNotifications(
   let rawBody = '';
   if (method !== 'GET' && method !== 'HEAD') rawBody = await req.text();
 
-  // Try PHP custom notifications handler first
+  // ── Phase 1: try PHP ──────────────────────────────────────────────────────
   let phpPath = '/notifications';
   if (notifId) phpPath += '/' + notifId;
   if (qs) phpPath += qs;
 
-  const result = await phpFetch(method, phpPath, auth, rawBody || undefined);
-  const isRoutingError =
-    !result.ok &&
-    typeof result.data?.error === 'string' &&
-    result.data.error.includes('Not Found');
-
-  if (!isRoutingError) {
+  const phpResult = await phpFetch(method, phpPath, auth, rawBody || undefined);
+  if (!isPhpRoutingError(phpResult)) {
     return new NextResponse(
-      typeof result.data === 'string' ? result.data : JSON.stringify(result.data),
-      { status: result.status, headers: { 'Content-Type': 'application/json' } },
+      typeof phpResult.data === 'string' ? phpResult.data : JSON.stringify(phpResult.data),
+      { status: phpResult.status, headers: { 'Content-Type': 'application/json' } },
     );
   }
 
-  // Fallback via generic CRUD (support_notifications)
+  // ── Phase 2: Supabase fallback ────────────────────────────────────────────
+  const qp = new URLSearchParams(qs.replace(/^\?/, ''));
+
+  // GET /notifications
   if (!notifId && method === 'GET') {
-    const r = await phpFetch('GET', `/support_notifications${qs}`, auth);
+    const filters: string[] = ['order=created_at.desc', 'limit=50'];
+    const forRole = qp.get('for_role');
+    const storeId = qp.get('store_id');
+    if (forRole) filters.unshift(`for_role=eq.${encodeURIComponent(forRole)}`);
+    if (storeId) filters.unshift(`store_id=eq.${encodeURIComponent(storeId)}`);
+    const r = await sbFetch('GET', 'support_notifications', '?' + filters.join('&'));
     return NextResponse.json(Array.isArray(r.data) ? r.data : []);
   }
-  if (notifId === 'all' && method === 'DELETE') {
-    const body = rawBody ? JSON.parse(rawBody) : {};
-    const r = await phpFetch('GET', `/support_notifications?for_role=${body.for_role ?? ''}`, auth);
-    if (Array.isArray(r.data)) {
-      await Promise.all(r.data.map((n: any) =>
-        phpFetch('PUT', `/support_notifications/${n.id}`, auth, JSON.stringify({ is_read: true })),
-      ));
-    }
+
+  // PATCH /notifications/:id  (mark single read)
+  if (notifId && notifId !== 'all' && method === 'PATCH') {
+    await sbFetch('PATCH', 'support_notifications', `?id=eq.${notifId}`,
+      JSON.stringify({ is_read: true }), 'return=minimal');
     return NextResponse.json({ success: true });
   }
-  if (notifId && method === 'PATCH') {
-    const r = await phpFetch('PUT', `/support_notifications/${notifId}`, auth, JSON.stringify({ is_read: true }));
-    return NextResponse.json(r.data ?? {});
+
+  // DELETE /notifications/all  (mark all read for a role)
+  if (notifId === 'all' && method === 'DELETE') {
+    const body = rawBody ? (() => { try { return JSON.parse(rawBody); } catch { return {}; } })() : {};
+    const role = body.for_role ?? qp.get('for_role') ?? 'superadmin';
+    await sbFetch('PATCH', 'support_notifications',
+      `?for_role=eq.${encodeURIComponent(role)}`,
+      JSON.stringify({ is_read: true }), 'return=minimal');
+    return NextResponse.json({ success: true });
   }
+
   return NextResponse.json({ error: 'Notification endpoint not found' }, { status: 404 });
 }
 
