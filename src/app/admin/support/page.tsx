@@ -216,11 +216,7 @@ export default function AdminSupportPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const screenshotRef = useRef<HTMLInputElement>(null);
-  const voiceRef      = useRef<HTMLInputElement>(null);
-  const videoRef      = useRef<HTMLInputElement>(null);
-  const docRef        = useRef<HTMLInputElement>(null);
-  const msgEndRef     = useRef<HTMLDivElement>(null);
+  const msgEndRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState({ subject: '', category: 'technical', message: '' });
 
@@ -513,27 +509,27 @@ export default function AdminSupportPage() {
               {selected.status !== 'closed' ? (
                 <div className="px-5 py-4 border-t border-border bg-background shrink-0 space-y-3">
 
-                  {/* 4 Attachment Type Buttons */}
+                  {/* 4 Attachment Type Buttons — label wraps input so click always opens picker */}
                   <div className="flex flex-wrap gap-2">
                     {(Object.entries(ATTACHMENT_TYPES) as [AttachmentCategory, typeof ATTACHMENT_TYPES[AttachmentCategory]][]).map(([key, cfg]) => {
                       const Icon = cfg.icon;
                       return (
-                        <button
+                        <label
                           key={key}
-                          onClick={() => {
-                            setUploadError(null);
-                            if (key === 'screenshot') screenshotRef.current?.click();
-                            else if (key === 'voice')  voiceRef.current?.click();
-                            else if (key === 'video')  videoRef.current?.click();
-                            else                       docRef.current?.click();
-                          }}
-                          disabled={uploading}
-                          className={`flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-full border transition-colors disabled:opacity-50 ${cfg.color}`}
                           title={cfg.desc}
+                          className={`flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-full border transition-colors select-none ${uploading ? 'opacity-50 pointer-events-none' : 'cursor-pointer'} ${cfg.color}`}
                         >
-                          {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Icon className="w-3.5 h-3.5" />}
+                          <Icon className="w-3.5 h-3.5" />
                           {cfg.label}
-                        </button>
+                          <input
+                            type="file"
+                            multiple
+                            accept={cfg.accept}
+                            disabled={uploading}
+                            style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap' }}
+                            onChange={e => { setUploadError(null); handleUpload(e, key); }}
+                          />
+                        </label>
                       );
                     })}
                   </div>
@@ -578,12 +574,6 @@ export default function AdminSupportPage() {
                   </div>
 
                   <p className="text-[9px] text-muted-foreground">Max 10 MB per file. Images, audio, video, and documents accepted.</p>
-
-                  {/* Hidden file inputs — one per type */}
-                  <input ref={screenshotRef} type="file" multiple accept=".png,.jpg,.jpeg,.webp"   className="hidden" onChange={e => handleUpload(e, 'screenshot')} />
-                  <input ref={voiceRef}      type="file" multiple accept=".mp3,.wav,.m4a,.ogg"     className="hidden" onChange={e => handleUpload(e, 'voice')} />
-                  <input ref={videoRef}      type="file" multiple accept=".mp4,.webm,.mov"          className="hidden" onChange={e => handleUpload(e, 'video')} />
-                  <input ref={docRef}        type="file" multiple accept=".pdf,.doc,.docx,.txt"     className="hidden" onChange={e => handleUpload(e, 'doc')} />
                 </div>
               ) : (
                 <div className="px-5 py-4 border-t border-border text-center text-xs text-muted-foreground bg-background">
