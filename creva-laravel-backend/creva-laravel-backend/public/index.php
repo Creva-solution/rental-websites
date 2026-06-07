@@ -170,6 +170,37 @@ try {
         ]);
     }
 
+    // One-time migration endpoint — safe to call multiple times (IF NOT EXISTS)
+    if ($routeParts[0] === 'migrate' && $requestMethod === 'GET') {
+        $results = [];
+
+        $tables = [
+            'video_sessions' => "CREATE TABLE IF NOT EXISTS \"video_sessions\" (
+                \"id\"           VARCHAR(255) PRIMARY KEY,
+                \"store_id\"     VARCHAR(255) NOT NULL,
+                \"title\"        VARCHAR(500) NOT NULL,
+                \"video_url\"    TEXT,
+                \"product_ids\"  TEXT DEFAULT '[]',
+                \"status\"       VARCHAR(50) DEFAULT 'active',
+                \"scheduled_at\" TIMESTAMP NULL,
+                \"description\"  TEXT NULL,
+                \"created_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                \"updated_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )",
+        ];
+
+        foreach ($tables as $name => $sql) {
+            try {
+                $pdo->exec($sql);
+                $results[$name] = 'ok';
+            } catch (PDOException $e) {
+                $results[$name] = 'error: ' . $e->getMessage();
+            }
+        }
+
+        jsonResponse(['status' => 'migration complete', 'tables' => $results]);
+    }
+
     // Authentication Endpoints
     if ($routeParts[0] === 'auth') {
         $action = $routeParts[1] ?? '';
