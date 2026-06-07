@@ -35,17 +35,25 @@ export default function BusinessSetupWizard() {
 
   const [selectedTemplate, setSelectedTemplate] = useState<'minimal' | 'artisan' | 'bold' | 'luxe' | 'retro' | 'admire'>('minimal');
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const [formData, setFormData] = useState({
     businessName: '',
     businessDescription: '',
     category: '',
     logo: null as string | null,
     primaryColor: '#3B82F6',
+    ownerName: '',
     email: '',
     phone: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
     currency: 'INR',
     authEmail: '',
     authPassword: '',
+    authConfirmPassword: '',
   });
 
   const defaultTemplates: Record<string, string> = {
@@ -266,6 +274,7 @@ export default function BusinessSetupWizard() {
   }, [step]);
 
   const nextStep = () => {
+    setErrors({});
     if (step === 5) {
       if (!signature || !isSignatureConfirmed) {
         alert("Please digitally sign the SaaS agreement and click 'Confirm & Lock Signature' below the canvas to proceed!");
@@ -276,6 +285,11 @@ export default function BusinessSetupWizard() {
         return;
       }
     }
+    const stepErrors = validateStep(step);
+    if (Object.keys(stepErrors).length > 0) {
+      setErrors(stepErrors);
+      return;
+    }
     setStep((s) => Math.min(s + 1, 6));
   };
   const prevStep = () => setStep((s) => Math.max(s - 1, 1));
@@ -283,6 +297,44 @@ export default function BusinessSetupWizard() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors(prev => { const n = { ...prev }; delete n[name]; return n; });
+  };
+
+  const validateStep = (s: number): Record<string, string> => {
+    const errs: Record<string, string> = {};
+    if (s === 1) {
+      if (!formData.businessName.trim()) errs.businessName = 'Store name is required.';
+      else if (formData.businessName.trim().length < 3) errs.businessName = 'Store name must be at least 3 characters.';
+      if (!formData.category) errs.category = 'Store category is required.';
+      if (!formData.businessDescription.trim()) errs.businessDescription = 'Store description is required.';
+    }
+    if (s === 3) {
+      if (!formData.ownerName.trim()) errs.ownerName = 'Full name is required.';
+      if (!formData.email.trim()) errs.email = 'Email address is required.';
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) errs.email = 'Please enter a valid email address.';
+      if (!formData.phone.trim()) errs.phone = 'Phone number is required.';
+      else if (formData.phone.replace(/\D/g, '').length < 10) errs.phone = 'Phone number must be at least 10 digits.';
+      if (!formData.address.trim()) errs.address = 'Address is required.';
+      if (!formData.city.trim()) errs.city = 'City is required.';
+      if (!formData.state.trim()) errs.state = 'State is required.';
+      if (!formData.pincode.trim()) errs.pincode = 'Pincode is required.';
+      else if (!/^\d{4,8}$/.test(formData.pincode.trim())) errs.pincode = 'Please enter a valid pincode.';
+    }
+    return errs;
+  };
+
+  const validateStep6 = (): Record<string, string> => {
+    const errs: Record<string, string> = {};
+    if (!formData.authEmail.trim()) errs.authEmail = 'Email address is required.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.authEmail.trim())) errs.authEmail = 'Please enter a valid email address.';
+    if (!formData.authPassword) errs.authPassword = 'Password is required.';
+    else if (formData.authPassword.length < 8) errs.authPassword = 'Password must be at least 8 characters.';
+    else if (!/[A-Z]/.test(formData.authPassword)) errs.authPassword = 'Password must contain at least one uppercase letter.';
+    else if (!/[a-z]/.test(formData.authPassword)) errs.authPassword = 'Password must contain at least one lowercase letter.';
+    else if (!/[0-9]/.test(formData.authPassword)) errs.authPassword = 'Password must contain at least one number.';
+    if (!formData.authConfirmPassword) errs.authConfirmPassword = 'Please confirm your password.';
+    else if (formData.authPassword !== formData.authConfirmPassword) errs.authConfirmPassword = 'Passwords do not match.';
+    return errs;
   };
 
   const startDrawingSig = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -647,6 +699,12 @@ export default function BusinessSetupWizard() {
   };
 
   const handleSubmit = async () => {
+    setErrors({});
+    const step6Errors = validateStep6();
+    if (Object.keys(step6Errors).length > 0) {
+      setErrors(step6Errors);
+      return;
+    }
     setLoading(true);
     setError(null);
 
@@ -680,6 +738,11 @@ export default function BusinessSetupWizard() {
 
       const contractDetails = {
         description: formData.businessDescription,
+        ownerName: formData.ownerName,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        pincode: formData.pincode,
         contractSigned: true,
         contractSignedAt: new Date().toISOString(),
         contractSignature: signature,
@@ -688,8 +751,8 @@ export default function BusinessSetupWizard() {
         selectedPlan: selectedPlan,
         assignedOfficer: assignedOfficer,
         paymentScreenshotUrl: paymentScreenshotUrl,
-        paymentStatus: 'pending', // Pending super admin verification
-        selectedTemplate: selectedTemplate // Persisted storefront design template selection
+        paymentStatus: 'pending',
+        selectedTemplate: selectedTemplate
       };
 
       const { error: storeError } = await supabase
@@ -823,21 +886,22 @@ export default function BusinessSetupWizard() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold mb-1.5 text-blue-600 uppercase tracking-wider">Business Name *</label>
-                  <input 
+                  <input
                     name="businessName"
                     value={formData.businessName}
                     onChange={handleChange}
-                    className="w-full h-10 px-3.5 rounded-xl border border-blue-100 bg-blue-50/30 text-slate-900 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder:text-slate-400 shadow-sm" 
+                    className={`w-full h-10 px-3.5 rounded-xl border bg-blue-50/30 text-slate-900 text-sm focus:ring-1 outline-none transition-all placeholder:text-slate-400 shadow-sm ${errors.businessName ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-blue-100 focus:border-blue-500 focus:ring-blue-500'}`}
                     placeholder="e.g. Handmade Soaps Co."
                   />
+                  {errors.businessName && <p className="text-red-500 text-xs mt-1 font-medium">{errors.businessName}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold mb-1.5 text-blue-600 uppercase tracking-wider">Category *</label>
-                  <select 
+                  <select
                     name="category"
                     value={formData.category}
                     onChange={handleChange}
-                    className="w-full h-10 px-3.5 rounded-xl border border-blue-100 bg-blue-50/30 text-slate-900 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-sm"
+                    className={`w-full h-10 px-3.5 rounded-xl border bg-blue-50/30 text-slate-900 text-sm focus:ring-1 outline-none transition-all shadow-sm ${errors.category ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-blue-100 focus:border-blue-500 focus:ring-blue-500'}`}
                   >
                     <option value="" className="bg-white text-slate-500">Select a category</option>
                     <option value="soap" className="bg-white text-slate-700">Handmade Soap</option>
@@ -846,16 +910,18 @@ export default function BusinessSetupWizard() {
                     <option value="decor" className="bg-white text-slate-700">Home Decor</option>
                     <option value="other" className="bg-white text-slate-700">Other</option>
                   </select>
+                  {errors.category && <p className="text-red-500 text-xs mt-1 font-medium">{errors.category}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold mb-1.5 text-blue-600 uppercase tracking-wider">Description *</label>
-                  <textarea 
+                  <textarea
                     name="businessDescription"
                     value={formData.businessDescription}
                     onChange={handleChange}
-                    className="w-full min-h-[100px] p-3.5 rounded-xl border border-blue-100 bg-blue-50/30 text-slate-900 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder:text-slate-400 shadow-sm" 
+                    className={`w-full min-h-[100px] p-3.5 rounded-xl border bg-blue-50/30 text-slate-900 text-sm focus:ring-1 outline-none transition-all placeholder:text-slate-400 shadow-sm ${errors.businessDescription ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-blue-100 focus:border-blue-500 focus:ring-blue-500'}`}
                     placeholder="Tell your customers what makes your products special..."
                   />
+                  {errors.businessDescription && <p className="text-red-500 text-xs mt-1 font-medium">{errors.businessDescription}</p>}
                 </div>
               </div>
             </motion.div>
@@ -1049,26 +1115,92 @@ export default function BusinessSetupWizard() {
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Support Email *</label>
-                  <input 
+                  <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Full Name *</label>
+                  <input
+                    name="ownerName"
+                    value={formData.ownerName}
+                    onChange={handleChange}
+                    className={`w-full h-10 px-3.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.ownerName ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
+                    placeholder="Your full name"
+                  />
+                  {errors.ownerName && <p className="text-red-500 text-xs mt-1 font-medium">{errors.ownerName}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Email Address *</label>
+                  <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors shadow-sm placeholder:text-slate-405" 
+                    className={`w-full h-10 px-3.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.email ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
                     placeholder="support@yourstore.com"
                   />
+                  {errors.email && <p className="text-red-500 text-xs mt-1 font-medium">{errors.email}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Phone Number *</label>
-                  <input 
+                  <input
                     type="tel"
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors shadow-sm placeholder:text-slate-405" 
+                    className={`w-full h-10 px-3.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.phone ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
                     placeholder="+91 98765 43210"
                   />
+                  {errors.phone && <p className="text-red-500 text-xs mt-1 font-medium">{errors.phone}</p>}
+                </div>
+
+                <div className="pt-2 border-t border-slate-100">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Business Address</p>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Address *</label>
+                      <input
+                        name="address"
+                        value={formData.address}
+                        onChange={handleChange}
+                        className={`w-full h-10 px-3.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.address ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
+                        placeholder="Street / Building / Area"
+                      />
+                      {errors.address && <p className="text-red-500 text-xs mt-1 font-medium">{errors.address}</p>}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">City *</label>
+                        <input
+                          name="city"
+                          value={formData.city}
+                          onChange={handleChange}
+                          className={`w-full h-10 px-3.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.city ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
+                          placeholder="City"
+                        />
+                        {errors.city && <p className="text-red-500 text-xs mt-1 font-medium">{errors.city}</p>}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">State *</label>
+                        <input
+                          name="state"
+                          value={formData.state}
+                          onChange={handleChange}
+                          className={`w-full h-10 px-3.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.state ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
+                          placeholder="State"
+                        />
+                        {errors.state && <p className="text-red-500 text-xs mt-1 font-medium">{errors.state}</p>}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Pincode *</label>
+                      <input
+                        name="pincode"
+                        value={formData.pincode}
+                        onChange={handleChange}
+                        maxLength={8}
+                        className={`w-full h-10 px-3.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.pincode ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
+                        placeholder="600001"
+                      />
+                      {errors.pincode && <p className="text-red-500 text-xs mt-1 font-medium">{errors.pincode}</p>}
+                    </div>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -1566,26 +1698,54 @@ export default function BusinessSetupWizard() {
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Email Address</label>
-                  <input 
+                  <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Email Address *</label>
+                  <input
                     type="email"
                     name="authEmail"
                     value={formData.authEmail}
                     onChange={handleChange}
-                    className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors shadow-sm placeholder:text-slate-405" 
+                    className={`w-full h-10 px-3.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.authEmail ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
                     placeholder="you@example.com"
                   />
+                  {errors.authEmail && <p className="text-red-500 text-xs mt-1 font-medium">{errors.authEmail}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Password</label>
-                  <input 
+                  <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Password *</label>
+                  <input
                     type="password"
                     name="authPassword"
                     value={formData.authPassword}
                     onChange={handleChange}
-                    className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors shadow-sm placeholder:text-slate-405" 
-                    placeholder="At least 6 characters"
+                    className={`w-full h-10 px-3.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.authPassword ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
+                    placeholder="Min 8 chars, uppercase, lowercase, number"
                   />
+                  {errors.authPassword && <p className="text-red-500 text-xs mt-1 font-medium">{errors.authPassword}</p>}
+                  {!errors.authPassword && formData.authPassword.length > 0 && (
+                    <div className="flex gap-2 mt-2">
+                      {[
+                        { label: '8+ chars', ok: formData.authPassword.length >= 8 },
+                        { label: 'Uppercase', ok: /[A-Z]/.test(formData.authPassword) },
+                        { label: 'Lowercase', ok: /[a-z]/.test(formData.authPassword) },
+                        { label: 'Number', ok: /[0-9]/.test(formData.authPassword) },
+                      ].map(r => (
+                        <span key={r.label} className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${r.ok ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+                          {r.label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Confirm Password *</label>
+                  <input
+                    type="password"
+                    name="authConfirmPassword"
+                    value={formData.authConfirmPassword}
+                    onChange={handleChange}
+                    className={`w-full h-10 px-3.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.authConfirmPassword ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
+                    placeholder="Re-enter your password"
+                  />
+                  {errors.authConfirmPassword && <p className="text-red-500 text-xs mt-1 font-medium">{errors.authConfirmPassword}</p>}
                 </div>
               </div>
             </motion.div>

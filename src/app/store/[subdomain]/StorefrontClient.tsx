@@ -1761,7 +1761,7 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                 </button>
                 <Link href="/" className="flex flex-col items-start leading-none group">
                   {liveStore.logo_url ? (
-                    <img src={liveStore.logo_url} alt={store.store_name} className="h-8 w-auto object-contain brightness-0 invert" />
+                    <img src={liveStore.logo_url} alt={store.store_name} className="h-8 w-auto object-contain" />
                   ) : (
                     <>
                       <span className="font-black text-sm sm:text-lg tracking-tight uppercase group-hover:text-yellow-300 transition-colors italic truncate max-w-[120px] sm:max-w-none">
