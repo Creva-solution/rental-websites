@@ -6,7 +6,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { 
   LayoutDashboard, Package, ShoppingCart, Settings, Palette, ExternalLink, Loader2, AlertCircle, CreditCard, Menu, X, PlayCircle,
-  Truck, Users, FolderTree, Video, FileText, Layout, BarChart3, Tag, HelpCircle, LogOut, Sparkles, Megaphone, Plug
+  Truck, Users, FolderTree, Video, FileText, Layout, BarChart3, Tag, HelpCircle, LogOut, Sparkles, Megaphone, Plug,
+  Maximize2, Minimize2, Bell, Globe, ChevronDown, User
 } from 'lucide-react';
 import StoreAssistant from '@/components/StoreAssistant';
 
@@ -21,6 +22,44 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [newOrderAlert, setNewOrderAlert] = useState<any>(null);
   const [knownOrdersCount, setKnownOrdersCount] = useState<number | null>(null);
   const [globalSettings, setGlobalSettings] = useState<any>(null);
+
+  // Redesigned SaaS Header states & helpers
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([
+    { id: 1, title: 'Welcome to your SaaS Dashboard!', description: 'Get started by configuring your theme in Appearance settings.', time: 'Just now', read: false },
+    { id: 2, title: 'Store setup complete', description: 'Your direct checkout is ready to receive orders.', time: '1 hour ago', read: false }
+  ]);
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
+
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setShowProfileDropdown(false);
+      setShowNotifications(false);
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      console.warn("Fullscreen toggle failed:", err);
+    }
+  };
 
   const playNotificationChime = () => {
     try {
@@ -506,31 +545,148 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden h-full">
-        <header className="h-16 flex items-center justify-between px-4 sm:px-6 border-b border-border bg-background flex-shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
+        <header className="h-16 flex items-center justify-between px-4 sm:px-6 border-b border-border bg-background flex-shrink-0 select-none">
+          {/* Left section: Controls & Navigation & Page Title */}
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            {/* Mobile Sidebar Toggle */}
             <button 
               type="button" 
               onClick={() => setIsMobileOpen(true)}
               className="p-2 -ml-2 hover:bg-muted rounded-lg transition-colors md:hidden shrink-0"
+              title="Open Menu"
             >
               <Menu className="w-5 h-5 text-foreground" />
             </button>
+
+            {/* Full Screen Toggle */}
+            <button
+              onClick={toggleFullscreen}
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors shrink-0"
+              title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+            >
+              {isFullscreen ? (
+                <Minimize2 className="w-4.5 h-4.5" />
+              ) : (
+                <Maximize2 className="w-4.5 h-4.5" />
+              )}
+            </button>
+
+            {/* Notifications Bell with Popover Dropdown */}
+            <div className="relative shrink-0">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowNotifications(prev => !prev);
+                  setShowProfileDropdown(false);
+                }}
+                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors relative"
+                title="Notifications"
+              >
+                <Bell className="w-4.5 h-4.5" />
+                {notifications.filter(n => !n.read).length > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full ring-2 ring-background animate-pulse" />
+                )}
+              </button>
+
+              {showNotifications && (
+                <div 
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute left-0 mt-2 w-80 rounded-xl border border-border bg-popover text-popover-foreground shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left"
+                >
+                  <div className="px-4 py-2 border-b border-border flex justify-between items-center">
+                    <span className="font-bold text-xs uppercase tracking-wider text-[#3C77C3]">Notifications</span>
+                    <button 
+                      onClick={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
+                      className="text-[10px] text-muted-foreground hover:text-primary transition-colors uppercase font-black tracking-widest"
+                    >
+                      Mark all read
+                    </button>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto divide-y divide-border">
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-6 text-center text-xs text-muted-foreground">
+                        No new notifications
+                      </div>
+                    ) : (
+                      notifications.map(n => (
+                        <div key={n.id} className={`px-4 py-3 hover:bg-muted/40 transition-colors text-left ${n.read ? 'opacity-70' : ''}`}>
+                          <p className="text-xs font-bold text-foreground leading-snug">{n.title}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{n.description}</p>
+                          <span className="text-[9px] text-muted-foreground mt-1.5 block font-mono">{n.time}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Visit Store globe link */}
             <a 
               href={storeUrl} 
               target="_blank" 
               rel="noopener noreferrer" 
-              className="text-xs flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-md hover:bg-primary/90 font-medium transition-colors shrink-0"
+              className="text-xs flex items-center gap-1.5 text-muted-foreground hover:text-primary px-2.5 py-1.5 rounded-lg hover:bg-muted/60 transition-colors shrink-0 font-bold uppercase tracking-wider"
+              title="Visit Storefront"
             >
-              <ExternalLink className="w-3.5 h-3.5" /> <span>View Store</span>
+              <Globe className="w-4.5 h-4.5 text-[#3C77C3]" />
+              <span className="hidden sm:inline">Visit Store</span>
             </a>
-            <h1 className="text-base sm:text-xl font-bold capitalize truncate max-w-[150px] sm:max-w-none border-l border-border pl-3 ml-1">
+
+            {/* Separator & Dynamic Page Title */}
+            <span className="h-4 w-px bg-border shrink-0 hidden min-[450px]:inline" />
+            <h1 className="text-xs sm:text-sm font-black text-muted-foreground uppercase tracking-widest truncate max-w-[120px] sm:max-w-none border-l-0 min-[450px]:border-l-0 pl-0 min-[450px]:pl-0 ml-0 min-[450px]:ml-0 hidden min-[450px]:inline">
               {pathname === '/admin' ? 'Dashboard Overview' : pathname.replace('/admin/', '')}
             </h1>
           </div>
-          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-            <button onClick={handleLogout} className="text-xs sm:text-sm bg-muted px-3 py-2 rounded-md hover:bg-muted/80 font-medium transition-colors">
-              Log out
-            </button>
+
+          {/* Right section: Profile dropdown */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowProfileDropdown(prev => !prev);
+                  setShowNotifications(false);
+                }}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-muted/60 transition-colors border border-transparent hover:border-border text-left"
+              >
+                <div className="w-8 h-8 rounded-full bg-[#3C77C3]/10 text-[#3C77C3] flex items-center justify-center font-bold text-xs uppercase shadow-sm">
+                  {store.store_name?.[0] || 'S'}
+                </div>
+                <div className="hidden md:flex flex-col text-left">
+                  <span className="text-xs font-bold text-foreground truncate max-w-[120px]">
+                    {store.store_name || 'Store Owner'}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">
+                    {user?.email || 'admin@creva.com'}
+                  </span>
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              </button>
+
+              {showProfileDropdown && (
+                <div 
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute right-0 mt-2 w-56 rounded-xl border border-border bg-popover text-popover-foreground shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left"
+                >
+                  <div className="px-4 py-2 border-b border-border">
+                    <p className="text-xs font-black text-foreground truncate">{store.store_name}</p>
+                    <p className="text-[10px] text-muted-foreground truncate mt-0.5">{user?.email}</p>
+                  </div>
+                  
+                  <div className="p-1.5">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50/50 hover:text-rose-700 transition-all text-left"
+                    >
+                      <LogOut className="w-4 h-4 text-rose-500" />
+                      Logout Account
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 

@@ -2,11 +2,13 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 import { 
   Building2, Globe, ShieldAlert, ShieldCheck, Play, Pause, 
   Search, RefreshCw, Copy, Check, Database, HelpCircle,
   Infinity, Calendar, Clock, Zap, Plus, FileText, X, Printer, Send, Upload, Trash2, Smartphone, Layers,
-  ToggleLeft, ToggleRight, MessageSquare, Plug, Key, Loader2
+  ToggleLeft, ToggleRight, MessageSquare, Plug, Key, Loader2,
+  Maximize2, Minimize2, Bell, ChevronDown, User, LogOut, Menu
 } from 'lucide-react';
 
 export default function SuperAdminDashboard() {
@@ -17,6 +19,66 @@ export default function SuperAdminDashboard() {
   const [actionStatus, setActionStatus] = useState<string | null>(null);
   const [newStoreAlert, setNewStoreAlert] = useState<any>(null);
   const [knownPendingCount, setKnownPendingCount] = useState<number | null>(null);
+
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([
+    { id: 1, title: 'Welcome to Super Admin Control Panel', description: 'Monitor registration compliance and system transactions.', time: 'Just now', read: false },
+    { id: 2, title: 'System health is optimal', description: 'All cron synchronization jobs completed successfully.', time: '2 hours ago', read: false }
+  ]);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (!authUser) {
+          router.push('/login');
+          return;
+        }
+        setUser(authUser);
+      } catch (e) {
+        console.error("Auth check failed:", e);
+      }
+    };
+    fetchUser();
+  }, [router]);
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
+
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setShowProfileDropdown(false);
+      setShowNotifications(false);
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      console.warn("Fullscreen toggle failed:", err);
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
 
   const playNotificationChime = () => {
     try {
@@ -1667,7 +1729,145 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
   const oneYearCount = getActivePlanCount(180, 365);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-100 font-sans p-6 sm:p-8">
+    <div className="min-h-screen bg-gray-900 text-gray-100 font-sans flex flex-col">
+      {/* Redesigned Top SaaS Header Navigation */}
+      <header className="h-16 flex items-center justify-between px-4 sm:px-6 border-b border-gray-800 bg-gray-950 flex-shrink-0 select-none z-40">
+        {/* Left section: Controls & Navigation & Page Title */}
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          {/* Full Screen Toggle */}
+          <button
+            onClick={toggleFullscreen}
+            className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors shrink-0"
+            title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+          >
+            {isFullscreen ? (
+              <Minimize2 className="w-4.5 h-4.5" />
+            ) : (
+              <Maximize2 className="w-4.5 h-4.5" />
+            )}
+          </button>
+
+          {/* Notifications Bell with Popover Dropdown */}
+          <div className="relative shrink-0">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowNotifications(prev => !prev);
+                setShowProfileDropdown(false);
+              }}
+              className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors relative"
+              title="Notifications"
+            >
+              <Bell className="w-4.5 h-4.5" />
+              {notifications.filter(n => !n.read).length > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-gray-950 animate-pulse" />
+              )}
+            </button>
+
+            {showNotifications && (
+              <div 
+                onClick={(e) => e.stopPropagation()}
+                className="absolute left-0 mt-2 w-80 rounded-xl border border-gray-800 bg-gray-900 text-gray-100 shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left"
+              >
+                <div className="px-4 py-2 border-b border-gray-800 flex justify-between items-center">
+                  <span className="font-bold text-xs uppercase tracking-wider text-[#3C77C3]">Notifications</span>
+                  <button 
+                    onClick={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
+                    className="text-[10px] text-gray-400 hover:text-white transition-colors uppercase font-black tracking-widest"
+                  >
+                    Mark all read
+                  </button>
+                </div>
+                <div className="max-h-64 overflow-y-auto divide-y divide-gray-800">
+                  {notifications.length === 0 ? (
+                    <div className="px-4 py-6 text-center text-xs text-gray-400">
+                      No new notifications
+                    </div>
+                  ) : (
+                    notifications.map(n => (
+                      <div key={n.id} className={`px-4 py-3 hover:bg-gray-800/40 transition-colors text-left ${n.read ? 'opacity-70' : ''}`}>
+                        <p className="text-xs font-bold text-gray-200 leading-snug">{n.title}</p>
+                        <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">{n.description}</p>
+                        <span className="text-[9px] text-gray-500 mt-1.5 block font-mono">{n.time}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Visit Store globe link */}
+          <a 
+            href="/" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-xs flex items-center gap-1.5 text-gray-400 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0 font-bold uppercase tracking-wider"
+            title="Visit Platform Portal"
+          >
+            <Globe className="w-4.5 h-4.5 text-[#3C77C3]" />
+            <span className="hidden sm:inline">Visit Store</span>
+          </a>
+
+          {/* Separator & Page Title */}
+          <span className="h-4 w-px bg-gray-800 shrink-0 hidden min-[450px]:inline" />
+          <h1 className="text-xs sm:text-sm font-black text-gray-400 uppercase tracking-widest truncate max-w-[120px] sm:max-w-none hidden min-[450px]:inline">
+            Super Admin Control
+          </h1>
+        </div>
+
+        {/* Right section: Profile dropdown */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowProfileDropdown(prev => !prev);
+                setShowNotifications(false);
+              }}
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-gray-800 transition-colors border border-transparent hover:border-gray-800 text-left"
+            >
+              <div className="w-8 h-8 rounded-full bg-[#3C77C3]/10 text-[#3C77C3] flex items-center justify-center font-bold text-xs uppercase shadow-sm">
+                SA
+              </div>
+              <div className="hidden md:flex flex-col text-left">
+                <span className="text-xs font-bold text-gray-200 truncate max-w-[120px]">
+                  Super Admin
+                </span>
+                <span className="text-[10px] text-gray-400 truncate max-w-[120px]">
+                  {user?.email || 'admin@crevasolution.in'}
+                </span>
+              </div>
+              <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+            </button>
+
+            {showProfileDropdown && (
+              <div 
+                onClick={(e) => e.stopPropagation()}
+                className="absolute right-0 mt-2 w-56 rounded-xl border border-gray-800 bg-gray-900 text-gray-100 shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left"
+              >
+                <div className="px-4 py-2 border-b border-gray-800">
+                  <p className="text-xs font-black text-gray-200 truncate">Platform Administrator</p>
+                  <p className="text-[10px] text-gray-400 truncate mt-0.5">{user?.email}</p>
+                </div>
+                
+                <div className="p-1.5">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold text-rose-400 hover:bg-rose-950/40 hover:text-rose-500 transition-all text-left"
+                  >
+                    <LogOut className="w-4 h-4 text-rose-500" />
+                    Logout Account
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Main scrollable content view */}
+      <div className="flex-1 overflow-y-auto p-6 sm:p-8">
       {/* Brutalist Flash Screen Alert for New Verification Requests */}
       {newStoreAlert && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4 font-mono select-none">
@@ -4228,6 +4428,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
