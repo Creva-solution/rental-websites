@@ -6,10 +6,31 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Send standard content-type header (CORS is handled globally by Apache system level)
+// ─── CORS ────────────────────────────────────────────────────────────────────
+// Must run before any output. Wildcard '*' is forbidden when credentials:'include'
+// is set on the frontend, so we echo back the exact requesting origin if allowed.
+$allowedOrigins = [
+    'https://rweb.crevasolution.in',
+    'https://crevasolution.in',
+    'https://www.crevasolution.in',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+];
+$requestOrigin = $_SERVER['HTTP_ORIGIN'] ?? '';
+$corsOrigin = in_array($requestOrigin, $allowedOrigins, true)
+    ? $requestOrigin
+    : 'https://rweb.crevasolution.in';
+
+header('Access-Control-Allow-Origin: ' . $corsOrigin);
+header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Authorization, Content-Type, Accept, X-Requested-With');
+header('Vary: Origin');
+
+// Send standard content-type header
 header('Content-Type: application/json');
 
-// Handle CORS preflight pre-requests
+// Handle CORS preflight requests — must return after setting all headers above
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     echo json_encode(['status' => 'OK']);
@@ -194,6 +215,46 @@ try {
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role
+            ]);
+        }
+
+        // List all users (setup_key required) — for diagnosing which email to promote
+        if ($action === 'list-users' && $requestMethod === 'POST') {
+            $setupKey = $body['setup_key'] ?? '';
+            $validKey = getenv('SUPERADMIN_SETUP_KEY') ?: 'creva-superadmin-setup-2024';
+            if ($setupKey !== $validKey) jsonResponse(['error' => 'Invalid setup key'], 403);
+            $stmt = $pdo->prepare('SELECT id, name, email, role, created_at FROM "users" ORDER BY created_at DESC');
+            $stmt->execute();
+            jsonResponse($stmt->fetchAll());
+        }
+
+        // Promote a user to superadmin by email OR user_id.
+        // Requires setup_key matching SUPERADMIN_SETUP_KEY env variable.
+        if ($action === 'setup-superadmin' && $requestMethod === 'POST') {
+            $setupKey = $body['setup_key'] ?? '';
+            $validKey = getenv('SUPERADMIN_SETUP_KEY') ?: 'creva-superadmin-setup-2024';
+            if ($setupKey !== $validKey) jsonResponse(['error' => 'Invalid setup key'], 403);
+
+            $email  = $body['email']   ?? '';
+            $userId = $body['user_id'] ?? '';
+            if (!$email && !$userId) jsonResponse(['error' => 'email or user_id is required'], 400);
+
+            if ($email) {
+                $stmt = $pdo->prepare('SELECT id, name, email, role FROM "users" WHERE email = ?');
+                $stmt->execute([$email]);
+            } else {
+                $stmt = $pdo->prepare('SELECT id, name, email, role FROM "users" WHERE id = ?');
+                $stmt->execute([$userId]);
+            }
+            $user = $stmt->fetch();
+            if (!$user) jsonResponse(['error' => 'No account found'], 404);
+
+            $pdo->prepare('UPDATE "users" SET role = \'superadmin\' WHERE id = ?')->execute([$user->id]);
+
+            jsonResponse([
+                'success' => true,
+                'message' => 'User promoted to superadmin',
+                'user' => ['id' => $user->id, 'email' => $user->email, 'role' => 'superadmin']
             ]);
         }
 
@@ -840,6 +901,172 @@ try {
         }
     }
     
+    // ─── Generic CRUD for Admin / Platform Tables ────────────────────────────────
+    // Routes: categories, discounts, blog_posts, pages, video_sessions,
+    //         integrations, platform_settings, users
+    // Pattern: GET /api/{table}[?filters] · GET /api/{table}/{id}
+    //          POST /api/{table} · PUT /api/{table}/{id} · DELETE /api/{table}[/{id}]
+    $genericTables = ['categories', 'discounts', 'blog_posts', 'pages', 'video_sessions',
+                      'integrations', 'platform_settings'];
+
+    if (in_array($routeParts[0], $genericTables, true)) {
+        $table = $routeParts[0];
+        $id    = $routeParts[1] ?? null;
+
+        // Auto-create video_sessions table on first use if it doesn't exist
+        if ($table === 'video_sessions') {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS \"video_sessions\" (
+                \"id\"           VARCHAR(255) PRIMARY KEY,
+                \"store_id\"     VARCHAR(255) NOT NULL,
+                \"title\"        VARCHAR(500) NOT NULL,
+                \"video_url\"    TEXT,
+                \"product_ids\"  TEXT DEFAULT '[]',
+                \"status\"       VARCHAR(50) DEFAULT 'active',
+                \"scheduled_at\" TIMESTAMP NULL,
+                \"description\"  TEXT NULL,
+                \"created_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                \"updated_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )");
+        }
+
+        // Fields allowed as WHERE filters in GET/DELETE (prevents arbitrary column injection)
+        $filterableFields = ['store_id', 'type', 'status', 'is_active', 'is_enabled',
+                             'key', 'owner_id', 'slug', 'category_id', 'order_id'];
+
+        // Encode PHP arrays to JSON strings before storing in PostgreSQL TEXT/JSONB columns
+        $encodeBody = function(array $row): array {
+            foreach ($row as $k => $v) {
+                if (is_array($v) || (is_object($v) && !($v instanceof \stdClass))) {
+                    $row[$k] = json_encode($v);
+                }
+            }
+            return $row;
+        };
+
+        // Decode JSON strings back to objects/arrays when reading from DB
+        $decodeRow = function($row): array {
+            $arr = is_object($row) ? (array)$row : (array)$row;
+            foreach ($arr as $k => $v) {
+                if (is_string($v) && strlen($v) > 1 && ($v[0] === '{' || $v[0] === '[')) {
+                    $decoded = json_decode($v, true);
+                    if (json_last_error() === JSON_ERROR_NONE) $arr[$k] = $decoded;
+                }
+            }
+            return $arr;
+        };
+
+        // Sanitize a column name to only alphanumeric + underscore
+        $col = fn(string $c): string => preg_replace('/[^a-zA-Z0-9_]/', '', $c);
+
+        if ($requestMethod === 'GET') {
+            if ($id) {
+                $stmt = $pdo->prepare("SELECT * FROM \"$table\" WHERE id = ?");
+                $stmt->execute([$id]);
+                $row = $stmt->fetch();
+                if (!$row) jsonResponse(['error' => 'Not found'], 404);
+                jsonResponse($decodeRow($row));
+            } else {
+                $sql = "SELECT * FROM \"$table\"";
+                $params = [];
+                $conditions = [];
+                foreach ($filterableFields as $field) {
+                    if (isset($query[$field])) {
+                        $conditions[] = "\"$field\" = ?";
+                        $params[] = $query[$field];
+                    }
+                }
+                if ($conditions) $sql .= ' WHERE ' . implode(' AND ', $conditions);
+                if (isset($query['_sort'])) {
+                    $sf = $col($query['_sort']);
+                    $sd = ($query['_order'] ?? 'asc') === 'desc' ? 'DESC' : 'ASC';
+                    $sql .= " ORDER BY \"$sf\" $sd";
+                } else {
+                    $sql .= ' ORDER BY created_at DESC';
+                }
+                if (isset($query['_limit'])) $sql .= ' LIMIT ' . (int)$query['_limit'];
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($params);
+                $rows = $stmt->fetchAll();
+                jsonResponse(array_map($decodeRow, $rows));
+            }
+        }
+
+        if ($requestMethod === 'POST') {
+            if (empty($body['id'])) {
+                $body['id'] = substr($table, 0, 4) . '_' . uniqid();
+            }
+            $body = $encodeBody($body);
+
+            // integrations: upsert by (store_id, type) so re-configuring doesn't duplicate
+            if ($table === 'integrations' && isset($body['store_id'], $body['type'])) {
+                $cols = implode(', ', array_map(fn($c) => '"' . $col($c) . '"', array_keys($body)));
+                $ph   = implode(', ', array_fill(0, count($body), '?'));
+                $sql  = "INSERT INTO \"integrations\" ($cols) VALUES ($ph)
+                         ON CONFLICT (store_id, type)
+                         DO UPDATE SET
+                           config     = EXCLUDED.config,
+                           is_enabled = EXCLUDED.is_enabled,
+                           id         = \"integrations\".id";
+                $pdo->prepare($sql)->execute(array_values($body));
+                $stmt = $pdo->prepare('SELECT * FROM "integrations" WHERE store_id = ? AND type = ?');
+                $stmt->execute([$body['store_id'], $body['type']]);
+                jsonResponse($decodeRow($stmt->fetch()), 201);
+            }
+
+            // platform_settings: upsert by key
+            if ($table === 'platform_settings' && isset($body['key'])) {
+                $value = is_array($body['value'] ?? null) ? json_encode($body['value']) : ($body['value'] ?? '');
+                $pdo->prepare('INSERT INTO "platform_settings" (id, key, value, created_at, updated_at)
+                               VALUES (?, ?, ?, NOW(), NOW())
+                               ON CONFLICT (key)
+                               DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()')
+                    ->execute([$body['id'] ?? 'ps_' . uniqid(), $body['key'], $value]);
+                $stmt = $pdo->prepare('SELECT * FROM "platform_settings" WHERE key = ?');
+                $stmt->execute([$body['key']]);
+                jsonResponse($decodeRow($stmt->fetch()), 201);
+            }
+
+            $cols = implode(', ', array_map(fn($c) => '"' . $col($c) . '"', array_keys($body)));
+            $ph   = implode(', ', array_fill(0, count($body), '?'));
+            $pdo->prepare("INSERT INTO \"$table\" ($cols) VALUES ($ph)")->execute(array_values($body));
+            $stmt = $pdo->prepare("SELECT * FROM \"$table\" WHERE id = ?");
+            $stmt->execute([$body['id']]);
+            jsonResponse($decodeRow($stmt->fetch()), 201);
+        }
+
+        if ($requestMethod === 'PUT' && $id) {
+            unset($body['id'], $body['created_at']);
+            $body = $encodeBody($body);
+            if (empty($body)) jsonResponse(['error' => 'No fields to update'], 400);
+            $sets   = implode(', ', array_map(fn($c) => '"' . $col($c) . '" = ?', array_keys($body)));
+            $values = array_values($body);
+            $values[] = $id;
+            $pdo->prepare("UPDATE \"$table\" SET $sets WHERE id = ?")->execute($values);
+            $stmt = $pdo->prepare("SELECT * FROM \"$table\" WHERE id = ?");
+            $stmt->execute([$id]);
+            $row = $stmt->fetch();
+            jsonResponse($row ? $decodeRow($row) : ['success' => true]);
+        }
+
+        if ($requestMethod === 'DELETE') {
+            if ($id) {
+                $pdo->prepare("DELETE FROM \"$table\" WHERE id = ?")->execute([$id]);
+            } else {
+                $conditions = [];
+                $params     = [];
+                foreach (['store_id', 'type', 'key', 'order_id'] as $field) {
+                    if (isset($query[$field])) {
+                        $conditions[] = "\"$field\" = ?";
+                        $params[]     = $query[$field];
+                    }
+                }
+                if (empty($conditions)) jsonResponse(['error' => 'DELETE requires id or filter param'], 400);
+                $pdo->prepare("DELETE FROM \"$table\" WHERE " . implode(' AND ', $conditions))->execute($params);
+            }
+            jsonResponse(['success' => true]);
+        }
+    }
+
     jsonResponse(['error' => 'Endpoint Not Found'], 404);
 } catch (Exception $e) {
     jsonResponse(['error' => 'Internal Engine Error: ' . $e->getMessage()], 500);
