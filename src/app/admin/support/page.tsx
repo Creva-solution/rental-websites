@@ -8,8 +8,10 @@ import {
   Mic, MicOff, Video, MessageSquare, RefreshCw, ArrowLeft, Play, Bell, Square
 } from 'lucide-react';
 
-// ─── Direct API helper (bypasses supabase client URL mapping) ────────────────
-const API = 'https://rentalwebsite-backend-vn40.onrender.com/api';
+// ─── API helper — routes through Next.js proxy to avoid CORS ─────────────────
+// /api/backend/* is served by the same Next.js origin (no browser CORS),
+// then proxied server-side to rentalwebsite-backend-vn40.onrender.com
+const API = '/api/backend';
 
 async function apiCall(path: string, opts: RequestInit = {}) {
   const token = typeof window !== 'undefined'
