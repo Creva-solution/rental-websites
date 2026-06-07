@@ -1,6 +1,5 @@
 import BusinessSetupWizard from '@/components/wizard/BusinessSetupWizard';
 import Link from 'next/link';
-import { Store } from 'lucide-react';
 
 export default function RegisterPage() {
   return (
@@ -11,12 +10,9 @@ export default function RegisterPage() {
 
       {/* Header */}
       <header className="h-16 flex items-center px-6 border-b border-slate-100 bg-white/80 backdrop-blur-md sticky top-0 z-50 shrink-0 shadow-sm shadow-blue-500/5">
-        <Link href="/" className="font-extrabold text-lg text-primary flex items-center gap-2 group">
-          <div className="p-1.5 bg-blue-600 rounded-lg group-hover:scale-105 transition-transform shadow-md shadow-blue-500/10">
-            <Store className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-extrabold text-base tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-700 via-blue-900 to-slate-900">
-            Creva Webzz
+        <Link href="/" className="flex items-center group">
+          <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-slate-900 group-hover:bg-slate-800 transition-colors">
+            <img src="/logo-creva.svg" alt="Creva Webzz" className="h-7 w-auto object-contain" />
           </span>
         </Link>
         <div className="ml-auto flex items-center gap-4 text-xs font-black uppercase tracking-wider">

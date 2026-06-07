@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Store, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 
 export default function MarketingNavbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -18,12 +18,9 @@ export default function MarketingNavbar() {
 
   return (
     <header className="px-6 lg:px-14 h-20 flex items-center justify-between border-b border-slate-100 bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm shadow-blue-500/5 w-full">
-      <Link className="flex items-center gap-2 group" href="/">
-        <div className="p-2 bg-blue-600 rounded-xl group-hover:scale-105 transition-transform shadow-lg shadow-blue-500/20">
-          <Store className="w-5 h-5 text-white" />
-        </div>
-        <span className="font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-700 via-blue-900 to-slate-900">
-          Creva Webzz
+      <Link className="flex items-center group" href="/">
+        <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-slate-900 group-hover:bg-slate-800 transition-colors">
+          <img src="/logo-creva.svg" alt="Creva Webzz" className="h-8 w-auto object-contain" />
         </span>
       </Link>
 

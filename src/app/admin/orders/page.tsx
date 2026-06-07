@@ -811,13 +811,26 @@ export default function OrdersPage() {
             background: white !important;
             display: block !important;
           }
+          .print-invoice-container {
+            display: block !important;
+            overflow: visible !important;
+          }
           .print-invoice-sheet {
+            display: block !important;
+            width: 100% !important;
+            min-height: 100vh !important;
             page-break-after: always !important;
             break-after: page !important;
-            display: block !important;
-            padding: 2cm !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
             box-shadow: none !important;
+            border-radius: 0 !important;
             border: none !important;
+            margin: 0 !important;
+          }
+          .print-invoice-sheet:last-child {
+            page-break-after: avoid !important;
+            break-after: avoid !important;
           }
         }
       `}</style>
@@ -1541,7 +1554,7 @@ export default function OrdersPage() {
             </div>
 
             {/* Printable Area - renders each invoice page */}
-            <div className="flex-1 overflow-y-auto p-6 bg-muted/10 print:bg-white print:p-0 space-y-8 print:space-y-0 print:overflow-visible print-invoice-container">
+            <div className="flex-1 overflow-y-auto p-6 bg-muted/10 print:bg-white print:p-0 print:overflow-visible print-invoice-container">
               {(() => {
                 let ss: any = {};
                 try {
@@ -1562,8 +1575,8 @@ export default function OrdersPage() {
                   return (
                     <div
                       key={order.id}
-                      className="bg-white text-black rounded-xl shadow-sm print:shadow-none print:rounded-none print:border-none print-invoice-sheet overflow-hidden"
-                      style={{ pageBreakAfter: 'always', breakAfter: 'page' }}
+                      className="bg-white text-black rounded-xl shadow-sm overflow-hidden print-invoice-sheet"
+                      style={{ pageBreakAfter: 'always', breakAfter: 'page', pageBreakInside: 'avoid' }}
                     >
                       {/* Top accent bar */}
                       <div style={{ backgroundColor: accentColor, height: '6px' }} />

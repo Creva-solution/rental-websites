@@ -86,7 +86,7 @@ export default function LoginPage() {
         <div className="p-8">
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center gap-2 text-2xl font-bold text-primary mb-2">
-              <svg width="28" height="26" viewBox="0 0 206 189" fill="none" xmlns="http://www.w3.org/2000/svg" className="select-none flex-shrink-0">
+              <svg width="0" height="0" style={{display:'none'}} viewBox="0 0 206 189" fill="none" xmlns="http://www.w3.org/2000/svg" className="select-none flex-shrink-0">
                 <rect width="41.0051" height="41.0051" transform="translate(0 86)" fill="#3C77C3"/>
                 <path d="M11.5973 106.619C11.5973 104.889 11.9876 103.336 12.7681 101.962C13.5486 100.57 14.6091 99.4844 15.9496 98.7039C17.307 97.9234 18.8086 97.5331 20.4545 97.5331C22.3888 97.5331 24.0771 97.9997 25.5194 98.933C26.9616 99.8662 28.0136 101.19 28.6754 102.903H25.9012C25.4091 101.834 24.6964 101.012 23.7632 100.435C22.847 99.8577 21.7441 99.5692 20.4545 99.5692C19.2159 99.5692 18.1045 99.8577 17.1203 100.435C16.1362 101.012 15.3642 101.834 14.8043 102.903C14.2443 103.955 13.9643 105.194 13.9643 106.619C13.9643 108.028 14.2443 109.266 14.8043 110.335C15.3642 111.387 16.1362 112.202 17.1203 112.779C18.1045 113.356 19.2159 113.644 20.4545 113.644C21.7441 113.644 22.847 113.364 23.7632 112.804C24.6964 112.227 25.4091 111.404 25.9012 110.335H28.6754C28.0136 112.032 26.9616 113.347 25.5194 114.28C24.0771 115.197 22.3888 115.655 20.4545 115.655C18.8086 115.655 17.307 115.273 15.9496 114.509C14.6091 113.729 13.5486 112.651 12.7681 111.277C11.9876 109.903 11.5973 108.35 11.5973 106.619Z" fill="white"/>
                 <rect width="41.0051" height="41.0051" transform="translate(41.0039 98.7246)" fill="#3C77C3"/>
@@ -111,7 +111,9 @@ export default function LoginPage() {
                 <path d="M13.9434 163.318H34.0181" stroke="#3C77C3" stroke-width="2.50935"/>
                 <path d="M172.868 163.318H192.943" stroke="#3C77C3" stroke-width="2.50935"/>
               </svg>
-              <span>Creva Webzz</span>
+              <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-slate-900">
+                <img src="/logo-creva.svg" alt="Creva Webzz" className="h-8 w-auto object-contain" />
+              </span>
             </Link>
             <h1 className="text-2xl font-bold tracking-tight">
               {view === 'login' ? 'Welcome back' : 'Reset password'}

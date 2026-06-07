@@ -277,7 +277,10 @@ export default function DashboardHome() {
               <div>
                 <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-2.5 py-1 rounded-full">🚀 Getting Started</span>
                 <h2 className="text-xl md:text-2xl font-black tracking-tight mt-2 flex items-center gap-2">
-                  🎥 Welcome to Creva Webzz!
+                  🎥 Welcome to{' '}
+                  <span className="inline-flex items-center align-middle px-2 py-0.5 rounded-lg bg-slate-900 mx-1">
+                    <img src="/logo-creva.svg" alt="Creva Webzz" className="h-5 w-auto object-contain" />
+                  </span>!
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">Let's watch this quick 2-minute tutorial video to set up your online storefront.</p>
               </div>

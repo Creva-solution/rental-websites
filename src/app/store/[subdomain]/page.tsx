@@ -79,7 +79,13 @@ export default async function StorefrontPage({ params }: { params: { subdomain: 
       <footer className="mt-auto border-t bg-white py-12">
         <div className="max-w-[95%] xl:max-w-[1550px] 2xl:max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500">
           <p className="mb-4 font-bold text-gray-900">{store.store_name}</p>
-          <p className="text-sm">Powered by Creva Webzz © 2026</p>
+          <p className="text-sm flex items-center justify-center gap-2">
+            Powered by
+            <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-900">
+              <img src="/logo-creva.svg" alt="Creva Webzz" className="h-4 w-auto object-contain" />
+            </span>
+            © 2026
+          </p>
         </div>
       </footer>
     </div>

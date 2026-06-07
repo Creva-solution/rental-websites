@@ -148,7 +148,11 @@ export default function Home() {
                 Simple Setup
               </div>
               <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl text-slate-900">
-                How Creva Webzz Works
+                How{' '}
+                <span className="inline-flex items-center align-middle px-2 py-0.5 rounded-lg bg-slate-900 mx-1">
+                  <img src="/logo-creva.svg" alt="Creva Webzz" className="h-6 w-auto object-contain" />
+                </span>{' '}
+                Works
               </h2>
               <p className="text-slate-500 text-sm max-w-xl mx-auto">
                 Follow our step-by-step setup wizard to customize, license, pay, and go live instantly.
