@@ -1,7 +1,10 @@
 // Creva Webzz API Client
 // Custom HTTP client that connects Next.js to the Laravel PHP + PostgreSQL backend.
 
-const API_BASE_URL = 'https://rentalwebsite-backend-vn40.onrender.com/api';
+const RENDER_URL = 'https://rentalwebsite-backend-vn40.onrender.com/api';
+// In the browser use a same-origin Next.js proxy (/api/backend/*) so CORS never fires.
+// On the server (SSR/build) call Render directly — no browser CORS applies.
+const API_BASE_URL = typeof window !== 'undefined' ? '/api/backend' : RENDER_URL;
 
 // ─── Token Management ────────────────────────────────────────────────────────
 // Tokens are stored in localStorage for cross-tab persistence.
@@ -433,11 +436,10 @@ class StorageBucket {
       const headers: Record<string, string> = { Accept: 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const response = await fetch(`${API_BASE_URL}/storage/upload`, {
+      const response = await fetch(`${RENDER_URL}/storage/upload`, {
         method: 'POST',
         headers,
         body: formData,
-        credentials: 'include',
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Upload failed');
@@ -452,7 +454,7 @@ class StorageBucket {
       return { data: { publicUrl: filePath } };
     }
     const cleanPath = filePath.startsWith('uploads/') ? filePath : `uploads/${filePath}`;
-    const base = API_BASE_URL.replace('/api', '');
+    const base = RENDER_URL.replace('/api', '');
     return { data: { publicUrl: `${base}/${cleanPath}` } };
   }
 
