@@ -17,12 +17,21 @@ async function apiCall(path: string, opts: RequestInit = {}) {
     : null;
   const headers: Record<string, string> = { Accept: 'application/json', 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(`${API}${path}`, { ...opts, headers });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `HTTP ${res.status}`);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30000); // 30s timeout
+  try {
+    const res = await fetch(`${API}${path}`, { ...opts, headers, signal: controller.signal });
+    clearTimeout(timer);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    return res.json();
+  } catch (e: any) {
+    clearTimeout(timer);
+    if (e.name === 'AbortError') throw new Error('Request timed out. The server may be starting up — please try again in a moment.');
+    throw e;
   }
-  return res.json();
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -217,6 +226,12 @@ export default function AdminSupportPage() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifs, setShowNotifs] = useState(false);
 
+  // New-ticket modal attachments
+  const [newTicketAttachments, setNewTicketAttachments] = useState<Attachment[]>([]);
+  const [newTicketUploading, setNewTicketUploading] = useState(false);
+  const [newTicketUploadError, setNewTicketUploadError] = useState<string | null>(null);
+  const [newTicketError, setNewTicketError] = useState<string | null>(null);
+
   const msgEndRef = useRef<HTMLDivElement>(null);
   const [form, setForm] = useState({ subject: '', category: 'technical', message: '' });
 
@@ -267,30 +282,55 @@ export default function AdminSupportPage() {
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
   };
 
+  const handleNewTicketUpload = async (e: React.ChangeEvent<HTMLInputElement>, category: AttachmentCategory) => {
+    const files = e.target.files;
+    if (!files?.length) return;
+    setNewTicketUploadError(null);
+    setNewTicketUploading(true);
+    const cfg = ATTACHMENT_TYPES[category];
+    const uploaded: Attachment[] = [];
+    for (const file of Array.from(files)) {
+      if (file.size > MAX_FILE_SIZE) { setNewTicketUploadError(`"${file.name}" exceeds 10 MB.`); continue; }
+      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+      const acceptedExts = cfg.accept.replace(/\./g, '').split(',');
+      if (!cfg.mimes.includes(file.type) && !acceptedExts.includes(ext)) { setNewTicketUploadError(`"${file.name}" not allowed. Accepted: ${cfg.desc}`); continue; }
+      const reader = new FileReader();
+      const dataUrl = await new Promise<string>(res => { reader.onload = () => res(reader.result as string); reader.readAsDataURL(file); });
+      uploaded.push({ name: file.name, url: dataUrl, type: file.type });
+    }
+    setNewTicketAttachments(prev => [...prev, ...uploaded]);
+    setNewTicketUploading(false);
+    e.target.value = '';
+  };
+
   const handleCreate = async () => {
     if (!form.subject.trim() || !form.message.trim()) return;
     setCreating(true);
+    setNewTicketError(null);
     try {
       const ticket = await apiCall('/support-tickets', {
         method: 'POST',
         body: JSON.stringify({
-          store_id: store.id,
-          owner_id: user.id,
-          owner_email: user.email,
-          store_name: store.store_name,
+          store_id: store?.id,
+          owner_id: user?.id,
+          owner_email: user?.email,
+          store_name: store?.store_name,
           subject: form.subject.trim(),
           category: form.category,
           message: form.message.trim(),
-          sender_name: store.store_name || user.email,
-          attachments: [],
+          sender_name: store?.store_name || user?.email,
+          attachments: newTicketAttachments,
         }),
       });
       setShowNew(false);
       setForm({ subject: '', category: 'technical', message: '' });
+      setNewTicketAttachments([]);
+      setNewTicketUploadError(null);
       setSuccessTicket(ticket);
       await loadTickets();
     } catch (err: any) {
       console.error('Failed to create ticket:', err);
+      setNewTicketError(err.message || 'Failed to submit ticket. Please try again.');
     } finally { setCreating(false); }
   };
 
@@ -427,7 +467,7 @@ export default function AdminSupportPage() {
             )}
           </div>
           <button
-            onClick={() => setShowNew(true)}
+            onClick={() => { setShowNew(true); setNewTicketError(null); setNewTicketAttachments([]); setNewTicketUploadError(null); }}
             className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity"
           >
             <Plus className="w-4 h-4" /> New Ticket
@@ -502,7 +542,7 @@ export default function AdminSupportPage() {
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
               <MessageSquare className="w-12 h-12 opacity-20" />
               <p className="text-sm font-medium">Select a ticket to view conversation</p>
-              <button onClick={() => setShowNew(true)} className="text-xs font-bold text-primary hover:underline">or create a new ticket</button>
+              <button onClick={() => { setShowNew(true); setNewTicketError(null); setNewTicketAttachments([]); }} className="text-xs font-bold text-primary hover:underline">or create a new ticket</button>
             </div>
           ) : (
             <>
@@ -690,32 +730,77 @@ export default function AdminSupportPage() {
                 />
               </div>
 
-              <div className="bg-muted/40 rounded-xl p-3">
-                <p className="text-[10px] font-bold text-muted-foreground mb-2">After creating the ticket you can attach:</p>
+              {/* Attachment buttons — functional file pickers */}
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Attach files (optional)</p>
                 <div className="flex flex-wrap gap-2">
-                  {[
-                    { label: 'Screenshots', icon: Image, color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
-                    { label: 'Voice Notes', icon: Mic, color: 'bg-purple-50 border-purple-200 text-purple-700' },
-                    { label: 'Screen Recordings', icon: Video, color: 'bg-blue-50 border-blue-200 text-blue-700' },
-                    { label: 'Documents', icon: FileText, color: 'bg-orange-50 border-orange-200 text-orange-700' },
-                  ].map(({ label, icon: Icon, color }) => (
-                    <span key={label} className={`text-[10px] font-bold border rounded-full px-2 py-1 flex items-center gap-1 ${color}`}>
-                      <Icon className="w-3 h-3" /> {label}
-                    </span>
-                  ))}
+                  {(Object.entries(ATTACHMENT_TYPES) as [AttachmentCategory, (typeof ATTACHMENT_TYPES)[AttachmentCategory]][]).map(([key, cfg]) => {
+                    const Icon = cfg.icon;
+                    return (
+                      <label
+                        key={key}
+                        title={cfg.desc}
+                        className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-full border transition-colors select-none ${newTicketUploading ? 'opacity-50 pointer-events-none' : 'cursor-pointer'} ${cfg.color}`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                        {cfg.label}
+                        <input
+                          type="file"
+                          multiple
+                          accept={cfg.accept}
+                          disabled={newTicketUploading}
+                          style={{ display: 'none' }}
+                          onChange={e => handleNewTicketUpload(e, key)}
+                        />
+                      </label>
+                    );
+                  })}
+                  {newTicketUploading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground self-center" />}
                 </div>
+
+                {/* Upload error */}
+                {newTicketUploadError && (
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span className="flex-1">{newTicketUploadError}</span>
+                    <button onClick={() => setNewTicketUploadError(null)}><X className="w-3.5 h-3.5" /></button>
+                  </div>
+                )}
+
+                {/* Previews */}
+                {newTicketAttachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2 p-3 bg-muted/30 rounded-xl border border-border">
+                    {newTicketAttachments.map((att, i) => (
+                      <AttachmentPreview key={i} att={att} onRemove={() => setNewTicketAttachments(prev => prev.filter((_, idx) => idx !== i))} />
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
+            <div className="px-6 pb-1 shrink-0">
+              {newTicketError && (
+                <div className="flex items-start gap-2 text-xs font-bold text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span className="flex-1">{newTicketError}</span>
+                  <button onClick={() => setNewTicketError(null)}><X className="w-3.5 h-3.5" /></button>
+                </div>
+              )}
+            </div>
             <div className="flex gap-3 p-6 border-t border-border shrink-0">
-              <button onClick={() => setShowNew(false)} className="flex-1 border border-border rounded-xl py-2.5 text-sm font-bold hover:bg-muted transition-colors">Cancel</button>
+              <button
+                onClick={() => { setShowNew(false); setNewTicketError(null); setNewTicketAttachments([]); setNewTicketUploadError(null); }}
+                className="flex-1 border border-border rounded-xl py-2.5 text-sm font-bold hover:bg-muted transition-colors"
+              >
+                Cancel
+              </button>
               <button
                 onClick={handleCreate}
                 disabled={creating || !form.subject.trim() || !form.message.trim()}
                 className="flex-1 bg-primary text-primary-foreground rounded-xl py-2.5 text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                {creating ? 'Submitting…' : 'Submit Ticket'}
+                {creating ? 'Submitting… (may take 30s on first request)' : 'Submit Ticket'}
               </button>
             </div>
           </div>
