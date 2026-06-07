@@ -91,8 +91,7 @@ export default function ProductsPage() {
     const canvas = document.getElementById('cropper-canvas') as HTMLCanvasElement;
     if (!canvas) return;
     
-    // Compress to a highly optimized base64 string
-    const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.55);
     
     if (cropTarget === 'new') {
       setNewProduct(prev => ({ ...prev, image_url: croppedDataUrl }));
@@ -268,10 +267,7 @@ export default function ProductsPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      let finalImageUrl = newProduct.image_url;
-      if (finalImageUrl && finalImageUrl.startsWith('data:image/')) {
-        finalImageUrl = await uploadBase64ToStorage(finalImageUrl);
-      }
+      const finalImageUrl = newProduct.image_url;
 
       const customSizes = newProduct.sizes ? newProduct.sizes.split(',').map(s => s.trim()).filter(Boolean) : [];
       const customColors = newProduct.colors ? newProduct.colors.split(',').map(s => s.trim()).filter(Boolean) : [];
@@ -312,18 +308,7 @@ export default function ProductsPage() {
     if (!editingProduct) return;
     setSaving(true);
     try {
-      let finalImageUrl = editingProduct.image_url;
-      if (finalImageUrl && finalImageUrl.startsWith('data:image/')) {
-        finalImageUrl = await uploadBase64ToStorage(finalImageUrl);
-      }
-
-      const originalProduct = products.find(p => p.id === editingProduct.id);
-      const oldImageUrl = originalProduct ? getProductImage(originalProduct) : '';
-
-      // Auto-delete old image from S3 storage if updated
-      if (oldImageUrl && oldImageUrl !== finalImageUrl) {
-        await deleteImageFromStorage(oldImageUrl);
-      }
+      const finalImageUrl = editingProduct.image_url;
 
       const customSizes = editingProduct.sizes ? editingProduct.sizes.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
       const customColors = editingProduct.colors ? editingProduct.colors.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
@@ -685,46 +670,59 @@ export default function ProductsPage() {
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Product Image</label>
-                  <div className="flex gap-4 items-center">
-                    {newProduct.image_url ? (
-                      <div className="relative w-20 h-20 rounded-md border border-border overflow-hidden bg-muted flex-shrink-0 group">
-                        <img src={newProduct.image_url} alt="Preview" className="w-full h-full object-cover" />
-                        <button 
-                          type="button" 
-                          onClick={() => setNewProduct({...newProduct, image_url: ''})}
-                          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ) : (
-                      <label className="w-20 h-20 rounded-md border border-dashed border-muted-foreground/30 hover:border-primary/50 transition-colors bg-muted/20 flex flex-col items-center justify-center cursor-pointer flex-shrink-0">
-                        <Upload className="w-5 h-5 text-muted-foreground" />
-                        <span className="text-[10px] text-muted-foreground font-bold mt-1 text-center">Upload & Crop</span>
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          className="hidden" 
-                          onChange={(e) => handleFileChange(e, 'new')}
-                        />
-                      </label>
-                    )}
-                    
-                    <div className="flex-1 space-y-1">
-                      <input 
-                        type="text" 
-                        value={newProduct.image_url} 
-                        onChange={e => setNewProduct({...newProduct, image_url: e.target.value})} 
-                        className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none text-xs" 
-                        placeholder="Paste image URL or click square to upload..." 
+                  <div className="flex gap-4 items-start">
+                    <label className="relative w-20 h-20 rounded-md border border-dashed border-muted-foreground/30 hover:border-primary/50 transition-colors bg-muted/20 flex flex-col items-center justify-center cursor-pointer flex-shrink-0 overflow-hidden group">
+                      {newProduct.image_url ? (
+                        <>
+                          <img
+                            src={newProduct.image_url}
+                            alt="Preview"
+                            className="absolute inset-0 w-full h-full object-cover"
+                            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity">
+                            <Upload className="w-4 h-4 mb-0.5" />
+                            <span className="text-[9px] font-bold">Change</span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-5 h-5 text-muted-foreground" />
+                          <span className="text-[10px] text-muted-foreground font-bold mt-1 text-center">Upload</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleFileChange(e, 'new')}
                       />
+                    </label>
+
+                    <div className="flex-1 space-y-1">
+                      <input
+                        type="text"
+                        value={newProduct.image_url}
+                        onChange={e => setNewProduct({...newProduct, image_url: e.target.value})}
+                        className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none text-xs"
+                        placeholder="Paste image URL or click square to upload..."
+                      />
+                      {newProduct.image_url && (
+                        <button
+                          type="button"
+                          onClick={() => setNewProduct({...newProduct, image_url: ''})}
+                          className="text-[10px] text-red-500 hover:text-red-600 font-bold"
+                        >
+                          × Remove image
+                        </button>
+                      )}
                       <span className="text-[10px] text-muted-foreground block font-medium">
-                        Supported: PNG, JPG, JPEG, WEBP.
+                        Click square to upload & crop, or paste a URL.
                       </span>
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Sizes (Comma separated for clothing sizes selection)</label>
                   <input 
@@ -911,46 +909,59 @@ export default function ProductsPage() {
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Product Image</label>
-                  <div className="flex gap-4 items-center">
-                    {editingProduct.image_url ? (
-                      <div className="relative w-20 h-20 rounded-md border border-border overflow-hidden bg-muted flex-shrink-0 group">
-                        <img src={editingProduct.image_url} alt="Preview" className="w-full h-full object-cover" />
-                        <button 
-                          type="button" 
-                          onClick={() => setEditingProduct({...editingProduct, image_url: ''})}
-                          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ) : (
-                      <label className="w-20 h-20 rounded-md border border-dashed border-muted-foreground/30 hover:border-primary/50 transition-colors bg-muted/20 flex flex-col items-center justify-center cursor-pointer flex-shrink-0">
-                        <Upload className="w-5 h-5 text-muted-foreground" />
-                        <span className="text-[10px] text-muted-foreground font-bold mt-1 text-center">Upload & Crop</span>
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          className="hidden" 
-                          onChange={(e) => handleFileChange(e, 'edit')}
-                        />
-                      </label>
-                    )}
-                    
-                    <div className="flex-1 space-y-1">
-                      <input 
-                        type="text" 
-                        value={editingProduct.image_url || ''} 
-                        onChange={e => setEditingProduct({...editingProduct, image_url: e.target.value})} 
-                        className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none text-xs" 
-                        placeholder="Paste image URL or click square to upload..." 
+                  <div className="flex gap-4 items-start">
+                    <label className="relative w-20 h-20 rounded-md border border-dashed border-muted-foreground/30 hover:border-primary/50 transition-colors bg-muted/20 flex flex-col items-center justify-center cursor-pointer flex-shrink-0 overflow-hidden group">
+                      {editingProduct.image_url ? (
+                        <>
+                          <img
+                            src={editingProduct.image_url}
+                            alt="Preview"
+                            className="absolute inset-0 w-full h-full object-cover"
+                            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity">
+                            <Upload className="w-4 h-4 mb-0.5" />
+                            <span className="text-[9px] font-bold">Change</span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-5 h-5 text-muted-foreground" />
+                          <span className="text-[10px] text-muted-foreground font-bold mt-1 text-center">Upload</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleFileChange(e, 'edit')}
                       />
+                    </label>
+
+                    <div className="flex-1 space-y-1">
+                      <input
+                        type="text"
+                        value={editingProduct.image_url || ''}
+                        onChange={e => setEditingProduct({...editingProduct, image_url: e.target.value})}
+                        className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none text-xs"
+                        placeholder="Paste image URL or click square to upload..."
+                      />
+                      {editingProduct.image_url && (
+                        <button
+                          type="button"
+                          onClick={() => setEditingProduct({...editingProduct, image_url: ''})}
+                          className="text-[10px] text-red-500 hover:text-red-600 font-bold"
+                        >
+                          × Remove image
+                        </button>
+                      )}
                       <span className="text-[10px] text-muted-foreground block font-medium">
-                        Supported: PNG, JPG, JPEG, WEBP.
+                        Click square to upload & crop, or paste a URL.
                       </span>
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Sizes (Comma separated for clothing sizes selection)</label>
                   <input 
