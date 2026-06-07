@@ -11,6 +11,7 @@ interface VideoSession {
   video_url: string;
   product_ids: string[];
   created_at: string;
+  updated_at?: string;
 }
 
 const normalizeVideoUrl = (url: string): string => {
@@ -56,9 +57,10 @@ export default function VideoCommercePage() {
       if (!storeData) return;
       setStore(storeData);
       const { data: prodData } = await supabase.from('products').select('id,name,price').eq('store_id', storeData.id).order('name', { ascending: true });
-      const { data: sessData } = await supabase.from('video_sessions').select('*').eq('store_id', storeData.id).order('created_at', { ascending: false });
+      const { data: psData } = await supabase.from('platform_settings').select('*').eq('key', `video_sessions_${storeData.id}`);
+      const rawSessions = psData?.[0]?.value ? (() => { try { return JSON.parse(psData[0].value); } catch { return []; } })() : [];
       setProducts(prodData || []);
-      setSessions(sessData || []);
+      setSessions(rawSessions);
     } finally {
       setLoading(false);
     }
@@ -93,13 +95,30 @@ export default function VideoCommercePage() {
         video_url: normalizeVideoUrl(form.video_url),
         product_ids: form.product_id ? [form.product_id] : [],
       };
+      // Load current sessions, modify, then upsert the whole list into platform_settings
+      const { data: psData } = await supabase.from('platform_settings').select('*').eq('key', `video_sessions_${store.id}`);
+      let currentSessions: VideoSession[] = psData?.[0]?.value ? (() => { try { return JSON.parse(psData[0].value); } catch { return []; } })() : [];
+
       if (editingSession) {
-        const { error } = await supabase.from('video_sessions').update(payload).eq('id', editingSession.id);
-        if (error) throw error;
+        currentSessions = currentSessions.map((s: VideoSession) =>
+          s.id === editingSession.id ? { ...s, ...payload, updated_at: new Date().toISOString() } : s
+        );
       } else {
-        const { error } = await supabase.from('video_sessions').insert([{ ...payload, store_id: store.id }]);
-        if (error) throw error;
+        const newSession: VideoSession = {
+          id: 'vsn_' + Date.now(),
+          store_id: store.id,
+          ...payload,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        currentSessions = [newSession, ...currentSessions];
       }
+
+      const { error } = await supabase.from('platform_settings').insert([{
+        key: `video_sessions_${store.id}`,
+        value: JSON.stringify(currentSessions),
+      }]);
+      if (error) throw error;
       setShowModal(false);
       await fetchData();
     } catch (e: any) {
@@ -112,7 +131,10 @@ export default function VideoCommercePage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Remove this shoppable reel?')) return;
     try {
-      await supabase.from('video_sessions').delete().eq('id', id);
+      const { data: psData } = await supabase.from('platform_settings').select('*').eq('key', `video_sessions_${store.id}`);
+      const current: VideoSession[] = psData?.[0]?.value ? (() => { try { return JSON.parse(psData[0].value); } catch { return []; } })() : [];
+      const updated = current.filter((s: VideoSession) => s.id !== id);
+      await supabase.from('platform_settings').insert([{ key: `video_sessions_${store.id}`, value: JSON.stringify(updated) }]);
       await fetchData();
     } catch (e: any) {
       setMessage('Error: ' + e.message);

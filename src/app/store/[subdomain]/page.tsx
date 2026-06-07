@@ -62,11 +62,8 @@ export default async function StorefrontPage({ params }: { params: { subdomain: 
     .eq('store_id', store.id)
     .eq('is_active', true);
 
-  const { data: videoSessions } = await supabase
-    .from('video_sessions')
-    .select('*')
-    .eq('store_id', store.id)
-    .order('created_at', { ascending: false });
+  const { data: vsPsData } = await supabase.from('platform_settings').select('*').eq('key', `video_sessions_${store.id}`);
+  const videoSessions: any[] = vsPsData?.[0]?.value ? (() => { try { return JSON.parse(vsPsData[0].value); } catch { return []; } })() : [];
 
   // Set CSS variables for the store's primary color
   const customStyles = {
