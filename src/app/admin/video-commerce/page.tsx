@@ -150,12 +150,15 @@ export default function VideoCommercePage() {
         product_ids: normalizedItems.map(i => i.product_id).filter(Boolean),
       };
 
+      // Use in-memory sessions as the authoritative base — they were just fetched
+      // and are guaranteed correct. DB read is only to preserve other description
+      // fields (flashAd, banners, etc.) without clobbering them.
       const { data: freshStore } = await supabase.from('stores').select('description').eq('id', store.id).maybeSingle();
       const desc = (() => { try { return JSON.parse(freshStore?.description || '{}'); } catch { return {}; } })();
-      let currentSessions: VideoSession[] = desc.video_sessions || [];
 
+      let currentSessions: VideoSession[];
       if (editingSession) {
-        currentSessions = currentSessions.map((s: VideoSession) =>
+        currentSessions = sessions.map((s: VideoSession) =>
           s.id === editingSession.id ? { ...s, ...payload, updated_at: new Date().toISOString() } : s
         );
       } else {
@@ -165,7 +168,7 @@ export default function VideoCommercePage() {
           ...payload,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-        }, ...currentSessions];
+        }, ...sessions];
       }
 
       const { error } = await supabase.from('stores').update({
@@ -186,7 +189,8 @@ export default function VideoCommercePage() {
     try {
       const { data: freshStore } = await supabase.from('stores').select('description').eq('id', store.id).maybeSingle();
       const desc = (() => { try { return JSON.parse(freshStore?.description || '{}'); } catch { return {}; } })();
-      const updated = (desc.video_sessions || []).filter((s: VideoSession) => s.id !== id);
+      // Filter from in-memory sessions — same reason as handleSave
+      const updated = sessions.filter((s: VideoSession) => s.id !== id);
       await supabase.from('stores').update({
         description: JSON.stringify({ ...desc, video_sessions: updated }),
       }).eq('id', store.id);
