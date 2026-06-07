@@ -137,6 +137,20 @@ try {
     )");
 } catch (PDOException $ignored) {}
 
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS \"support_notifications\" (
+        \"id\"         VARCHAR(255) PRIMARY KEY,
+        \"type\"       VARCHAR(100) NOT NULL DEFAULT 'new_ticket',
+        \"for_role\"   VARCHAR(50) NOT NULL DEFAULT 'superadmin',
+        \"store_id\"   VARCHAR(255) DEFAULT '',
+        \"ticket_id\"  VARCHAR(255) NOT NULL DEFAULT '',
+        \"title\"      VARCHAR(500) NOT NULL,
+        \"body\"       TEXT DEFAULT '',
+        \"is_read\"    BOOLEAN NOT NULL DEFAULT FALSE,
+        \"created_at\" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+} catch (PDOException $ignored) {}
+
 // Get body payloads
 $rawBody = file_get_contents('php://input');
 $body = json_decode($rawBody, true) ?: [];
@@ -1160,6 +1174,22 @@ try {
             $stmt = $pdo->prepare('INSERT INTO "support_messages" (id, ticket_id, sender_id, sender_role, sender_name, message, attachments) VALUES (?,?,?,?,?,?,?)');
             $stmt->execute([$msgId, $ticketId, $senderId, $senderRole, $senderName, $message, $attachments]);
             $pdo->prepare('UPDATE "support_tickets" SET updated_at = NOW() WHERE id = ?')->execute([$ticketId]);
+            // If superadmin replied, notify the store owner
+            if ($senderRole === 'superadmin') {
+                try {
+                    $tRow = $pdo->prepare('SELECT store_id, subject FROM "support_tickets" WHERE id = ?');
+                    $tRow->execute([$ticketId]);
+                    $tData = $tRow->fetch();
+                    if ($tData) {
+                        $nId = 'notif_' . uniqid('', true);
+                        $pdo->prepare('INSERT INTO "support_notifications" (id,type,for_role,store_id,ticket_id,title,body) VALUES (?,?,?,?,?,?,?)')->execute([
+                            $nId, 'admin_reply', 'owner', $tData['store_id'], $ticketId,
+                            'Support team replied to your ticket',
+                            'New reply on: "' . $tData['subject'] . '"'
+                        ]);
+                    }
+                } catch (PDOException $ignored) {}
+            }
             $stmt = $pdo->prepare('SELECT * FROM "support_messages" WHERE id = ?');
             $stmt->execute([$msgId]);
             jsonResponse($stmt->fetch(), 201);
@@ -1223,9 +1253,47 @@ try {
                 $stmt = $pdo->prepare('INSERT INTO "support_messages" (id,ticket_id,sender_id,sender_role,sender_name,message,attachments) VALUES (?,?,?,?,?,?,?)');
                 $stmt->execute([$msgId, $tktId, $ownerId, 'owner', $senderName, $body['message'], $attachments]);
             }
+            // Notify superadmin of new ticket
+            try {
+                $nId = 'notif_' . uniqid('', true);
+                $pdo->prepare('INSERT INTO "support_notifications" (id,type,for_role,store_id,ticket_id,title,body) VALUES (?,?,?,?,?,?,?)')->execute([
+                    $nId, 'new_ticket', 'superadmin', $storeId, $tktId,
+                    'New Support Ticket: ' . $subject,
+                    'Store "' . $storeName . '" submitted a ' . $category . ' ticket. Ticket #' . $tktNum
+                ]);
+            } catch (PDOException $ignored) {}
             $stmt = $pdo->prepare('SELECT * FROM "support_tickets" WHERE id = ?');
             $stmt->execute([$tktId]);
             jsonResponse($stmt->fetch(), 201);
+        }
+    }
+
+    // ─── NOTIFICATIONS ───────────────────────────────────────────────────────
+    if ($routeParts[0] === 'notifications') {
+        $notifId = $routeParts[1] ?? null;
+
+        // PATCH /api/notifications/{id} — mark as read
+        if ($notifId && $requestMethod === 'PATCH') {
+            $pdo->prepare('UPDATE "support_notifications" SET is_read = TRUE WHERE id = ?')->execute([$notifId]);
+            jsonResponse(['success' => true]);
+        }
+
+        // DELETE /api/notifications/all — mark all read for a role
+        if ($notifId === 'all' && $requestMethod === 'DELETE') {
+            $role = $query['for_role'] ?? 'superadmin';
+            $pdo->prepare('UPDATE "support_notifications" SET is_read = TRUE WHERE for_role = ?')->execute([$role]);
+            jsonResponse(['success' => true]);
+        }
+
+        // GET /api/notifications
+        if (!$notifId && $requestMethod === 'GET') {
+            $where = []; $params = [];
+            if (!empty($query['for_role'])) { $where[] = 'for_role = ?'; $params[] = $query['for_role']; }
+            if (!empty($query['store_id'])) { $where[] = 'store_id = ?'; $params[] = $query['store_id']; }
+            $sql = 'SELECT * FROM "support_notifications"' . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . ' ORDER BY created_at DESC LIMIT 50';
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            jsonResponse($stmt->fetchAll());
         }
     }
 

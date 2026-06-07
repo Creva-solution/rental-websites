@@ -3,11 +3,29 @@
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
-  Plus, Search, Send, X, ChevronRight, Clock, CheckCircle2,
+  Plus, Search, Send, X, Clock, CheckCircle2,
   AlertCircle, Circle, XCircle, Loader2, Image, FileText,
-  Mic, Video, MessageSquare, RefreshCw, ArrowLeft, Play
+  Mic, Video, MessageSquare, RefreshCw, ArrowLeft, Play, Bell
 } from 'lucide-react';
 
+// ─── Direct API helper (bypasses supabase client URL mapping) ────────────────
+const API = 'https://rentalwebsite-backend-vn40.onrender.com/api';
+
+async function apiCall(path: string, opts: RequestInit = {}) {
+  const token = typeof window !== 'undefined'
+    ? (localStorage.getItem('creva_token') || localStorage.getItem('mock_supabase_token'))
+    : null;
+  const headers: Record<string, string> = { Accept: 'application/json', 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${API}${path}`, { ...opts, headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 const CATEGORIES = [
   { value: 'technical',    label: 'Technical Issue' },
   { value: 'payment',     label: 'Payment Issue' },
@@ -18,11 +36,11 @@ const CATEGORIES = [
 ];
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  open:                 { label: 'Open',             color: 'text-blue-600 bg-blue-50 border-blue-200',       icon: Circle },
-  in_progress:          { label: 'In Progress',      color: 'text-amber-600 bg-amber-50 border-amber-200',    icon: Clock },
-  waiting_for_customer: { label: 'Waiting for You',  color: 'text-purple-600 bg-purple-50 border-purple-200', icon: AlertCircle },
-  resolved:             { label: 'Resolved',         color: 'text-green-600 bg-green-50 border-green-200',    icon: CheckCircle2 },
-  closed:               { label: 'Closed',           color: 'text-gray-500 bg-gray-100 border-gray-200',      icon: XCircle },
+  open:                 { label: 'Open',            color: 'text-blue-600 bg-blue-50 border-blue-200',       icon: Circle },
+  in_progress:          { label: 'In Progress',     color: 'text-amber-600 bg-amber-50 border-amber-200',    icon: Clock },
+  waiting_for_customer: { label: 'Waiting for You', color: 'text-purple-600 bg-purple-50 border-purple-200', icon: AlertCircle },
+  resolved:             { label: 'Resolved',        color: 'text-green-600 bg-green-50 border-green-200',    icon: CheckCircle2 },
+  closed:               { label: 'Closed',          color: 'text-gray-500 bg-gray-100 border-gray-200',      icon: XCircle },
 };
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
@@ -32,47 +50,47 @@ const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   critical: { label: 'Critical', color: 'text-red-600 bg-red-50' },
 };
 
-// Validation
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 const ATTACHMENT_TYPES = {
   screenshot: {
     label: 'Screenshots',
     accept: '.png,.jpg,.jpeg,.webp',
-    mimes: ['image/png', 'image/jpeg', 'image/webp', 'image/jpg'],
-    desc: 'PNG, JPG, JPEG, WEBP · max 10 MB',
+    mimes: ['image/png', 'image/jpeg', 'image/webp', 'image/jpg'] as string[],
+    desc: 'PNG, JPG, JPEG, WEBP — max 10 MB',
     icon: Image,
-    color: 'text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100',
+    color: 'text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100',
   },
   voice: {
     label: 'Voice Notes',
     accept: '.mp3,.wav,.m4a,.ogg',
-    mimes: ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a', 'audio/aac'],
-    desc: 'MP3, WAV, M4A, OGG · max 10 MB',
+    mimes: ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a', 'audio/aac'] as string[],
+    desc: 'MP3, WAV, M4A, OGG — max 10 MB',
     icon: Mic,
-    color: 'text-purple-600 border-purple-200 bg-purple-50 hover:bg-purple-100',
+    color: 'text-purple-700 border-purple-200 bg-purple-50 hover:bg-purple-100',
   },
   video: {
     label: 'Screen Recordings',
     accept: '.mp4,.webm,.mov',
-    mimes: ['video/mp4', 'video/webm', 'video/quicktime'],
-    desc: 'MP4, WEBM, MOV · max 10 MB',
+    mimes: ['video/mp4', 'video/webm', 'video/quicktime'] as string[],
+    desc: 'MP4, WEBM, MOV — max 10 MB',
     icon: Video,
-    color: 'text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100',
+    color: 'text-blue-700 border-blue-200 bg-blue-50 hover:bg-blue-100',
   },
   doc: {
     label: 'Documents',
     accept: '.pdf,.doc,.docx,.txt',
-    mimes: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'],
-    desc: 'PDF, DOC, DOCX, TXT · max 10 MB',
+    mimes: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'] as string[],
+    desc: 'PDF, DOC, DOCX, TXT — max 10 MB',
     icon: FileText,
-    color: 'text-orange-600 border-orange-200 bg-orange-50 hover:bg-orange-100',
+    color: 'text-orange-700 border-orange-200 bg-orange-50 hover:bg-orange-100',
   },
 } as const;
 
 type AttachmentCategory = keyof typeof ATTACHMENT_TYPES;
-
 interface Attachment { name: string; url: string; type: string }
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.open;
@@ -93,23 +111,17 @@ function PriorityBadge({ priority }: { priority: string }) {
   );
 }
 
-/** Renders an attachment inline — images, audio player, video player, or download link */
+/** Renders an attachment inline inside a message bubble */
 function AttachmentRenderer({ att, isOwner }: { att: Attachment; isOwner: boolean }) {
-  const linkCls = `flex items-center gap-1.5 text-[10px] font-bold underline mt-1 ${isOwner ? 'text-primary-foreground/80' : 'text-primary'}`;
-
+  const linkCls = `flex items-center gap-1.5 text-[10px] font-bold underline mt-1.5 ${isOwner ? 'text-primary-foreground/80' : 'text-primary'}`;
   if (att.type?.startsWith('image/')) {
     return (
       <a href={att.url} target="_blank" rel="noopener noreferrer" className="mt-1.5 block">
-        <img
-          src={att.url}
-          alt={att.name}
-          className="max-w-full rounded-xl max-h-52 object-cover border border-white/15 shadow-sm"
-        />
+        <img src={att.url} alt={att.name} className="max-w-full rounded-xl max-h-56 object-cover border border-white/15 shadow-sm" />
         <span className={`text-[9px] mt-0.5 block ${isOwner ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>{att.name}</span>
       </a>
     );
   }
-
   if (att.type?.startsWith('audio/')) {
     return (
       <div className="mt-1.5">
@@ -120,7 +132,6 @@ function AttachmentRenderer({ att, isOwner }: { att: Attachment; isOwner: boolea
       </div>
     );
   }
-
   if (att.type?.startsWith('video/')) {
     return (
       <div className="mt-1.5">
@@ -129,7 +140,6 @@ function AttachmentRenderer({ att, isOwner }: { att: Attachment; isOwner: boolea
       </div>
     );
   }
-
   return (
     <a href={att.url} target="_blank" rel="noopener noreferrer" className={linkCls}>
       <FileText className="w-3 h-3 shrink-0" /> {att.name}
@@ -137,23 +147,19 @@ function AttachmentRenderer({ att, isOwner }: { att: Attachment; isOwner: boolea
   );
 }
 
-/** Preview chip shown before sending */
+/** Chip preview shown in the reply box before sending */
 function AttachmentPreview({ att, onRemove }: { att: Attachment; onRemove: () => void }) {
   if (att.type?.startsWith('image/')) {
     return (
       <div className="relative group shrink-0">
         <img src={att.url} alt={att.name} className="h-16 w-16 object-cover rounded-lg border border-border shadow-sm" />
-        <button
-          onClick={onRemove}
-          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
-        >
+        <button onClick={onRemove} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow">
           <X className="w-3 h-3" />
         </button>
         <p className="text-[8px] text-center text-muted-foreground mt-0.5 truncate w-16">{att.name}</p>
       </div>
     );
   }
-
   if (att.type?.startsWith('audio/')) {
     return (
       <div className="flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-xl px-3 py-2 max-w-[240px] shrink-0">
@@ -162,62 +168,56 @@ function AttachmentPreview({ att, onRemove }: { att: Attachment; onRemove: () =>
           <p className="text-[10px] font-bold text-purple-700 truncate">{att.name}</p>
           <audio controls src={att.url} style={{ height: 24 }} className="w-full mt-0.5" />
         </div>
-        <button onClick={onRemove} className="text-purple-400 hover:text-red-500 transition-colors">
-          <X className="w-3.5 h-3.5" />
-        </button>
+        <button onClick={onRemove} className="text-purple-400 hover:text-red-500 transition-colors"><X className="w-3.5 h-3.5" /></button>
       </div>
     );
   }
-
   if (att.type?.startsWith('video/')) {
     return (
       <div className="relative group shrink-0">
         <video src={att.url} className="h-16 w-24 object-cover rounded-lg border border-border shadow-sm" />
-        <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/25 rounded-lg pointer-events-none">
           <Play className="w-5 h-5 text-white drop-shadow" />
         </div>
-        <button
-          onClick={onRemove}
-          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
-        >
+        <button onClick={onRemove} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow">
           <X className="w-3 h-3" />
         </button>
         <p className="text-[8px] text-center text-muted-foreground mt-0.5 truncate w-24">{att.name}</p>
       </div>
     );
   }
-
-  // Document
   return (
     <div className="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2 max-w-[200px] shrink-0">
       <FileText className="w-4 h-4 text-orange-500 shrink-0" />
       <p className="text-[10px] font-bold text-orange-700 truncate flex-1">{att.name}</p>
-      <button onClick={onRemove} className="text-orange-400 hover:text-red-500 transition-colors">
-        <X className="w-3.5 h-3.5" />
-      </button>
+      <button onClick={onRemove} className="text-orange-400 hover:text-red-500 transition-colors"><X className="w-3.5 h-3.5" /></button>
     </div>
   );
 }
 
+// ─── Main Component ────────────────────────────────────────────────────────────
+
 export default function AdminSupportPage() {
-  const [store, setStore]       = useState<any>(null);
-  const [user, setUser]         = useState<any>(null);
-  const [tickets, setTickets]   = useState<any[]>([]);
-  const [selected, setSelected] = useState<any>(null);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [sending, setSending]   = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [search, setSearch]     = useState('');
+  const [store, setStore]           = useState<any>(null);
+  const [user, setUser]             = useState<any>(null);
+  const [tickets, setTickets]       = useState<any[]>([]);
+  const [selected, setSelected]     = useState<any>(null);
+  const [messages, setMessages]     = useState<any[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [sending, setSending]       = useState(false);
+  const [creating, setCreating]     = useState(false);
+  const [search, setSearch]         = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [showNew, setShowNew]   = useState(false);
-  const [reply, setReply]       = useState('');
+  const [showNew, setShowNew]       = useState(false);
+  const [successTicket, setSuccessTicket] = useState<any>(null);
+  const [reply, setReply]           = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading]   = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifs, setShowNotifs] = useState(false);
 
   const msgEndRef = useRef<HTMLDivElement>(null);
-
   const [form, setForm] = useState({ subject: '', category: 'technical', message: '' });
 
   useEffect(() => { init(); }, []);
@@ -232,87 +232,99 @@ export default function AdminSupportPage() {
       setUser(u);
       const { data: s } = await supabase.from('stores').select('*').eq('owner_id', u.id).maybeSingle();
       setStore(s);
-      await loadTickets(s?.id);
+      if (s?.id) {
+        await loadTickets(s.id);
+        loadOwnerNotifications(s.id);
+      }
     } finally { setLoading(false); }
   };
 
   const loadTickets = async (storeId?: string) => {
     const id = storeId || store?.id;
     if (!id) return;
-    const { data } = await supabase.from('support_tickets').select('*').eq('store_id', id);
-    setTickets((data as any[]) || []);
+    const data = await apiCall(`/support-tickets?store_id=${encodeURIComponent(id)}`).catch(() => []);
+    setTickets(Array.isArray(data) ? data.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) : []);
   };
 
   const loadMessages = async (ticketId: string) => {
-    const { data } = await supabase.from('support_messages').select('*').eq('ticket_id', ticketId);
-    setMessages((data as any[]) || []);
+    const data = await apiCall(`/support-tickets/${ticketId}`).catch(() => ({ messages: [] }));
+    setMessages(data.messages || []);
+  };
+
+  const loadOwnerNotifications = async (storeId: string) => {
+    const data = await apiCall(`/notifications?for_role=owner&store_id=${encodeURIComponent(storeId)}`).catch(() => []);
+    setNotifications(Array.isArray(data) ? data : []);
+  };
+
+  const markNotifRead = async (id: string) => {
+    await apiCall(`/notifications/${id}`, { method: 'PATCH' }).catch(() => {});
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+  };
+
+  const markAllNotifsRead = async () => {
+    if (!store?.id) return;
+    await apiCall('/notifications/all', { method: 'DELETE', body: JSON.stringify({ for_role: 'owner' }) }).catch(() => {});
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
   };
 
   const handleCreate = async () => {
     if (!form.subject.trim() || !form.message.trim()) return;
     setCreating(true);
     try {
-      const { data } = await supabase.from('support_tickets').insert([{
-        store_id: store.id,
-        owner_id: user.id,
-        owner_email: user.email,
-        store_name: store.store_name,
-        subject: form.subject.trim(),
-        category: form.category,
-        message: form.message.trim(),
-        sender_name: store.store_name,
-        attachments: [],
-      }]).select().maybeSingle();
+      const ticket = await apiCall('/support-tickets', {
+        method: 'POST',
+        body: JSON.stringify({
+          store_id: store.id,
+          owner_id: user.id,
+          owner_email: user.email,
+          store_name: store.store_name,
+          subject: form.subject.trim(),
+          category: form.category,
+          message: form.message.trim(),
+          sender_name: store.store_name || user.email,
+          attachments: [],
+        }),
+      });
       setShowNew(false);
       setForm({ subject: '', category: 'technical', message: '' });
+      setSuccessTicket(ticket);
       await loadTickets();
-      if (data) setSelected(data);
+    } catch (err: any) {
+      console.error('Failed to create ticket:', err);
     } finally { setCreating(false); }
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, category: AttachmentCategory) => {
     const files = e.target.files;
     if (!files?.length) return;
-
     setUploadError(null);
     setUploading(true);
-
     const cfg = ATTACHMENT_TYPES[category];
     const uploaded: Attachment[] = [];
-
     for (const file of Array.from(files)) {
-      // Size check
       if (file.size > MAX_FILE_SIZE) {
-        setUploadError(`"${file.name}" exceeds the 10 MB limit. Please choose a smaller file.`);
+        setUploadError(`"${file.name}" exceeds the 10 MB limit.`);
         continue;
       }
-      // Type check — allow by MIME or by extension fallback
       const ext = file.name.split('.').pop()?.toLowerCase() || '';
       const acceptedExts = cfg.accept.replace(/\./g, '').split(',');
-      const typeOk = (cfg.mimes as readonly string[]).includes(file.type) || acceptedExts.includes(ext);
-      if (!typeOk) {
-        setUploadError(`"${file.name}" is not allowed here. Accepted: ${cfg.desc}`);
+      if (!cfg.mimes.includes(file.type) && !acceptedExts.includes(ext)) {
+        setUploadError(`"${file.name}" is not allowed. Accepted: ${cfg.desc}`);
         continue;
       }
-
-      // Read as data URL for instant preview
       const reader = new FileReader();
       const dataUrl = await new Promise<string>(res => {
         reader.onload = () => res(reader.result as string);
         reader.readAsDataURL(file);
       });
-
-      // Try uploading to storage; fall back to data URL so preview always works
+      // Try backend storage upload; fall back to data URL so preview still shows
       try {
-        const { data } = await supabase.storage
-          .from('uploads')
-          .upload(`support/${Date.now()}_${file.name}`, dataUrl);
+        const { data } = await supabase.storage.from('uploads').upload(`support/${Date.now()}_${file.name}`, dataUrl);
         uploaded.push({ name: file.name, url: (data as any)?.url || dataUrl, type: file.type });
       } catch {
         uploaded.push({ name: file.name, url: dataUrl, type: file.type });
       }
     }
-
     setAttachments(prev => [...prev, ...uploaded]);
     setUploading(false);
     e.target.value = '';
@@ -326,19 +338,23 @@ export default function AdminSupportPage() {
     if (!selected) return;
     setSending(true);
     try {
-      await supabase.from('support_messages').insert([{
-        ticket_id: selected.id,
-        sender_id: user.id,
-        sender_role: 'owner',
-        sender_name: store.store_name,
-        message: reply.trim(),
-        attachments,
-      }]);
+      await apiCall(`/support-tickets/${selected.id}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({
+          sender_id: user.id,
+          sender_role: 'owner',
+          sender_name: store.store_name || user.email,
+          message: reply.trim(),
+          attachments,
+        }),
+      });
       setReply('');
       setAttachments([]);
       setUploadError(null);
       await loadMessages(selected.id);
       await loadTickets();
+    } catch (err: any) {
+      console.error('Failed to send reply:', err);
     } finally { setSending(false); }
   };
 
@@ -349,6 +365,8 @@ export default function AdminSupportPage() {
     const matchStatus = statusFilter === 'all' || t.status === statusFilter;
     return matchSearch && matchStatus;
   });
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -368,12 +386,53 @@ export default function AdminSupportPage() {
           <h2 className="text-2xl font-black tracking-tight">Help & Support</h2>
           <p className="text-sm text-muted-foreground mt-0.5">Our team responds within <span className="font-bold text-foreground">24 hours</span>.</p>
         </div>
-        <button
-          onClick={() => setShowNew(true)}
-          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity"
-        >
-          <Plus className="w-4 h-4" /> New Ticket
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Notification bell */}
+          <div className="relative">
+            <button
+              onClick={() => setShowNotifs(v => !v)}
+              className="relative p-2 border border-border rounded-xl hover:bg-muted transition-colors"
+            >
+              <Bell className="w-4 h-4 text-muted-foreground" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+            {showNotifs && (
+              <div className="absolute right-0 top-full mt-2 w-80 bg-background border border-border rounded-2xl shadow-xl z-50 overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                  <span className="text-xs font-black uppercase tracking-wider text-primary">Notifications</span>
+                  {unreadCount > 0 && (
+                    <button onClick={markAllNotifsRead} className="text-[10px] font-bold text-muted-foreground hover:text-foreground">Mark all read</button>
+                  )}
+                </div>
+                <div className="max-h-64 overflow-y-auto divide-y divide-border">
+                  {notifications.length === 0 ? (
+                    <p className="px-4 py-6 text-xs text-muted-foreground text-center">No notifications yet</p>
+                  ) : notifications.map(n => (
+                    <button
+                      key={n.id}
+                      onClick={() => markNotifRead(n.id)}
+                      className={`w-full text-left px-4 py-3 hover:bg-muted/40 transition-colors ${!n.is_read ? 'bg-primary/5' : ''}`}
+                    >
+                      <p className={`text-xs font-bold ${!n.is_read ? 'text-foreground' : 'text-muted-foreground'}`}>{n.title}</p>
+                      {n.body && <p className="text-[10px] text-muted-foreground mt-0.5">{n.body}</p>}
+                      <p className="text-[9px] text-muted-foreground mt-1">{new Date(n.created_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => setShowNew(true)}
+            className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity"
+          >
+            <Plus className="w-4 h-4" /> New Ticket
+          </button>
+        </div>
       </div>
 
       {/* Main Layout */}
@@ -478,9 +537,7 @@ export default function AdminSupportPage() {
                 )}
                 {messages.map(msg => {
                   const isOwner = msg.sender_role === 'owner';
-                  const atts: Attachment[] = (() => {
-                    try { return JSON.parse(msg.attachments || '[]'); } catch { return []; }
-                  })();
+                  const atts: Attachment[] = (() => { try { return JSON.parse(msg.attachments || '[]'); } catch { return []; } })();
                   return (
                     <div key={msg.id} className={`flex ${isOwner ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${isOwner ? 'bg-primary text-primary-foreground rounded-tr-sm' : 'bg-background border border-border rounded-tl-sm'}`}>
@@ -490,9 +547,7 @@ export default function AdminSupportPage() {
                         {msg.message && <p className="text-xs leading-relaxed whitespace-pre-wrap">{msg.message}</p>}
                         {atts.length > 0 && (
                           <div className="mt-1 space-y-2">
-                            {atts.map((att, i) => (
-                              <AttachmentRenderer key={i} att={att} isOwner={isOwner} />
-                            ))}
+                            {atts.map((att, i) => <AttachmentRenderer key={i} att={att} isOwner={isOwner} />)}
                           </div>
                         )}
                         <p className={`text-[9px] mt-1.5 ${isOwner ? 'text-primary-foreground/50' : 'text-muted-foreground'}`}>
@@ -509,43 +564,42 @@ export default function AdminSupportPage() {
               {selected.status !== 'closed' ? (
                 <div className="px-5 py-4 border-t border-border bg-background shrink-0 space-y-3">
 
-                  {/* 4 Attachment Type Buttons — label wraps input so click always opens picker */}
+                  {/* 4 attachment buttons — <label> wraps <input> for reliable file picker */}
                   <div className="flex flex-wrap gap-2">
-                    {(Object.entries(ATTACHMENT_TYPES) as [AttachmentCategory, typeof ATTACHMENT_TYPES[AttachmentCategory]][]).map(([key, cfg]) => {
+                    {(Object.entries(ATTACHMENT_TYPES) as [AttachmentCategory, (typeof ATTACHMENT_TYPES)[AttachmentCategory]][]).map(([key, cfg]) => {
                       const Icon = cfg.icon;
                       return (
                         <label
                           key={key}
                           title={cfg.desc}
-                          className={`flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-full border transition-colors select-none ${uploading ? 'opacity-50 pointer-events-none' : 'cursor-pointer'} ${cfg.color}`}
+                          className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-full border transition-colors select-none ${uploading ? 'opacity-50 pointer-events-none' : 'cursor-pointer'} ${cfg.color}`}
                         >
                           <Icon className="w-3.5 h-3.5" />
                           {cfg.label}
+                          {/* display:none works with <label> clicks — only programmatic .click() is blocked */}
                           <input
                             type="file"
                             multiple
                             accept={cfg.accept}
                             disabled={uploading}
-                            style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap' }}
-                            onChange={e => { setUploadError(null); handleUpload(e, key); }}
+                            style={{ display: 'none' }}
+                            onChange={e => handleUpload(e, key)}
                           />
                         </label>
                       );
                     })}
                   </div>
 
-                  {/* Upload Error */}
+                  {/* Upload error */}
                   {uploadError && (
                     <div className="flex items-center gap-2 text-[10px] font-bold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                       <span className="flex-1">{uploadError}</span>
-                      <button onClick={() => setUploadError(null)} className="text-red-400 hover:text-red-600">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
+                      <button onClick={() => setUploadError(null)} className="text-red-400 hover:text-red-600"><X className="w-3.5 h-3.5" /></button>
                     </div>
                   )}
 
-                  {/* Attachment Previews */}
+                  {/* Attachment previews */}
                   {attachments.length > 0 && (
                     <div className="flex flex-wrap gap-2 p-3 bg-muted/30 rounded-xl border border-border">
                       {attachments.map((att, i) => (
@@ -554,7 +608,7 @@ export default function AdminSupportPage() {
                     </div>
                   )}
 
-                  {/* Text + Send */}
+                  {/* Text area + send button */}
                   <div className="flex gap-2 items-end">
                     <textarea
                       value={reply}
@@ -572,8 +626,7 @@ export default function AdminSupportPage() {
                       {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     </button>
                   </div>
-
-                  <p className="text-[9px] text-muted-foreground">Max 10 MB per file. Images, audio, video, and documents accepted.</p>
+                  <p className="text-[9px] text-muted-foreground">Max 10 MB per file · Ctrl+Enter to send</p>
                 </div>
               ) : (
                 <div className="px-5 py-4 border-t border-border text-center text-xs text-muted-foreground bg-background">
@@ -587,7 +640,7 @@ export default function AdminSupportPage() {
         </div>
       </div>
 
-      {/* New Ticket Modal */}
+      {/* ── New Ticket Modal ── */}
       {showNew && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-background border border-border rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
@@ -596,9 +649,7 @@ export default function AdminSupportPage() {
                 <h3 className="font-black text-lg">Create Support Ticket</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">We respond within 24 hours.</p>
               </div>
-              <button onClick={() => setShowNew(false)} className="p-1.5 hover:bg-muted rounded-lg">
-                <X className="w-4 h-4" />
-              </button>
+              <button onClick={() => setShowNew(false)} className="p-1.5 hover:bg-muted rounded-lg"><X className="w-4 h-4" /></button>
             </div>
 
             <div className="p-6 space-y-4 overflow-y-auto flex-1">
@@ -633,7 +684,7 @@ export default function AdminSupportPage() {
                 <textarea
                   value={form.message}
                   onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
-                  placeholder="Describe the problem in detail. Include steps to reproduce, error messages, or any relevant information…"
+                  placeholder="Describe the problem in detail…"
                   rows={5}
                   className="w-full border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-background resize-none"
                 />
@@ -642,10 +693,16 @@ export default function AdminSupportPage() {
               <div className="bg-muted/40 rounded-xl p-3">
                 <p className="text-[10px] font-bold text-muted-foreground mb-2">After creating the ticket you can attach:</p>
                 <div className="flex flex-wrap gap-2">
-                  <span className="text-[10px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-full px-2 py-1 flex items-center gap-1"><Image className="w-3 h-3" /> Screenshots</span>
-                  <span className="text-[10px] font-bold bg-purple-50 border border-purple-200 text-purple-700 rounded-full px-2 py-1 flex items-center gap-1"><Mic className="w-3 h-3" /> Voice Notes</span>
-                  <span className="text-[10px] font-bold bg-blue-50 border border-blue-200 text-blue-700 rounded-full px-2 py-1 flex items-center gap-1"><Video className="w-3 h-3" /> Screen Recordings</span>
-                  <span className="text-[10px] font-bold bg-orange-50 border border-orange-200 text-orange-700 rounded-full px-2 py-1 flex items-center gap-1"><FileText className="w-3 h-3" /> Documents</span>
+                  {[
+                    { label: 'Screenshots', icon: Image, color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+                    { label: 'Voice Notes', icon: Mic, color: 'bg-purple-50 border-purple-200 text-purple-700' },
+                    { label: 'Screen Recordings', icon: Video, color: 'bg-blue-50 border-blue-200 text-blue-700' },
+                    { label: 'Documents', icon: FileText, color: 'bg-orange-50 border-orange-200 text-orange-700' },
+                  ].map(({ label, icon: Icon, color }) => (
+                    <span key={label} className={`text-[10px] font-bold border rounded-full px-2 py-1 flex items-center gap-1 ${color}`}>
+                      <Icon className="w-3 h-3" /> {label}
+                    </span>
+                  ))}
                 </div>
               </div>
             </div>
@@ -658,7 +715,41 @@ export default function AdminSupportPage() {
                 className="flex-1 bg-primary text-primary-foreground rounded-xl py-2.5 text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                {creating ? 'Creating…' : 'Submit Ticket'}
+                {creating ? 'Submitting…' : 'Submit Ticket'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Success Confirmation Modal ── */}
+      {successTicket && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-background border border-border rounded-2xl w-full max-w-md shadow-2xl p-8 text-center space-y-5">
+            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-9 h-9 text-emerald-500" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-black text-foreground">Support Request Submitted Successfully</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Your support request has been submitted successfully. Our support team will review your issue and respond within 24 hours.
+              </p>
+              <div className="mt-3 text-xs font-mono text-primary bg-primary/10 rounded-lg px-3 py-1.5 inline-block">
+                {successTicket.ticket_number}
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setSuccessTicket(null)}
+                className="flex-1 border border-border rounded-xl py-2.5 text-sm font-bold hover:bg-muted transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => { setSelected(successTicket); setSuccessTicket(null); }}
+                className="flex-1 bg-primary text-primary-foreground rounded-xl py-2.5 text-sm font-bold hover:opacity-90 transition-opacity"
+              >
+                View Ticket
               </button>
             </div>
           </div>
