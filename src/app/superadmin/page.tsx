@@ -168,6 +168,19 @@ export default function SuperAdminDashboard() {
   const [resetError, setResetError] = useState<string | null>(null);
   const [resetSuccess, setResetSuccess] = useState<string | null>(null);
   
+  // Main view toggle: stores vs support tickets
+  const [mainView, setMainView] = useState<'stores' | 'support'>('stores');
+
+  // Support Tickets
+  const [supportTickets, setSupportTickets] = useState<any[]>([]);
+  const [supportTicketsLoading, setSupportTicketsLoading] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [ticketMessages, setTicketMessages] = useState<any[]>([]);
+  const [supportSearch, setSupportSearch] = useState('');
+  const [supportStatusFilter, setSupportStatusFilter] = useState('all');
+  const [ticketReply, setTicketReply] = useState('');
+  const [ticketReplyLoading, setTicketReplyLoading] = useState(false);
+
   // Advanced filters and branding dashboard states
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [isBrandingOpen, setIsBrandingOpen] = useState<boolean>(false);
@@ -1738,15 +1751,129 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
   const sixMonthsCount = getActivePlanCount(90, 180);
   const oneYearCount = getActivePlanCount(180, 365);
 
+  // ─── Support Ticket Helpers ───────────────────────────────────────────────
+  const supportApiFetch = async (path: string, options: RequestInit = {}) => {
+    const token = typeof window !== 'undefined'
+      ? (localStorage.getItem('creva_token') || localStorage.getItem('mock_supabase_token'))
+      : null;
+    const headers: Record<string, string> = { Accept: 'application/json', 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`https://rentalwebsite-backend-vn40.onrender.com/api${path}`, { ...options, headers });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  };
+
+  const loadSupportTickets = async () => {
+    setSupportTicketsLoading(true);
+    try {
+      const data = await supportApiFetch('/support-tickets');
+      setSupportTickets(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error('Failed to load support tickets:', e);
+    } finally {
+      setSupportTicketsLoading(false);
+    }
+  };
+
+  const selectTicket = async (ticket: any) => {
+    setSelectedTicket(ticket);
+    setTicketMessages([]);
+    setTicketReply('');
+    try {
+      const data = await supportApiFetch(`/support-tickets/${ticket.id}`);
+      setTicketMessages(data.messages || []);
+    } catch (e) {
+      console.error('Failed to load ticket messages:', e);
+    }
+  };
+
+  const sendSupportReply = async () => {
+    if (!ticketReply.trim() || !selectedTicket || ticketReplyLoading) return;
+    setTicketReplyLoading(true);
+    try {
+      const msg = await supportApiFetch(`/support-tickets/${selectedTicket.id}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({
+          sender_id: user?.id || 'superadmin',
+          sender_role: 'superadmin',
+          sender_name: 'Support Team',
+          message: ticketReply.trim(),
+          attachments: [],
+        }),
+      });
+      setTicketMessages(prev => [...prev, msg]);
+      setTicketReply('');
+      if (selectedTicket.status === 'open') {
+        await updateSupportTicketStatus(selectedTicket.id, 'in_progress');
+      }
+    } catch (e) {
+      console.error('Failed to send reply:', e);
+    } finally {
+      setTicketReplyLoading(false);
+    }
+  };
+
+  const updateSupportTicketStatus = async (ticketId: string, status: string) => {
+    try {
+      await supportApiFetch(`/support-tickets/${ticketId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      });
+      setSupportTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status } : t));
+      if (selectedTicket?.id === ticketId) setSelectedTicket((prev: any) => ({ ...prev, status }));
+    } catch (e) {
+      console.error('Failed to update status:', e);
+    }
+  };
+
+  const updateSupportTicketPriority = async (ticketId: string, priority: string) => {
+    try {
+      await supportApiFetch(`/support-tickets/${ticketId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ priority }),
+      });
+      setSupportTickets(prev => prev.map(t => t.id === ticketId ? { ...t, priority } : t));
+      if (selectedTicket?.id === ticketId) setSelectedTicket((prev: any) => ({ ...prev, priority }));
+    } catch (e) {
+      console.error('Failed to update priority:', e);
+    }
+  };
+
+  // Load support tickets when switching to that view
+  useEffect(() => {
+    if (mainView === 'support') loadSupportTickets();
+  }, [mainView]);
+
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 font-sans flex flex-col">
       {/* Redesigned Top SaaS Header Navigation */}
       <header className="h-16 flex items-center justify-between px-4 sm:px-6 border-b border-gray-800 bg-gray-950 flex-shrink-0 select-none z-40">
         {/* Left section: Controls & Page Title */}
         <div className="flex items-center gap-3 min-w-0">
-          <h1 className="text-base sm:text-lg font-bold capitalize truncate">
-            Super Admin Control
+          <h1 className="hidden sm:block text-base sm:text-lg font-bold capitalize truncate">
+            Super Admin
           </h1>
+          <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-1 border border-gray-700 shrink-0">
+            <button
+              onClick={() => setMainView('stores')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs font-bold transition-all ${mainView === 'stores' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              Stores
+            </button>
+            <button
+              onClick={() => setMainView('support')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs font-bold transition-all ${mainView === 'support' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              Support
+              {supportTickets.filter(t => t.status === 'open').length > 0 && (
+                <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[16px] text-center leading-none">
+                  {supportTickets.filter(t => t.status === 'open').length}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Right section: Profile, Visit Store, Notifications, Fullscreen */}
@@ -1937,6 +2064,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
         </div>
       )}
 
+      {mainView === 'stores' && (<>
       {/* Upper header */}
       <div className="max-w-7xl mx-auto mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -2342,6 +2470,287 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
           )}
         </div>
       </div>
+      </>)}
+
+      {mainView === 'support' && (
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Support Header */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                Support Tickets
+              </h1>
+              <p className="text-gray-400 text-sm mt-1">
+                Manage merchant support requests, reply to tickets, and update resolutions.
+              </p>
+            </div>
+            <button
+              onClick={loadSupportTickets}
+              className="flex items-center gap-2 self-start bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-700 text-sm font-medium transition-all"
+            >
+              <RefreshCw className={`w-4 h-4 ${supportTicketsLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+
+          {/* Stats Row */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { label: 'Total Tickets', count: supportTickets.length, color: 'text-white' },
+              { label: 'Open', count: supportTickets.filter((t: any) => t.status === 'open').length, color: 'text-blue-400' },
+              { label: 'In Progress', count: supportTickets.filter((t: any) => t.status === 'in_progress').length, color: 'text-amber-400' },
+              { label: 'Resolved', count: supportTickets.filter((t: any) => t.status === 'resolved').length, color: 'text-green-400' },
+            ].map(stat => (
+              <div key={stat.label} className="bg-gray-800 border border-gray-700/60 rounded-xl p-4 shadow-sm">
+                <div className="text-gray-400 text-xs font-semibold uppercase tracking-wider">{stat.label}</div>
+                <div className={`text-2xl font-extrabold ${stat.color} mt-1`}>{stat.count}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Search & Status Filter */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 bg-gray-800 p-4 rounded-xl border border-gray-700/60">
+            <div className="relative w-full sm:max-w-sm">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by ticket #, subject, or store..."
+                value={supportSearch}
+                onChange={(e) => setSupportSearch(e.target.value)}
+                className="w-full bg-gray-900 border border-gray-700/80 rounded-lg pl-10 pr-4 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-all"
+              />
+            </div>
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 w-full sm:w-auto">
+              {['all', 'open', 'in_progress', 'resolved', 'closed'].map(s => (
+                <button
+                  key={s}
+                  onClick={() => setSupportStatusFilter(s)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all shrink-0 ${
+                    supportStatusFilter === s
+                      ? 'bg-blue-600 border-blue-500 text-white shadow-md'
+                      : 'bg-gray-800/40 border-gray-700 text-gray-400 hover:bg-gray-700'
+                  }`}
+                >
+                  {s === 'all' ? 'All' : s === 'in_progress' ? 'In Progress' : s.charAt(0).toUpperCase() + s.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Two-Panel Layout */}
+          <div className="flex gap-4" style={{ minHeight: 600 }}>
+            {/* Ticket List */}
+            <div className="w-full md:w-80 lg:w-96 bg-gray-800 border border-gray-700/60 rounded-xl overflow-hidden flex flex-col shrink-0">
+              <div className="px-4 py-3 border-b border-gray-700/60 bg-gray-900/40">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Tickets</span>
+              </div>
+              {supportTicketsLoading ? (
+                <div className="flex-1 flex items-center justify-center text-gray-400 gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+                  <span className="text-sm">Loading...</span>
+                </div>
+              ) : (() => {
+                const filtered = supportTickets.filter((t: any) => {
+                  const q = supportSearch.toLowerCase();
+                  const matchSearch = !q ||
+                    t.subject?.toLowerCase().includes(q) ||
+                    t.ticket_number?.toLowerCase().includes(q) ||
+                    t.store_name?.toLowerCase().includes(q);
+                  const matchStatus = supportStatusFilter === 'all' || t.status === supportStatusFilter;
+                  return matchSearch && matchStatus;
+                });
+                if (filtered.length === 0) return (
+                  <div className="flex-1 flex flex-col items-center justify-center text-gray-500 gap-2 p-6">
+                    <MessageSquare className="w-10 h-10 text-gray-600" />
+                    <span className="text-sm text-center">No tickets found</span>
+                  </div>
+                );
+                const priorityDot: Record<string, string> = { critical: 'bg-red-500', high: 'bg-orange-500', medium: 'bg-blue-400', low: 'bg-gray-500' };
+                const statusColor: Record<string, string> = { open: 'text-blue-400', in_progress: 'text-amber-400', waiting_for_customer: 'text-purple-400', resolved: 'text-green-400', closed: 'text-gray-400' };
+                const statusLabel: Record<string, string> = { open: 'Open', in_progress: 'In Progress', waiting_for_customer: 'Waiting', resolved: 'Resolved', closed: 'Closed' };
+                return (
+                  <div className="flex-1 overflow-y-auto divide-y divide-gray-700/40">
+                    {filtered.map((ticket: any) => (
+                      <button
+                        key={ticket.id}
+                        onClick={() => selectTicket(ticket)}
+                        className={`w-full text-left px-4 py-3.5 transition-colors border-l-2 ${selectedTicket?.id === ticket.id ? 'bg-blue-900/30 border-blue-500' : 'hover:bg-gray-700/30 border-transparent'}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className={`w-2 h-2 rounded-full shrink-0 ${priorityDot[ticket.priority] || 'bg-gray-500'}`} />
+                              <span className="text-[10px] font-mono text-gray-500">{ticket.ticket_number}</span>
+                            </div>
+                            <p className="text-sm font-semibold text-white truncate leading-snug">{ticket.subject}</p>
+                            <p className="text-xs text-gray-500 truncate mt-0.5">{ticket.store_name || ticket.owner_email}</p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <span className={`text-[10px] font-bold uppercase ${statusColor[ticket.status] || 'text-gray-400'}`}>
+                              {statusLabel[ticket.status] || ticket.status}
+                            </span>
+                            <p className="text-[10px] text-gray-600 mt-1">{new Date(ticket.created_at).toLocaleDateString('en-IN')}</p>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Ticket Detail / Chat Panel */}
+            <div className="flex-1 bg-gray-800 border border-gray-700/60 rounded-xl overflow-hidden flex flex-col min-w-0">
+              {!selectedTicket ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-gray-500 gap-3 p-8">
+                  <div className="w-16 h-16 bg-gray-700/40 rounded-full flex items-center justify-center">
+                    <MessageSquare className="w-8 h-8 text-gray-600" />
+                  </div>
+                  <p className="text-sm">Select a ticket to view the conversation</p>
+                </div>
+              ) : (
+                <>
+                  {/* Ticket Header */}
+                  <div className="p-4 border-b border-gray-700/60 bg-gray-900/30 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className="text-xs font-mono text-gray-400">{selectedTicket.ticket_number}</span>
+                          <span className="text-[10px] bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full capitalize">{selectedTicket.category}</span>
+                        </div>
+                        <h2 className="text-base font-bold text-white leading-snug">{selectedTicket.subject}</h2>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {selectedTicket.store_name && <span className="font-semibold text-gray-300">{selectedTicket.store_name}</span>}
+                          {selectedTicket.owner_email && <span> · {selectedTicket.owner_email}</span>}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => { setSelectedTicket(null); setTicketMessages([]); setTicketReply(''); }}
+                        className="p-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-400 hover:text-white transition-colors shrink-0"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {/* Status / Priority controls */}
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Status</span>
+                        <select
+                          value={selectedTicket.status}
+                          onChange={(e) => updateSupportTicketStatus(selectedTicket.id, e.target.value)}
+                          className="bg-gray-950 border border-gray-700 text-xs text-gray-100 rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-500 transition-colors"
+                        >
+                          <option value="open">Open</option>
+                          <option value="in_progress">In Progress</option>
+                          <option value="waiting_for_customer">Waiting for Customer</option>
+                          <option value="resolved">Resolved</option>
+                          <option value="closed">Closed</option>
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Priority</span>
+                        <select
+                          value={selectedTicket.priority}
+                          onChange={(e) => updateSupportTicketPriority(selectedTicket.id, e.target.value)}
+                          className="bg-gray-950 border border-gray-700 text-xs text-gray-100 rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-500 transition-colors"
+                        >
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                          <option value="critical">Critical</option>
+                        </select>
+                      </div>
+                      {selectedTicket.owner_email && (
+                        <a
+                          href={`mailto:${selectedTicket.owner_email}?subject=Re: [${selectedTicket.ticket_number}] ${selectedTicket.subject}`}
+                          className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          Email Customer
+                        </a>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Messages Thread */}
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {ticketMessages.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-2 py-8">
+                        <MessageSquare className="w-8 h-8 text-gray-600" />
+                        <span className="text-sm">No messages yet. Be the first to reply.</span>
+                      </div>
+                    ) : (
+                      ticketMessages.map((msg: any) => {
+                        const isAdmin = msg.sender_role === 'superadmin';
+                        let attachments: any[] = [];
+                        try { attachments = JSON.parse(msg.attachments || '[]'); } catch {}
+                        return (
+                          <div key={msg.id} className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[78%] rounded-2xl px-4 py-3 ${isAdmin ? 'bg-blue-700 text-white rounded-br-sm' : 'bg-gray-700/70 border border-gray-600/60 text-gray-100 rounded-bl-sm'}`}>
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <span className={`text-[10px] font-bold ${isAdmin ? 'text-blue-200' : 'text-gray-400'}`}>
+                                  {msg.sender_name || (isAdmin ? 'Support Team' : 'Customer')}
+                                </span>
+                                <span className={`text-[9px] ${isAdmin ? 'text-blue-300' : 'text-gray-500'}`}>
+                                  {new Date(msg.created_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
+                                </span>
+                              </div>
+                              {msg.message && <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.message}</p>}
+                              {attachments.length > 0 && (
+                                <div className="mt-2 space-y-1.5">
+                                  {attachments.map((att: any, i: number) => (
+                                    <div key={i}>
+                                      {att.type?.startsWith('image/') ? (
+                                        <img src={att.url || att.data} alt={att.name || 'Image'} className="max-w-full rounded-lg max-h-48 object-cover mt-1 border border-white/10" />
+                                      ) : att.type?.startsWith('audio/') ? (
+                                        <audio controls src={att.url || att.data} className="mt-1 w-full" style={{ maxWidth: 280 }} />
+                                      ) : att.type?.startsWith('video/') ? (
+                                        <video controls src={att.url || att.data} className="mt-1 rounded-lg max-h-48 w-full" />
+                                      ) : (
+                                        <a href={att.url || att.data} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs underline opacity-80 hover:opacity-100 mt-1">
+                                          <FileText className="w-3.5 h-3.5 shrink-0" />
+                                          {att.name || 'Download File'}
+                                        </a>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {/* Reply Box */}
+                  <div className="p-4 border-t border-gray-700/60 bg-gray-900/20">
+                    <div className="flex gap-3 items-end">
+                      <textarea
+                        value={ticketReply}
+                        onChange={(e) => setTicketReply(e.target.value)}
+                        placeholder="Type your reply... (Ctrl+Enter to send)"
+                        rows={3}
+                        className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none transition-colors"
+                        onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendSupportReply(); }}
+                      />
+                      <button
+                        onClick={sendSupportReply}
+                        disabled={!ticketReply.trim() || ticketReplyLoading}
+                        className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md shrink-0"
+                      >
+                        {ticketReplyLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        Send
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-gray-600 mt-1.5">Replying as Support Team · Status auto-updates to "In Progress" on first reply</p>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Invoice & Shop Details Modal */}
       {selectedStore && (

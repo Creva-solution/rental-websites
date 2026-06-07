@@ -364,15 +364,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               SUPPORT & OUTLETS
             </span>
             <div className="space-y-1">
-              <a 
-                href="https://wa.me/919876543210?text=Hi%20Creva%20Support!%20I%20need%20assistance%2520with%2520my%2520merchant%2520storefront." 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="flex items-center gap-3 px-3 py-2 rounded-xl font-bold text-xs uppercase tracking-wider text-emerald-600 hover:bg-emerald-50/50 transition-all duration-200"
+              <Link
+                href="/admin/support"
+                className={`flex items-center gap-3 px-3 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 ${pathname === '/admin/support' ? 'bg-emerald-50 text-emerald-700' : 'text-emerald-600 hover:bg-emerald-50/50'}`}
               >
                 <HelpCircle className="w-4 h-4 text-emerald-500" />
                 Support Help
-              </a>
+              </Link>
               <button 
                 onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-xl font-bold text-xs uppercase tracking-wider text-rose-600 hover:bg-rose-50/50 transition-all duration-200 text-left"
@@ -438,15 +436,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               SUPPORT & OUTLETS
             </span>
             <div className="space-y-1">
-              <a 
-                href="https://wa.me/919876543210?text=Hi%20Creva%20Support!%20I%20need%20assistance%2520with%2520my%2520merchant%2520storefront." 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="flex items-center gap-3 px-3 py-2 rounded-xl font-bold text-xs uppercase tracking-wider text-emerald-600 hover:bg-emerald-50/50 transition-all duration-200"
+              <Link
+                href="/admin/support"
+                className={`flex items-center gap-3 px-3 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 ${pathname === '/admin/support' ? 'bg-emerald-50 text-emerald-700' : 'text-emerald-600 hover:bg-emerald-50/50'}`}
               >
                 <HelpCircle className="w-4 h-4 text-emerald-500" />
                 Support Help
-              </a>
+              </Link>
               <button 
                 onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-xl font-bold text-xs uppercase tracking-wider text-rose-600 hover:bg-rose-50/50 transition-all duration-200 text-left"
