@@ -1420,7 +1420,7 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
       const { data: orderData, error } = await supabase.from('orders').insert([{
         store_id: store.id,
         customer_name: customerName,
-        customer_email: `${customerPhone}@whatsapp.com|${screenshotUrl || ''}|${actualMethod}|${paymentStatus}`,
+        customer_email: `${customerPhone}@whatsapp.com`,
         customer_phone: customerPhone,
         shipping_address: readableAddr,
         total_amount: finalTotalAmount,
@@ -1507,9 +1507,10 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
         alert("Order placed successfully! (Note: Store owner has not configured their WhatsApp number).");
       }
       
-    } catch (err) {
-      console.error(err);
-      alert("Failed to process order.");
+    } catch (err: any) {
+      console.error('Order error:', err);
+      const msg = err?.message || (typeof err === 'string' ? err : JSON.stringify(err));
+      alert("Failed to process order: " + (msg || 'Unknown error'));
     } finally {
       setIsSubmitting(false);
     }

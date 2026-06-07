@@ -897,46 +897,53 @@ try {
         }
         
         if ($requestMethod === 'POST') {
-            $orderId = $body['id'] ?? 'order_' . uniqid();
-            // Ensure payment columns exist (safe migration on every request)
             try {
-                $pdo->exec('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "payment_method" VARCHAR(100) DEFAULT \'cod\'');
-                $pdo->exec('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "payment_status" VARCHAR(50) DEFAULT \'unpaid\'');
-                $pdo->exec('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "payment_screenshot_url" TEXT DEFAULT NULL');
-            } catch (\PDOException $ignored) {}
+                $orderId = $body['id'] ?? 'order_' . uniqid();
+                // Safe migrations — widen customer_email to TEXT and add payment columns
+                try {
+                    $pdo->exec('ALTER TABLE "orders" ALTER COLUMN "customer_email" TYPE TEXT');
+                } catch (\PDOException $ignored) {}
+                try {
+                    $pdo->exec('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "payment_method" VARCHAR(100) DEFAULT \'cod\'');
+                    $pdo->exec('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "payment_status" VARCHAR(50) DEFAULT \'unpaid\'');
+                    $pdo->exec('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "payment_screenshot_url" TEXT DEFAULT NULL');
+                } catch (\PDOException $ignored) {}
 
-            $stmt = $pdo->prepare('INSERT INTO "orders" (id, store_id, customer_name, customer_email, customer_phone, shipping_address, total_amount, status, payment_method, payment_status, payment_screenshot_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-            $stmt->execute([
-                $orderId,
-                $body['store_id'] ?? '',
-                $body['customer_name'] ?? '',
-                $body['customer_email'] ?? null,
-                $body['customer_phone'] ?? '',
-                $body['shipping_address'] ?? '',
-                $body['total_amount'] ?? 0,
-                $body['status'] ?? 'pending',
-                $body['payment_method'] ?? 'cod',
-                $body['payment_status'] ?? 'unpaid',
-                $body['payment_screenshot_url'] ?? null,
-            ]);
-            
-            // Insert order items if present
-            if (isset($body['items']) && is_array($body['items'])) {
-                foreach ($body['items'] as $item) {
-                    $stmtItem = $pdo->prepare('INSERT INTO "order_items" (id, order_id, product_id, quantity, price_at_purchase) VALUES (?, ?, ?, ?, ?)');
-                    $stmtItem->execute([
-                        'oi_' . uniqid(),
-                        $orderId,
-                        $item['product_id'],
-                        $item['quantity'],
-                        $item['price_at_purchase']
-                    ]);
+                $stmt = $pdo->prepare('INSERT INTO "orders" (id, store_id, customer_name, customer_email, customer_phone, shipping_address, total_amount, status, payment_method, payment_status, payment_screenshot_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+                $stmt->execute([
+                    $orderId,
+                    $body['store_id'] ?? '',
+                    $body['customer_name'] ?? '',
+                    $body['customer_email'] ?? null,
+                    $body['customer_phone'] ?? '',
+                    $body['shipping_address'] ?? '',
+                    (float)($body['total_amount'] ?? 0),
+                    $body['status'] ?? 'pending',
+                    $body['payment_method'] ?? 'cod',
+                    $body['payment_status'] ?? 'unpaid',
+                    $body['payment_screenshot_url'] ?? null,
+                ]);
+
+                // Insert order items if present in body
+                if (isset($body['items']) && is_array($body['items'])) {
+                    foreach ($body['items'] as $item) {
+                        $stmtItem = $pdo->prepare('INSERT INTO "order_items" (id, order_id, product_id, quantity, price_at_purchase) VALUES (?, ?, ?, ?, ?)');
+                        $stmtItem->execute([
+                            'oi_' . uniqid(),
+                            $orderId,
+                            $item['product_id'],
+                            (int)($item['quantity'] ?? 1),
+                            (float)($item['price_at_purchase'] ?? 0),
+                        ]);
+                    }
                 }
+
+                $stmt = $pdo->prepare('SELECT * FROM "orders" WHERE id = ?');
+                $stmt->execute([$orderId]);
+                jsonResponse($stmt->fetch());
+            } catch (\PDOException $e) {
+                jsonResponse(['error' => 'Order failed: ' . $e->getMessage()], 500);
             }
-            
-            $stmt = $pdo->prepare('SELECT * FROM "orders" WHERE id = ?');
-            $stmt->execute([$orderId]);
-            jsonResponse($stmt->fetch());
         }
         
         if ($requestMethod === 'PUT' && $id) {
