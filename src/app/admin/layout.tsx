@@ -26,10 +26,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([
-    { id: 1, title: 'Welcome to your SaaS Dashboard!', description: 'Get started by configuring your theme in Appearance settings.', time: 'Just now', read: false },
-    { id: 2, title: 'Store setup complete', description: 'Your direct checkout is ready to receive orders.', time: '1 hour ago', read: false }
-  ]);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   useEffect(() => {
     const onFullscreenChange = () => {
@@ -103,7 +100,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const hostname = window.location.hostname;
     const protocol = window.location.protocol;
     const port = window.location.port ? `:${window.location.port}` : '';
-    
+
     let url = '';
     if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
       url = `${protocol}//${store.subdomain}.localhost${port}`;
@@ -112,6 +109,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
     setStoreUrl(url);
   }, [store]);
+
+  useEffect(() => {
+    if (!store?.id) return;
+    fetch(`/api/backend/notifications?for_role=owner&store_id=${store.id}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then((rows: any[]) => {
+        if (!Array.isArray(rows)) return;
+        const mapped = rows.map(n => ({
+          id: n.id,
+          title: n.title,
+          description: n.body ?? '',
+          time: n.created_at ? new Date(n.created_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : '',
+          read: !!n.is_read,
+        }));
+        setNotifications(mapped);
+      })
+      .catch(() => {});
+  }, [store?.id]);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -527,7 +542,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <div className="px-4 py-2 border-b border-gray-100 flex justify-between items-center">
                     <span className="font-bold text-xs uppercase tracking-wider text-[#3C77C3]">Notifications</span>
                     <button
-                      onClick={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
+                      onClick={() => {
+                        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                        fetch('/api/backend/notifications/all', {
+                          method: 'DELETE',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ for_role: 'owner' }),
+                        }).catch(() => {});
+                      }}
                       className="text-[10px] text-gray-400 hover:text-[#3C77C3] transition-colors uppercase font-black tracking-widest"
                     >
                       Mark all read

@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { pool, ensureSupportSchema } from '@/lib/renderDb';
+import {
+  sendNewTicketEmail,
+  sendSupportReplyEmail,
+  sendOwnerReplyEmail,
+} from '@/lib/email';
 
 const RENDER_API = 'https://rentalwebsite-backend-vn40.onrender.com/api';
 
@@ -116,6 +121,17 @@ async function dbCreateTicket(body: any): Promise<any> {
        'New Support Ticket: ' + (body.subject ?? ''),
        'Store "' + (body.store_name ?? '') + '" submitted a ' + (body.category ?? '') + ' ticket.'],
     ).catch(() => {});
+    // Email superadmin about new ticket (fire-and-forget)
+    sendNewTicketEmail({
+      ticketNumber: tktNum,
+      subject: body.subject ?? '',
+      category: body.category ?? 'other',
+      priority: body.priority ?? 'medium',
+      storeName: body.store_name ?? '',
+      ownerEmail: body.owner_email ?? '',
+      message: body.message ?? '',
+      ticketId: tktId,
+    }).catch(() => {});
     const r = await client.query('SELECT * FROM "support_tickets" WHERE id = $1', [tktId]);
     return r.rows[0];
   } finally {
@@ -177,6 +193,43 @@ async function dbAddMessage(ticketId: string, body: any): Promise<any> {
          'Support replied to your ticket',
          String(body.message ?? '').substring(0, 120)],
       ).catch(() => {});
+      // Email owner about admin reply (fire-and-forget)
+      if (body.owner_email) {
+        sendSupportReplyEmail({
+          to: body.owner_email,
+          ticketNumber: body.ticket_number ?? ticketId,
+          subject: body.ticket_subject ?? 'Support Ticket',
+          replyText: body.message ?? '',
+          storeName: body.store_name ?? '',
+        }).catch(() => {});
+      } else {
+        // Fetch ticket to get owner email
+        client.query('SELECT owner_email, ticket_number, subject FROM "support_tickets" WHERE id = $1', [ticketId])
+          .then(tr => {
+            if (tr.rows[0]?.owner_email) {
+              sendSupportReplyEmail({
+                to: tr.rows[0].owner_email,
+                ticketNumber: tr.rows[0].ticket_number ?? ticketId,
+                subject: tr.rows[0].subject ?? 'Support Ticket',
+                replyText: body.message ?? '',
+                storeName: body.store_name ?? '',
+              }).catch(() => {});
+            }
+          }).catch(() => {});
+      }
+    } else {
+      // Owner replied — email superadmin (fire-and-forget)
+      client.query('SELECT ticket_number, subject FROM "support_tickets" WHERE id = $1', [ticketId])
+        .then(tr => {
+          sendOwnerReplyEmail({
+            ticketNumber: tr.rows[0]?.ticket_number ?? ticketId,
+            subject: tr.rows[0]?.subject ?? 'Support Ticket',
+            replyText: body.message ?? '',
+            storeName: body.store_name ?? '',
+            ownerEmail: body.owner_email ?? '',
+            ticketId,
+          }).catch(() => {});
+        }).catch(() => {});
     }
     const r = await client.query('SELECT * FROM "support_messages" WHERE id = $1', [msgId]);
     return r.rows[0] ?? { id: msgId, ticket_id: ticketId, message: body.message };

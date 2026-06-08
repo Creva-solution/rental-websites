@@ -789,7 +789,34 @@ export default function BusinessSetupWizard() {
         // Continue transition since store record creation succeeded
       }
 
-      // 4. Success! Redirect to dashboard
+      // 4. Send welcome email + superadmin notification (fire-and-forget)
+      fetch('/api/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'welcome',
+          to: formData.email,
+          ownerName: formData.ownerName || formData.businessName,
+          storeName: formData.businessName,
+          storeUrl: `https://${subdomain}.crevasolution.in`,
+          subdomain,
+        }),
+      }).catch(() => {});
+      fetch('/api/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'new_store',
+          storeName: formData.businessName,
+          ownerName: formData.ownerName || formData.businessName,
+          ownerEmail: formData.email,
+          ownerPhone: formData.phone,
+          subdomain,
+          plan: getSelectedPlanLabel(),
+        }),
+      }).catch(() => {});
+
+      // 5. Success! Redirect to dashboard
       router.push('/admin');
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred');
