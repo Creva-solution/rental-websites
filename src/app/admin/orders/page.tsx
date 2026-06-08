@@ -805,35 +805,44 @@ export default function OrdersPage() {
           html, body {
             background: white !important;
             color: black !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          @page {
+            size: A4;
+            margin: 0;
           }
           .fixed.inset-0 {
-            position: absolute !important;
+            position: static !important;
             background: white !important;
             display: block !important;
+            overflow: visible !important;
+            max-height: none !important;
           }
           .print-invoice-container {
             display: block !important;
             overflow: visible !important;
+            max-height: none !important;
           }
           .print-invoice-sheet {
             display: block !important;
             width: 100% !important;
-            min-height: 100vh !important;
-            page-break-after: always !important;
-            break-after: page !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
+            page-break-before: always !important;
+            break-before: page !important;
             box-shadow: none !important;
             border-radius: 0 !important;
             border: none !important;
             margin: 0 !important;
+            padding: 0 !important;
           }
-          .print-invoice-sheet:last-child {
-            page-break-after: avoid !important;
-            break-after: avoid !important;
+          .print-invoice-sheet:first-child {
+            page-break-before: avoid !important;
+            break-before: avoid !important;
           }
         }
-      `}</style>
+      `}</style> 
 
       {/* Header Print:Hidden */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6 border-border/40 text-left print:hidden">
@@ -1525,8 +1534,8 @@ export default function OrdersPage() {
 
       {/* Bulk Invoice Print Preview Modal (Retained) */}
       {bulkPrintOrders.length > 0 && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 print:p-0 print:bg-white print:block">
-          <div className="bg-background rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col print:shadow-none print:max-w-none print:h-auto print:max-h-none print:rounded-none">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 print:static print:overflow-visible print:bg-white print:block print:p-0">
+          <div className="bg-background rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col print:shadow-none print:max-w-none print:h-auto print:max-h-none print:rounded-none print:block print:static">
             
             {/* Modal Header */}
             <div className="p-4 border-b border-border flex justify-between items-center print:hidden">
@@ -1569,14 +1578,15 @@ export default function OrdersPage() {
                 const invoiceNotes = ss.invoice_notes || '';
                 const invoiceTerms = ss.invoice_terms || '';
 
-                return bulkPrintOrders.map((order) => {
+                return bulkPrintOrders.map((order, index) => {
+                  const totalPages = bulkPrintOrders.length;
                   const isPaid = order.payment_status?.toLowerCase() === 'paid' || order.status?.toLowerCase() === 'delivered' || order.status?.toLowerCase() === 'completed';
 
                   return (
                     <div
                       key={order.id}
                       className="bg-white text-black rounded-xl shadow-sm overflow-hidden print-invoice-sheet"
-                      style={{ pageBreakAfter: 'always', breakAfter: 'page', pageBreakInside: 'avoid' }}
+                      style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
                     >
                       {/* Top accent bar */}
                       <div style={{ backgroundColor: accentColor, height: '6px' }} />
@@ -1758,6 +1768,9 @@ export default function OrdersPage() {
                         <div className="mt-8 pt-4 border-t border-gray-100 text-center">
                           <p className="text-[10px] text-gray-400">
                             {store?.store_name} · {store?.subdomain}.crevasolution.in · Thank you for your business!
+                          </p>
+                          <p className="text-[9px] text-gray-400 mt-1 font-mono">
+                            Page {index + 1} of {totalPages}
                           </p>
                         </div>
                       </div>
