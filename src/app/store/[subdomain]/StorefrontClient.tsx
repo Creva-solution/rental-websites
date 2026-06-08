@@ -4060,148 +4060,228 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                 )}
 
                 {(!razorpayConnected || activePaymentTab === 'upi') ? (
-                  /* UPI QR & DIRECT APP LAUNCH VIEW */
-                  <div className="p-6 flex-1 overflow-y-auto space-y-5 text-center animate-in fade-in duration-200">
-                    {/* Amount Card */}
-                    <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl">
-                      <span className="text-[9px] text-gray-400 font-black uppercase tracking-wider block">Amount to Transfer</span>
-                      <h4 className="font-extrabold text-xl text-purple-700 mt-1">{currencySymbol}{finalTotalAmount.toLocaleString()}</h4>
-                    </div>
+                  /* ── UPI PAYMENT — 4-STEP REDESIGN ── */
+                  <div className="flex-1 overflow-y-auto pb-4">
 
-                    {/* QR Code Container */}
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="p-3 bg-white border border-slate-200 rounded-3xl shadow-sm relative overflow-hidden flex items-center justify-center w-48 h-48">
-                        <img 
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                            `upi://pay?pa=${paymentUpiId || `${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi`}&pn=${encodeURIComponent(store.store_name)}&am=${finalTotalAmount}&cu=INR`
-                          )}`} 
-                          alt="UPI Payment QR Code" 
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                      <span className="text-[8.5px] font-black text-gray-400 uppercase tracking-widest mt-2.5 flex items-center gap-1 justify-center">
-                        <QrCode className="w-3.5 h-3.5 text-purple-600 animate-pulse" /> SCAN TO PAY VIA ANY UPI APP
-                      </span>
-                    </div>
-
-                    {/* Direct App Launch Button on Mobile */}
-                    <div className="space-y-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const upiIntent = `upi://pay?pa=${paymentUpiId || `${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi`}&pn=${encodeURIComponent(store.store_name)}&am=${finalTotalAmount}&cu=INR`;
-                          window.location.href = upiIntent;
-                        }}
-                        className="w-full py-4 bg-gradient-to-r from-purple-755 to-purple-600 hover:opacity-95 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
-                      >
-                        <Smartphone className="w-4 h-4 text-white" /> Open UPI App (GPay/PhonePe)
-                      </button>
-                      <p className="text-[9.5px] text-gray-400 font-medium leading-relaxed max-w-[280px] mx-auto">
-                        If you are on your mobile phone, click the button above to launch GPay, PhonePe, or Paytm automatically.
-                      </p>
-                    </div>
-
-                    {/* UPI VPA Transfer Details */}
-                    <div className="bg-purple-50/10 border border-purple-100/50 rounded-2xl p-4 text-left space-y-2">
-                      <span className="text-[8px] font-bold text-purple-600 uppercase tracking-wider block">Merchant UPI ID</span>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono font-bold text-gray-900 select-all">
-                          {paymentUpiId || `${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi`}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(paymentUpiId || `${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi`);
-                            setCopiedPhone(true);
-                            setTimeout(() => setCopiedPhone(false), 2000);
-                          }}
-                          className="text-[9px] font-bold text-purple-700 uppercase tracking-wider hover:underline"
-                        >
-                          {copiedPhone ? 'Copied!' : 'Copy ID'}
-                        </button>
-                      </div>
-                      <p className="text-[9.5px] text-gray-400 leading-normal mt-1 font-medium">
-                        If scanning or direct app launching is not working, transfer manually to the UPI ID above.
-                      </p>
-                    </div>
-
-                    {/* Payment Screenshot Upload */}
-                    <div className="bg-slate-50 border border-slate-250 rounded-2xl p-4 text-left space-y-3">
-                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">
-                        Upload Payment Screenshot *
-                      </span>
-                      
-                      {!screenshotUrl ? (
-                        <label className="border-2 border-dashed border-slate-200 hover:border-purple-400 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all bg-white relative min-h-[120px]">
-                          {uploadingScreenshot ? (
-                            <div className="flex flex-col items-center justify-center gap-2 text-purple-600">
-                              <Loader2 className="w-6 h-6 animate-spin" />
-                              <span className="text-[10px] font-bold uppercase tracking-wider">Uploading screenshot...</span>
-                            </div>
-                          ) : (
-                            <>
-                              <div className="p-2 bg-purple-50 rounded-xl text-purple-600 flex items-center justify-center">
-                                <Upload className="w-5 h-5" />
+                    {/* ── Progress Stepper ── */}
+                    <div className="px-4 pt-4 pb-2">
+                      <div className="flex items-start justify-between">
+                        {[
+                          { n: 1, label: 'Scan QR', done: true },
+                          { n: 2, label: 'Make Payment', done: true },
+                          { n: 3, label: 'Upload Proof', done: !!screenshotUrl },
+                          { n: 4, label: 'Submit Order', done: false },
+                        ].map((s, i, arr) => (
+                          <div key={s.n} className="flex items-center flex-1">
+                            <div className="flex flex-col items-center gap-1 min-w-0">
+                              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black border-2 transition-all ${
+                                s.n === 3 && screenshotUrl
+                                  ? 'bg-emerald-500 border-emerald-500 text-white'
+                                  : s.n <= 2
+                                  ? 'bg-purple-600 border-purple-600 text-white'
+                                  : 'border-gray-200 text-gray-400 bg-white'
+                              }`}>
+                                {(s.n <= 2 || (s.n === 3 && screenshotUrl)) ? <Check className="w-3.5 h-3.5" /> : s.n}
                               </div>
-                              <div className="text-center">
-                                <span className="text-xs font-bold text-gray-900 block">Click to upload receipt</span>
-                                <span className="text-[9.5px] text-gray-400 block mt-0.5">Supports JPG, PNG, WEBP (Max 5MB)</span>
-                              </div>
-                            </>
-                          )}
-                          <input 
-                            type="file" 
-                            accept="image/*" 
-                            onChange={handleScreenshotUpload} 
-                            disabled={uploadingScreenshot} 
-                            className="hidden" 
-                          />
-                        </label>
-                      ) : (
-                        <div className="bg-white border border-slate-100 rounded-xl p-3 flex items-center justify-between shadow-sm animate-in fade-in duration-200">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-lg border border-slate-200 overflow-hidden bg-slate-50 flex-shrink-0">
-                              <img src={screenshotUrl} alt="Receipt proof" className="w-full h-full object-cover" />
+                              <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wide text-center leading-tight w-14">{s.label}</span>
                             </div>
-                            <div className="min-w-0">
-                              <span className="text-xs font-bold text-emerald-600 block flex items-center gap-1">
-                                <Check className="w-3.5 h-3.5" /> Screenshot Uploaded
-                              </span>
-                              <span className="text-[9.5px] text-gray-400 block truncate max-w-[200px] mt-0.5">
-                                {screenshotUrl.split('/').pop()}
-                              </span>
+                            {i < arr.length - 1 && (
+                              <div className={`flex-1 h-0.5 mb-4 mx-1 rounded-full transition-all ${
+                                s.n < 3 ? 'bg-purple-300' : s.n === 3 && screenshotUrl ? 'bg-emerald-300' : 'bg-gray-100'
+                              }`} />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="px-4 space-y-3">
+
+                      {/* ── STEP 1: Scan & Pay ── */}
+                      <div className="rounded-2xl overflow-hidden border border-purple-100 shadow-sm">
+                        <div className="bg-purple-600 px-4 py-2.5 flex items-center gap-2.5">
+                          <div className="w-5 h-5 rounded-full bg-white/25 flex items-center justify-center text-white text-[10px] font-black">1</div>
+                          <span className="text-white text-xs font-black uppercase tracking-wider">Scan &amp; Pay</span>
+                        </div>
+                        <div className="bg-white p-4 space-y-3">
+                          {/* Amount */}
+                          <div className="bg-purple-50 border border-purple-100 rounded-xl p-3 text-center">
+                            <span className="text-[9px] text-purple-500 font-black uppercase tracking-widest block mb-0.5">Amount to Transfer</span>
+                            <span className="text-3xl font-black text-purple-700 tracking-tight">{currencySymbol}{finalTotalAmount.toLocaleString()}</span>
+                          </div>
+                          {/* QR Code */}
+                          <div className="flex flex-col items-center py-2">
+                            <div className="p-3 bg-white border-2 border-purple-100 rounded-2xl shadow-md inline-block">
+                              <img
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=${encodeURIComponent(
+                                  `upi://pay?pa=${paymentUpiId || `${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi`}&pn=${encodeURIComponent(store.store_name)}&am=${finalTotalAmount}&cu=INR`
+                                )}`}
+                                alt="UPI QR Code"
+                                className="w-52 h-52 object-contain"
+                              />
+                            </div>
+                            <div className="mt-2 flex items-center gap-1.5">
+                              <QrCode className="w-3.5 h-3.5 text-purple-500 animate-pulse" />
+                              <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Scan with any UPI app</span>
                             </div>
                           </div>
+                          {/* UPI ID row */}
+                          <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
+                            <span className="text-[8.5px] text-gray-400 font-bold uppercase tracking-wider block mb-1.5">Merchant UPI ID</span>
+                            <div className="flex items-center gap-2">
+                              <span className="flex-1 text-sm font-mono font-bold text-gray-900 select-all break-all leading-snug">
+                                {paymentUpiId || `${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi`}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(paymentUpiId || `${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi`);
+                                  setCopiedPhone(true);
+                                  setTimeout(() => setCopiedPhone(false), 2000);
+                                }}
+                                className={`shrink-0 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all ${
+                                  copiedPhone
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                                }`}
+                              >
+                                {copiedPhone ? '✓ Copied' : 'Copy ID'}
+                              </button>
+                            </div>
+                          </div>
+                          {/* Open UPI App */}
                           <button
                             type="button"
-                            onClick={handleRemoveScreenshot}
-                            className="p-2 hover:bg-rose-50 text-slate-450 hover:text-rose-600 rounded-xl transition-colors"
+                            onClick={() => {
+                              const upiIntent = `upi://pay?pa=${paymentUpiId || `${(store.contact_phone || '9876543210').replace(/\D/g, '')}@upi`}&pn=${encodeURIComponent(store.store_name)}&am=${finalTotalAmount}&cu=INR`;
+                              window.location.href = upiIntent;
+                            }}
+                            className="w-full py-3.5 bg-purple-600 hover:bg-purple-700 active:scale-[0.98] text-white text-[10px] font-black uppercase tracking-[0.15em] rounded-xl shadow-sm transition-all flex items-center justify-center gap-2"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Smartphone className="w-4 h-4" /> Open GPay / PhonePe / Paytm
                           </button>
                         </div>
-                      )}
-                    </div>
+                      </div>
 
-                    {/* Submit Button */}
-                    <button
-                      type="button"
-                      disabled={!screenshotUrl || uploadingScreenshot}
-                      onClick={async () => {
-                        await submitFinalOrder(
-                          'unpaid', 
-                          'Direct UPI Transfer', 
-                          `UPI Transfer initiated to ${paymentUpiId || `${(store.contact_phone || 'Store Number').replace(/\D/g, '')}@upi`}`
-                        );
-                      }}
-                      className={`w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-md transition-all flex items-center justify-center gap-1.5 ${
-                        (!screenshotUrl || uploadingScreenshot)
-                          ? 'bg-gray-255 text-gray-400 cursor-not-allowed border-none shadow-none bg-slate-200'
-                          : 'bg-gradient-to-r from-purple-700 to-rose-500 hover:opacity-95 text-white active:scale-[0.98]'
-                      }`}
-                    >
-                      Confirm Payment & Send Order via WhatsApp
-                    </button>
+                      {/* ── STEP 2: Complete Payment ── */}
+                      <div className="rounded-2xl overflow-hidden border border-blue-100 shadow-sm">
+                        <div className="bg-blue-600 px-4 py-2.5 flex items-center gap-2.5">
+                          <div className="w-5 h-5 rounded-full bg-white/25 flex items-center justify-center text-white text-[10px] font-black">2</div>
+                          <span className="text-white text-xs font-black uppercase tracking-wider">Complete Payment</span>
+                        </div>
+                        <div className="bg-white p-4 space-y-2">
+                          {[
+                            { n: 1, emoji: '📱', text: 'Open any UPI app (GPay, PhonePe, Paytm, BHIM)' },
+                            { n: 2, emoji: '📷', text: 'Scan the QR code above or enter the UPI ID manually' },
+                            { n: 3, emoji: '💸', text: `Pay exactly ${currencySymbol}${finalTotalAmount.toLocaleString()} — do not change the amount` },
+                            { n: 4, emoji: '📸', text: 'Take a clear screenshot of the payment success screen' },
+                          ].map(step => (
+                            <div key={step.n} className="flex items-start gap-3 p-2.5 bg-blue-50/50 rounded-xl border border-blue-50">
+                              <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">{step.n}</div>
+                              <p className="text-xs text-gray-700 font-medium leading-relaxed">{step.emoji} {step.text}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* ── STEP 3: Upload Payment Proof ── */}
+                      <div className="rounded-2xl overflow-hidden border border-emerald-100 shadow-sm">
+                        <div className={`px-4 py-2.5 flex items-center gap-2.5 transition-colors ${screenshotUrl ? 'bg-emerald-500' : 'bg-slate-500'}`}>
+                          <div className="w-5 h-5 rounded-full bg-white/25 flex items-center justify-center text-white text-[10px] font-black">
+                            {screenshotUrl ? <Check className="w-3 h-3" /> : '3'}
+                          </div>
+                          <span className="text-white text-xs font-black uppercase tracking-wider">Upload Payment Proof</span>
+                          {screenshotUrl && <span className="ml-auto text-emerald-100 text-[9px] font-black uppercase tracking-wider">✓ Uploaded</span>}
+                        </div>
+                        <div className="bg-white p-4">
+                          {!screenshotUrl ? (
+                            <label className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-emerald-200 hover:border-emerald-400 rounded-xl p-6 cursor-pointer bg-emerald-50/30 hover:bg-emerald-50 transition-all">
+                              {uploadingScreenshot ? (
+                                <div className="flex flex-col items-center gap-2 text-emerald-600 py-2">
+                                  <Loader2 className="w-8 h-8 animate-spin" />
+                                  <span className="text-[10px] font-bold uppercase tracking-wider">Uploading...</span>
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center">
+                                    <Upload className="w-6 h-6 text-emerald-600" />
+                                  </div>
+                                  <div className="text-center">
+                                    <span className="text-sm font-bold text-gray-800 block">Click to upload receipt</span>
+                                    <span className="text-[10px] text-gray-400 block mt-0.5">JPG, PNG, WEBP — Max 5MB</span>
+                                  </div>
+                                </>
+                              )}
+                              <input type="file" accept="image/*" onChange={handleScreenshotUpload} disabled={uploadingScreenshot} className="hidden" />
+                            </label>
+                          ) : (
+                            <div className="space-y-3 animate-in fade-in duration-200">
+                              {/* Full preview */}
+                              <div className="relative rounded-xl overflow-hidden border-2 border-emerald-200 bg-gray-50">
+                                <img src={screenshotUrl} alt="Payment proof" className="w-full max-h-52 object-contain" />
+                                <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[9px] font-black px-2 py-1 rounded-full flex items-center gap-1 shadow">
+                                  <Check className="w-2.5 h-2.5" /> Verified
+                                </div>
+                              </div>
+                              {/* Change / Remove */}
+                              <div className="grid grid-cols-2 gap-2">
+                                <label className="py-2.5 border border-gray-200 hover:bg-gray-50 text-gray-600 text-[10px] font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all">
+                                  <Upload className="w-3.5 h-3.5" /> Change Image
+                                  <input type="file" accept="image/*" onChange={handleScreenshotUpload} disabled={uploadingScreenshot} className="hidden" />
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={handleRemoveScreenshot}
+                                  className="py-2.5 border border-rose-100 hover:bg-rose-50 text-rose-500 text-[10px] font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-1.5 transition-all"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" /> Remove
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* ── STEP 4: Submit Order ── */}
+                      <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+                        <div className="bg-gray-800 px-4 py-2.5 flex items-center gap-2.5">
+                          <div className="w-5 h-5 rounded-full bg-white/25 flex items-center justify-center text-white text-[10px] font-black">4</div>
+                          <span className="text-white text-xs font-black uppercase tracking-wider">Submit Order</span>
+                        </div>
+                        <div className="bg-white p-4 space-y-3">
+                          {!screenshotUrl && (
+                            <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl p-3">
+                              <span className="text-amber-500 shrink-0 mt-0.5">⚠️</span>
+                              <p className="text-[10px] text-amber-700 font-medium leading-relaxed">Upload your payment screenshot in Step 3 before submitting.</p>
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            disabled={!screenshotUrl || uploadingScreenshot || isSubmitting}
+                            onClick={async () => {
+                              await submitFinalOrder(
+                                'unpaid',
+                                'Direct UPI Transfer',
+                                `UPI Transfer to ${paymentUpiId || `${(store.contact_phone || '').replace(/\D/g, '')}@upi`}`
+                              );
+                            }}
+                            className={`w-full py-4 text-[11px] font-black uppercase tracking-[0.15em] rounded-xl transition-all flex items-center justify-center gap-2 ${
+                              !screenshotUrl || uploadingScreenshot || isSubmitting
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg shadow-purple-200/60 active:scale-[0.98]'
+                            }`}
+                          >
+                            {isSubmitting ? (
+                              <><Loader2 className="w-4 h-4 animate-spin" /> Placing Order...</>
+                            ) : (
+                              <><Check className="w-4 h-4" /> Submit Payment &amp; Place Order</>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="h-2" />
+                    </div>
                   </div>
                 ) : (
                   /* GATEWAY / RAZORPAY VIEW */
