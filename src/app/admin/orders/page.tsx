@@ -793,12 +793,211 @@ export default function OrdersPage() {
     return Array.from(customerMap.values()).sort((a, b) => b.spend - a.spend);
   }, [processedOrders]);
 
+  const renderInvoiceSheets = () => {
+    if (!bulkPrintOrders.length) return null;
+    let ss: any = {};
+    try {
+      if (store?.description?.startsWith('{')) ss = JSON.parse(store.description);
+    } catch {}
+    const accentColor = store?.primary_color || '#3C77C3';
+    const addrLine = [ss.address, ss.city, ss.state].filter(Boolean).join(', ');
+    const storePincode = ss.pincode || '';
+    const storeGst = ss.gst_number || '';
+    const hasBankDetails = !!ss.bank_account_number;
+    const storeUpi = ss.paymentUpiId || '';
+    const invoiceNotes = ss.invoice_notes || '';
+    const invoiceTerms = ss.invoice_terms || '';
+
+    return bulkPrintOrders.map((order, index) => {
+      const totalPages = bulkPrintOrders.length;
+      const isPaid = order.payment_status?.toLowerCase() === 'paid' || order.status?.toLowerCase() === 'delivered' || order.status?.toLowerCase() === 'completed';
+
+      return (
+        <div
+          key={order.id}
+          className="bg-white text-black rounded-xl shadow-sm overflow-hidden print-invoice-sheet"
+          style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
+        >
+          <div style={{ backgroundColor: accentColor, height: '6px' }} />
+          <div className="p-10 print:p-8">
+            <div className="flex justify-between items-start mb-8">
+              <div>
+                <h1 className="text-2xl font-black tracking-tight" style={{ color: accentColor }}>
+                  {store?.store_name}
+                </h1>
+                {addrLine && (
+                  <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                    {addrLine}{storePincode ? ` - ${storePincode}` : ''}
+                  </p>
+                )}
+                {store?.contact_phone && (
+                  <p className="text-xs text-gray-600 mt-0.5">Phone: {store.contact_phone}</p>
+                )}
+                {store?.contact_email && (
+                  <p className="text-xs text-gray-600 mt-0.5">Email: {store.contact_email}</p>
+                )}
+                {storeGst && (
+                  <p className="text-xs text-gray-500 mt-1 font-mono">GSTIN: {storeGst}</p>
+                )}
+              </div>
+              <div className="text-right">
+                <h2 className="text-4xl font-black tracking-widest uppercase mb-3 text-gray-200">INVOICE</h2>
+                <div className="space-y-1 text-xs -mt-1">
+                  <p className="text-gray-500">Invoice No: <span className="font-bold text-gray-900 font-mono">{getInvoiceNumber(order.id)}</span></p>
+                  <p className="text-gray-500">Order Ref: <span className="font-bold text-gray-900 font-mono">#{order.id.substring(0, 8).toUpperCase()}</span></p>
+                  <p className="text-gray-500">Date: <span className="font-bold text-gray-900">{formatDate(order.created_at)}</span></p>
+                  <p className="text-gray-500">Method: <span className="font-medium text-gray-900">{order.payment_method || 'Bank Transfer'}</span></p>
+                  <div className="mt-2">
+                    <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                      {isPaid ? 'PAID' : 'UNPAID'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="h-px bg-gray-200 mb-6" />
+            <div className="grid grid-cols-2 gap-8 mb-8">
+              <div>
+                <div className="text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-sm mb-3 w-fit" style={{ backgroundColor: accentColor }}>
+                  BILL TO
+                </div>
+                <p className="font-bold text-sm text-gray-900">{order.customer_name}</p>
+                {order.shipping_address && (
+                  <p className="text-xs text-gray-600 mt-1 leading-relaxed">{order.shipping_address}</p>
+                )}
+                <p className="text-xs text-gray-600 mt-0.5">Phone: {order.customer_phone}</p>
+                {order.customer_email && <p className="text-xs text-gray-600 mt-0.5">{order.customer_email}</p>}
+              </div>
+              <div>
+                <div className="text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-sm mb-3 w-fit" style={{ backgroundColor: accentColor }}>
+                  SHIP TO
+                </div>
+                <p className="font-bold text-sm text-gray-900">{order.customer_name}</p>
+                {order.shipping_address && (
+                  <p className="text-xs text-gray-600 mt-1 leading-relaxed">{order.shipping_address}</p>
+                )}
+                <p className="text-xs text-gray-600 mt-0.5">Phone: {order.customer_phone}</p>
+              </div>
+            </div>
+            <table className="w-full border-collapse mb-6 text-xs">
+              <thead>
+                <tr style={{ backgroundColor: accentColor }} className="text-white">
+                  <th className="px-4 py-3 text-left font-bold text-[10px] uppercase tracking-wider w-1/2">Item Description</th>
+                  <th className="px-4 py-3 text-center font-bold text-[10px] uppercase tracking-wider w-[12%]">Qty</th>
+                  <th className="px-4 py-3 text-right font-bold text-[10px] uppercase tracking-wider">Unit Price</th>
+                  <th className="px-4 py-3 text-right font-bold text-[10px] uppercase tracking-wider">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {order.order_items && order.order_items.length > 0 ? (
+                  order.order_items.map((item: any, idx: number) => (
+                    <tr key={idx} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                      <td className="px-4 py-3 font-medium text-gray-800 border-b border-gray-100">{item.products?.name || 'Item'}</td>
+                      <td className="px-4 py-3 text-center text-gray-700 border-b border-gray-100">{item.quantity}</td>
+                      <td className="px-4 py-3 text-right text-gray-700 border-b border-gray-100">{Number(item.price_at_purchase).toLocaleString()} INR</td>
+                      <td className="px-4 py-3 text-right font-bold text-gray-900 border-b border-gray-100">{(Number(item.price_at_purchase) * item.quantity).toLocaleString()} INR</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr className="bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-gray-800 border-b border-gray-100">WhatsApp Order</td>
+                    <td className="px-4 py-3 text-center text-gray-700 border-b border-gray-100">1</td>
+                    <td className="px-4 py-3 text-right text-gray-700 border-b border-gray-100">{Number(order.total_amount).toLocaleString()} INR</td>
+                    <td className="px-4 py-3 text-right font-bold text-gray-900 border-b border-gray-100">{Number(order.total_amount).toLocaleString()} INR</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+            <div className="flex gap-8 mt-2 text-xs">
+              <div className="flex-1 space-y-5">
+                {hasBankDetails && (
+                  <div>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: accentColor }}>Bank Details</h4>
+                    <div className="space-y-1 text-gray-700">
+                      {ss.bank_beneficiary_name && <p><span className="text-gray-400 w-28 inline-block">Beneficiary</span><span className="font-bold text-gray-900">{ss.bank_beneficiary_name}</span></p>}
+                      <p><span className="text-gray-400 w-28 inline-block">Account No.</span><span className="font-mono font-bold text-gray-900">{ss.bank_account_number}</span></p>
+                      {ss.bank_ifsc && <p><span className="text-gray-400 w-28 inline-block">IFSC</span><span className="font-mono font-bold text-gray-900">{ss.bank_ifsc}</span></p>}
+                      {ss.bank_name && <p><span className="text-gray-400 w-28 inline-block">Bank</span><span className="font-bold text-gray-900">{ss.bank_name}</span></p>}
+                      {ss.bank_branch && <p><span className="text-gray-400 w-28 inline-block">Branch</span><span className="font-bold text-gray-900">{ss.bank_branch}</span></p>}
+                      <p><span className="text-gray-400 w-28 inline-block">Account Type</span><span className="font-bold text-gray-900">{ss.bank_account_type || 'Savings'}</span></p>
+                    </div>
+                  </div>
+                )}
+                {storeUpi && (
+                  <div>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: accentColor }}>UPI Payment</h4>
+                    <p className="font-mono font-bold text-gray-900 bg-gray-50 border border-dashed border-gray-300 px-3 py-1.5 rounded w-fit">{storeUpi}</p>
+                  </div>
+                )}
+                {invoiceNotes && (
+                  <div>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: accentColor }}>Notes</h4>
+                    <p className="text-gray-600 leading-relaxed">{invoiceNotes}</p>
+                  </div>
+                )}
+                {invoiceTerms && (
+                  <div>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: accentColor }}>Terms & Conditions</h4>
+                    <p className="text-gray-600 leading-relaxed">{invoiceTerms}</p>
+                  </div>
+                )}
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest mb-1 text-gray-400">Amount in Words</h4>
+                  <p className="text-gray-800 font-bold italic capitalize">{numberToWords(Number(order.total_amount))} Rupees Only</p>
+                </div>
+              </div>
+              <div className="w-56 space-y-2 shrink-0">
+                <div className="flex justify-between py-1.5 border-b border-gray-100">
+                  <span className="text-gray-500">Subtotal</span>
+                  <span className="font-bold text-gray-900">{Number(order.total_amount).toLocaleString()} INR</span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-gray-100">
+                  <span className="text-gray-500">Delivery</span>
+                  <span className="font-bold text-gray-900">0.00 INR</span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-gray-100">
+                  <span className="text-gray-500">Discount</span>
+                  <span className="font-bold text-gray-900">— 0.00 INR</span>
+                </div>
+                <div className="flex justify-between py-2.5 border-y-2 mt-1 font-bold" style={{ borderColor: accentColor }}>
+                  <span className="text-gray-900">Total</span>
+                  <span style={{ color: accentColor }}>{Number(order.total_amount).toLocaleString()} INR</span>
+                </div>
+                <div className="flex justify-between py-2 font-bold">
+                  <span className="text-gray-600">Due Balance</span>
+                  <span className={isPaid ? 'text-emerald-600' : 'text-rose-600'}>{isPaid ? '0.00' : Number(order.total_amount).toLocaleString()} INR</span>
+                </div>
+                <div className="mt-8 pt-4 border-t border-gray-200 text-center">
+                  <div className="h-12 border-b border-gray-300 mb-1" />
+                  <p className="text-[9px] text-gray-400 uppercase tracking-widest">Authorized Signature</p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-8 pt-4 border-t border-gray-100 text-center">
+              <p className="text-[10px] text-gray-400">
+                {store?.store_name} · {store?.subdomain}.crevasolution.in · Thank you for your business!
+              </p>
+              <p className="text-[9px] text-gray-400 mt-1 font-mono">
+                Page {index + 1} of {totalPages}
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    });
+  };
+
   return (
     <div className="space-y-8 w-full pb-16">
       
+      {/* Print-only invoice rendering (outside modal, direct in document flow) */}
+      <div className="hidden print:block print-invoice-root">
+        {renderInvoiceSheets()}
+      </div>
+
       <style>{`
         @media print {
-          aside, header, nav, .print\\:hidden, button, select, input, .bottom-6 {
+          aside, header, nav, .print\\:hidden, button, select, input, .bottom-6, .fixed.inset-0 {
             display: none !important;
             visibility: hidden !important;
           }
@@ -812,17 +1011,9 @@ export default function OrdersPage() {
             size: A4;
             margin: 0;
           }
-          .fixed.inset-0 {
-            position: static !important;
-            background: white !important;
+          .print-invoice-root {
             display: block !important;
-            overflow: visible !important;
-            max-height: none !important;
-          }
-          .print-invoice-container {
-            display: block !important;
-            overflow: visible !important;
-            max-height: none !important;
+            visibility: visible !important;
           }
           .print-invoice-sheet {
             display: block !important;
@@ -1532,13 +1723,13 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Bulk Invoice Print Preview Modal (Retained) */}
+      {/* Bulk Invoice Print Preview Modal (Retained for preview only) */}
       {bulkPrintOrders.length > 0 && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 print:static print:overflow-visible print:bg-white print:block print:p-0">
-          <div className="bg-background rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col print:shadow-none print:max-w-none print:h-auto print:max-h-none print:rounded-none print:block print:static">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 print:hidden">
+          <div className="bg-background rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
             
             {/* Modal Header */}
-            <div className="p-4 border-b border-border flex justify-between items-center print:hidden">
+            <div className="p-4 border-b border-border flex justify-between items-center">
               <div>
                 <h2 className="text-sm font-bold flex items-center gap-2">
                   <Printer className="w-4 h-4 text-primary" />
@@ -1562,222 +1753,9 @@ export default function OrdersPage() {
               </div>
             </div>
 
-            {/* Printable Area - renders each invoice page */}
-            <div className="flex-1 overflow-y-auto p-6 bg-muted/10 print:bg-white print:p-0 print:overflow-visible print-invoice-container">
-              {(() => {
-                let ss: any = {};
-                try {
-                  if (store?.description?.startsWith('{')) ss = JSON.parse(store.description);
-                } catch {}
-                const accentColor = store?.primary_color || '#3C77C3';
-                const addrLine = [ss.address, ss.city, ss.state].filter(Boolean).join(', ');
-                const storePincode = ss.pincode || '';
-                const storeGst = ss.gst_number || '';
-                const hasBankDetails = !!ss.bank_account_number;
-                const storeUpi = ss.paymentUpiId || '';
-                const invoiceNotes = ss.invoice_notes || '';
-                const invoiceTerms = ss.invoice_terms || '';
-
-                return bulkPrintOrders.map((order, index) => {
-                  const totalPages = bulkPrintOrders.length;
-                  const isPaid = order.payment_status?.toLowerCase() === 'paid' || order.status?.toLowerCase() === 'delivered' || order.status?.toLowerCase() === 'completed';
-
-                  return (
-                    <div
-                      key={order.id}
-                      className="bg-white text-black rounded-xl shadow-sm overflow-hidden print-invoice-sheet"
-                      style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
-                    >
-                      {/* Top accent bar */}
-                      <div style={{ backgroundColor: accentColor, height: '6px' }} />
-
-                      <div className="p-10 print:p-8">
-                        {/* Invoice Header */}
-                        <div className="flex justify-between items-start mb-8">
-                          <div>
-                            <h1 className="text-2xl font-black tracking-tight" style={{ color: accentColor }}>
-                              {store?.store_name}
-                            </h1>
-                            {addrLine && (
-                              <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-                                {addrLine}{storePincode ? ` - ${storePincode}` : ''}
-                              </p>
-                            )}
-                            {store?.contact_phone && (
-                              <p className="text-xs text-gray-600 mt-0.5">Phone: {store.contact_phone}</p>
-                            )}
-                            {store?.contact_email && (
-                              <p className="text-xs text-gray-600 mt-0.5">Email: {store.contact_email}</p>
-                            )}
-                            {storeGst && (
-                              <p className="text-xs text-gray-500 mt-1 font-mono">GSTIN: {storeGst}</p>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <h2 className="text-4xl font-black tracking-widest uppercase mb-3 text-gray-200">INVOICE</h2>
-                            <div className="space-y-1 text-xs -mt-1">
-                              <p className="text-gray-500">Invoice No: <span className="font-bold text-gray-900 font-mono">{getInvoiceNumber(order.id)}</span></p>
-                              <p className="text-gray-500">Order Ref: <span className="font-bold text-gray-900 font-mono">#{order.id.substring(0, 8).toUpperCase()}</span></p>
-                              <p className="text-gray-500">Date: <span className="font-bold text-gray-900">{formatDate(order.created_at)}</span></p>
-                              <p className="text-gray-500">Method: <span className="font-medium text-gray-900">{order.payment_method || 'Bank Transfer'}</span></p>
-                              <div className="mt-2">
-                                <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-                                  {isPaid ? 'PAID' : 'UNPAID'}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Divider */}
-                        <div className="h-px bg-gray-200 mb-6" />
-
-                        {/* Bill To / Ship To */}
-                        <div className="grid grid-cols-2 gap-8 mb-8">
-                          <div>
-                            <div className="text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-sm mb-3 w-fit" style={{ backgroundColor: accentColor }}>
-                              BILL TO
-                            </div>
-                            <p className="font-bold text-sm text-gray-900">{order.customer_name}</p>
-                            {order.shipping_address && (
-                              <p className="text-xs text-gray-600 mt-1 leading-relaxed">{order.shipping_address}</p>
-                            )}
-                            <p className="text-xs text-gray-600 mt-0.5">Phone: {order.customer_phone}</p>
-                            {order.customer_email && <p className="text-xs text-gray-600 mt-0.5">{order.customer_email}</p>}
-                          </div>
-                          <div>
-                            <div className="text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-sm mb-3 w-fit" style={{ backgroundColor: accentColor }}>
-                              SHIP TO
-                            </div>
-                            <p className="font-bold text-sm text-gray-900">{order.customer_name}</p>
-                            {order.shipping_address && (
-                              <p className="text-xs text-gray-600 mt-1 leading-relaxed">{order.shipping_address}</p>
-                            )}
-                            <p className="text-xs text-gray-600 mt-0.5">Phone: {order.customer_phone}</p>
-                          </div>
-                        </div>
-
-                        {/* Items Table */}
-                        <table className="w-full border-collapse mb-6 text-xs">
-                          <thead>
-                            <tr style={{ backgroundColor: accentColor }} className="text-white">
-                              <th className="px-4 py-3 text-left font-bold text-[10px] uppercase tracking-wider w-1/2">Item Description</th>
-                              <th className="px-4 py-3 text-center font-bold text-[10px] uppercase tracking-wider w-[12%]">Qty</th>
-                              <th className="px-4 py-3 text-right font-bold text-[10px] uppercase tracking-wider">Unit Price</th>
-                              <th className="px-4 py-3 text-right font-bold text-[10px] uppercase tracking-wider">Amount</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {order.order_items && order.order_items.length > 0 ? (
-                              order.order_items.map((item: any, idx: number) => (
-                                <tr key={idx} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                                  <td className="px-4 py-3 font-medium text-gray-800 border-b border-gray-100">{item.products?.name || 'Item'}</td>
-                                  <td className="px-4 py-3 text-center text-gray-700 border-b border-gray-100">{item.quantity}</td>
-                                  <td className="px-4 py-3 text-right text-gray-700 border-b border-gray-100">{Number(item.price_at_purchase).toLocaleString()} INR</td>
-                                  <td className="px-4 py-3 text-right font-bold text-gray-900 border-b border-gray-100">{(Number(item.price_at_purchase) * item.quantity).toLocaleString()} INR</td>
-                                </tr>
-                              ))
-                            ) : (
-                              <tr className="bg-gray-50">
-                                <td className="px-4 py-3 font-medium text-gray-800 border-b border-gray-100">WhatsApp Order</td>
-                                <td className="px-4 py-3 text-center text-gray-700 border-b border-gray-100">1</td>
-                                <td className="px-4 py-3 text-right text-gray-700 border-b border-gray-100">{Number(order.total_amount).toLocaleString()} INR</td>
-                                <td className="px-4 py-3 text-right font-bold text-gray-900 border-b border-gray-100">{Number(order.total_amount).toLocaleString()} INR</td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-
-                        {/* Bottom: Bank / UPI / Notes on left, Totals on right */}
-                        <div className="flex gap-8 mt-2 text-xs">
-                          {/* Left: Payment details + notes */}
-                          <div className="flex-1 space-y-5">
-                            {hasBankDetails && (
-                              <div>
-                                <h4 className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: accentColor }}>Bank Details</h4>
-                                <div className="space-y-1 text-gray-700">
-                                  {ss.bank_beneficiary_name && <p><span className="text-gray-400 w-28 inline-block">Beneficiary</span><span className="font-bold text-gray-900">{ss.bank_beneficiary_name}</span></p>}
-                                  <p><span className="text-gray-400 w-28 inline-block">Account No.</span><span className="font-mono font-bold text-gray-900">{ss.bank_account_number}</span></p>
-                                  {ss.bank_ifsc && <p><span className="text-gray-400 w-28 inline-block">IFSC</span><span className="font-mono font-bold text-gray-900">{ss.bank_ifsc}</span></p>}
-                                  {ss.bank_name && <p><span className="text-gray-400 w-28 inline-block">Bank</span><span className="font-bold text-gray-900">{ss.bank_name}</span></p>}
-                                  {ss.bank_branch && <p><span className="text-gray-400 w-28 inline-block">Branch</span><span className="font-bold text-gray-900">{ss.bank_branch}</span></p>}
-                                  <p><span className="text-gray-400 w-28 inline-block">Account Type</span><span className="font-bold text-gray-900">{ss.bank_account_type || 'Savings'}</span></p>
-                                </div>
-                              </div>
-                            )}
-
-                            {storeUpi && (
-                              <div>
-                                <h4 className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: accentColor }}>UPI Payment</h4>
-                                <p className="font-mono font-bold text-gray-900 bg-gray-50 border border-dashed border-gray-300 px-3 py-1.5 rounded w-fit">{storeUpi}</p>
-                              </div>
-                            )}
-
-                            {invoiceNotes && (
-                              <div>
-                                <h4 className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: accentColor }}>Notes</h4>
-                                <p className="text-gray-600 leading-relaxed">{invoiceNotes}</p>
-                              </div>
-                            )}
-
-                            {invoiceTerms && (
-                              <div>
-                                <h4 className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: accentColor }}>Terms & Conditions</h4>
-                                <p className="text-gray-600 leading-relaxed">{invoiceTerms}</p>
-                              </div>
-                            )}
-
-                            <div>
-                              <h4 className="text-[10px] font-black uppercase tracking-widest mb-1 text-gray-400">Amount in Words</h4>
-                              <p className="text-gray-800 font-bold italic capitalize">{numberToWords(Number(order.total_amount))} Rupees Only</p>
-                            </div>
-                          </div>
-
-                          {/* Right: Totals */}
-                          <div className="w-56 space-y-2 shrink-0">
-                            <div className="flex justify-between py-1.5 border-b border-gray-100">
-                              <span className="text-gray-500">Subtotal</span>
-                              <span className="font-bold text-gray-900">{Number(order.total_amount).toLocaleString()} INR</span>
-                            </div>
-                            <div className="flex justify-between py-1.5 border-b border-gray-100">
-                              <span className="text-gray-500">Delivery</span>
-                              <span className="font-bold text-gray-900">0.00 INR</span>
-                            </div>
-                            <div className="flex justify-between py-1.5 border-b border-gray-100">
-                              <span className="text-gray-500">Discount</span>
-                              <span className="font-bold text-gray-900">— 0.00 INR</span>
-                            </div>
-                            <div className="flex justify-between py-2.5 border-y-2 mt-1 font-bold" style={{ borderColor: accentColor }}>
-                              <span className="text-gray-900">Total</span>
-                              <span style={{ color: accentColor }}>{Number(order.total_amount).toLocaleString()} INR</span>
-                            </div>
-                            <div className="flex justify-between py-2 font-bold">
-                              <span className="text-gray-600">Due Balance</span>
-                              <span className={isPaid ? 'text-emerald-600' : 'text-rose-600'}>{isPaid ? '0.00' : Number(order.total_amount).toLocaleString()} INR</span>
-                            </div>
-
-                            {/* Signature */}
-                            <div className="mt-8 pt-4 border-t border-gray-200 text-center">
-                              <div className="h-12 border-b border-gray-300 mb-1" />
-                              <p className="text-[9px] text-gray-400 uppercase tracking-widest">Authorized Signature</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Footer */}
-                        <div className="mt-8 pt-4 border-t border-gray-100 text-center">
-                          <p className="text-[10px] text-gray-400">
-                            {store?.store_name} · {store?.subdomain}.crevasolution.in · Thank you for your business!
-                          </p>
-                          <p className="text-[9px] text-gray-400 mt-1 font-mono">
-                            Page {index + 1} of {totalPages}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                });
-              })()}
+            {/* Printable Area - renders each invoice page (screen preview only) */}
+            <div className="flex-1 overflow-y-auto p-6 bg-muted/10">
+              {renderInvoiceSheets()}
             </div>
           </div>
         </div>
