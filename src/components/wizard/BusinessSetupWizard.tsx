@@ -1294,20 +1294,30 @@ export default function BusinessSetupWizard() {
               {/* Sub Plans Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {(() => {
-                  const defaultPlans = [
-                    { id: '30', name: '1 Month Plan', price: `₹${globalSettings?.plan30Price || '499'}`, desc: 'Best for trial storefronts' },
-                    { id: '365', name: '1 Year Plan', price: `₹${Number(globalSettings?.plan365Price || 3999).toLocaleString()}`, desc: 'Most popular for small shops' },
-                    { id: 'lifetime', name: 'Lifetime Plan', price: `₹${Number(globalSettings?.planLifetimePrice || 9999).toLocaleString()}`, desc: 'Ultimate professional pack' }
-                  ].filter(plan => !(globalSettings?.disabledDefaultPackages || []).includes(plan.id));
-                  
-                  const customPlans = (globalSettings?.customPackages || []).map((pkg: any) => ({
-                    id: pkg.id,
-                    name: pkg.name,
-                    price: `₹${Number(pkg.price || 0).toLocaleString()}`,
-                    desc: `Custom Package • ${pkg.days} Days Access`
-                  }));
+                  let plans: { id: string; name: string; price: string; desc: string; badge?: string }[] = [];
 
-                  return [...defaultPlans, ...customPlans].map((plan) => (
+                  if (Array.isArray(globalSettings?.subscriptionPlans) && globalSettings.subscriptionPlans.length > 0) {
+                    plans = globalSettings.subscriptionPlans
+                      .filter((p: any) => p.isActive !== false)
+                      .sort((a: any, b: any) => (a.displayOrder || 0) - (b.displayOrder || 0))
+                      .map((p: any) => ({
+                        id: p.id,
+                        name: p.name,
+                        price: `₹${Number(p.price || 0).toLocaleString()}`,
+                        desc: p.description || '',
+                        badge: p.badge || ''
+                      }));
+                  } else {
+                    const disabled: string[] = globalSettings?.disabledDefaultPackages || [];
+                    if (!disabled.includes('30')) plans.push({ id: '30', name: '1 Month Plan', price: `₹${globalSettings?.plan30Price || '499'}`, desc: 'Best for trial storefronts' });
+                    if (!disabled.includes('365')) plans.push({ id: '365', name: '1 Year Plan', price: `₹${Number(globalSettings?.plan365Price || 3999).toLocaleString()}`, desc: 'Most popular for small shops', badge: 'Most Popular' });
+                    if (!disabled.includes('lifetime')) plans.push({ id: 'lifetime', name: 'Lifetime Plan', price: `₹${Number(globalSettings?.planLifetimePrice || 9999).toLocaleString()}`, desc: 'Ultimate professional pack', badge: 'Best Value' });
+                    (globalSettings?.customPackages || []).forEach((pkg: any) => {
+                      plans.push({ id: pkg.id, name: pkg.name, price: `₹${Number(pkg.price || 0).toLocaleString()}`, desc: `${pkg.days} Days Access` });
+                    });
+                  }
+
+                  return plans.map((plan) => (
                     <button
                       key={plan.id}
                       type="button"
@@ -1318,6 +1328,11 @@ export default function BusinessSetupWizard() {
                           : 'border-slate-200 bg-white hover:bg-slate-55/30 hover:scale-[1.005]'
                       }`}
                     >
+                      {plan.badge && (
+                        <span className="absolute -top-2.5 left-3 px-2.5 py-0.5 bg-blue-600 text-white text-[8px] font-black uppercase tracking-widest rounded-full">
+                          {plan.badge}
+                        </span>
+                      )}
                       {selectedPlan === plan.id && (
                         <span className="absolute top-2.5 right-2.5 bg-blue-600 text-white rounded-full p-0.5 animate-in zoom-in">
                           <Check className="w-3.5 h-3.5" />
@@ -1325,7 +1340,7 @@ export default function BusinessSetupWizard() {
                       )}
                       <span className="text-[10px] text-blue-600 uppercase font-bold tracking-wider">{plan.name}</span>
                       <span className="text-2xl font-black text-slate-850 mt-1.5 font-mono">{plan.price}</span>
-                      <span className="text-[10px] text-slate-500 mt-2 leading-relaxed">{plan.desc}</span>
+                      {plan.desc && <span className="text-[10px] text-slate-500 mt-2 leading-relaxed">{plan.desc}</span>}
                     </button>
                   ));
                 })()}

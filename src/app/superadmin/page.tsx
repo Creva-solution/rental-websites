@@ -210,13 +210,23 @@ export default function SuperAdminDashboard() {
     admire: ''
   });
 
-  // Custom subscription packages states
+  // Custom subscription packages states (legacy — kept for backwards compat in save)
   const [customPackages, setCustomPackages] = useState<any[]>([]);
   const [disabledDefaultPackages, setDisabledDefaultPackages] = useState<string[]>([]);
   const [newPkgName, setNewPkgName] = useState<string>('');
   const [newPkgDuration, setNewPkgDuration] = useState<string>('3');
   const [newPkgDurationType, setNewPkgDurationType] = useState<'day' | 'month' | 'year'>('month');
   const [newPkgPrice, setNewPkgPrice] = useState<string>('');
+
+  // Unified subscription plans (new format)
+  const [subscriptionPlans, setSubscriptionPlans] = useState<any[]>([
+    { id: 'plan_30', name: '1 Month Plan', price: '499', days: 30, description: 'Best for trial storefronts', badge: '', isActive: true, displayOrder: 1 },
+    { id: 'plan_365', name: '1 Year Plan', price: '3999', days: 365, description: 'Most popular for small shops', badge: 'Most Popular', isActive: true, displayOrder: 2 },
+    { id: 'plan_lifetime', name: 'Lifetime Plan', price: '9999', days: 99999, description: 'Ultimate professional pack', badge: 'Best Value', isActive: true, displayOrder: 3 },
+  ]);
+  const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
+  const [newPlan, setNewPlan] = useState({ name: '', price: '', days: '', description: '', badge: '', isActive: true, displayOrder: 0 });
+  const [templateThumbnailsUpdatedAt, setTemplateThumbnailsUpdatedAt] = useState<Record<string, number>>({});
 
   // States for Image Cropping tool
   const [rawImage, setRawImage] = useState<string | null>(null);
@@ -651,6 +661,36 @@ export default function SuperAdminDashboard() {
     setTimeout(() => setActionStatus(null), 2500);
   };
 
+  // ── Subscription Plans CRUD ───────────────────────────────────────────────
+  const handleAddPlan = () => {
+    if (!newPlan.name.trim() || !newPlan.price.trim() || !newPlan.days.trim()) return;
+    const plan = {
+      id: 'plan_' + Math.random().toString(36).substring(2, 9),
+      name: newPlan.name.trim(),
+      price: newPlan.price.trim(),
+      days: parseInt(newPlan.days) || 30,
+      description: newPlan.description.trim(),
+      badge: newPlan.badge.trim(),
+      isActive: newPlan.isActive,
+      displayOrder: newPlan.displayOrder || subscriptionPlans.length + 1,
+    };
+    setSubscriptionPlans(prev => [...prev, plan].sort((a, b) => a.displayOrder - b.displayOrder));
+    setNewPlan({ name: '', price: '', days: '', description: '', badge: '', isActive: true, displayOrder: 0 });
+    setActionStatus('Plan added. Click Save Settings to persist.');
+    setTimeout(() => setActionStatus(null), 3000);
+  };
+
+  const handleUpdatePlan = (id: string, field: string, value: any) => {
+    setSubscriptionPlans(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
+  };
+
+  const handleDeletePlan = (id: string) => {
+    setSubscriptionPlans(prev => prev.filter(p => p.id !== id));
+    if (editingPlanId === id) setEditingPlanId(null);
+    setActionStatus('Plan removed. Click Save Settings to persist.');
+    setTimeout(() => setActionStatus(null), 3000);
+  };
+
   const handleSaveBrandSettings = async () => {
     setActionStatus('Saving settings to cloud...');
     try {
@@ -668,12 +708,19 @@ export default function SuperAdminDashboard() {
       localStorage.setItem('saas_template_thumbnails', JSON.stringify(templateThumbnails));
       localStorage.setItem('saas_custom_packages', JSON.stringify(customPackages));
       localStorage.setItem('saas_disabled_default_packages', JSON.stringify(disabledDefaultPackages));
+      localStorage.setItem('saas_subscription_plans', JSON.stringify(subscriptionPlans));
       localStorage.setItem('saas_wa_enabled_global', String(whatsappEnabledGlobal));
       localStorage.setItem('saas_wa_plans_enabled', JSON.stringify(whatsappPlansEnabled));
       localStorage.setItem('saas_wa_plans_order_updates_enabled', JSON.stringify(whatsappPlansOrderUpdatesEnabled));
       localStorage.setItem('saas_wa_default_welcome', whatsappDefaultWelcome);
       localStorage.setItem('saas_global_payment_gateways', JSON.stringify(globalPaymentGateways));
       localStorage.setItem('saas_global_integrations', JSON.stringify(globalIntegrations));
+
+      // Derive backwards-compat legacy plan fields from subscriptionPlans
+      const legacyPlan30 = subscriptionPlans.find(p => p.days === 30);
+      const legacyPlan365 = subscriptionPlans.find(p => p.days === 365);
+      const legacyLifetime = subscriptionPlans.find(p => p.days >= 99999);
+      const legacyCustom = subscriptionPlans.filter(p => p.days !== 30 && p.days !== 365 && p.days < 99999);
 
       const settingsData = {
         brandName,
@@ -683,13 +730,21 @@ export default function SuperAdminDashboard() {
         agreementTemplates,
         onboardVideoUrl,
         platformUpi,
-        plan30Price,
-        plan365Price,
-        planLifetimePrice,
+        // New unified format
+        subscriptionPlans,
+        templateThumbnailsUpdatedAt,
+        // Legacy fields kept for backwards compat
+        plan30Price: legacyPlan30?.price || plan30Price,
+        plan365Price: legacyPlan365?.price || plan365Price,
+        planLifetimePrice: legacyLifetime?.price || planLifetimePrice,
         customDomainUnlockPrice,
         templateThumbnails,
-        customPackages,
-        disabledDefaultPackages,
+        customPackages: legacyCustom.map(p => ({ id: p.id, name: p.name, days: p.days, price: p.price, duration: p.days, durationType: 'day' })),
+        disabledDefaultPackages: [
+          ...(legacyPlan30 && !legacyPlan30.isActive ? ['30'] : []),
+          ...(legacyPlan365 && !legacyPlan365.isActive ? ['365'] : []),
+          ...(legacyLifetime && !legacyLifetime.isActive ? ['lifetime'] : []),
+        ],
         whatsappEnabledGlobal,
         whatsappPlansEnabled,
         whatsappPlansOrderUpdatesEnabled,
@@ -961,6 +1016,25 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
           if (parsed.disabledDefaultPackages) {
             setDisabledDefaultPackages(parsed.disabledDefaultPackages);
             localStorage.setItem('saas_disabled_default_packages', JSON.stringify(parsed.disabledDefaultPackages));
+          }
+          if (Array.isArray(parsed.subscriptionPlans) && parsed.subscriptionPlans.length > 0) {
+            setSubscriptionPlans(parsed.subscriptionPlans);
+          } else {
+            // Migrate old plan fields → new unified format
+            const disabled: string[] = parsed.disabledDefaultPackages || [];
+            const migrated: any[] = [];
+            if (parsed.plan30Price) migrated.push({ id: 'plan_30', name: '1 Month Plan', price: parsed.plan30Price, days: 30, description: 'Best for trial storefronts', badge: '', isActive: !disabled.includes('30'), displayOrder: 1 });
+            if (parsed.plan365Price) migrated.push({ id: 'plan_365', name: '1 Year Plan', price: parsed.plan365Price, days: 365, description: 'Most popular for small shops', badge: 'Most Popular', isActive: !disabled.includes('365'), displayOrder: 2 });
+            if (parsed.planLifetimePrice) migrated.push({ id: 'plan_lifetime', name: 'Lifetime Plan', price: parsed.planLifetimePrice, days: 99999, description: 'Ultimate professional pack', badge: 'Best Value', isActive: !disabled.includes('lifetime'), displayOrder: 3 });
+            if (Array.isArray(parsed.customPackages)) {
+              parsed.customPackages.forEach((pkg: any, i: number) => {
+                migrated.push({ id: pkg.id, name: pkg.name, price: pkg.price, days: pkg.days, description: `${pkg.days} Days Access`, badge: '', isActive: true, displayOrder: 10 + i });
+              });
+            }
+            if (migrated.length > 0) setSubscriptionPlans(migrated);
+          }
+          if (parsed.templateThumbnailsUpdatedAt) {
+            setTemplateThumbnailsUpdatedAt(parsed.templateThumbnailsUpdatedAt);
           }
           if (parsed.whatsappEnabledGlobal !== undefined) {
             setWhatsappEnabledGlobal(parsed.whatsappEnabledGlobal);
@@ -3849,251 +3923,158 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                         />
                       </div>
 
-                      {/* Package Plan Prices Setting Section */}
+                      {/* Subscription Plans Manager (new unified format) */}
                       <div className="border border-gray-800 p-5 rounded-xl bg-gray-950/40 space-y-4">
-                        <div className="flex items-center gap-2">
-                          <Database className="w-4 h-4 text-indigo-450" />
-                          <span className="text-xs font-bold text-gray-200">Store Subscription Package Prices</span>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          {/* 1 Month Plan */}
-                          <div className={`p-3 rounded-lg border transition-all ${
-                            disabledDefaultPackages.includes('30') 
-                              ? 'border-red-950/30 bg-red-950/5 opacity-60' 
-                              : 'border-gray-850 bg-gray-900/30'
-                          }`}>
-                            <div className="flex items-center justify-between mb-1.5">
-                              <label className="text-[9px] font-bold text-gray-400 uppercase">1 Month Plan</label>
-                              {disabledDefaultPackages.includes('30') ? (
-                                <button
-                                  type="button"
-                                  onClick={() => persistPackages(customPackages, disabledDefaultPackages.filter(x => x !== '30'))}
-                                  className="text-[8px] bg-indigo-950 hover:bg-indigo-900 text-indigo-400 font-bold px-1.5 py-0.5 rounded transition-all animate-pulse"
-                                >
-                                  RESTORE +
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => persistPackages(customPackages, [...disabledDefaultPackages, '30'])}
-                                  className="p-1 bg-red-950 hover:bg-red-900 text-red-450 rounded transition-all"
-                                  title="Delete 1 Month Plan"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                            </div>
-                            {!disabledDefaultPackages.includes('30') ? (
-                              <div className="flex items-center">
-                                <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-md text-gray-500 font-mono text-xs">₹</span>
-                                <input 
-                                  type="number"
-                                  value={plan30Price}
-                                  onChange={(e) => setPlan30Price(e.target.value)}
-                                  placeholder="499"
-                                  className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
-                                />
-                              </div>
-                            ) : (
-                              <div className="text-[10px] text-red-400 font-mono italic h-9 flex items-center gap-1">
-                                <ShieldAlert className="w-3 h-3 text-red-500" />
-                                Deleted / Hidden
-                              </div>
-                            )}
-                          </div>
-
-                          {/* 1 Year Plan */}
-                          <div className={`p-3 rounded-lg border transition-all ${
-                            disabledDefaultPackages.includes('365') 
-                              ? 'border-red-950/30 bg-red-950/5 opacity-60' 
-                              : 'border-gray-850 bg-gray-900/30'
-                          }`}>
-                            <div className="flex items-center justify-between mb-1.5">
-                              <label className="text-[9px] font-bold text-gray-400 uppercase">1 Year Plan</label>
-                              {disabledDefaultPackages.includes('365') ? (
-                                <button
-                                  type="button"
-                                  onClick={() => persistPackages(customPackages, disabledDefaultPackages.filter(x => x !== '365'))}
-                                  className="text-[8px] bg-indigo-950 hover:bg-indigo-900 text-indigo-400 font-bold px-1.5 py-0.5 rounded transition-all animate-pulse"
-                                >
-                                  RESTORE +
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => persistPackages(customPackages, [...disabledDefaultPackages, '365'])}
-                                  className="p-1 bg-red-950 hover:bg-red-900 text-red-450 rounded transition-all"
-                                  title="Delete 1 Year Plan"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                            </div>
-                            {!disabledDefaultPackages.includes('365') ? (
-                              <div className="flex items-center">
-                                <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-md text-gray-500 font-mono text-xs">₹</span>
-                                <input 
-                                  type="number"
-                                  value={plan365Price}
-                                  onChange={(e) => setPlan365Price(e.target.value)}
-                                  placeholder="3999"
-                                  className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
-                                />
-                              </div>
-                            ) : (
-                              <div className="text-[10px] text-red-400 font-mono italic h-9 flex items-center gap-1">
-                                <ShieldAlert className="w-3 h-3 text-red-500" />
-                                Deleted / Hidden
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Lifetime Plan */}
-                          <div className={`p-3 rounded-lg border transition-all ${
-                            disabledDefaultPackages.includes('lifetime') 
-                              ? 'border-red-950/30 bg-red-950/5 opacity-60' 
-                              : 'border-gray-850 bg-gray-900/30'
-                          }`}>
-                            <div className="flex items-center justify-between mb-1.5">
-                              <label className="text-[9px] font-bold text-gray-400 uppercase">Lifetime Plan</label>
-                              {disabledDefaultPackages.includes('lifetime') ? (
-                                <button
-                                  type="button"
-                                  onClick={() => persistPackages(customPackages, disabledDefaultPackages.filter(x => x !== 'lifetime'))}
-                                  className="text-[8px] bg-indigo-950 hover:bg-indigo-900 text-indigo-400 font-bold px-1.5 py-0.5 rounded transition-all animate-pulse"
-                                >
-                                  RESTORE +
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => persistPackages(customPackages, [...disabledDefaultPackages, 'lifetime'])}
-                                  className="p-1 bg-red-950 hover:bg-red-900 text-red-455 rounded transition-all"
-                                  title="Delete Lifetime Plan"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                            </div>
-                            {!disabledDefaultPackages.includes('lifetime') ? (
-                              <div className="flex items-center">
-                                <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-md text-gray-500 font-mono text-xs">₹</span>
-                                <input 
-                                  type="number"
-                                  value={planLifetimePrice}
-                                  onChange={(e) => setPlanLifetimePrice(e.target.value)}
-                                  placeholder="9999"
-                                  className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-r-md px-2 text-xs text-white font-mono"
-                                />
-                              </div>
-                            ) : (
-                              <div className="text-[10px] text-red-400 font-mono italic h-9 flex items-center gap-1">
-                                <ShieldAlert className="w-3 h-3 text-red-500" />
-                                Deleted / Hidden
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Dynamic Custom Subscription Packages Section */}
-                      <div className="border border-gray-800 p-5 rounded-xl bg-gray-950/40 space-y-4">
-                        <div className="flex items-center justify-between border-b border-gray-850 pb-2.5">
+                        <div className="flex items-center justify-between border-b border-gray-850 pb-3">
                           <div className="flex items-center gap-2">
-                            <Layers className="w-4 h-4 text-indigo-400" />
-                            <span className="text-xs font-bold text-gray-250">Dynamic Custom Packages</span>
+                            <Database className="w-4 h-4 text-indigo-400" />
+                            <span className="text-xs font-bold text-gray-200">Subscription Plans</span>
                           </div>
-                          <span className="text-[10px] text-gray-400 font-mono">Total Packages: {customPackages.length}</span>
+                          <span className="text-[10px] text-gray-400 font-mono">{subscriptionPlans.length} plan{subscriptionPlans.length !== 1 ? 's' : ''}</span>
+                        </div>
+                        {/* Plans list */}
+                        <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+                          {subscriptionPlans.length === 0 && (
+                            <div className="border border-dashed border-gray-850 rounded-lg p-5 text-center text-gray-500 text-xs">
+                              No plans configured. Add one below.
+                            </div>
+                          )}
+                          {subscriptionPlans.map((plan) => (
+                            <div key={plan.id} className={`border rounded-xl transition-all ${plan.isActive ? 'border-gray-800 bg-gray-900/40' : 'border-gray-850 bg-gray-950/30 opacity-60'}`}>
+                              {editingPlanId === plan.id ? (
+                                /* Inline edit form */
+                                <div className="p-4 space-y-3">
+                                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                    <div className="col-span-2">
+                                      <label className="text-[9px] font-bold text-gray-400 uppercase">Plan Name</label>
+                                      <input type="text" value={plan.name} onChange={(e) => handleUpdatePlan(plan.id, 'name', e.target.value)}
+                                        className="w-full h-8 bg-gray-950 border border-gray-800 focus:border-indigo-500 focus:outline-none rounded-lg px-2.5 text-xs text-white mt-0.5" />
+                                    </div>
+                                    <div>
+                                      <label className="text-[9px] font-bold text-gray-400 uppercase">Price (₹)</label>
+                                      <input type="number" value={plan.price} onChange={(e) => handleUpdatePlan(plan.id, 'price', e.target.value)}
+                                        className="w-full h-8 bg-gray-950 border border-gray-800 focus:border-indigo-500 focus:outline-none rounded-lg px-2.5 text-xs text-white font-mono mt-0.5" />
+                                    </div>
+                                    <div>
+                                      <label className="text-[9px] font-bold text-gray-400 uppercase">Days</label>
+                                      <input type="number" value={plan.days} onChange={(e) => handleUpdatePlan(plan.id, 'days', parseInt(e.target.value) || 30)}
+                                        className="w-full h-8 bg-gray-950 border border-gray-800 focus:border-indigo-500 focus:outline-none rounded-lg px-2.5 text-xs text-white font-mono mt-0.5" />
+                                    </div>
+                                    <div className="col-span-2">
+                                      <label className="text-[9px] font-bold text-gray-400 uppercase">Description</label>
+                                      <input type="text" value={plan.description} onChange={(e) => handleUpdatePlan(plan.id, 'description', e.target.value)}
+                                        className="w-full h-8 bg-gray-950 border border-gray-800 focus:border-indigo-500 focus:outline-none rounded-lg px-2.5 text-xs text-white mt-0.5" />
+                                    </div>
+                                    <div>
+                                      <label className="text-[9px] font-bold text-gray-400 uppercase">Badge Label</label>
+                                      <input type="text" value={plan.badge} onChange={(e) => handleUpdatePlan(plan.id, 'badge', e.target.value)}
+                                        placeholder="e.g. Most Popular"
+                                        className="w-full h-8 bg-gray-950 border border-gray-800 focus:border-indigo-500 focus:outline-none rounded-lg px-2.5 text-xs text-white mt-0.5" />
+                                    </div>
+                                    <div>
+                                      <label className="text-[9px] font-bold text-gray-400 uppercase">Display Order</label>
+                                      <input type="number" value={plan.displayOrder} onChange={(e) => handleUpdatePlan(plan.id, 'displayOrder', parseInt(e.target.value) || 0)}
+                                        className="w-full h-8 bg-gray-950 border border-gray-800 focus:border-indigo-500 focus:outline-none rounded-lg px-2.5 text-xs text-white font-mono mt-0.5" />
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center justify-between pt-1">
+                                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                                      <button type="button" onClick={() => handleUpdatePlan(plan.id, 'isActive', !plan.isActive)}
+                                        className={`w-8 h-4 rounded-full transition-colors ${plan.isActive ? 'bg-emerald-600' : 'bg-gray-700'}`}>
+                                        <span className={`block w-3 h-3 bg-white rounded-full mx-auto transition-transform ${plan.isActive ? 'translate-x-2' : '-translate-x-2'}`} />
+                                      </button>
+                                      <span className="text-[10px] text-gray-400">{plan.isActive ? 'Active' : 'Inactive'}</span>
+                                    </label>
+                                    <button type="button" onClick={() => setEditingPlanId(null)}
+                                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all">
+                                      Done
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                /* Collapsed view */
+                                <div className="p-3 flex items-center gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-[11px] font-bold text-white">{plan.name}</span>
+                                      {plan.badge && <span className="text-[8px] bg-indigo-950 text-indigo-300 px-1.5 py-0.5 rounded-full font-black uppercase">{plan.badge}</span>}
+                                      {!plan.isActive && <span className="text-[8px] bg-red-950 text-red-400 px-1.5 py-0.5 rounded-full font-black uppercase">Inactive</span>}
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-0.5">
+                                      <span className="text-[10px] text-emerald-400 font-mono font-bold">₹{Number(plan.price).toLocaleString()}</span>
+                                      <span className="text-[10px] text-gray-500 font-mono">{plan.days >= 99999 ? 'Lifetime' : `${plan.days} days`}</span>
+                                      {plan.description && <span className="text-[10px] text-gray-500 truncate">{plan.description}</span>}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <button type="button" onClick={() => handleUpdatePlan(plan.id, 'isActive', !plan.isActive)}
+                                      className={`p-1.5 rounded-lg transition-colors border text-[9px] font-bold ${plan.isActive ? 'bg-emerald-950/40 border-emerald-900/30 text-emerald-400 hover:bg-emerald-950' : 'bg-gray-900 border-gray-850 text-gray-400 hover:bg-gray-850'}`}
+                                      title={plan.isActive ? 'Disable plan' : 'Enable plan'}>
+                                      {plan.isActive ? <ToggleRight className="w-3.5 h-3.5" /> : <ToggleLeft className="w-3.5 h-3.5" />}
+                                    </button>
+                                    <button type="button" onClick={() => setEditingPlanId(plan.id)}
+                                      className="p-1.5 bg-blue-950/40 hover:bg-blue-950 text-blue-400 rounded-lg transition-colors border border-blue-900/30" title="Edit plan">
+                                      <Zap className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button type="button" onClick={() => handleDeletePlan(plan.id)}
+                                      className="p-1.5 bg-red-950/40 hover:bg-red-950 text-red-400 rounded-lg transition-colors border border-red-900/30" title="Delete plan">
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
                         </div>
 
-                        {/* Existing Custom Packages list */}
-                        {customPackages.length > 0 ? (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[220px] overflow-y-auto pr-1">
-                            {customPackages.map((pkg) => (
-                              <div key={pkg.id} className="bg-gray-900/60 border border-gray-850 p-3 rounded-lg flex items-center justify-between transition-all hover:bg-gray-900/95 hover:border-gray-800">
-                                <div className="space-y-1">
-                                  <div className="text-[11px] font-bold text-white flex items-center gap-1.5">
-                                    {pkg.name}
-                                    <span className="text-[9px] bg-blue-950 text-blue-400 px-1.5 py-0.5 rounded font-mono">
-                                      {pkg.days} Days
-                                    </span>
-                                  </div>
-                                  <div className="text-[10px] text-gray-400 font-mono">Price: <span className="text-emerald-450 font-bold">₹{pkg.price}</span></div>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteCustomPackage(pkg.id)}
-                                  className="p-1.5 bg-red-950/40 hover:bg-red-950 text-red-400 rounded-lg transition-colors border border-red-900/30"
-                                  title="Delete Package"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="border border-dashed border-gray-850 rounded-lg p-5 text-center text-gray-500 text-xs">
-                            No custom subscription packages configured yet. Use the tool below to add.
-                          </div>
-                        )}
-
-                        {/* Inline Package Creator Form */}
-                        <div className="bg-gray-900/30 border border-gray-850/50 p-4 rounded-xl space-y-3.5 mt-2">
-                          <span className="text-[10px] text-gray-400 font-black uppercase tracking-wider block">Add New Subscription Package</span>
-                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                            <div className="sm:col-span-4">
-                              <label className="text-[9px] font-bold text-gray-400 uppercase">Package Display Name</label>
-                              <input 
-                                type="text"
-                                value={newPkgName}
-                                onChange={(e) => setNewPkgName(e.target.value)}
+                        {/* Add New Plan Form */}
+                        <div className="bg-gray-900/30 border border-gray-850/50 p-4 rounded-xl space-y-3 mt-2">
+                          <span className="text-[10px] text-gray-400 font-black uppercase tracking-wider block">Add New Plan</span>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                            <div className="col-span-2">
+                              <label className="text-[9px] font-bold text-gray-400 uppercase">Plan Name</label>
+                              <input type="text" value={newPlan.name} onChange={(e) => setNewPlan(p => ({ ...p, name: e.target.value }))}
                                 placeholder="e.g. 3 Months Plan"
-                                className="w-full h-9 bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-indigo-500 focus:outline-none rounded-lg px-2.5 text-xs text-white"
-                              />
+                                className="w-full h-8 bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-indigo-500 focus:outline-none rounded-lg px-2.5 text-xs text-white mt-0.5" />
                             </div>
-                            <div className="sm:col-span-3">
-                              <label className="text-[9px] font-bold text-gray-400 uppercase">Duration Count</label>
-                              <input 
-                                type="number"
-                                value={newPkgDuration}
-                                onChange={(e) => setNewPkgDuration(e.target.value)}
-                                placeholder="3"
-                                className="w-full h-9 bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-indigo-500 focus:outline-none rounded-lg px-2.5 text-xs text-white font-mono"
-                              />
+                            <div>
+                              <label className="text-[9px] font-bold text-gray-400 uppercase">Price (₹)</label>
+                              <input type="number" value={newPlan.price} onChange={(e) => setNewPlan(p => ({ ...p, price: e.target.value }))}
+                                placeholder="1299"
+                                className="w-full h-8 bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-indigo-500 focus:outline-none rounded-lg px-2.5 text-xs text-white font-mono mt-0.5" />
                             </div>
-                            <div className="sm:col-span-2">
-                              <label className="text-[9px] font-bold text-gray-400 uppercase">Duration Unit</label>
-                              <select 
-                                value={newPkgDurationType}
-                                onChange={(e) => setNewPkgDurationType(e.target.value as any)}
-                                className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-lg px-2.5 text-xs text-white"
-                              >
-                                <option value="day">Days</option>
-                                <option value="month">Months</option>
-                                <option value="year">Years</option>
-                              </select>
+                            <div>
+                              <label className="text-[9px] font-bold text-gray-400 uppercase">Days</label>
+                              <input type="number" value={newPlan.days} onChange={(e) => setNewPlan(p => ({ ...p, days: e.target.value }))}
+                                placeholder="90"
+                                className="w-full h-8 bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-indigo-500 focus:outline-none rounded-lg px-2.5 text-xs text-white font-mono mt-0.5" />
                             </div>
-                            <div className="sm:col-span-3">
-                              <label className="text-[9px] font-bold text-gray-400 uppercase">Package Price (₹)</label>
-                              <div className="flex items-center">
-                                <span className="h-9 px-2 flex items-center bg-gray-950 border-y border-l border-gray-850 rounded-l-lg text-gray-500 font-mono text-xs">₹</span>
-                                <input 
-                                  type="number"
-                                  value={newPkgPrice}
-                                  onChange={(e) => setNewPkgPrice(e.target.value)}
-                                  placeholder="1299"
-                                  className="w-full h-9 bg-gray-950 border border-gray-850 focus:border-indigo-500 focus:outline-none rounded-r-lg px-2.5 text-xs text-white font-mono"
-                                />
-                              </div>
+                            <div className="col-span-2">
+                              <label className="text-[9px] font-bold text-gray-400 uppercase">Description</label>
+                              <input type="text" value={newPlan.description} onChange={(e) => setNewPlan(p => ({ ...p, description: e.target.value }))}
+                                placeholder="Short description for customers"
+                                className="w-full h-8 bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-indigo-500 focus:outline-none rounded-lg px-2.5 text-xs text-white mt-0.5" />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-bold text-gray-400 uppercase">Badge (optional)</label>
+                              <input type="text" value={newPlan.badge} onChange={(e) => setNewPlan(p => ({ ...p, badge: e.target.value }))}
+                                placeholder="Most Popular"
+                                className="w-full h-8 bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-indigo-500 focus:outline-none rounded-lg px-2.5 text-xs text-white mt-0.5" />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-bold text-gray-400 uppercase">Display Order</label>
+                              <input type="number" value={newPlan.displayOrder || ''} onChange={(e) => setNewPlan(p => ({ ...p, displayOrder: parseInt(e.target.value) || 0 }))}
+                                placeholder={String(subscriptionPlans.length + 1)}
+                                className="w-full h-8 bg-gray-950 border border-gray-850 hover:border-gray-800 focus:border-indigo-500 focus:outline-none rounded-lg px-2.5 text-xs text-white font-mono mt-0.5" />
                             </div>
                           </div>
                           <div className="flex justify-end pt-1">
                             <button
                               type="button"
-                              onClick={handleAddCustomPackage}
+                              onClick={handleAddPlan}
                               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md shadow-indigo-600/10"
                             >
-                              Add Package +
+                              <Plus className="w-3.5 h-3.5" /> Add Plan
                             </button>
                           </div>
                         </div>
@@ -4397,10 +4378,8 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                                       reader.onload = (ev) => {
                                         const res = ev.target?.result;
                                         if (res) {
-                                          setTemplateThumbnails(prev => ({
-                                            ...prev,
-                                            [tpl.id]: res as string
-                                          }));
+                                          setTemplateThumbnails(prev => ({ ...prev, [tpl.id]: res as string }));
+                                          setTemplateThumbnailsUpdatedAt(prev => ({ ...prev, [tpl.id]: Date.now() }));
                                           setActionStatus(`Thumbnail uploaded for ${tpl.name}!`);
                                           setTimeout(() => setActionStatus(null), 2500);
                                         }
@@ -4420,10 +4399,8 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                                     disabled={customThumb.startsWith('data:')}
                                     onChange={(e) => {
                                       const val = e.target.value;
-                                      setTemplateThumbnails(prev => ({
-                                        ...prev,
-                                        [tpl.id]: val
-                                      }));
+                                      setTemplateThumbnails(prev => ({ ...prev, [tpl.id]: val }));
+                                      setTemplateThumbnailsUpdatedAt(prev => ({ ...prev, [tpl.id]: Date.now() }));
                                     }}
                                     placeholder="e.g. https://images.unsplash.com/..."
                                     className="w-full bg-gray-900 border border-gray-850 hover:border-gray-800 focus:border-blue-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[10px] text-white transition-all font-mono placeholder:text-gray-750 disabled:opacity-50 disabled:cursor-not-allowed"
