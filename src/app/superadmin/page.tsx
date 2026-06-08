@@ -1195,6 +1195,21 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
 
       setActionStatus("Payment verified & Store activated!");
       setTimeout(() => setActionStatus(null), 2500);
+      // Send approval email to store owner (fire-and-forget)
+      if (selectedStore.contact_email) {
+        fetch('/api/email/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'approval',
+            to: selectedStore.contact_email,
+            ownerName: contract.ownerName || selectedStore.store_name,
+            storeName: selectedStore.store_name,
+            subdomain: selectedStore.subdomain,
+            plan: contract.selectedPlan || '',
+          }),
+        }).catch(() => {});
+      }
       alert("Success: Payment verified. The storefront has been marked active and unpaused!");
     } catch (err: any) {
       console.error(err);
@@ -1241,6 +1256,19 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
 
       setActionStatus("Payment rejected & storefront locked!");
       setTimeout(() => setActionStatus(null), 2500);
+      // Send rejection email to store owner (fire-and-forget)
+      if (selectedStore.contact_email) {
+        fetch('/api/email/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'rejection',
+            to: selectedStore.contact_email,
+            ownerName: contract.ownerName || selectedStore.store_name,
+            storeName: selectedStore.store_name,
+          }),
+        }).catch(() => {});
+      }
       alert("Merchant payment rejected successfully. Storefront is locked and merchant is notified via their dashboard.");
     } catch (err: any) {
       console.error(err);

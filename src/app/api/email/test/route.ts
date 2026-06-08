@@ -4,6 +4,8 @@ import {
   sendNewStoreNotification,
   sendSubscriptionReminderEmail,
   sendNewTicketEmail,
+  sendApprovalEmail,
+  sendRejectionEmail,
   SUPERADMIN_EMAIL,
   FROM_ADDRESS,
   APP_URL,
@@ -89,10 +91,28 @@ export async function GET(req: NextRequest) {
         });
         break;
 
+      case 'approval':
+        await sendApprovalEmail({
+          to,
+          ownerName: 'Test Owner',
+          storeName: 'Test Store',
+          subdomain: 'test-store',
+          plan: '1 Month (30 Days)',
+        });
+        break;
+
+      case 'rejection':
+        await sendRejectionEmail({
+          to,
+          ownerName: 'Test Owner',
+          storeName: 'Test Store',
+        });
+        break;
+
       default:
         return NextResponse.json({
           error: `Unknown type "${type}"`,
-          availableTypes: ['welcome', 'new_store', 'reminder', 'expired', 'ticket'],
+          availableTypes: ['welcome', 'new_store', 'reminder', 'expired', 'ticket', 'approval', 'rejection'],
         }, { status: 400 });
     }
 

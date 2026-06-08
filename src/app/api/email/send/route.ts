@@ -6,6 +6,8 @@ import {
   sendSupportReplyEmail,
   sendOwnerReplyEmail,
   sendSubscriptionReminderEmail,
+  sendApprovalEmail,
+  sendRejectionEmail,
 } from '@/lib/email';
 
 export async function POST(req: NextRequest) {
@@ -21,6 +23,8 @@ export async function POST(req: NextRequest) {
           storeName: body.storeName,
           storeUrl: body.storeUrl,
           subdomain: body.subdomain,
+          phone: body.phone,
+          registrationDate: body.registrationDate,
         });
         break;
 
@@ -32,6 +36,26 @@ export async function POST(req: NextRequest) {
           ownerPhone: body.ownerPhone,
           subdomain: body.subdomain,
           plan: body.plan,
+          registrationDate: body.registrationDate,
+        });
+        break;
+
+      case 'approval':
+        await sendApprovalEmail({
+          to: body.to,
+          ownerName: body.ownerName,
+          storeName: body.storeName,
+          subdomain: body.subdomain,
+          plan: body.plan,
+        });
+        break;
+
+      case 'rejection':
+        await sendRejectionEmail({
+          to: body.to,
+          ownerName: body.ownerName,
+          storeName: body.storeName,
+          reason: body.reason,
         });
         break;
 

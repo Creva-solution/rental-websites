@@ -789,7 +789,8 @@ export default function BusinessSetupWizard() {
         // Continue transition since store record creation succeeded
       }
 
-      // 4. Send welcome email + superadmin notification (fire-and-forget)
+      // 4. Send welcome email + all-superadmin notification (fire-and-forget)
+      const regDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
       fetch('/api/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -800,6 +801,8 @@ export default function BusinessSetupWizard() {
           storeName: formData.businessName,
           storeUrl: `https://${subdomain}.crevasolution.in`,
           subdomain,
+          phone: formData.phone,
+          registrationDate: regDate,
         }),
       }).catch(() => {});
       fetch('/api/email/send', {
@@ -813,6 +816,7 @@ export default function BusinessSetupWizard() {
           ownerPhone: formData.phone,
           subdomain,
           plan: getSelectedPlanLabel(),
+          registrationDate: regDate,
         }),
       }).catch(() => {});
 
