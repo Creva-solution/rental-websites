@@ -333,7 +333,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-background border-r border-border flex flex-col transform transition-transform duration-300 ease-in-out md:hidden ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="h-16 flex items-center justify-between px-6 border-b border-border">
           <Link href="/" className="flex items-center">
-            <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-900">
+            <span className="inline-flex items-center">
               <img src="/logo-creva.svg" alt="Creva Webzz" className="h-7 w-auto object-contain" />
             </span>
           </Link>
@@ -413,7 +413,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="w-64 bg-background border-r border-border hidden md:flex flex-col flex-shrink-0 h-full">
         <div className="h-16 flex items-center px-6 border-b border-border">
           <Link href="/" className="flex items-center">
-            <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-900">
+            <span className="inline-flex items-center">
               <img src="/logo-creva.svg" alt="Creva Webzz" className="h-7 w-auto object-contain" />
             </span>
           </Link>

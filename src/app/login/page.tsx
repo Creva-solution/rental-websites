@@ -111,7 +111,7 @@ export default function LoginPage() {
                 <path d="M13.9434 163.318H34.0181" stroke="#3C77C3" stroke-width="2.50935"/>
                 <path d="M172.868 163.318H192.943" stroke="#3C77C3" stroke-width="2.50935"/>
               </svg>
-              <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-slate-900">
+              <span className="inline-flex items-center">
                 <img src="/logo-creva.svg" alt="Creva Webzz" className="h-8 w-auto object-contain" />
               </span>
             </Link>

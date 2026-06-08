@@ -149,7 +149,7 @@ export default function Home() {
               </div>
               <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl text-slate-900">
                 How{' '}
-                <span className="inline-flex items-center align-middle px-2 py-0.5 rounded-lg bg-slate-900 mx-1">
+                <span className="inline-flex items-center align-middle mx-1">
                   <img src="/logo-creva.svg" alt="Creva Webzz" className="h-6 w-auto object-contain" />
                 </span>{' '}
                 Works

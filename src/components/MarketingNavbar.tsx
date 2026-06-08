@@ -19,7 +19,7 @@ export default function MarketingNavbar() {
   return (
     <header className="px-6 lg:px-14 h-20 flex items-center justify-between border-b border-slate-100 bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm shadow-blue-500/5 w-full">
       <Link className="flex items-center group" href="/">
-        <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-slate-900 group-hover:bg-slate-800 transition-colors">
+        <span className="inline-flex items-center">
           <img src="/logo-creva.svg" alt="Creva Webzz" className="h-8 w-auto object-contain" />
         </span>
       </Link>
