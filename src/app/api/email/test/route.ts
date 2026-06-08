@@ -26,6 +26,15 @@ export async function GET(req: NextRequest) {
     appUrl: APP_URL,
   };
 
+  // Block early if SMTP is not configured — do not silently skip
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    return NextResponse.json({
+      success: false,
+      error: 'SMTP credentials not set in environment variables. Add SMTP_USER and SMTP_PASS in Vercel → Settings → Environment Variables, then redeploy.',
+      config,
+    }, { status: 503 });
+  }
+
   try {
     switch (type) {
       case 'welcome':
