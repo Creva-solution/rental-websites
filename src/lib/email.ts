@@ -11,6 +11,13 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  tls: {
+    rejectUnauthorized: false,
+  },
+  pool: true,
+  maxConnections: 3,
+  rateDelta: 1000,
+  rateLimit: 5,
 });
 
 export const SUPERADMIN_EMAIL = process.env.SUPERADMIN_EMAIL || '';
@@ -52,7 +59,24 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
     console.warn('[Email] No recipient for:', subject);
     return;
   }
-  await transporter.sendMail({ from: FROM_ADDRESS, to, subject, html });
+  await transporter.sendMail({
+    from: FROM_ADDRESS,
+    to,
+    subject,
+    html,
+    // Anti-spam headers
+    replyTo: FROM_ADDRESS,
+    headers: {
+      'X-Mailer': 'Creva Webzz Mailer',
+      'X-Priority': '3',
+      'X-MSMail-Priority': 'Normal',
+      'Importance': 'Normal',
+      'Precedence': 'bulk',
+      'List-Unsubscribe': `<mailto:${process.env.SMTP_USER}?subject=unsubscribe>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      'Message-ID': `<${Date.now()}.${Math.random().toString(36).slice(2)}@crevasolution.in>`,
+    },
+  });
 }
 
 // Send to multiple recipients (fire-and-forget for each)
