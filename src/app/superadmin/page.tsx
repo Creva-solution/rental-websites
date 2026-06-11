@@ -3082,7 +3082,17 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                       {selectedStore.description && (
                         <div className="border-t border-gray-850 pt-3">
                           <span className="text-[9px] text-gray-500 uppercase block font-semibold">Store Description / Tagline</span>
-                          <p className="text-xs text-gray-300 mt-1 leading-relaxed">{selectedStore.description}</p>
+                          <p className="text-xs text-gray-300 mt-1 leading-relaxed">
+                            {(() => {
+                              try {
+                                if (selectedStore.description.trim().startsWith('{')) {
+                                  const parsed = JSON.parse(selectedStore.description);
+                                  return parsed.description || parsed.tagline || 'No description provided.';
+                                }
+                              } catch (e) {}
+                              return selectedStore.description;
+                            })()}
+                          </p>
                         </div>
                       )}
                     </div>
