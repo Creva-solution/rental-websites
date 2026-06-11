@@ -76,6 +76,9 @@ const tamilNaduDistricts = [
   'Vellore', 'Viluppuram', 'Virudhunagar'
 ];
 
+const commonPosts = ['Sankarapuram', 'Kallakurichi', 'Chin Salem', 'Kallipadi', 'Melnurthiyur'];
+const commonTaluks = ['Sankarapuram', 'Kallakurichi', 'Chinnasalem', 'Tirukkoyilur', 'Ulundurpettai'];
+
 export default function OrdersPage() {
   const [store, setStore] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
@@ -112,6 +115,8 @@ export default function OrdersPage() {
   const [trackingState, setTrackingState] = useState('');
   const [isCustomDistrict, setIsCustomDistrict] = useState(false);
   const [isCustomState, setIsCustomState] = useState(false);
+  const [isCustomPost, setIsCustomPost] = useState(false);
+  const [isCustomTaluk, setIsCustomTaluk] = useState(false);
 
   const loadTrackingNumberComponents = (trackNum: string) => {
     if (trackNum && trackNum.includes(' || ')) {
@@ -126,6 +131,8 @@ export default function OrdersPage() {
       setTrackingDistrict(d);
       setTrackingState(s);
       
+      setIsCustomPost(p !== '' && !commonPosts.includes(p));
+      setIsCustomTaluk(t !== '' && !commonTaluks.includes(t));
       setIsCustomDistrict(d !== '' && !tamilNaduDistricts.includes(d));
       setIsCustomState(s !== '' && !['Tamil Nadu', 'Puducherry', 'Kerala', 'Karnataka', 'Andhra Pradesh'].includes(s));
     } else {
@@ -133,6 +140,8 @@ export default function OrdersPage() {
       setTrackingTaluk('');
       setTrackingDistrict('');
       setTrackingState('');
+      setIsCustomPost(trackNum !== '' && !commonPosts.includes(trackNum));
+      setIsCustomTaluk(false);
       setIsCustomDistrict(false);
       setIsCustomState(false);
     }
@@ -1693,24 +1702,68 @@ export default function OrdersPage() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
                         <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">1. Post (Town/Locality)</span>
-                        <input
-                          type="text"
-                          placeholder="e.g. Sankarapuram"
-                          value={trackingPost}
-                          onChange={e => handleTrackingComponentChange('post', e.target.value)}
-                          className="w-full bg-background border rounded-lg h-9 px-3 text-xs outline-none focus:border-[#3C77C3]"
-                        />
+                        <select
+                          value={commonPosts.includes(trackingPost) ? trackingPost : (trackingPost ? 'Other' : '')}
+                          onChange={e => {
+                            const val = e.target.value;
+                            if (val === 'Other') {
+                              setIsCustomPost(true);
+                              handleTrackingComponentChange('post', '');
+                            } else {
+                              setIsCustomPost(false);
+                              handleTrackingComponentChange('post', val);
+                            }
+                          }}
+                          className="w-full bg-background border rounded-lg h-9 px-2 text-xs outline-none focus:border-[#3C77C3]"
+                        >
+                          <option value="">-- Select Post --</option>
+                          {commonPosts.map(p => (
+                            <option key={p} value={p}>{p}</option>
+                          ))}
+                          <option value="Other">Other (Type custom)</option>
+                        </select>
+                        {(isCustomPost || (!commonPosts.includes(trackingPost) && trackingPost !== '')) && (
+                          <input
+                            type="text"
+                            placeholder="Type Post Name"
+                            value={trackingPost}
+                            onChange={e => handleTrackingComponentChange('post', e.target.value)}
+                            className="w-full bg-background border rounded-lg h-9 px-3 text-xs mt-1.5 outline-none focus:border-[#3C77C3]"
+                          />
+                        )}
                       </div>
 
                       <div className="space-y-1">
                         <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">2. Taluk</span>
-                        <input
-                          type="text"
-                          placeholder="e.g. Sankarapuram"
-                          value={trackingTaluk}
-                          onChange={e => handleTrackingComponentChange('taluk', e.target.value)}
-                          className="w-full bg-background border rounded-lg h-9 px-3 text-xs outline-none focus:border-[#3C77C3]"
-                        />
+                        <select
+                          value={commonTaluks.includes(trackingTaluk) ? trackingTaluk : (trackingTaluk ? 'Other' : '')}
+                          onChange={e => {
+                            const val = e.target.value;
+                            if (val === 'Other') {
+                              setIsCustomTaluk(true);
+                              handleTrackingComponentChange('taluk', '');
+                            } else {
+                              setIsCustomTaluk(false);
+                              handleTrackingComponentChange('taluk', val);
+                            }
+                          }}
+                          className="w-full bg-background border rounded-lg h-9 px-2 text-xs outline-none focus:border-[#3C77C3]"
+                        >
+                          <option value="">-- Select Taluk --</option>
+                          {commonTaluks.map(t => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
+                          <option value="Other">Other (Type custom)</option>
+                        </select>
+                        {(isCustomTaluk || (!commonTaluks.includes(trackingTaluk) && trackingTaluk !== '')) && (
+                          <input
+                            type="text"
+                            placeholder="Type Taluk Name"
+                            value={trackingTaluk}
+                            onChange={e => handleTrackingComponentChange('taluk', e.target.value)}
+                            className="w-full bg-background border rounded-lg h-9 px-3 text-xs mt-1.5 outline-none focus:border-[#3C77C3]"
+                          />
+                        )}
                       </div>
                     </div>
 
