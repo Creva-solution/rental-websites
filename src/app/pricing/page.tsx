@@ -1,59 +1,73 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import MarketingNavbar from '@/components/MarketingNavbar';
 import MarketingFooter from '@/components/MarketingFooter';
 import Link from 'next/link';
 import { Check, Info, ShieldCheck, HelpCircle, Smartphone, AlertTriangle } from 'lucide-react';
 
+type DynamicPlan = { id: string; name: string; price: string; days: number; description: string; badge: string };
+
 export default function PricingPage() {
-  const plans = [
+  const [plans, setPlans] = useState<DynamicPlan[]>([]);
+
+  useEffect(() => {
+    fetch('/api/plans').then(r => r.json()).then(setPlans).catch(() => {});
+  }, []);
+
+  const fallbackPlans: DynamicPlan[] = [
     {
       id: '30',
       name: 'Trial Package',
-      price: '₹499',
-      duration: '30 Days Access',
-      desc: 'Ideal for testing storefront layouts and AI catalog guidelines.',
-      features: [
-        'Complete Storefront access',
-        '1 Template selection',
-        'AI Assistant dashboard guidance',
-        'Basic order tracking',
-        'Direct UPI Payments'
-      ],
-      popular: false
+      price: '499',
+      days: 30,
+      description: 'Ideal for testing storefront layouts and AI catalog guidelines.',
+      badge: ''
     },
     {
       id: '365',
       name: 'Professional Pack',
-      price: '₹3,999',
-      duration: '365 Days Access',
-      desc: 'Our most popular tier for growing small shops and local retailers.',
-      features: [
-        'Complete Storefront access',
-        'Select from all 5 Templates',
-        'Full AI Assistant guide panel',
-        'Fulfillment & Blue invoices in words',
-        'WhatsApp alerts & tracking codes',
-        'Custom Domain support'
-      ],
-      popular: true
+      price: '3999',
+      days: 365,
+      description: 'Our most popular tier for growing small shops and local retailers.',
+      badge: 'Most Popular'
     },
     {
       id: 'lifetime',
       name: 'Lifetime Plan',
-      price: '₹9,999',
-      duration: 'Unlimited Access',
-      desc: 'Ultimate value for established merchants seeking permanent store setups.',
-      features: [
-        'Everything in Professional Pack',
-        'Lifetime access (no renewals)',
-        'Priority customer hotline access',
-        'Advanced templates premium support',
-        'Unlimited products & coupons'
-      ],
-      popular: false
+      price: '9999',
+      days: 99999,
+      description: 'Ultimate value for established merchants seeking permanent store setups.',
+      badge: 'Best Value'
     }
   ];
+
+  const planFeatures: Record<string, string[]> = {
+    '30': [
+      'Complete Storefront access',
+      '1 Template selection',
+      'AI Assistant dashboard guidance',
+      'Basic order tracking',
+      'Direct UPI Payments'
+    ],
+    '365': [
+      'Complete Storefront access',
+      'Select from all 5 Templates',
+      'Full AI Assistant guide panel',
+      'Fulfillment & Blue invoices in words',
+      'WhatsApp alerts & tracking codes',
+      'Custom Domain support'
+    ],
+    'lifetime': [
+      'Everything in Professional Pack',
+      'Lifetime access (no renewals)',
+      'Priority customer hotline access',
+      'Advanced templates premium support',
+      'Unlimited products & coupons'
+    ]
+  };
+
+  const displayPlans = plans.length > 0 ? plans : fallbackPlans;
 
   return (
     <div className="flex flex-col min-h-screen bg-white text-slate-800 font-sans antialiased pt-20">
@@ -79,57 +93,70 @@ export default function PricingPage() {
 
         {/* Pricing Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch mb-20">
-          {plans.map((p) => (
-            <div 
-              key={p.id}
-              className={`p-8 bg-white border rounded-3xl flex flex-col justify-between relative shadow-sm transition-all hover:shadow-lg ${
-                p.popular 
-                  ? 'border-blue-500 ring-2 ring-blue-500/20 scale-[1.02]' 
-                  : 'border-slate-200 hover:border-blue-200'
-              }`}
-            >
-              {p.popular && (
-                <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-blue-600 text-white font-extrabold text-[9px] uppercase tracking-widest px-3.5 py-1 rounded-full shadow-sm">
-                  Most Popular
-                </span>
-              )}
+          {displayPlans.map((p) => {
+            const features = planFeatures[p.id] || [
+              'Complete Storefront access',
+              'AI Assistant dashboard guidance',
+              'Direct UPI Payments'
+            ];
+            const isPopular = p.badge?.toLowerCase().includes('popular') || p.badge?.toLowerCase().includes('best') || p.badge?.toLowerCase().includes('value');
 
-              <div className="space-y-6">
-                <div>
-                  <span className="text-xs font-bold text-blue-600 uppercase tracking-widest block">{p.name}</span>
-                  <div className="flex items-baseline gap-1 mt-2">
-                    <span className="text-4xl font-black text-slate-850 font-mono">{p.price}</span>
-                    <span className="text-xs text-slate-400 font-semibold">/ {p.duration}</span>
+            return (
+              <div 
+                key={p.id}
+                className={`p-8 bg-white border rounded-3xl flex flex-col justify-between relative shadow-sm transition-all hover:shadow-lg ${
+                  isPopular 
+                    ? 'border-blue-500 ring-2 ring-blue-500/20 scale-[1.02]' 
+                    : 'border-slate-200 hover:border-blue-200'
+                }`}
+              >
+                {p.badge && (
+                  <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-blue-600 text-white font-extrabold text-[9px] uppercase tracking-widest px-3.5 py-1 rounded-full shadow-sm animate-pulse">
+                    {p.badge}
+                  </span>
+                )}
+
+                <div className="space-y-6">
+                  <div>
+                    <span className="text-xs font-bold text-blue-600 uppercase tracking-widest block">{p.name}</span>
+                    <div className="flex items-baseline gap-1 mt-2">
+                      <span className="text-4xl font-black text-slate-850 font-mono">₹{Number(p.price || 0).toLocaleString()}</span>
+                      <span className="text-xs text-slate-400 font-semibold">
+                        {p.days >= 99999 ? '/ lifetime' : p.days >= 365 ? `/ ${Math.round(p.days / 365)} yr` : `/ ${p.days} days`}
+                      </span>
+                    </div>
+                    {p.description && (
+                      <p className="text-xs text-slate-500 mt-3.5 leading-relaxed">{p.description}</p>
+                    )}
                   </div>
-                  <p className="text-xs text-slate-500 mt-3.5 leading-relaxed">{p.desc}</p>
+
+                  <hr className="border-slate-100" />
+
+                  <ul className="space-y-3.5 text-xs text-slate-600 font-medium">
+                    {features.map((f, i) => (
+                      <li key={i} className="flex items-start gap-2.5">
+                        <Check className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
-                <hr className="border-slate-100" />
-
-                <ul className="space-y-3.5 text-xs text-slate-600 font-medium">
-                  {p.features.map((f, i) => (
-                    <li key={i} className="flex items-start gap-2.5">
-                      <Check className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="pt-8">
+                  <Link
+                    href="/register"
+                    className={`w-full h-11 flex items-center justify-center rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
+                      isPopular
+                        ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-500/20'
+                        : 'border border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    Choose {p.name}
+                  </Link>
+                </div>
               </div>
-
-              <div className="pt-8">
-                <Link
-                  href="/register"
-                  className={`w-full h-11 flex items-center justify-center rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
-                    p.popular
-                      ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-500/20'
-                      : 'border border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-                  }`}
-                >
-                  Choose {p.name}
-                </Link>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Off-Platform UPI Verification Callout */}

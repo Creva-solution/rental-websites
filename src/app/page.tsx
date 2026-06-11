@@ -13,18 +13,15 @@ import MarketingNavbar from '@/components/MarketingNavbar';
 import MarketingFooter from '@/components/MarketingFooter';
 
 type DynamicTemplate = { id: string; name: string; category: string; thumb: string; previewPath: string };
-type DynamicPlan = { id: string; name: string; price: string; days: number; description: string; badge: string };
 
 export default function Home() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [dynamicTemplates, setDynamicTemplates] = useState<DynamicTemplate[]>([]);
-  const [dynamicPlans, setDynamicPlans] = useState<DynamicPlan[]>([]);
   const router = useRouter();
 
   useEffect(() => {
     fetch('/api/templates').then(r => r.json()).then(setDynamicTemplates).catch(() => {});
-    fetch('/api/plans').then(r => r.json()).then(setDynamicPlans).catch(() => {});
   }, []);
 
   const features = [
@@ -451,59 +448,6 @@ export default function Home() {
             </div>
           </div>
         </section>
-
-        {/* Pricing Section */}
-        {dynamicPlans.length > 0 && (
-          <section id="pricing" className="w-full py-16 md:py-24 border-t border-slate-100 bg-gradient-to-b from-white to-blue-50/30">
-            <div className="container px-4 md:px-6 mx-auto max-w-5xl">
-              <div className="flex flex-col items-center justify-center space-y-3 text-center mb-12">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-200 bg-blue-50/80 text-blue-600 text-xs font-semibold">
-                  <CreditCard className="w-3.5 h-3.5 text-blue-500" />
-                  <span>Transparent Pricing</span>
-                </div>
-                <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl text-slate-900">
-                  Pick a Plan, Launch Today
-                </h2>
-                <p className="max-w-[600px] text-slate-500 text-xs sm:text-sm">
-                  No hidden fees. No automatic charges. Our team contacts you directly to activate your subscription.
-                </p>
-              </div>
-
-              <div className={`grid gap-6 grid-cols-1 ${dynamicPlans.length === 2 ? 'sm:grid-cols-2' : dynamicPlans.length >= 3 ? 'sm:grid-cols-2 lg:grid-cols-3' : ''}`}>
-                {dynamicPlans.map((plan) => (
-                  <div
-                    key={plan.id}
-                    className={`relative flex flex-col rounded-2xl border-2 p-6 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-blue-500/8 ${plan.badge ? 'border-blue-500' : 'border-slate-200'}`}
-                  >
-                    {plan.badge && (
-                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-0.5 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-md shadow-blue-600/25">
-                        {plan.badge}
-                      </span>
-                    )}
-                    <div className="space-y-1 mb-4">
-                      <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{plan.name}</span>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-black text-slate-900 font-mono">₹{Number(plan.price || 0).toLocaleString()}</span>
-                        <span className="text-xs text-slate-400 font-medium">
-                          {plan.days >= 99999 ? '/ lifetime' : plan.days >= 365 ? `/ ${Math.round(plan.days / 365)} yr` : `/ ${plan.days} days`}
-                        </span>
-                      </div>
-                    </div>
-                    {plan.description && (
-                      <p className="text-[11px] text-slate-500 leading-relaxed mb-5 flex-1">{plan.description}</p>
-                    )}
-                    <Link
-                      href="/register"
-                      className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${plan.badge ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20' : 'bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700'}`}
-                    >
-                      Get Started <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
       </main>
 
       {/* Footer */}
