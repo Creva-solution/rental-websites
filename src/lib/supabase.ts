@@ -293,7 +293,8 @@ class AuthClient {
       // localStorage is only a fallback if the network call fails.
       const response = await apiFetch('/auth/user');
       if (response.ok) {
-        const user = await response.json();
+        const resData = await response.json();
+        const user = resData.user;
         setStoredUser(user); // keep cache in sync
         return { data: { user }, error: null };
       }
