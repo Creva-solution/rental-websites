@@ -4840,18 +4840,22 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                       const isShipped = order.status === 'shipped';
                       const isDelivered = order.status === 'completed' || order.status === 'delivered';
                       
-                      const getFormattedTrackingLocation = (trackingNumber: string) => {
-                        if (!trackingNumber) return null;
-                        if (trackingNumber.includes(' || ')) {
-                          const parts = trackingNumber.split(' || ');
-                          const cleanParts = parts.map(p => p.trim()).filter(p => p !== '' && p !== '-');
-                          if (cleanParts.length === 0) return null;
-                          return cleanParts.join(', ');
-                        }
-                        return trackingNumber.trim();
+                      const getCheckpointsList = (trackingNumber: string) => {
+                        if (!trackingNumber) return [];
+                        const rawCps = trackingNumber.includes(' ## ') ? trackingNumber.split(' ## ') : [trackingNumber];
+                        return rawCps
+                          .map(cp => {
+                            if (cp.includes(' || ')) {
+                              const parts = cp.split(' || ');
+                              return parts.map(p => p.trim()).filter(p => p !== '' && p !== '-').join(', ');
+                            }
+                            return cp.trim();
+                          })
+                          .filter(cp => cp !== '');
                       };
 
-                      const trackingLoc = getFormattedTrackingLocation(order.tracking_number);
+                      const checkpoints = getCheckpointsList(order.tracking_number);
+                      const latestLoc = checkpoints[checkpoints.length - 1] || null;
                       
                       const activeStep = 
                         isDelivered ? 'delivered' :
@@ -4883,16 +4887,30 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                               <div className={`absolute -left-[24px] top-1 w-[12px] h-[12px] rounded-full border-2 border-white ${isProcessing || isShipped || isDelivered ? 'bg-purple-600 ring-4 ring-purple-100' : 'bg-gray-200'}`} />
                               <h5 className={`text-xs font-black ${activeStep === 'processing' ? 'text-purple-700' : 'text-gray-900'}`}>Processing</h5>
                               <p className={`text-[10px] mt-0.5 ${activeStep === 'processing' ? 'text-purple-600 font-semibold' : 'text-gray-400'}`}>
-                                {activeStep === 'processing' && trackingLoc ? `Location: ${trackingLoc}` : 'Quality check and packaging complete.'}
+                                {activeStep === 'processing' && latestLoc ? `Location: ${latestLoc}` : 'Quality check and packaging complete.'}
                               </p>
                             </div>
 
                             <div className={`relative ${isShipped || isDelivered ? '' : 'opacity-40'}`}>
                               <div className={`absolute -left-[24px] top-1 w-[12px] h-[12px] rounded-full border-2 border-white ${isShipped || isDelivered ? 'bg-purple-600 ring-4 ring-purple-100' : 'bg-gray-200'}`} />
                               <h5 className={`text-xs font-black ${activeStep === 'shipped' ? 'text-purple-700' : 'text-gray-900'}`}>Shipped</h5>
-                              <p className={`text-[10px] mt-0.5 ${activeStep === 'shipped' ? 'text-purple-600 font-semibold' : 'text-gray-400'}`}>
-                                {activeStep === 'shipped' && trackingLoc ? `Location: ${trackingLoc}` : 'In transit to destination.'}
+                              <p className={`text-[10px] mt-0.5 ${activeStep === 'shipped' && checkpoints.length === 0 ? 'text-purple-600 font-semibold' : 'text-gray-400'}`}>
+                                {checkpoints.length === 0 ? 'In transit to destination.' : ''}
                               </p>
+                              {(isShipped || isDelivered) && checkpoints.length > 0 && (
+                                <div className="mt-2 space-y-2 pl-3 border-l border-purple-200">
+                                  {checkpoints.slice().reverse().map((cp, idx) => (
+                                    <div key={idx} className="relative pl-3.5 text-[10px]">
+                                      <div className={`absolute -left-[4px] top-[4px] w-1.5 h-1.5 rounded-full ${idx === 0 && activeStep === 'shipped' ? 'bg-purple-600 animate-pulse' : 'bg-gray-300'}`} />
+                                      <span className={`${idx === 0 && activeStep === 'shipped' ? 'text-purple-700 font-bold' : 'text-gray-500'}`}>
+                                        {cp} {idx === 0 && activeStep === 'shipped' && (
+                                          <span className="text-[7px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded font-black ml-1 uppercase">Latest</span>
+                                        )}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
 
                             <div className={`relative ${isDelivered ? '' : 'opacity-40'}`}>
@@ -4900,7 +4918,7 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                               <div className={`absolute -left-[24px] top-1 w-[12px] h-[12px] rounded-full border-2 border-white ${isDelivered ? 'bg-purple-600 ring-4 ring-purple-100' : 'bg-gray-200'}`} />
                               <h5 className={`text-xs font-black ${activeStep === 'delivered' ? 'text-purple-700' : 'text-gray-900'}`}>Delivered</h5>
                               <p className={`text-[10px] mt-0.5 ${activeStep === 'delivered' ? 'text-purple-600 font-semibold' : 'text-gray-400'}`}>
-                                {activeStep === 'delivered' && trackingLoc ? `Location: ${trackingLoc}` : 'Package delivered and completed.'}
+                                {activeStep === 'delivered' && latestLoc ? `Location: ${latestLoc}` : 'Package delivered and completed.'}
                               </p>
                             </div>
 

@@ -117,56 +117,71 @@ export default function OrdersPage() {
   const [isCustomState, setIsCustomState] = useState(false);
   const [isCustomPost, setIsCustomPost] = useState(false);
   const [isCustomTaluk, setIsCustomTaluk] = useState(false);
+  const [trackingCheckpoints, setTrackingCheckpoints] = useState<string[]>([]);
 
   const loadTrackingNumberComponents = (trackNum: string) => {
-    if (trackNum && trackNum.includes(' || ')) {
-      const parts = trackNum.split(' || ');
-      const p = parts[0] === '-' ? '' : parts[0] || '';
-      const t = parts[1] === '-' ? '' : parts[1] || '';
-      const d = parts[2] === '-' ? '' : parts[2] || '';
-      const s = parts[3] === '-' ? '' : parts[3] || '';
-      
-      setTrackingPost(p);
-      setTrackingTaluk(t);
-      setTrackingDistrict(d);
-      setTrackingState(s);
-      
-      setIsCustomPost(p !== '' && !commonPosts.includes(p));
-      setIsCustomTaluk(t !== '' && !commonTaluks.includes(t));
-      setIsCustomDistrict(d !== '' && !tamilNaduDistricts.includes(d));
-      setIsCustomState(s !== '' && !['Tamil Nadu', 'Puducherry', 'Kerala', 'Karnataka', 'Andhra Pradesh'].includes(s));
-    } else {
-      setTrackingPost(trackNum || '');
+    if (!trackNum) {
+      setTrackingCheckpoints([]);
+      setTrackingPost('');
       setTrackingTaluk('');
       setTrackingDistrict('');
       setTrackingState('');
-      setIsCustomPost(trackNum !== '' && !commonPosts.includes(trackNum));
+      setIsCustomPost(false);
       setIsCustomTaluk(false);
       setIsCustomDistrict(false);
       setIsCustomState(false);
+      return;
     }
+
+    const cps = trackNum.split(' ## ').filter(cp => cp.trim() !== '');
+    setTrackingCheckpoints(cps);
+
+    // Start with empty inputs so the user can easily add a new checkpoint
+    setTrackingPost('');
+    setTrackingTaluk('');
+    setTrackingDistrict('');
+    setTrackingState('');
+    setIsCustomPost(false);
+    setIsCustomTaluk(false);
+    setIsCustomDistrict(false);
+    setIsCustomState(false);
   };
 
-  const handleTrackingComponentChange = (field: 'post' | 'taluk' | 'district' | 'state', value: string) => {
-    let post = trackingPost;
-    let taluk = trackingTaluk;
-    let dist = trackingDistrict;
-    let st = trackingState;
+  const handleAddTrackingCheckpoint = () => {
+    const post = trackingPost.trim();
+    const taluk = trackingTaluk.trim();
+    const dist = trackingDistrict.trim();
+    const st = trackingState.trim();
 
-    if (field === 'post') { post = value; setTrackingPost(value); }
-    if (field === 'taluk') { taluk = value; setTrackingTaluk(value); }
-    if (field === 'district') { dist = value; setTrackingDistrict(value); }
-    if (field === 'state') { st = value; setTrackingState(value); }
+    const parts = [post, taluk, dist, st];
+    if (parts.every(p => !p || p === '-')) return;
 
-    const parts = [post.trim(), taluk.trim(), dist.trim(), st.trim()];
-    if (parts.every(p => !p)) {
-      setTrackingNumber('');
-      saveExtraFields(selectedOrder.id, { tracking_number: '' });
-    } else {
-      const combined = parts.map(p => p || '-').join(' || ');
-      setTrackingNumber(combined);
-      saveExtraFields(selectedOrder.id, { tracking_number: combined });
-    }
+    const combined = parts.map(p => p || '-').join(' || ');
+    const updatedCps = [...trackingCheckpoints, combined];
+    setTrackingCheckpoints(updatedCps);
+
+    const finalTracking = updatedCps.join(' ## ');
+    setTrackingNumber(finalTracking);
+    saveExtraFields(selectedOrder.id, { tracking_number: finalTracking });
+
+    // Clear inputs for next entry
+    setTrackingPost('');
+    setTrackingTaluk('');
+    setTrackingDistrict('');
+    setTrackingState('');
+    setIsCustomPost(false);
+    setIsCustomTaluk(false);
+    setIsCustomDistrict(false);
+    setIsCustomState(false);
+  };
+
+  const handleDeleteTrackingCheckpoint = (index: number) => {
+    const updatedCps = trackingCheckpoints.filter((_, i) => i !== index);
+    setTrackingCheckpoints(updatedCps);
+
+    const finalTracking = updatedCps.join(' ## ');
+    setTrackingNumber(finalTracking);
+    saveExtraFields(selectedOrder.id, { tracking_number: finalTracking });
   };
 
   // Search & Filter States
@@ -1727,152 +1742,196 @@ export default function OrdersPage() {
                   </div>
 
                   <div className="space-y-3 pt-3 border-t border-dashed border-border">
-                    <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest block">Manual Tracking Location</span>
+                    <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest block">Manual Tracking Location Checkpoints</span>
                     
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">1. Post (Town/Locality)</span>
-                        <select
-                          value={commonPosts.includes(trackingPost) ? trackingPost : (trackingPost ? 'Other' : '')}
-                          onChange={e => {
-                            const val = e.target.value;
-                            if (val === 'Other') {
-                              setIsCustomPost(true);
-                              handleTrackingComponentChange('post', '');
-                            } else {
-                              setIsCustomPost(false);
-                              handleTrackingComponentChange('post', val);
-                            }
-                          }}
-                          className="w-full bg-background border rounded-lg h-9 px-2 text-xs outline-none focus:border-[#3C77C3]"
-                        >
-                          <option value="">-- Select Post --</option>
-                          {commonPosts.map(p => (
-                            <option key={p} value={p}>{p}</option>
-                          ))}
-                          <option value="Other">Other (Type custom)</option>
-                        </select>
-                        {(isCustomPost || (!commonPosts.includes(trackingPost) && trackingPost !== '')) && (
-                          <input
-                            type="text"
-                            placeholder="Type Post Name"
-                            value={trackingPost}
-                            onChange={e => handleTrackingComponentChange('post', e.target.value)}
-                            className="w-full bg-background border rounded-lg h-9 px-3 text-xs mt-1.5 outline-none focus:border-[#3C77C3]"
-                          />
-                        )}
+                    {/* Checkpoint list */}
+                    {trackingCheckpoints.length > 0 ? (
+                      <div className="space-y-1.5 max-h-[150px] overflow-y-auto pr-1">
+                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">Shipment History:</span>
+                        {trackingCheckpoints.map((cp, idx) => {
+                          const formatted = cp.includes(' || ')
+                            ? cp.split(' || ').map(p => p.trim()).filter(p => p !== '' && p !== '-').join(', ')
+                            : cp.trim();
+                          return (
+                            <div key={idx} className="flex items-center justify-between bg-muted/40 px-2.5 py-1.5 border border-dashed rounded-lg text-[10px]">
+                              <span className="font-mono text-gray-800 break-all pr-2">
+                                {idx + 1}. {formatted}
+                              </span>
+                              <button 
+                                onClick={() => handleDeleteTrackingCheckpoint(idx)}
+                                className="text-red-500 hover:text-red-700 hover:scale-105 font-bold transition-all p-1 text-[9px] uppercase tracking-wider"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
-
-                      <div className="space-y-1">
-                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">2. Taluk</span>
-                        <select
-                          value={commonTaluks.includes(trackingTaluk) ? trackingTaluk : (trackingTaluk ? 'Other' : '')}
-                          onChange={e => {
-                            const val = e.target.value;
-                            if (val === 'Other') {
-                              setIsCustomTaluk(true);
-                              handleTrackingComponentChange('taluk', '');
-                            } else {
-                              setIsCustomTaluk(false);
-                              handleTrackingComponentChange('taluk', val);
-                            }
-                          }}
-                          className="w-full bg-background border rounded-lg h-9 px-2 text-xs outline-none focus:border-[#3C77C3]"
-                        >
-                          <option value="">-- Select Taluk --</option>
-                          {commonTaluks.map(t => (
-                            <option key={t} value={t}>{t}</option>
-                          ))}
-                          <option value="Other">Other (Type custom)</option>
-                        </select>
-                        {(isCustomTaluk || (!commonTaluks.includes(trackingTaluk) && trackingTaluk !== '')) && (
-                          <input
-                            type="text"
-                            placeholder="Type Taluk Name"
-                            value={trackingTaluk}
-                            onChange={e => handleTrackingComponentChange('taluk', e.target.value)}
-                            className="w-full bg-background border rounded-lg h-9 px-3 text-xs mt-1.5 outline-none focus:border-[#3C77C3]"
-                          />
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">3. District</span>
-                        <select
-                          value={tamilNaduDistricts.includes(trackingDistrict) ? trackingDistrict : (trackingDistrict ? 'Other' : '')}
-                          onChange={e => {
-                            const val = e.target.value;
-                            if (val === 'Other') {
-                              setIsCustomDistrict(true);
-                              handleTrackingComponentChange('district', '');
-                            } else {
-                              setIsCustomDistrict(false);
-                              handleTrackingComponentChange('district', val);
-                            }
-                          }}
-                          className="w-full bg-background border rounded-lg h-9 px-2 text-xs outline-none focus:border-[#3C77C3]"
-                        >
-                          <option value="">-- Select District --</option>
-                          {tamilNaduDistricts.map(d => (
-                            <option key={d} value={d}>{d}</option>
-                          ))}
-                          <option value="Other">Other (Type custom)</option>
-                        </select>
-                        {(isCustomDistrict || (!tamilNaduDistricts.includes(trackingDistrict) && trackingDistrict !== '')) && (
-                          <input
-                            type="text"
-                            placeholder="Type District Name"
-                            value={trackingDistrict}
-                            onChange={e => handleTrackingComponentChange('district', e.target.value)}
-                            className="w-full bg-background border rounded-lg h-9 px-3 text-xs mt-1.5 outline-none focus:border-[#3C77C3]"
-                          />
-                        )}
-                      </div>
-
-                      <div className="space-y-1">
-                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">4. State</span>
-                        <select
-                          value={['Tamil Nadu', 'Puducherry', 'Kerala', 'Karnataka', 'Andhra Pradesh'].includes(trackingState) ? trackingState : (trackingState ? 'Other' : '')}
-                          onChange={e => {
-                            const val = e.target.value;
-                            if (val === 'Other') {
-                              setIsCustomState(true);
-                              handleTrackingComponentChange('state', '');
-                            } else {
-                              setIsCustomState(false);
-                              handleTrackingComponentChange('state', val);
-                            }
-                          }}
-                          className="w-full bg-background border rounded-lg h-9 px-2 text-xs outline-none focus:border-[#3C77C3]"
-                        >
-                          <option value="">-- Select State --</option>
-                          <option value="Tamil Nadu">Tamil Nadu</option>
-                          <option value="Puducherry">Puducherry</option>
-                          <option value="Kerala">Kerala</option>
-                          <option value="Karnataka">Karnataka</option>
-                          <option value="Andhra Pradesh">Andhra Pradesh</option>
-                          <option value="Other">Other (Type custom)</option>
-                        </select>
-                        {(isCustomState || (!['Tamil Nadu', 'Puducherry', 'Kerala', 'Karnataka', 'Andhra Pradesh'].includes(trackingState) && trackingState !== '')) && (
-                          <input
-                            type="text"
-                            placeholder="Type State Name"
-                            value={trackingState}
-                            onChange={e => handleTrackingComponentChange('state', e.target.value)}
-                            className="w-full bg-background border rounded-lg h-9 px-3 text-xs mt-1.5 outline-none focus:border-[#3C77C3]"
-                          />
-                        )}
-                      </div>
-                    </div>
-                    
-                    {trackingNumber && (
-                      <div className="bg-muted/30 p-2.5 rounded-lg border text-[10px] space-y-1">
-                        <span className="font-bold text-gray-500 uppercase tracking-wider block">Combined Tracking Output:</span>
-                        <span className="font-mono text-gray-850 break-all block">{trackingNumber.replace(/ \|\| /g, ', ')}</span>
+                    ) : (
+                      <div className="text-center py-2.5 bg-gray-50 border border-dashed rounded-lg">
+                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">No location updates added yet</span>
                       </div>
                     )}
+
+                    <div className="border-t border-dashed border-border pt-3 space-y-3">
+                      <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest block">Compose New Checkpoint:</span>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">1. Post (Town/Locality)</span>
+                          <select
+                            value={commonPosts.includes(trackingPost) ? trackingPost : (trackingPost ? 'Other' : '')}
+                            onChange={e => {
+                              const val = e.target.value;
+                              if (val === 'Other') {
+                                setIsCustomPost(true);
+                                setTrackingPost('');
+                              } else {
+                                setIsCustomPost(false);
+                                setTrackingPost(val);
+                              }
+                            }}
+                            className="w-full bg-background border rounded-lg h-9 px-2 text-xs outline-none focus:border-[#3C77C3]"
+                          >
+                            <option value="">-- Select Post --</option>
+                            {commonPosts.map(p => (
+                              <option key={p} value={p}>{p}</option>
+                            ))}
+                            <option value="Other">Other (Type custom)</option>
+                          </select>
+                          {(isCustomPost || (!commonPosts.includes(trackingPost) && trackingPost !== '')) && (
+                            <input
+                              type="text"
+                              placeholder="Type Post Name"
+                              value={trackingPost}
+                              onChange={e => setTrackingPost(e.target.value)}
+                              className="w-full bg-background border rounded-lg h-9 px-3 text-xs mt-1.5 outline-none focus:border-[#3C77C3]"
+                            />
+                          )}
+                        </div>
+
+                        <div className="space-y-1">
+                          <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">2. Taluk</span>
+                          <select
+                            value={commonTaluks.includes(trackingTaluk) ? trackingTaluk : (trackingTaluk ? 'Other' : '')}
+                            onChange={e => {
+                              const val = e.target.value;
+                              if (val === 'Other') {
+                                setIsCustomTaluk(true);
+                                setTrackingTaluk('');
+                              } else {
+                                setIsCustomTaluk(false);
+                                setTrackingTaluk(val);
+                              }
+                            }}
+                            className="w-full bg-background border rounded-lg h-9 px-2 text-xs outline-none focus:border-[#3C77C3]"
+                          >
+                            <option value="">-- Select Taluk --</option>
+                            {commonTaluks.map(t => (
+                              <option key={t} value={t}>{t}</option>
+                            ))}
+                            <option value="Other">Other (Type custom)</option>
+                          </select>
+                          {(isCustomTaluk || (!commonTaluks.includes(trackingTaluk) && trackingTaluk !== '')) && (
+                            <input
+                              type="text"
+                              placeholder="Type Taluk Name"
+                              value={trackingTaluk}
+                              onChange={e => setTrackingTaluk(e.target.value)}
+                              className="w-full bg-background border rounded-lg h-9 px-3 text-xs mt-1.5 outline-none focus:border-[#3C77C3]"
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">3. District</span>
+                          <select
+                            value={tamilNaduDistricts.includes(trackingDistrict) ? trackingDistrict : (trackingDistrict ? 'Other' : '')}
+                            onChange={e => {
+                              const val = e.target.value;
+                              if (val === 'Other') {
+                                setIsCustomDistrict(true);
+                                setTrackingDistrict('');
+                              } else {
+                                setIsCustomDistrict(false);
+                                setTrackingDistrict(val);
+                              }
+                            }}
+                            className="w-full bg-background border rounded-lg h-9 px-2 text-xs outline-none focus:border-[#3C77C3]"
+                          >
+                            <option value="">-- Select District --</option>
+                            {tamilNaduDistricts.map(d => (
+                              <option key={d} value={d}>{d}</option>
+                            ))}
+                            <option value="Other">Other (Type custom)</option>
+                          </select>
+                          {(isCustomDistrict || (!tamilNaduDistricts.includes(trackingDistrict) && trackingDistrict !== '')) && (
+                            <input
+                              type="text"
+                              placeholder="Type District Name"
+                              value={trackingDistrict}
+                              onChange={e => setTrackingDistrict(e.target.value)}
+                              className="w-full bg-background border rounded-lg h-9 px-3 text-xs mt-1.5 outline-none focus:border-[#3C77C3]"
+                            />
+                          )}
+                        </div>
+
+                        <div className="space-y-1">
+                          <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">4. State</span>
+                          <select
+                            value={['Tamil Nadu', 'Puducherry', 'Kerala', 'Karnataka', 'Andhra Pradesh'].includes(trackingState) ? trackingState : (trackingState ? 'Other' : '')}
+                            onChange={e => {
+                              const val = e.target.value;
+                              if (val === 'Other') {
+                                setIsCustomState(true);
+                                setTrackingState('');
+                              } else {
+                                setIsCustomState(false);
+                                setTrackingState(val);
+                              }
+                            }}
+                            className="w-full bg-background border rounded-lg h-9 px-2 text-xs outline-none focus:border-[#3C77C3]"
+                          >
+                            <option value="">-- Select State --</option>
+                            <option value="Tamil Nadu">Tamil Nadu</option>
+                            <option value="Puducherry">Puducherry</option>
+                            <option value="Kerala">Kerala</option>
+                            <option value="Karnataka">Karnataka</option>
+                            <option value="Andhra Pradesh">Andhra Pradesh</option>
+                            <option value="Other">Other (Type custom)</option>
+                          </select>
+                          {(isCustomState || (!['Tamil Nadu', 'Puducherry', 'Kerala', 'Karnataka', 'Andhra Pradesh'].includes(trackingState) && trackingState !== '')) && (
+                            <input
+                              type="text"
+                              placeholder="Type State Name"
+                              value={trackingState}
+                              onChange={e => setTrackingState(e.target.value)}
+                              className="w-full bg-background border rounded-lg h-9 px-3 text-xs mt-1.5 outline-none focus:border-[#3C77C3]"
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Add checkpoint button and preview */}
+                      {([trackingPost, trackingTaluk, trackingDistrict, trackingState].some(p => p.trim() !== '')) && (
+                        <div className="space-y-2 bg-muted/20 p-2.5 rounded-lg border text-[10px]">
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-gray-500 uppercase tracking-wider">Preview Checkpoint:</span>
+                            <button
+                              onClick={handleAddTrackingCheckpoint}
+                              className="px-3 py-1 bg-[#3C77C3] hover:bg-[#2A5C9E] text-white rounded font-bold text-[9px] uppercase tracking-wider transition-all"
+                            >
+                              + Add Location Update
+                            </button>
+                          </div>
+                          <span className="font-mono text-gray-800 break-all block">
+                            {[trackingPost.trim(), trackingTaluk.trim(), trackingDistrict.trim(), trackingState.trim()].filter(p => p !== '' && p !== '-').join(', ') || 'Drafting Location...'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-1 pt-2">
