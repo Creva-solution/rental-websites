@@ -362,7 +362,7 @@ export default function Home() {
                   Verified Offline Payments & Simple Fixes
                 </h2>
                 <p className="text-slate-650 text-sm leading-relaxed">
-                  To keep platform setup costs low, we utilize direct UPI merchant settlement transfers. We provide both <strong>Scan to Pay</strong> dynamic codes and mobile deep-link triggers.
+                  To keep platform setup costs low, we utilize direct UPI merchant settlement transfers. We provide dynamic Scan-to-Pay QR codes and direct VPA ID copy tools.
                 </p>
 
                 <div className="space-y-4">
@@ -373,16 +373,6 @@ export default function Home() {
                     <div>
                       <h4 className="font-bold text-xs text-slate-800">Dynamic Scan-To-Pay QR Codes</h4>
                       <p className="text-xs text-slate-500 mt-0.5">Displays a real-time QR code configured with your exact subscription amount. Open any banking app, scan, pay, and take a screenshot to upload.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="p-1 bg-blue-50 text-blue-600 rounded-lg shrink-0 mt-0.5">
-                      <Smartphone className="w-4 h-4 text-indigo-600" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-xs text-slate-800">UPI App Deep Linking</h4>
-                      <p className="text-xs text-slate-500 mt-0.5">If you register from a mobile phone, click GPay, BHIM, or Paytm keys to instantly open the corresponding payment app containing pre-filled merchant codes.</p>
                     </div>
                   </div>
 
