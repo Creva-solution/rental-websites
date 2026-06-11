@@ -1000,40 +1000,74 @@ export default function OrdersPage() {
 
       <style>{`
         @media print {
-          aside, header, nav, .print\\:hidden, button, select, input, .bottom-6, .fixed.inset-0 {
+          /* Hide non-printable elements */
+          aside, header, nav, .print\\:hidden, button, select, input, .bottom-6, .fixed.inset-0, header * {
             display: none !important;
             visibility: hidden !important;
           }
+          
+          /* Reset root and body */
           html, body {
             background: white !important;
             color: black !important;
             margin: 0 !important;
             padding: 0 !important;
+            height: auto !important;
+            min-height: auto !important;
+            overflow: visible !important;
           }
+          
+          /* Override Next.js and layout wrappers to enable page breaks */
+          #__next, 
+          [data-reactroot],
+          div.h-screen,
+          main.flex-1,
+          div.flex-1 {
+            display: block !important;
+            overflow: visible !important;
+            height: auto !important;
+            min-height: auto !important;
+            max-height: none !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            position: relative !important;
+          }
+
           @page {
             size: A4;
-            margin: 0;
+            margin: 1.5cm; /* standard margin for clean prints */
           }
+
           .print-invoice-root {
             display: block !important;
             visibility: visible !important;
+            width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
+            position: relative !important;
           }
+
           .print-invoice-sheet {
             display: block !important;
             width: 100% !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
-            page-break-before: always !important;
-            break-before: page !important;
+            page-break-after: always !important;
+            break-after: page !important;
             box-shadow: none !important;
             border-radius: 0 !important;
             border: none !important;
             margin: 0 !important;
             padding: 0 !important;
+            position: relative !important;
           }
-          .print-invoice-sheet:first-child {
-            page-break-before: avoid !important;
-            break-before: avoid !important;
+
+          .print-invoice-sheet:last-child {
+            page-break-after: avoid !important;
+            break-after: avoid !important;
           }
         }
       `}</style> 
