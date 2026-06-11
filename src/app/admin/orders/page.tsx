@@ -693,7 +693,7 @@ export default function OrdersPage() {
     }
     const storeName = store?.store_name || 'Our Store';
     const text = `Hi ${order.customer_name}! Your order #${order.id.substring(0, 6).toUpperCase()} at ${storeName} has been marked as '${order.status || 'pending'}'. Total Amount: ${currencySymbol}${Number(order.total_amount).toLocaleString()}. Thank you for shopping with us!`;
-    window.open(`https://wa.me/${cleanPhone.startsWith('91') ? cleanPhone : '91' + cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
+    window.open(`https://api.whatsapp.com/send?phone=${cleanPhone.startsWith('91') ? cleanPhone : '91' + cleanPhone}&text=${encodeURIComponent(text)}`, '_blank');
   };
 
   // Copy storefront order tracking link
@@ -1873,7 +1873,7 @@ export default function OrdersPage() {
                     <button
                       onClick={() => {
                         const welcomeText = store?.whatsappWelcomeMessage || globalSettings?.whatsappDefaultWelcome || "Hi, I am reaching out regarding your order.";
-                        window.open(`https://wa.me/${whatsappNumberToUse}?text=${encodeURIComponent(welcomeText)}`, '_blank');
+                        window.open(`https://api.whatsapp.com/send?phone=${whatsappNumberToUse}&text=${encodeURIComponent(welcomeText)}`, '_blank');
                       }}
                       disabled={isLocked}
                       className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase tracking-widest text-[9px] rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-emerald-600/10 cursor-pointer"
@@ -1929,7 +1929,7 @@ export default function OrdersPage() {
 
                     <button
                       onClick={() => {
-                        window.open(`https://wa.me/${whatsappNumberToUse}?text=${encodeURIComponent(whatsappCustomMessage)}`, '_blank');
+                        window.open(`https://api.whatsapp.com/send?phone=${whatsappNumberToUse}&text=${encodeURIComponent(whatsappCustomMessage)}`, '_blank');
                       }}
                       disabled={isLocked || !whatsappCustomMessage.trim()}
                       className="w-full py-3 bg-[#3C77C3] hover:bg-[#3C77C3]/90 text-white font-bold uppercase tracking-widest text-[9px] rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-[#3C77C3]/15 cursor-pointer"

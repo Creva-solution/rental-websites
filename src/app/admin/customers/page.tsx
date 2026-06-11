@@ -245,7 +245,7 @@ export default function CustomersPage() {
                           </button>
                         ) : (
                           <a
-                            href={`https://wa.me/${(() => {
+                            href={`https://api.whatsapp.com/send?phone=${(() => {
                               let clean = cust.phone.replace(/\D/g, '');
                               if (clean.startsWith('0')) clean = clean.substring(1);
                               return clean.startsWith('91') ? clean : '91' + clean;

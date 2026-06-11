@@ -1517,12 +1517,12 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
         total_amount: finalTotalAmount,
         customer_name: customerName,
         payment_method: actualMethod,
-        whatsapp_url: storePhone ? `https://wa.me/${storePhone}?text=${encodedMessage}` : null
+        whatsapp_url: storePhone ? `https://api.whatsapp.com/send?phone=${storePhone}&text=${encodedMessage}` : null
       };
       setOrderSuccessData(orderSuccessObj);
 
       if (storePhone) {
-        window.open(`https://wa.me/${storePhone}?text=${encodedMessage}`, '_blank');
+        window.open(`https://api.whatsapp.com/send?phone=${storePhone}&text=${encodedMessage}`, '_blank');
       } else {
         alert("Order placed successfully! (Note: Store owner has not configured their WhatsApp number).");
       }
@@ -5757,7 +5757,7 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
           }
         }
         const messageToSend = whatsappWelcomeMessage.trim() || globalSettings?.whatsappDefaultWelcome || "Hi! I would like to query about your products.";
-        const whatsappUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(messageToSend)}`;
+        const whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanNumber}&text=${encodeURIComponent(messageToSend)}`;
 
         return (
           <a
