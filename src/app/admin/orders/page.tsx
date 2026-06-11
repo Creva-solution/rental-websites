@@ -65,6 +65,17 @@ const getInvoiceNumber = (orderId: string) => {
   return `5154-${numericPart}`;
 };
 
+const tamilNaduDistricts = [
+  'Ariyalur', 'Chengalpattu', 'Chennai', 'Coimbatore', 'Cuddalore', 
+  'Dharmapuri', 'Dindigul', 'Erode', 'Kallakurichi', 'Kanchipuram', 
+  'Kanyakumari', 'Karur', 'Krishnagiri', 'Madurai', 'Mayiladuthurai', 
+  'Nagapattinam', 'Namakkal', 'Nilgiris', 'Perambalur', 'Pudukkottai', 
+  'Ramanathapuram', 'Ranipet', 'Salem', 'Sivaganga', 'Tenkasi', 
+  'Thanjavur', 'Theni', 'Thoothukudi', 'Tiruchirappalli', 'Tirunelveli', 
+  'Tirupathur', 'Tiruppur', 'Tiruvallur', 'Tiruvannamalai', 'Tiruvarur', 
+  'Vellore', 'Viluppuram', 'Virudhunagar'
+];
+
 export default function OrdersPage() {
   const [store, setStore] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
@@ -93,6 +104,61 @@ export default function OrdersPage() {
   const [deliveryDate, setDeliveryDate] = useState('');
   const [payMethod, setPayMethod] = useState('WhatsApp Cash');
   const [payStatus, setPayStatus] = useState('unpaid');
+
+  // Extra Tracking states
+  const [trackingPost, setTrackingPost] = useState('');
+  const [trackingTaluk, setTrackingTaluk] = useState('');
+  const [trackingDistrict, setTrackingDistrict] = useState('');
+  const [trackingState, setTrackingState] = useState('');
+  const [isCustomDistrict, setIsCustomDistrict] = useState(false);
+  const [isCustomState, setIsCustomState] = useState(false);
+
+  const loadTrackingNumberComponents = (trackNum: string) => {
+    if (trackNum && trackNum.includes(' || ')) {
+      const parts = trackNum.split(' || ');
+      const p = parts[0] === '-' ? '' : parts[0] || '';
+      const t = parts[1] === '-' ? '' : parts[1] || '';
+      const d = parts[2] === '-' ? '' : parts[2] || '';
+      const s = parts[3] === '-' ? '' : parts[3] || '';
+      
+      setTrackingPost(p);
+      setTrackingTaluk(t);
+      setTrackingDistrict(d);
+      setTrackingState(s);
+      
+      setIsCustomDistrict(d !== '' && !tamilNaduDistricts.includes(d));
+      setIsCustomState(s !== '' && !['Tamil Nadu', 'Puducherry', 'Kerala', 'Karnataka', 'Andhra Pradesh'].includes(s));
+    } else {
+      setTrackingPost(trackNum || '');
+      setTrackingTaluk('');
+      setTrackingDistrict('');
+      setTrackingState('');
+      setIsCustomDistrict(false);
+      setIsCustomState(false);
+    }
+  };
+
+  const handleTrackingComponentChange = (field: 'post' | 'taluk' | 'district' | 'state', value: string) => {
+    let post = trackingPost;
+    let taluk = trackingTaluk;
+    let dist = trackingDistrict;
+    let st = trackingState;
+
+    if (field === 'post') { post = value; setTrackingPost(value); }
+    if (field === 'taluk') { taluk = value; setTrackingTaluk(value); }
+    if (field === 'district') { dist = value; setTrackingDistrict(value); }
+    if (field === 'state') { st = value; setTrackingState(value); }
+
+    const parts = [post.trim(), taluk.trim(), dist.trim(), st.trim()];
+    if (parts.every(p => !p)) {
+      setTrackingNumber('');
+      saveExtraFields(selectedOrder.id, { tracking_number: '' });
+    } else {
+      const combined = parts.map(p => p || '-').join(' || ');
+      setTrackingNumber(combined);
+      saveExtraFields(selectedOrder.id, { tracking_number: combined });
+    }
+  };
 
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -1351,6 +1417,7 @@ export default function OrdersPage() {
                                 setSelectedOrder(order);
                                 setEditingOrder(order);
                                 setTrackingNumber(extra.tracking_number || '');
+                                loadTrackingNumberComponents(extra.tracking_number || '');
                                 setDeliveryDate(extra.delivery_date || '');
                                 setPayMethod(extra.payment_method || 'WhatsApp Cash');
                                 setPayStatus(extra.payment_status || 'unpaid');
@@ -1439,6 +1506,7 @@ export default function OrdersPage() {
                                   setSelectedOrder(order);
                                   setEditingOrder(order);
                                   setTrackingNumber(extra.tracking_number || '');
+                                  loadTrackingNumberComponents(extra.tracking_number || '');
                                   setDeliveryDate(extra.delivery_date || '');
                                   setPayMethod(extra.payment_method || 'WhatsApp Cash');
                                   setPayStatus(extra.payment_status || 'unpaid');
@@ -1619,33 +1687,122 @@ export default function OrdersPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">Tracking Code</span>
-                      <input
-                        type="text"
-                        placeholder="e.g. DEL-9932"
-                        value={trackingNumber}
-                        onChange={e => {
-                          setTrackingNumber(e.target.value);
-                          saveExtraFields(selectedOrder.id, { tracking_number: e.target.value });
-                        }}
-                        className="w-full bg-background border rounded-lg h-9 px-3 text-xs outline-none focus:border-[#3C77C3]"
-                      />
+                  <div className="space-y-3 pt-3 border-t border-dashed border-border">
+                    <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest block">Manual Tracking Location</span>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">1. Post (Town/Locality)</span>
+                        <input
+                          type="text"
+                          placeholder="e.g. Sankarapuram"
+                          value={trackingPost}
+                          onChange={e => handleTrackingComponentChange('post', e.target.value)}
+                          className="w-full bg-background border rounded-lg h-9 px-3 text-xs outline-none focus:border-[#3C77C3]"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">2. Taluk</span>
+                        <input
+                          type="text"
+                          placeholder="e.g. Sankarapuram"
+                          value={trackingTaluk}
+                          onChange={e => handleTrackingComponentChange('taluk', e.target.value)}
+                          className="w-full bg-background border rounded-lg h-9 px-3 text-xs outline-none focus:border-[#3C77C3]"
+                        />
+                      </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">Delivery Date</span>
-                      <input
-                        type="date"
-                        value={deliveryDate}
-                        onChange={e => {
-                          setDeliveryDate(e.target.value);
-                          saveExtraFields(selectedOrder.id, { delivery_date: e.target.value });
-                        }}
-                        className="w-full bg-background border rounded-lg h-9 px-3 text-xs outline-none focus:border-[#3C77C3]"
-                      />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">3. District</span>
+                        <select
+                          value={tamilNaduDistricts.includes(trackingDistrict) ? trackingDistrict : (trackingDistrict ? 'Other' : '')}
+                          onChange={e => {
+                            const val = e.target.value;
+                            if (val === 'Other') {
+                              setIsCustomDistrict(true);
+                              handleTrackingComponentChange('district', '');
+                            } else {
+                              setIsCustomDistrict(false);
+                              handleTrackingComponentChange('district', val);
+                            }
+                          }}
+                          className="w-full bg-background border rounded-lg h-9 px-2 text-xs outline-none focus:border-[#3C77C3]"
+                        >
+                          <option value="">-- Select District --</option>
+                          {tamilNaduDistricts.map(d => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                          <option value="Other">Other (Type custom)</option>
+                        </select>
+                        {(isCustomDistrict || (!tamilNaduDistricts.includes(trackingDistrict) && trackingDistrict !== '')) && (
+                          <input
+                            type="text"
+                            placeholder="Type District Name"
+                            value={trackingDistrict}
+                            onChange={e => handleTrackingComponentChange('district', e.target.value)}
+                            className="w-full bg-background border rounded-lg h-9 px-3 text-xs mt-1.5 outline-none focus:border-[#3C77C3]"
+                          />
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">4. State</span>
+                        <select
+                          value={['Tamil Nadu', 'Puducherry', 'Kerala', 'Karnataka', 'Andhra Pradesh'].includes(trackingState) ? trackingState : (trackingState ? 'Other' : '')}
+                          onChange={e => {
+                            const val = e.target.value;
+                            if (val === 'Other') {
+                              setIsCustomState(true);
+                              handleTrackingComponentChange('state', '');
+                            } else {
+                              setIsCustomState(false);
+                              handleTrackingComponentChange('state', val);
+                            }
+                          }}
+                          className="w-full bg-background border rounded-lg h-9 px-2 text-xs outline-none focus:border-[#3C77C3]"
+                        >
+                          <option value="">-- Select State --</option>
+                          <option value="Tamil Nadu">Tamil Nadu</option>
+                          <option value="Puducherry">Puducherry</option>
+                          <option value="Kerala">Kerala</option>
+                          <option value="Karnataka">Karnataka</option>
+                          <option value="Andhra Pradesh">Andhra Pradesh</option>
+                          <option value="Other">Other (Type custom)</option>
+                        </select>
+                        {(isCustomState || (!['Tamil Nadu', 'Puducherry', 'Kerala', 'Karnataka', 'Andhra Pradesh'].includes(trackingState) && trackingState !== '')) && (
+                          <input
+                            type="text"
+                            placeholder="Type State Name"
+                            value={trackingState}
+                            onChange={e => handleTrackingComponentChange('state', e.target.value)}
+                            className="w-full bg-background border rounded-lg h-9 px-3 text-xs mt-1.5 outline-none focus:border-[#3C77C3]"
+                          />
+                        )}
+                      </div>
                     </div>
+                    
+                    {trackingNumber && (
+                      <div className="bg-muted/30 p-2.5 rounded-lg border text-[10px] space-y-1">
+                        <span className="font-bold text-gray-500 uppercase tracking-wider block">Combined Tracking Output:</span>
+                        <span className="font-mono text-gray-850 break-all block">{trackingNumber.replace(/ \|\| /g, ', ')}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-1 pt-2">
+                    <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">Delivery Date</span>
+                    <input
+                      type="date"
+                      value={deliveryDate}
+                      onChange={e => {
+                        setDeliveryDate(e.target.value);
+                        saveExtraFields(selectedOrder.id, { delivery_date: e.target.value });
+                      }}
+                      className="w-full bg-background border rounded-lg h-9 px-3 text-xs outline-none focus:border-[#3C77C3]"
+                    />
                   </div>
                 </div>
 

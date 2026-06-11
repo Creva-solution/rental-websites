@@ -4824,6 +4824,24 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                       const isShipped = order.status === 'shipped';
                       const isDelivered = order.status === 'completed' || order.status === 'delivered';
                       
+                      const getFormattedTrackingLocation = (trackingNumber: string) => {
+                        if (!trackingNumber) return null;
+                        if (trackingNumber.includes(' || ')) {
+                          const parts = trackingNumber.split(' || ');
+                          const cleanParts = parts.map(p => p.trim()).filter(p => p !== '' && p !== '-');
+                          if (cleanParts.length === 0) return null;
+                          return cleanParts.join(', ');
+                        }
+                        return trackingNumber.trim();
+                      };
+
+                      const trackingLoc = getFormattedTrackingLocation(order.tracking_number);
+                      
+                      const activeStep = 
+                        isDelivered ? 'delivered' :
+                        isShipped ? 'shipped' :
+                        'processing';
+                      
                       return (
                         <div key={order.id} className="bg-white p-5 border border-gray-200 shadow-sm space-y-5">
                           <div className="flex justify-between items-start border-b pb-3">
@@ -4842,22 +4860,32 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
                             <div className="relative">
                               <div className="absolute -left-[24px] top-1 w-[12px] h-[12px] rounded-full bg-purple-600 border-2 border-white ring-4 ring-purple-100" />
                               <h5 className="text-xs font-black text-gray-900">Order Placed</h5>
+                              <p className="text-[10px] text-gray-400 mt-0.5">Your order has been registered securely.</p>
                             </div>
 
                             <div className={`relative ${isProcessing || isShipped || isDelivered ? '' : 'opacity-40'}`}>
                               <div className={`absolute -left-[24px] top-1 w-[12px] h-[12px] rounded-full border-2 border-white ${isProcessing || isShipped || isDelivered ? 'bg-purple-600 ring-4 ring-purple-100' : 'bg-gray-200'}`} />
-                              <h5 className="text-xs font-black text-gray-900">Processing</h5>
+                              <h5 className={`text-xs font-black ${activeStep === 'processing' ? 'text-purple-700' : 'text-gray-900'}`}>Processing</h5>
+                              <p className={`text-[10px] mt-0.5 ${activeStep === 'processing' ? 'text-purple-600 font-semibold' : 'text-gray-400'}`}>
+                                {activeStep === 'processing' && trackingLoc ? `Location: ${trackingLoc}` : 'Quality check and packaging complete.'}
+                              </p>
                             </div>
 
                             <div className={`relative ${isShipped || isDelivered ? '' : 'opacity-40'}`}>
                               <div className={`absolute -left-[24px] top-1 w-[12px] h-[12px] rounded-full border-2 border-white ${isShipped || isDelivered ? 'bg-purple-600 ring-4 ring-purple-100' : 'bg-gray-200'}`} />
-                              <h5 className="text-xs font-black text-gray-900">Shipped</h5>
+                              <h5 className={`text-xs font-black ${activeStep === 'shipped' ? 'text-purple-700' : 'text-gray-900'}`}>Shipped</h5>
+                              <p className={`text-[10px] mt-0.5 ${activeStep === 'shipped' ? 'text-purple-600 font-semibold' : 'text-gray-400'}`}>
+                                {activeStep === 'shipped' && trackingLoc ? `Location: ${trackingLoc}` : 'In transit to destination.'}
+                              </p>
                             </div>
 
                             <div className={`relative ${isDelivered ? '' : 'opacity-40'}`}>
                               <div className={`absolute -left-[24px] top-1 w-[12px] h-[12px] rounded-full border-2 border-white ${isDelivered ? 'bg-purple-600 ring-4 ring-purple-100 animate-ping' : 'bg-gray-200'}`} />
                               <div className={`absolute -left-[24px] top-1 w-[12px] h-[12px] rounded-full border-2 border-white ${isDelivered ? 'bg-purple-600 ring-4 ring-purple-100' : 'bg-gray-200'}`} />
-                              <h5 className="text-xs font-black text-gray-900">Delivered</h5>
+                              <h5 className={`text-xs font-black ${activeStep === 'delivered' ? 'text-purple-700' : 'text-gray-900'}`}>Delivered</h5>
+                              <p className={`text-[10px] mt-0.5 ${activeStep === 'delivered' ? 'text-purple-600 font-semibold' : 'text-gray-400'}`}>
+                                {activeStep === 'delivered' && trackingLoc ? `Location: ${trackingLoc}` : 'Package delivered and completed.'}
+                              </p>
                             </div>
 
                           </div>
