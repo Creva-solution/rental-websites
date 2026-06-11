@@ -1202,7 +1202,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
     setResetSuccess(null);
 
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('mock_supabase_token') : null;
+      const token = typeof window !== 'undefined' ? (localStorage.getItem('creva_token') || localStorage.getItem('mock_supabase_token')) : null;
       const response = await fetch(`/api/backend/auth/superadmin-reset-password`, {
         method: 'POST',
         headers: {
