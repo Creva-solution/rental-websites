@@ -336,7 +336,7 @@ export default function OrdersPage() {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...fields } : o));
 
     try {
-      const order = orders.find(o => o.id === orderId);
+      const order = orders.find(o => o.id === orderId) || (selectedOrder?.id === orderId ? selectedOrder : null);
       const updatePayload: any = { ...fields };
       
       // Remove columns that don't exist in the database schema to prevent query failure
