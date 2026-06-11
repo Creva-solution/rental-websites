@@ -147,7 +147,7 @@ export default function OrdersPage() {
     setIsCustomState(false);
   };
 
-  const handleAddTrackingCheckpoint = () => {
+  const handleAddTrackingCheckpoint = async () => {
     const post = trackingPost.trim();
     const taluk = trackingTaluk.trim();
     const dist = trackingDistrict.trim();
@@ -163,6 +163,11 @@ export default function OrdersPage() {
     const finalTracking = updatedCps.join(' ## ');
     setTrackingNumber(finalTracking);
     saveExtraFields(selectedOrder.id, { tracking_number: finalTracking });
+
+    // Automatically transition status to 'shipped' if it is currently 'pending' or 'processing'
+    if (selectedOrder && selectedOrder.status !== 'shipped' && selectedOrder.status !== 'completed' && selectedOrder.status !== 'delivered') {
+      await handleStatusChange(selectedOrder.id, 'shipped');
+    }
 
     // Clear inputs for next entry
     setTrackingPost('');
