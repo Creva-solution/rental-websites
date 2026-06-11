@@ -26,6 +26,8 @@ yarn-error.log*
 # vercel
 .vercel
 
+/creva-laravel-backend
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

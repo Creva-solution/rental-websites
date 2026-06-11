@@ -20,7 +20,7 @@ export default function TemplatesPage() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-white text-slate-800 font-sans antialiased">
+    <div className="flex flex-col min-h-screen bg-white text-slate-800 font-sans antialiased pt-20">
       <MarketingNavbar />
 
       {/* Decorative Background Elements */}
