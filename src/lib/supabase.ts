@@ -249,9 +249,10 @@ class AuthClient {
         throw new Error(err.error || 'Invalid email or password');
       }
       const data = await response.json();
+      const user = data.user || (data.id ? data : null);
       setStoredToken(data.session.access_token);
-      setStoredUser(data.user);
-      return { data, error: null };
+      setStoredUser(user);
+      return { data: { ...data, user }, error: null };
     } catch (err: any) {
       return { data: null, error: { message: err.message || String(err) } };
     }
@@ -268,9 +269,10 @@ class AuthClient {
         throw new Error(err.error || 'Registration failed');
       }
       const data = await response.json();
+      const user = data.user || (data.id ? data : null);
       setStoredToken(data.session.access_token);
-      setStoredUser(data.user);
-      return { data, error: null };
+      setStoredUser(user);
+      return { data: { ...data, user }, error: null };
     } catch (err: any) {
       return { data: null, error: { message: err.message || String(err) } };
     }
@@ -294,7 +296,7 @@ class AuthClient {
       const response = await apiFetch('/auth/user');
       if (response.ok) {
         const resData = await response.json();
-        const user = resData.user;
+        const user = resData.user || (resData.id ? resData : null);
         setStoredUser(user); // keep cache in sync
         return { data: { user }, error: null };
       }
@@ -338,11 +340,12 @@ class AuthClient {
           });
           if (res.ok) {
             const verifyData = await res.json();
-            if (verifyData.user) {
+            const verifiedUser = verifyData.user || (verifyData.id ? verifyData : null);
+            if (verifiedUser) {
               token = urlToken;
-              user = verifyData.user;
+              user = verifiedUser;
               setStoredToken(urlToken);
-              setStoredUser(verifyData.user);
+              setStoredUser(verifiedUser);
               window.history.replaceState({}, document.title, window.location.pathname);
             }
           }
