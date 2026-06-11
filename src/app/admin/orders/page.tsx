@@ -221,6 +221,8 @@ export default function OrdersPage() {
           let screenshotUrl = o.payment_screenshot_url || '';
           let method = o.payment_method || '';
           let status = o.payment_status || '';
+          let trackNum = '';
+          let deliveryD = '';
 
           if (email.includes('|')) {
             const parts = email.split('|');
@@ -228,6 +230,23 @@ export default function OrdersPage() {
             if (parts[1]) screenshotUrl = parts[1];
             if (parts[2]) method = parts[2];
             if (parts[3]) status = parts[3];
+            if (parts[4]) trackNum = parts[4];
+            if (parts[5]) deliveryD = parts[5];
+          }
+
+          // Sync database values to localStorage cache
+          if (typeof window !== 'undefined') {
+            const key = `creva_order_extra_${o.id}`;
+            const existing = localStorage.getItem(key);
+            const parsed = existing ? JSON.parse(existing) : {};
+            const updated = {
+              ...parsed,
+              tracking_number: trackNum || parsed.tracking_number || '',
+              delivery_date: deliveryD || parsed.delivery_date || '',
+              payment_method: method || parsed.payment_method || 'WhatsApp Cash',
+              payment_status: status || parsed.payment_status || 'unpaid'
+            };
+            localStorage.setItem(key, JSON.stringify(updated));
           }
 
           return { 
@@ -235,7 +254,9 @@ export default function OrdersPage() {
             customer_email: email, 
             payment_screenshot_url: screenshotUrl || null, 
             payment_method: method || 'WhatsApp Cash', 
-            payment_status: status || 'unpaid' 
+            payment_status: status || 'unpaid',
+            tracking_number: trackNum,
+            delivery_date: deliveryD
           };
         });
         setOrders(processed);
@@ -318,6 +339,10 @@ export default function OrdersPage() {
       const order = orders.find(o => o.id === orderId);
       const updatePayload: any = { ...fields };
       
+      // Remove columns that don't exist in the database schema to prevent query failure
+      delete updatePayload.tracking_number;
+      delete updatePayload.delivery_date;
+
       if (order) {
         const cleanEmail = order.customer_email?.includes('|')
           ? order.customer_email.split('|')[0]
@@ -327,16 +352,21 @@ export default function OrdersPage() {
           ? ''
           : (order.payment_screenshot_url || '');
 
-        updatePayload.customer_email = `${cleanEmail}|${screenshotUrl}|${fields.payment_method || order.payment_method || 'WhatsApp Cash'}|${fields.payment_status || order.payment_status || 'unpaid'}`;
+        const finalTracking = updated.tracking_number || '';
+        const finalDelivery = updated.delivery_date || '';
+
+        updatePayload.customer_email = `${cleanEmail}|${screenshotUrl}|${updated.payment_method}|${updated.payment_status}|${finalTracking}|${finalDelivery}`;
         updatePayload.payment_screenshot_url = screenshotUrl || null;
       }
 
-      await supabase
+      const { error } = await supabase
         .from('orders')
         .update(updatePayload)
         .eq('id', orderId);
+      
+      if (error) throw error;
     } catch (e) {
-      console.warn("Extra columns not present in database, relying on local sandbox:", e);
+      console.warn("Error updating extra fields in database:", e);
     }
   };
 

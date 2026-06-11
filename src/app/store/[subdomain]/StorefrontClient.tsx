@@ -1297,7 +1297,23 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      setTrackedOrders(data || []);
+      
+      const processed = (data || []).map((o: any) => {
+        let email = o.customer_email || '';
+        let trackNum = '';
+        if (email.includes('|')) {
+          const parts = email.split('|');
+          email = parts[0];
+          if (parts[4]) trackNum = parts[4];
+        }
+        return {
+          ...o,
+          customer_email: email,
+          tracking_number: trackNum
+        };
+      });
+
+      setTrackedOrders(processed);
     } catch (err) {
       console.error(err);
       alert("Failed to track orders.");
