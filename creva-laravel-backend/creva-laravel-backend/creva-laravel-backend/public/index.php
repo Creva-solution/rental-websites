@@ -656,6 +656,71 @@ try {
         
         jsonResponse(['error' => 'Auth Action Not Found'], 404);
     }
+
+    // Admin User Management Endpoints (Super Admin only)
+    if ($routeParts[0] === 'admin' && ($routeParts[1] ?? '') === 'users') {
+        $currentUser = getAuthUser($pdo);
+        if (!$currentUser || $currentUser->role !== 'superadmin') {
+            jsonResponse(['error' => 'Forbidden. Super Admin access required.'], 403);
+        }
+
+        $userId = $routeParts[2] ?? null;
+
+        // GET /api/admin/users - Get all staff & superadmin users
+        if ($requestMethod === 'GET') {
+            $stmt = $pdo->prepare('SELECT id, name, email, role, created_at FROM "users" WHERE role IN (\'superadmin\', \'staff\') ORDER BY created_at DESC');
+            $stmt->execute();
+            jsonResponse($stmt->fetchAll());
+        }
+
+        // POST /api/admin/users - Create a new admin/staff user
+        if ($requestMethod === 'POST') {
+            $name = trim($body['name'] ?? '');
+            $email = strtolower(trim($body['email'] ?? ''));
+            $password = $body['password'] ?? '';
+            $role = $body['role'] ?? 'staff';
+
+            if (!$name || !$email || !$password) {
+                jsonResponse(['error' => 'All fields (name, email, password) are required.'], 400);
+            }
+
+            if (strlen($password) < 8) {
+                jsonResponse(['error' => 'Password must be at least 8 characters long.'], 400);
+            }
+
+            if ($role !== 'superadmin' && $role !== 'staff') {
+                jsonResponse(['error' => 'Invalid role. Role must be superadmin or staff.'], 400);
+            }
+
+            // Check if user exists
+            $stmt = $pdo->prepare('SELECT id FROM "users" WHERE email = ?');
+            $stmt->execute([$email]);
+            if ($stmt->fetch()) {
+                jsonResponse(['error' => 'A user with this email already exists.'], 400);
+            }
+
+            $newUserId = 'usr_' . uniqid();
+            $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+
+            $stmt = $pdo->prepare('INSERT INTO "users" (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)');
+            $stmt->execute([$newUserId, $name, $email, $hashedPassword, $role]);
+
+            jsonResponse(['success' => true, 'id' => $newUserId]);
+        }
+
+        // DELETE /api/admin/users/{id} - Delete an admin/staff user
+        if ($requestMethod === 'DELETE' && $userId) {
+            if ($userId === $currentUser->id) {
+                jsonResponse(['error' => 'You cannot delete your own logged-in account.'], 400);
+            }
+
+            $stmt = $pdo->prepare('DELETE FROM "users" WHERE id = ? AND role IN (\'superadmin\', \'staff\')');
+            $stmt->execute([$userId]);
+            jsonResponse(['success' => true]);
+        }
+
+        jsonResponse(['error' => 'Method Not Allowed'], 405);
+    }
     
     // Stores Table Endpoints
     if ($routeParts[0] === 'stores') {
@@ -1191,6 +1256,13 @@ try {
     if (in_array($routeParts[0], $genericTables, true)) {
         $table = $routeParts[0];
         $id    = $routeParts[1] ?? null;
+
+        if ($table === 'platform_settings' && ($requestMethod === 'POST' || $requestMethod === 'PUT' || $requestMethod === 'DELETE')) {
+            $currentUser = getAuthUser($pdo);
+            if (!$currentUser || $currentUser->role !== 'superadmin') {
+                jsonResponse(['error' => 'Forbidden. Super Admin access required.'], 403);
+            }
+        }
 
         // Fields allowed as WHERE filters in GET/DELETE (prevents arbitrary column injection)
         $filterableFields = ['store_id', 'type', 'status', 'is_active', 'is_enabled',
