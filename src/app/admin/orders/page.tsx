@@ -687,7 +687,10 @@ export default function OrdersPage() {
   };
 
   const handleWhatsAppRedirect = (order: any) => {
-    const cleanPhone = order.customer_phone.replace(/[^0-9]/g, '');
+    let cleanPhone = order.customer_phone.replace(/[^0-9]/g, '');
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = cleanPhone.substring(1);
+    }
     const storeName = store?.store_name || 'Our Store';
     const text = `Hi ${order.customer_name}! Your order #${order.id.substring(0, 6).toUpperCase()} at ${storeName} has been marked as '${order.status || 'pending'}'. Total Amount: ${currencySymbol}${Number(order.total_amount).toLocaleString()}. Thank you for shopping with us!`;
     window.open(`https://wa.me/${cleanPhone.startsWith('91') ? cleanPhone : '91' + cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
@@ -1764,7 +1767,10 @@ export default function OrdersPage() {
       {/* Premium WhatsApp Integration Modal */}
       {isWhatsAppDialogOpen && whatsappDialogOrder && (() => {
         const order = whatsappDialogOrder;
-        const cleanPhone = order.customer_phone ? order.customer_phone.replace(/[^0-9]/g, '') : '';
+        let cleanPhone = order.customer_phone ? order.customer_phone.replace(/[^0-9]/g, '') : '';
+        if (cleanPhone.startsWith('0')) {
+          cleanPhone = cleanPhone.substring(1);
+        }
         const whatsappNumberToUse = cleanPhone.startsWith('91') ? cleanPhone : '91' + cleanPhone;
 
         const isGloballyEnabled = true;

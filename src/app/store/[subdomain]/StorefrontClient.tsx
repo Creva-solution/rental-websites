@@ -1456,7 +1456,15 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
         if (itemsError) console.error("Failed to insert items:", itemsError);
       }
 
-      const storePhone = store.contact_phone ? store.contact_phone.replace(/\D/g, '') : '';
+      let storePhone = store.contact_phone ? store.contact_phone.replace(/\D/g, '') : '';
+      if (storePhone) {
+        if (storePhone.startsWith('0')) {
+          storePhone = storePhone.substring(1);
+        }
+        if (!storePhone.startsWith('91')) {
+          storePhone = '91' + storePhone;
+        }
+      }
       
       let message = `*New Order - ${store.store_name}*\n\n`;
       message += `*Customer Details:*\n`;
@@ -5739,7 +5747,15 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
 
         if (!isWidgetVisible) return null;
 
-        const cleanNumber = whatsappNumber.replace(/\D/g, '');
+        let cleanNumber = whatsappNumber.replace(/\D/g, '');
+        if (cleanNumber) {
+          if (cleanNumber.startsWith('0')) {
+            cleanNumber = cleanNumber.substring(1);
+          }
+          if (!cleanNumber.startsWith('91')) {
+            cleanNumber = '91' + cleanNumber;
+          }
+        }
         const messageToSend = whatsappWelcomeMessage.trim() || globalSettings?.whatsappDefaultWelcome || "Hi! I would like to query about your products.";
         const whatsappUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(messageToSend)}`;
 

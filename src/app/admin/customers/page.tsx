@@ -245,7 +245,11 @@ export default function CustomersPage() {
                           </button>
                         ) : (
                           <a
-                            href={`https://wa.me/${cust.phone.replace(/\D/g, '')}`}
+                            href={`https://wa.me/${(() => {
+                              let clean = cust.phone.replace(/\D/g, '');
+                              if (clean.startsWith('0')) clean = clean.substring(1);
+                              return clean.startsWith('91') ? clean : '91' + clean;
+                            })()}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[9px] uppercase tracking-wider px-3 py-2 rounded-xl transition-all shadow-sm shadow-emerald-500/10"
