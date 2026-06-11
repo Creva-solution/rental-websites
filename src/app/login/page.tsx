@@ -32,14 +32,19 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
 
-      router.push('/admin');
+      const userRole = data?.user?.role;
+      if (userRole === 'superadmin') {
+        router.push('/superadmin');
+      } else {
+        router.push('/admin');
+      }
     } catch (err: any) {
       setError(err.message || 'Invalid email or password');
       setLoading(false);

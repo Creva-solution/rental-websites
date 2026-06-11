@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -134,6 +134,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           router.push('/login');
+          return;
+        }
+        if (user.role === 'superadmin') {
+          router.push('/superadmin');
           return;
         }
         setUser(user);
