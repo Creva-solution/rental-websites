@@ -162,4 +162,67 @@ Route::middleware([AuthMiddleware::class, SuperAdminMiddleware::class])->group(f
     // Super Admin: manage all stores
     Route::get('/admin/stores', [StoreController::class, 'adminIndex']);
     Route::put('/admin/stores/{id}/status', [StoreController::class, 'updateStatus']);
+
+    // Super Admin: manage admin/staff users (Super Admin only, not Staff)
+    Route::get('/admin/users', function (Illuminate\Http\Request $request) {
+        $role = $request->attributes->get('auth_user_role');
+        if ($role !== 'superadmin') {
+            return response()->json(['error' => 'Forbidden. Super Admin access required.'], 403);
+        }
+        $users = Illuminate\Support\Facades\DB::table('users')
+            ->whereIn('role', ['superadmin', 'staff'])
+            ->select('id', 'name', 'email', 'role', 'created_at')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        return response()->json($users);
+    });
+
+    Route::post('/admin/users', function (Illuminate\Http\Request $request) {
+        $role = $request->attributes->get('auth_user_role');
+        if ($role !== 'superadmin') {
+            return response()->json(['error' => 'Forbidden. Super Admin access required.'], 403);
+        }
+        
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'password' => 'required|min:8|max:128',
+            'role' => 'required|in:superadmin,staff'
+        ]);
+
+        $email = strtolower(trim($request->input('email')));
+        
+        $exists = Illuminate\Support\Facades\DB::table('users')->where('email', $email)->first();
+        if ($exists) {
+            return response()->json(['error' => 'A user with this email already exists.'], 400);
+        }
+
+        $userId = 'usr_' . Illuminate\Support\Str::uuid()->toString();
+        Illuminate\Support\Facades\DB::table('users')->insert([
+            'id' => $userId,
+            'name' => $request->input('name'),
+            'email' => $email,
+            'password' => Illuminate\Support\Facades\Hash::make($request->input('password')),
+            'role' => $request->input('role'),
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        return response()->json(['success' => true, 'id' => $userId]);
+    });
+
+    Route::delete('/admin/users/{id}', function (Illuminate\Http\Request $request, $id) {
+        $role = $request->attributes->get('auth_user_role');
+        if ($role !== 'superadmin') {
+            return response()->json(['error' => 'Forbidden. Super Admin access required.'], 403);
+        }
+
+        $currentUserId = $request->attributes->get('auth_user_id');
+        if ($currentUserId === $id) {
+            return response()->json(['error' => 'Cannot delete your own account.'], 400);
+        }
+
+        Illuminate\Support\Facades\DB::table('users')->where('id', $id)->delete();
+        return response()->json(['success' => true]);
+    });
 });

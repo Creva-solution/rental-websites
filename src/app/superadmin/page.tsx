@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import SuperAdminIamView from '@/components/superadmin/SuperAdminIamView';
 import { 
   Building2, Globe, ShieldAlert, ShieldCheck, Play, Pause, 
   Search, RefreshCw, Copy, Check, Database, HelpCircle,
@@ -35,8 +36,8 @@ export default function SuperAdminDashboard() {
           router.push('/superadmin/login');
           return;
         }
-        // SECURITY: Enforce superadmin role — any merchant who navigates here is redirected
-        if (authUser.role !== 'superadmin') {
+        // SECURITY: Enforce superadmin or staff role — any merchant who navigates here is redirected
+        if (authUser.role !== 'superadmin' && authUser.role !== 'staff') {
           router.push('/admin');
           return;
         }
@@ -166,7 +167,7 @@ export default function SuperAdminDashboard() {
   const [resetSuccess, setResetSuccess] = useState<string | null>(null);
   
   // Main view toggle: stores vs support tickets
-  const [mainView, setMainView] = useState<'stores' | 'support'>('stores');
+  const [mainView, setMainView] = useState<'stores' | 'support' | 'iam'>('stores');
 
   // Support Tickets
   const [supportTickets, setSupportTickets] = useState<any[]>([]);
@@ -2049,6 +2050,15 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                 </span>
               )}
             </button>
+            {user?.role === 'superadmin' && (
+              <button
+                onClick={() => setMainView('iam')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs font-bold transition-all ${mainView === 'iam' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
+              >
+                <User className="w-3.5 h-3.5" />
+                Staff & IAM
+              </button>
+            )}
           </div>
         </div>
 
@@ -2322,13 +2332,15 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                 {actionStatus}
               </div>
             )}
-            <button 
-              onClick={() => setIsBrandingOpen(true)}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-md flex-shrink-0"
-            >
-              <Zap className="w-4 h-4" />
-              Billing Settings
-            </button>
+            {user?.role !== 'staff' && (
+              <button 
+                onClick={() => setIsBrandingOpen(true)}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-md flex-shrink-0"
+              >
+                <Zap className="w-4 h-4" />
+                Billing Settings
+              </button>
+            )}
           </div>
         </div>
 
@@ -2931,6 +2943,10 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
             </div>
           </div>
         </div>
+      )}
+
+      {mainView === 'iam' && user?.role === 'superadmin' && (
+        <SuperAdminIamView currentUser={user} />
       )}
 
       {/* Invoice & Shop Details Modal */}
@@ -3699,7 +3715,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
       )}
 
       {/* Global SaaS Billing Settings Modal */}
-      {isBrandingOpen && (
+      {isBrandingOpen && user?.role !== 'staff' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="w-full max-w-4xl bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-hidden text-left flex flex-col max-h-[90vh]">
             

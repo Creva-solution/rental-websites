@@ -27,10 +27,10 @@ export default function SuperAdminLoginPage() {
       if (authError) throw authError;
 
       const userRole = data?.user?.role;
-      if (userRole !== 'superadmin') {
-        // Sign out immediately if they are not super admin
+      if (userRole !== 'superadmin' && userRole !== 'staff') {
+        // Sign out immediately if they are not super admin or staff
         await supabase.auth.signOut();
-        setError('Access denied. Only Super Admin can log in here.');
+        setError('Access denied. Only Super Admin or Staff can log in here.');
         setLoading(false);
         return;
       }
