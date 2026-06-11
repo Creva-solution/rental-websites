@@ -154,7 +154,10 @@ export default function OrdersPage() {
     const st = trackingState.trim();
 
     const parts = [post, taluk, dist, st];
-    if (parts.every(p => !p || p === '-')) return;
+    if (parts.every(p => !p || p === '-')) {
+      alert("Please select or type at least one location field (Post, Taluk, District, or State) before adding.");
+      return;
+    }
 
     const combined = parts.map(p => p || '-').join(' || ');
     const updatedCps = [...trackingCheckpoints, combined];
@@ -311,7 +314,9 @@ export default function OrdersPage() {
     
     if (typeof orderOrId === 'string') {
       orderId = orderOrId;
-      order = orders.find(o => o.id === orderId);
+      order = (selectedOrder && selectedOrder.id === orderId)
+        ? selectedOrder
+        : orders.find(o => o.id === orderId);
     } else if (orderOrId && typeof orderOrId === 'object') {
       order = orderOrId;
       orderId = order.id;
@@ -356,7 +361,9 @@ export default function OrdersPage() {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...fields } : o));
 
     try {
-      const order = orders.find(o => o.id === orderId) || (selectedOrder?.id === orderId ? selectedOrder : null);
+      const order = (selectedOrder && selectedOrder.id === orderId)
+        ? selectedOrder
+        : (orders.find(o => o.id === orderId) || null);
       const updatePayload: any = { ...fields };
       
       // Remove columns that don't exist in the database schema to prevent query failure
@@ -368,7 +375,14 @@ export default function OrdersPage() {
           ? order.customer_email.split('|')[0]
           : (order.customer_email || `${order.customer_phone || 'customer'}@whatsapp.com`);
         
-        const screenshotUrl = fields.payment_status === 'paid' || fields.payment_status === 'processing'
+        const isPaid = fields.payment_status === 'paid' || 
+                       fields.payment_status === 'processing' || 
+                       order.payment_status === 'paid' || 
+                       order.payment_status === 'processing' ||
+                       updated.payment_status === 'paid' ||
+                       updated.payment_status === 'processing';
+                       
+        const screenshotUrl = isPaid
           ? ''
           : (order.payment_screenshot_url || '');
 
@@ -464,7 +478,14 @@ export default function OrdersPage() {
         ? order.customer_email.split('|')[0]
         : (order.customer_email || `${order.customer_phone || 'customer'}@whatsapp.com`);
       
-      const newEmailPayload = `${cleanEmail}||Direct UPI Transfer|paid`;
+      const emailParts = order.customer_email?.includes('|') 
+        ? order.customer_email.split('|') 
+        : [order.customer_email || ''];
+      
+      const trackingNumber = emailParts[4] || '';
+      const deliveryDate = emailParts[5] || '';
+      
+      const newEmailPayload = `${cleanEmail}||Direct UPI Transfer|paid|${trackingNumber}|${deliveryDate}`;
 
       const updatePayload = {
         status: 'processing', // Auto update order status to processing
@@ -497,7 +518,9 @@ export default function OrdersPage() {
               payment_status: 'paid',
               payment_method: 'Direct UPI Transfer',
               payment_screenshot_url: null,
-              customer_email: cleanEmail
+              customer_email: cleanEmail,
+              tracking_number: trackingNumber,
+              delivery_date: deliveryDate
             }
           : o
       ));
@@ -518,7 +541,9 @@ export default function OrdersPage() {
           payment_status: 'paid',
           payment_method: 'Direct UPI Transfer',
           payment_screenshot_url: null,
-          customer_email: cleanEmail
+          customer_email: cleanEmail,
+          tracking_number: trackingNumber,
+          delivery_date: deliveryDate
         });
       }
 
@@ -537,7 +562,14 @@ export default function OrdersPage() {
         ? order.customer_email.split('|')[0]
         : (order.customer_email || `${order.customer_phone || 'customer'}@whatsapp.com`);
       
-      const newEmailPayload = `${cleanEmail}||Direct UPI Transfer|unpaid`;
+      const emailParts = order.customer_email?.includes('|') 
+        ? order.customer_email.split('|') 
+        : [order.customer_email || ''];
+      
+      const trackingNumber = emailParts[4] || '';
+      const deliveryDate = emailParts[5] || '';
+      
+      const newEmailPayload = `${cleanEmail}||Direct UPI Transfer|unpaid|${trackingNumber}|${deliveryDate}`;
 
       const updatePayload = {
         payment_status: 'unpaid',
@@ -568,7 +600,9 @@ export default function OrdersPage() {
               payment_status: 'unpaid',
               payment_method: 'Direct UPI Transfer',
               payment_screenshot_url: null,
-              customer_email: cleanEmail
+              customer_email: cleanEmail,
+              tracking_number: trackingNumber,
+              delivery_date: deliveryDate
             }
           : o
       ));
@@ -588,7 +622,9 @@ export default function OrdersPage() {
           payment_status: 'unpaid',
           payment_method: 'Direct UPI Transfer',
           payment_screenshot_url: null,
-          customer_email: cleanEmail
+          customer_email: cleanEmail,
+          tracking_number: trackingNumber,
+          delivery_date: deliveryDate
         });
       }
 
@@ -612,16 +648,22 @@ export default function OrdersPage() {
         updatePayload.payment_screenshot_url = null;
       }
 
+      let trackingNumber = '';
+      let deliveryDate = '';
+      let cleanEmail = '';
+
       if (orderToUpdate) {
-        const cleanEmail = orderToUpdate.customer_email?.includes('|')
+        cleanEmail = orderToUpdate.customer_email?.includes('|')
           ? orderToUpdate.customer_email.split('|')[0]
           : (orderToUpdate.customer_email || `${orderToUpdate.customer_phone || 'customer'}@whatsapp.com`);
         
         const currentExtra = getExtraFields(orderToUpdate);
         const updatedScreenshot = isConfirmed ? '' : (screenshot || '');
         const updatedPayStatus = isConfirmed ? 'paid' : (currentExtra.payment_status || 'unpaid');
+        trackingNumber = currentExtra.tracking_number || '';
+        deliveryDate = currentExtra.delivery_date || '';
         
-        updatePayload.customer_email = `${cleanEmail}|${updatedScreenshot}|${currentExtra.payment_method || 'WhatsApp Cash'}|${updatedPayStatus}`;
+        updatePayload.customer_email = `${cleanEmail}|${updatedScreenshot}|${currentExtra.payment_method || 'WhatsApp Cash'}|${updatedPayStatus}|${trackingNumber}|${deliveryDate}`;
         updatePayload.payment_screenshot_url = isConfirmed ? null : (screenshot || null);
         updatePayload.payment_status = updatedPayStatus;
       }
@@ -646,7 +688,9 @@ export default function OrdersPage() {
               ...order, 
               status: newStatus,
               payment_screenshot_url: isConfirmed ? null : order.payment_screenshot_url,
-              customer_email: isConfirmed && order.customer_email?.includes('|') ? order.customer_email.split('|')[0] : order.customer_email
+              customer_email: cleanEmail,
+              tracking_number: trackingNumber,
+              delivery_date: deliveryDate
             } 
           : order
       ));
@@ -656,7 +700,9 @@ export default function OrdersPage() {
           ...selectedOrder,
           status: newStatus,
           payment_screenshot_url: isConfirmed ? null : selectedOrder.payment_screenshot_url,
-          customer_email: isConfirmed && selectedOrder.customer_email?.includes('|') ? selectedOrder.customer_email.split('|')[0] : selectedOrder.customer_email
+          customer_email: cleanEmail,
+          tracking_number: trackingNumber,
+          delivery_date: deliveryDate
         });
       }
     } catch (err) {
@@ -694,10 +740,12 @@ export default function OrdersPage() {
         const screenshot = o.payment_screenshot_url;
         const updatedScreenshot = isConfirmed ? '' : (screenshot || '');
         const updatedPayStatus = isConfirmed ? 'paid' : (currentExtra.payment_status || 'unpaid');
+        const trackingNumber = currentExtra.tracking_number || '';
+        const deliveryDate = currentExtra.delivery_date || '';
 
         const payload: any = {
           status: newStatus,
-          customer_email: `${cleanEmail}|${updatedScreenshot}|${currentExtra.payment_method || 'WhatsApp Cash'}|${updatedPayStatus}`,
+          customer_email: `${cleanEmail}|${updatedScreenshot}|${currentExtra.payment_method || 'WhatsApp Cash'}|${updatedPayStatus}|${trackingNumber}|${deliveryDate}`,
           payment_screenshot_url: isConfirmed ? null : (screenshot || null),
           payment_status: updatedPayStatus
         };
@@ -716,22 +764,36 @@ export default function OrdersPage() {
 
       setOrders(prev => prev.map(o => {
         if (selectedOrderIds.includes(o.id)) {
+          const cleanEmail = o.customer_email?.includes('|')
+            ? o.customer_email.split('|')[0]
+            : (o.customer_email || `${o.customer_phone || 'customer'}@whatsapp.com`);
+          const currentExtra = getExtraFields(o);
+
           return {
             ...o,
             status: newStatus,
             payment_screenshot_url: isConfirmed ? null : o.payment_screenshot_url,
-            customer_email: isConfirmed && o.customer_email?.includes('|') ? o.customer_email.split('|')[0] : o.customer_email
+            customer_email: cleanEmail,
+            tracking_number: currentExtra.tracking_number || '',
+            delivery_date: currentExtra.delivery_date || ''
           };
         }
         return o;
       }));
 
       if (selectedOrder && selectedOrderIds.includes(selectedOrder.id)) {
+        const cleanEmail = selectedOrder.customer_email?.includes('|')
+          ? selectedOrder.customer_email.split('|')[0]
+          : (selectedOrder.customer_email || `${selectedOrder.customer_phone || 'customer'}@whatsapp.com`);
+        const currentExtra = getExtraFields(selectedOrder);
+
         setSelectedOrder({
           ...selectedOrder,
           status: newStatus,
           payment_screenshot_url: isConfirmed ? null : selectedOrder.payment_screenshot_url,
-          customer_email: isConfirmed && selectedOrder.customer_email?.includes('|') ? selectedOrder.customer_email.split('|')[0] : selectedOrder.customer_email
+          customer_email: cleanEmail,
+          tracking_number: currentExtra.tracking_number || '',
+          delivery_date: currentExtra.delivery_date || ''
         });
       }
 
@@ -1920,22 +1982,29 @@ export default function OrdersPage() {
                       </div>
 
                       {/* Add checkpoint button and preview */}
-                      {([trackingPost, trackingTaluk, trackingDistrict, trackingState].some(p => p.trim() !== '')) && (
-                        <div className="space-y-2 bg-muted/20 p-2.5 rounded-lg border text-[10px]">
-                          <div className="flex justify-between items-center">
-                            <span className="font-bold text-gray-500 uppercase tracking-wider">Preview Checkpoint:</span>
-                            <button
-                              onClick={handleAddTrackingCheckpoint}
-                              className="px-3 py-1 bg-[#3C77C3] hover:bg-[#2A5C9E] text-white rounded font-bold text-[9px] uppercase tracking-wider transition-all"
-                            >
-                              + Add Location Update
-                            </button>
-                          </div>
-                          <span className="font-mono text-gray-800 break-all block">
-                            {[trackingPost.trim(), trackingTaluk.trim(), trackingDistrict.trim(), trackingState.trim()].filter(p => p !== '' && p !== '-').join(', ') || 'Drafting Location...'}
+                      <div className="space-y-2 bg-muted/20 p-3 rounded-lg border text-[10px]">
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="font-bold text-gray-500 uppercase tracking-wider block">
+                            Combined Tracking Output:
                           </span>
+                          <button
+                            type="button"
+                            onClick={handleAddTrackingCheckpoint}
+                            className="px-3 py-1.5 bg-[#3C77C3] hover:bg-[#2A5C9E] text-white rounded-lg font-bold text-[9px] uppercase tracking-wider transition-all cursor-pointer shadow-sm active:scale-95"
+                          >
+                            + Add & Save Update
+                          </button>
                         </div>
-                      )}
+                        {([trackingPost, trackingTaluk, trackingDistrict, trackingState].some(p => p.trim() !== '')) ? (
+                          <span className="font-mono text-gray-800 break-all block">
+                            {[trackingPost.trim(), trackingTaluk.trim(), trackingDistrict.trim(), trackingState.trim()].filter(p => p !== '' && p !== '-').join(', ')}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 italic block">
+                            No values selected/typed. Select or type location details above, then click Add & Save Update.
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
