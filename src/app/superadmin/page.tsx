@@ -32,7 +32,7 @@ export default function SuperAdminDashboard() {
       try {
         const { data: { user: authUser } } = await supabase.auth.getUser();
         if (!authUser) {
-          router.push('/login');
+          router.push('/superadmin/login');
           return;
         }
         // SECURITY: Enforce superadmin role — any merchant who navigates here is redirected
@@ -43,7 +43,7 @@ export default function SuperAdminDashboard() {
         setUser(authUser);
       } catch (e) {
         console.error("Auth check failed:", e);
-        router.push('/login');
+        router.push('/superadmin/login');
       }
     };
     fetchUser();
@@ -84,7 +84,7 @@ export default function SuperAdminDashboard() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/login');
+    router.push('/superadmin/login');
   };
 
   const playNotificationChime = () => {

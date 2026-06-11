@@ -41,10 +41,13 @@ export default function LoginPage() {
 
       const userRole = data?.user?.role;
       if (userRole === 'superadmin') {
-        router.push('/superadmin');
-      } else {
-        router.push('/admin');
+        await supabase.auth.signOut();
+        setError('Access denied. Super Admin cannot log in from this page.');
+        setLoading(false);
+        return;
       }
+
+      router.push('/admin');
     } catch (err: any) {
       setError(err.message || 'Invalid email or password');
       setLoading(false);
