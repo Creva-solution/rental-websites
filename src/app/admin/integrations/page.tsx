@@ -79,62 +79,9 @@ const CATALOG: CatalogItem[] = [
       { key: 'merchant_salt', label: 'Merchant Salt', type: 'password', placeholder: '••••••••••••' },
     ],
   },
-  {
-    type: 'shiprocket',
-    name: 'Shiprocket',
-    category: 'Logistics',
-    desc: 'Sync orders, print labels, and coordinate dispatches.',
-    icon: Package,
-    fields: [
-      { key: 'email', label: 'API User Email', type: 'email', placeholder: 'api-user@example.com' },
-      { key: 'password', label: 'API Password', type: 'password', placeholder: '••••••••••••' },
-    ],
-  },
-  {
-    type: 'delhivery',
-    name: 'Delhivery',
-    category: 'Logistics',
-    desc: 'Fast express shipping with automated status webhooks.',
-    icon: Truck,
-    fields: [
-      { key: 'api_key', label: 'API Token', type: 'text', placeholder: 'delhivery_api_...' },
-      { key: 'client_name', label: 'Client Account Name', type: 'text', placeholder: 'e.g. MyShopRetail' },
-    ],
-  },
-  {
-    type: 'google_analytics',
-    name: 'Google Analytics 4',
-    category: 'Analytics',
-    desc: 'Track customer funnel and checkout conversion rates.',
-    icon: BarChart3,
-    fields: [
-      { key: 'measurement_id', label: 'Measurement ID', type: 'text', placeholder: 'G-XXXXXXXXXX', hint: 'Found in GA4 Admin → Data Streams → Web stream details' },
-    ],
-  },
-  {
-    type: 'facebook_pixel',
-    name: 'Facebook Pixel',
-    category: 'Analytics',
-    desc: 'Track conversions and build retargeting audiences.',
-    icon: BarChart3,
-    fields: [
-      { key: 'pixel_id', label: 'Pixel ID', type: 'text', placeholder: '123456789012345' },
-    ],
-  },
-  {
-    type: 'whatsapp_business',
-    name: 'WhatsApp Business',
-    category: 'Marketing',
-    desc: 'Send order updates and chat with customers via WhatsApp.',
-    icon: MessageSquare,
-    fields: [
-      { key: 'phone_number_id', label: 'Phone Number ID', type: 'text', placeholder: 'From Meta Business Suite' },
-      { key: 'access_token', label: 'Access Token', type: 'password', placeholder: 'EAAG...' },
-    ],
-  },
 ];
 
-const CATEGORIES = ['Payments', 'Logistics', 'Analytics', 'Marketing'];
+const CATEGORIES = ['Payments'];
 
 export default function IntegrationsPage() {
   const [store, setStore] = useState<any>(null);
