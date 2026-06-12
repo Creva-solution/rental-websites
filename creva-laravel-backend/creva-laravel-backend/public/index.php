@@ -14,12 +14,14 @@ $allowedOrigins = [
     'https://crevasolution.in',
     'https://www.crevasolution.in',
     'http://localhost:3000',
+    'http://localhost:3001',
     'http://127.0.0.1:3000',
 ];
 $requestOrigin = $_SERVER['HTTP_ORIGIN'] ?? '';
-$corsOrigin = in_array($requestOrigin, $allowedOrigins, true)
-    ? $requestOrigin
-    : 'https://rweb.crevasolution.in';
+// Allow any *.crevasolution.in subdomain (store subdomains)
+$isAllowed = in_array($requestOrigin, $allowedOrigins, true)
+    || (preg_match('#^https://[a-z0-9\-]+\.crevasolution\.in$#i', $requestOrigin));
+$corsOrigin = $isAllowed ? $requestOrigin : 'https://rweb.crevasolution.in';
 
 header('Access-Control-Allow-Origin: ' . $corsOrigin);
 header('Access-Control-Allow-Credentials: true');
@@ -54,7 +56,12 @@ if (file_exists($envFile)) {
 // 3. Route Parser & Health Check
 $requestMethod = $_SERVER['REQUEST_METHOD'];
 $requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$route = str_replace('/api/', '', $requestUri);
+// Strip /api/, /index.php/api/, or /index.php/ prefix — handles all Render/Apache configurations
+$route = preg_replace('#^(/index\.php)?/api/#', '', $requestUri);
+if ($route === $requestUri) {
+    // Fallback: plain str_replace for older PHP/Apache setups
+    $route = str_replace('/api/', '', $requestUri);
+}
 $routeParts = explode('/', trim($route, '/'));
 
 // Basic health check to satisfy Render deployer instantly
@@ -64,7 +71,7 @@ if ($requestUri === '/' || empty($routeParts[0]) || $routeParts[0] === 'status')
         'status' => 'API Engine Active',
         'engine' => 'Creva Webzz Premium PHP Engine',
         'database_driver' => 'PostgreSQL (Active)',
-        'version' => 'v3-video-fix-2026-06-07',
+        'version' => '2026-06-08-support-tickets',
         'timestamp' => date('Y-m-d H:i:s')
     ]);
     exit;
@@ -91,7 +98,7 @@ try {
     exit;
 }
 
-// Ensure video_sessions table exists (runs on every request, safe due to IF NOT EXISTS)
+// Ensure video_sessions table exists on every request
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS \"video_sessions\" (
         \"id\"           VARCHAR(255) PRIMARY KEY,
@@ -105,9 +112,77 @@ try {
         \"created_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         \"updated_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )");
-} catch (PDOException $ignored) {
-    // Table already exists or insufficient privileges — continue normally
-}
+} catch (PDOException $ignored) {}
+
+// Ensure support tables exist
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS \"support_tickets\" (
+        \"id\"           VARCHAR(255) PRIMARY KEY,
+        \"ticket_number\" VARCHAR(20) UNIQUE NOT NULL,
+        \"store_id\"     VARCHAR(255) NOT NULL DEFAULT '',
+        \"owner_id\"     VARCHAR(255) NOT NULL DEFAULT '',
+        \"owner_email\"  VARCHAR(500) DEFAULT '',
+        \"store_name\"   VARCHAR(500) DEFAULT '',
+        \"subject\"      VARCHAR(500) NOT NULL,
+        \"category\"     VARCHAR(100) NOT NULL DEFAULT 'other',
+        \"status\"       VARCHAR(50) NOT NULL DEFAULT 'open',
+        \"priority\"     VARCHAR(50) NOT NULL DEFAULT 'medium',
+        \"created_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        \"updated_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+} catch (PDOException $ignored) {}
+
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS \"support_messages\" (
+        \"id\"          VARCHAR(255) PRIMARY KEY,
+        \"ticket_id\"   VARCHAR(255) NOT NULL,
+        \"sender_id\"   VARCHAR(255) NOT NULL DEFAULT '',
+        \"sender_role\" VARCHAR(20) NOT NULL DEFAULT 'owner',
+        \"sender_name\" VARCHAR(500) DEFAULT '',
+        \"message\"     TEXT DEFAULT '',
+        \"attachments\" TEXT DEFAULT '[]',
+        \"created_at\"  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+} catch (PDOException $ignored) {}
+
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS \"support_notifications\" (
+        \"id\"         VARCHAR(255) PRIMARY KEY,
+        \"type\"       VARCHAR(100) NOT NULL DEFAULT 'new_ticket',
+        \"for_role\"   VARCHAR(50) NOT NULL DEFAULT 'superadmin',
+        \"store_id\"   VARCHAR(255) DEFAULT '',
+        \"ticket_id\"  VARCHAR(255) NOT NULL DEFAULT '',
+        \"title\"      VARCHAR(500) NOT NULL,
+        \"body\"       TEXT DEFAULT '',
+        \"is_read\"    BOOLEAN NOT NULL DEFAULT FALSE,
+        \"created_at\" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+} catch (PDOException $ignored) {}
+
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS \"orders\" (
+        \"id\"                      VARCHAR(255) PRIMARY KEY,
+        \"store_id\"                VARCHAR(255) NOT NULL DEFAULT '',
+        \"customer_name\"           VARCHAR(500) NOT NULL DEFAULT '',
+        \"customer_email\"          VARCHAR(500) DEFAULT NULL,
+        \"customer_phone\"          VARCHAR(100) DEFAULT '',
+        \"shipping_address\"        TEXT DEFAULT '',
+        \"total_amount\"            NUMERIC(12,2) DEFAULT 0,
+        \"status\"                  VARCHAR(50) NOT NULL DEFAULT 'pending',
+        \"payment_method\"          VARCHAR(100) DEFAULT 'cod',
+        \"payment_status\"          VARCHAR(50) DEFAULT 'unpaid',
+        \"payment_screenshot_url\"  TEXT DEFAULT NULL,
+        \"created_at\"              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        \"updated_at\"              TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS \"order_items\" (
+        \"id\"                 VARCHAR(255) PRIMARY KEY,
+        \"order_id\"           VARCHAR(255) NOT NULL,
+        \"product_id\"         VARCHAR(255) NOT NULL,
+        \"quantity\"           INTEGER NOT NULL DEFAULT 1,
+        \"price_at_purchase\"  NUMERIC(12,2) DEFAULT 0
+    )");
+} catch (PDOException $ignored) {}
 
 // Get body payloads
 $rawBody = file_get_contents('php://input');
@@ -157,20 +232,6 @@ function getAuthUser($pdo) {
 
 // 4. REST API Endpoint Router Controller
 try {
-    // Database Auto-Import Tool
-    if ($routeParts[0] === 'database' && ($routeParts[1] ?? '') === 'import') {
-        $sqlFile = dirname(__DIR__) . '/database.sql';
-        if (!file_exists($sqlFile)) {
-            jsonResponse(['error' => 'database.sql not found'], 404);
-        }
-        $sqlContent = file_get_contents($sqlFile);
-        $pdo->exec($sqlContent);
-        jsonResponse([
-            'status' => 'success',
-            'message' => 'Database schema and seeds imported successfully into Render PostgreSQL!'
-        ]);
-    }
-
     // Diagnostic + migration endpoint
     if ($routeParts[0] === 'migrate' && $requestMethod === 'GET') {
         $createSql = "CREATE TABLE IF NOT EXISTS \"video_sessions\" (
@@ -185,28 +246,28 @@ try {
             \"created_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             \"updated_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )";
-
         $createResult = 'ok';
-        try {
-            $pdo->exec($createSql);
-        } catch (PDOException $e) {
-            $createResult = 'error: ' . $e->getMessage();
-        }
-
-        // List all tables so we can confirm
+        try { $pdo->exec($createSql); } catch (PDOException $e) { $createResult = 'error: ' . $e->getMessage(); }
         $stmt = $pdo->query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name");
-        $existingTables = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-        // Current DB user and search_path for diagnostics
-        $userRow   = $pdo->query("SELECT current_user, current_database()")->fetch(PDO::FETCH_ASSOC);
-        $pathRow   = $pdo->query("SHOW search_path")->fetch(PDO::FETCH_ASSOC);
-
+        $allTables = $stmt->fetchAll(PDO::FETCH_COLUMN);
         jsonResponse([
             'create_video_sessions' => $createResult,
-            'video_sessions_exists' => in_array('video_sessions', $existingTables),
-            'all_tables'            => $existingTables,
-            'db_user'               => $userRow,
-            'search_path'           => $pathRow,
+            'video_sessions_exists' => in_array('video_sessions', $allTables),
+            'all_tables'            => $allTables,
+        ]);
+    }
+
+    // Database Auto-Import Tool
+    if ($routeParts[0] === 'database' && ($routeParts[1] ?? '') === 'import') {
+        $sqlFile = dirname(__DIR__) . '/database.sql';
+        if (!file_exists($sqlFile)) {
+            jsonResponse(['error' => 'database.sql not found'], 404);
+        }
+        $sqlContent = file_get_contents($sqlFile);
+        $pdo->exec($sqlContent);
+        jsonResponse([
+            'status' => 'success',
+            'message' => 'Database schema and seeds imported successfully into Render PostgreSQL!'
         ]);
     }
 
@@ -902,40 +963,57 @@ try {
         }
         
         if ($requestMethod === 'POST') {
-            $orderId = $body['id'] ?? 'order_' . uniqid();
-            
-            $stmt = $pdo->prepare('INSERT INTO "orders" (id, store_id, customer_name, customer_email, customer_phone, shipping_address, total_amount, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
-            $stmt->execute([
-                $orderId,
-                $body['store_id'] ?? '',
-                $body['customer_name'] ?? '',
-                $body['customer_email'] ?? null,
-                $body['customer_phone'] ?? '',
-                $body['shipping_address'] ?? '',
-                $body['total_amount'] ?? 0,
-                $body['status'] ?? 'pending'
-            ]);
-            
-            // Insert order items if present
-            if (isset($body['items']) && is_array($body['items'])) {
-                foreach ($body['items'] as $item) {
-                    $stmtItem = $pdo->prepare('INSERT INTO "order_items" (order_id, product_id, quantity, price_at_purchase) VALUES (?, ?, ?, ?)');
-                    $stmtItem->execute([
-                        $orderId,
-                        $item['product_id'],
-                        $item['quantity'],
-                        $item['price_at_purchase']
-                    ]);
+            try {
+                $orderId = $body['id'] ?? 'order_' . uniqid();
+                // Safe migrations — widen customer_email to TEXT and add payment columns
+                try {
+                    $pdo->exec('ALTER TABLE "orders" ALTER COLUMN "customer_email" TYPE TEXT');
+                } catch (\PDOException $ignored) {}
+                try {
+                    $pdo->exec('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "payment_method" VARCHAR(100) DEFAULT \'cod\'');
+                    $pdo->exec('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "payment_status" VARCHAR(50) DEFAULT \'unpaid\'');
+                    $pdo->exec('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "payment_screenshot_url" TEXT DEFAULT NULL');
+                } catch (\PDOException $ignored) {}
+
+                $stmt = $pdo->prepare('INSERT INTO "orders" (id, store_id, customer_name, customer_email, customer_phone, shipping_address, total_amount, status, payment_method, payment_status, payment_screenshot_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+                $stmt->execute([
+                    $orderId,
+                    $body['store_id'] ?? '',
+                    $body['customer_name'] ?? '',
+                    $body['customer_email'] ?? null,
+                    $body['customer_phone'] ?? '',
+                    $body['shipping_address'] ?? '',
+                    (float)($body['total_amount'] ?? 0),
+                    $body['status'] ?? 'pending',
+                    $body['payment_method'] ?? 'cod',
+                    $body['payment_status'] ?? 'unpaid',
+                    $body['payment_screenshot_url'] ?? null,
+                ]);
+
+                // Insert order items if present in body
+                if (isset($body['items']) && is_array($body['items'])) {
+                    foreach ($body['items'] as $item) {
+                        $stmtItem = $pdo->prepare('INSERT INTO "order_items" (id, order_id, product_id, quantity, price_at_purchase) VALUES (?, ?, ?, ?, ?)');
+                        $stmtItem->execute([
+                            'oi_' . uniqid(),
+                            $orderId,
+                            $item['product_id'],
+                            (int)($item['quantity'] ?? 1),
+                            (float)($item['price_at_purchase'] ?? 0),
+                        ]);
+                    }
                 }
+
+                $stmt = $pdo->prepare('SELECT * FROM "orders" WHERE id = ?');
+                $stmt->execute([$orderId]);
+                jsonResponse($stmt->fetch());
+            } catch (\PDOException $e) {
+                jsonResponse(['error' => 'Order failed: ' . $e->getMessage()], 500);
             }
-            
-            $stmt = $pdo->prepare('SELECT * FROM "orders" WHERE id = ?');
-            $stmt->execute([$orderId]);
-            jsonResponse($stmt->fetch());
         }
         
         if ($requestMethod === 'PUT' && $id) {
-            $allowedFields = ['status'];
+            $allowedFields = ['status', 'customer_email', 'payment_status', 'payment_method', 'payment_screenshot_url'];
             $sets = [];
             $values = [];
             foreach ($allowedFields as $field) {
@@ -1024,13 +1102,156 @@ try {
         }
     }
     
+    // ─── SUPPORT TICKETS (checked before generic CRUD to avoid route conflicts) ─
+    if ($routeParts[0] === 'support-tickets') {
+        $ticketId  = $routeParts[1] ?? null;
+        $subAction = $routeParts[2] ?? null;
+
+        // GET /api/support-tickets/{id}/messages
+        if ($ticketId && $subAction === 'messages' && $requestMethod === 'GET') {
+            $stmt = $pdo->prepare('SELECT * FROM "support_messages" WHERE ticket_id = ? ORDER BY created_at ASC');
+            $stmt->execute([$ticketId]);
+            jsonResponse($stmt->fetchAll());
+        }
+
+        // POST /api/support-tickets/{id}/messages — add a reply
+        if ($ticketId && $subAction === 'messages' && $requestMethod === 'POST') {
+            $msgId      = 'msg_' . uniqid('', true);
+            $senderId   = $body['sender_id']   ?? '';
+            $senderRole = $body['sender_role'] ?? 'owner';
+            $senderName = $body['sender_name'] ?? '';
+            $message    = $body['message']     ?? '';
+            $attachments = json_encode($body['attachments'] ?? []);
+            $stmt = $pdo->prepare('INSERT INTO "support_messages" (id, ticket_id, sender_id, sender_role, sender_name, message, attachments) VALUES (?,?,?,?,?,?,?)');
+            $stmt->execute([$msgId, $ticketId, $senderId, $senderRole, $senderName, $message, $attachments]);
+            $pdo->prepare('UPDATE "support_tickets" SET updated_at = NOW() WHERE id = ?')->execute([$ticketId]);
+            if ($senderRole === 'superadmin') {
+                try {
+                    $tRow = $pdo->prepare('SELECT store_id, subject FROM "support_tickets" WHERE id = ?');
+                    $tRow->execute([$ticketId]);
+                    $tData = $tRow->fetch();
+                    if ($tData) {
+                        $nId = 'notif_' . uniqid('', true);
+                        $pdo->prepare('INSERT INTO "support_notifications" (id,type,for_role,store_id,ticket_id,title,body) VALUES (?,?,?,?,?,?,?)')->execute([
+                            $nId, 'admin_reply', 'owner', $tData->store_id ?? $tData['store_id'], $ticketId,
+                            'Support team replied to your ticket',
+                            'New reply on: "' . ($tData->subject ?? $tData['subject']) . '"'
+                        ]);
+                    }
+                } catch (PDOException $ignored) {}
+            }
+            $stmt = $pdo->prepare('SELECT * FROM "support_messages" WHERE id = ?');
+            $stmt->execute([$msgId]);
+            jsonResponse($stmt->fetch(), 201);
+        }
+
+        // PATCH /api/support-tickets/{id}
+        if ($ticketId && !$subAction && in_array($requestMethod, ['PATCH', 'PUT'])) {
+            $sets = []; $params = [];
+            if (isset($body['status']))   { $sets[] = 'status = ?';   $params[] = $body['status']; }
+            if (isset($body['priority'])) { $sets[] = 'priority = ?'; $params[] = $body['priority']; }
+            $sets[] = 'updated_at = NOW()';
+            $params[] = $ticketId;
+            if (count($sets) > 1) {
+                $pdo->prepare('UPDATE "support_tickets" SET ' . implode(', ', $sets) . ' WHERE id = ?')->execute($params);
+            }
+            $stmt = $pdo->prepare('SELECT * FROM "support_tickets" WHERE id = ?');
+            $stmt->execute([$ticketId]);
+            jsonResponse($stmt->fetch());
+        }
+
+        // GET /api/support-tickets/{id}
+        if ($ticketId && !$subAction && $requestMethod === 'GET') {
+            $stmt = $pdo->prepare('SELECT * FROM "support_tickets" WHERE id = ?');
+            $stmt->execute([$ticketId]);
+            $ticket = $stmt->fetch();
+            if (!$ticket) jsonResponse(['error' => 'Ticket not found'], 404);
+            $stmt = $pdo->prepare('SELECT * FROM "support_messages" WHERE ticket_id = ? ORDER BY created_at ASC');
+            $stmt->execute([$ticketId]);
+            $ticket->messages = $stmt->fetchAll();
+            jsonResponse($ticket);
+        }
+
+        // GET /api/support-tickets
+        if (!$ticketId && $requestMethod === 'GET') {
+            $where = []; $params = [];
+            if (!empty($query['store_id']))  { $where[] = 'store_id = ?';  $params[] = $query['store_id']; }
+            if (!empty($query['status']))    { $where[] = 'status = ?';    $params[] = $query['status']; }
+            if (!empty($query['priority']))  { $where[] = 'priority = ?';  $params[] = $query['priority']; }
+            $sql = 'SELECT * FROM "support_tickets"' . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . ' ORDER BY created_at DESC';
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            jsonResponse($stmt->fetchAll());
+        }
+
+        // POST /api/support-tickets
+        if (!$ticketId && $requestMethod === 'POST') {
+            $tktId      = 'tkt_' . uniqid('', true);
+            $tktNum     = 'TKT-' . strtoupper(substr(md5(uniqid()), 0, 6));
+            $storeId    = $body['store_id']    ?? '';
+            $ownerId    = $body['owner_id']    ?? '';
+            $ownerEmail = $body['owner_email'] ?? '';
+            $storeName  = $body['store_name']  ?? '';
+            $subject    = $body['subject']     ?? '';
+            $category   = $body['category']   ?? 'other';
+            $stmt = $pdo->prepare('INSERT INTO "support_tickets" (id,ticket_number,store_id,owner_id,owner_email,store_name,subject,category) VALUES (?,?,?,?,?,?,?,?)');
+            $stmt->execute([$tktId, $tktNum, $storeId, $ownerId, $ownerEmail, $storeName, $subject, $category]);
+            if (!empty($body['message'])) {
+                $msgId       = 'msg_' . uniqid('', true);
+                $attachments = json_encode($body['attachments'] ?? []);
+                $senderName  = $body['sender_name'] ?? $storeName;
+                $stmt = $pdo->prepare('INSERT INTO "support_messages" (id,ticket_id,sender_id,sender_role,sender_name,message,attachments) VALUES (?,?,?,?,?,?,?)');
+                $stmt->execute([$msgId, $tktId, $ownerId, 'owner', $senderName, $body['message'], $attachments]);
+            }
+            try {
+                $nId = 'notif_' . uniqid('', true);
+                $pdo->prepare('INSERT INTO "support_notifications" (id,type,for_role,store_id,ticket_id,title,body) VALUES (?,?,?,?,?,?,?)')->execute([
+                    $nId, 'new_ticket', 'superadmin', $storeId, $tktId,
+                    'New Support Ticket: ' . $subject,
+                    'Store "' . $storeName . '" submitted a ' . $category . ' ticket. Ticket #' . $tktNum
+                ]);
+            } catch (PDOException $ignored) {}
+            $stmt = $pdo->prepare('SELECT * FROM "support_tickets" WHERE id = ?');
+            $stmt->execute([$tktId]);
+            jsonResponse($stmt->fetch(), 201);
+        }
+
+        // Fallback for unmatched support-tickets sub-routes
+        jsonResponse(['error' => 'Support endpoint not found', 'route' => implode('/', $routeParts), 'method' => $requestMethod], 404);
+    }
+
+    // ─── NOTIFICATIONS ──────────────────────────────────────────────────────────
+    if ($routeParts[0] === 'notifications') {
+        $notifId = $routeParts[1] ?? null;
+        if ($notifId && $requestMethod === 'PATCH') {
+            $pdo->prepare('UPDATE "support_notifications" SET is_read = TRUE WHERE id = ?')->execute([$notifId]);
+            jsonResponse(['success' => true]);
+        }
+        if ($notifId === 'all' && $requestMethod === 'DELETE') {
+            $role = $body['for_role'] ?? ($query['for_role'] ?? 'superadmin');
+            $pdo->prepare('UPDATE "support_notifications" SET is_read = TRUE WHERE for_role = ?')->execute([$role]);
+            jsonResponse(['success' => true]);
+        }
+        if (!$notifId && $requestMethod === 'GET') {
+            $where = []; $params = [];
+            if (!empty($query['for_role'])) { $where[] = 'for_role = ?'; $params[] = $query['for_role']; }
+            if (!empty($query['store_id'])) { $where[] = 'store_id = ?'; $params[] = $query['store_id']; }
+            $sql = 'SELECT * FROM "support_notifications"' . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . ' ORDER BY created_at DESC LIMIT 50';
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            jsonResponse($stmt->fetchAll());
+        }
+        jsonResponse(['error' => 'Notifications endpoint not found'], 404);
+    }
+
     // ─── Generic CRUD for Admin / Platform Tables ────────────────────────────────
     // Routes: categories, discounts, blog_posts, pages, video_sessions,
     //         integrations, platform_settings, users
     // Pattern: GET /api/{table}[?filters] · GET /api/{table}/{id}
     //          POST /api/{table} · PUT /api/{table}/{id} · DELETE /api/{table}[/{id}]
     $genericTables = ['categories', 'discounts', 'blog_posts', 'pages', 'video_sessions',
-                      'integrations', 'platform_settings'];
+                      'integrations', 'platform_settings',
+                      'support_tickets', 'support_messages', 'support_notifications'];
 
     if (in_array($routeParts[0], $genericTables, true)) {
         $table = $routeParts[0];
@@ -1045,7 +1266,8 @@ try {
 
         // Fields allowed as WHERE filters in GET/DELETE (prevents arbitrary column injection)
         $filterableFields = ['store_id', 'type', 'status', 'is_active', 'is_enabled',
-                             'key', 'owner_id', 'slug', 'category_id', 'order_id'];
+                             'key', 'owner_id', 'slug', 'category_id', 'order_id',
+                             'ticket_id', 'for_role', 'sender_role', 'priority'];
 
         // Encode PHP arrays to JSON strings before storing in PostgreSQL TEXT/JSONB columns
         $encodeBody = function(array $row): array {
@@ -1145,24 +1367,17 @@ try {
             try {
                 $pdo->prepare("INSERT INTO \"$table\" ($cols) VALUES ($ph)")->execute(array_values($body));
             } catch (PDOException $insertEx) {
-                // If table missing (42P01), create it and retry once
                 if (strpos($insertEx->getMessage(), '42P01') !== false && $table === 'video_sessions') {
                     $pdo->exec("CREATE TABLE IF NOT EXISTS \"video_sessions\" (
-                        \"id\"           VARCHAR(255) PRIMARY KEY,
-                        \"store_id\"     VARCHAR(255) NOT NULL,
-                        \"title\"        VARCHAR(500) NOT NULL,
-                        \"video_url\"    TEXT,
-                        \"product_ids\"  TEXT DEFAULT '[]',
-                        \"status\"       VARCHAR(50) DEFAULT 'active',
-                        \"scheduled_at\" TIMESTAMP NULL,
-                        \"description\"  TEXT NULL,
-                        \"created_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        \"updated_at\"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        \"id\" VARCHAR(255) PRIMARY KEY, \"store_id\" VARCHAR(255) NOT NULL,
+                        \"title\" VARCHAR(500) NOT NULL, \"video_url\" TEXT,
+                        \"product_ids\" TEXT DEFAULT '[]', \"status\" VARCHAR(50) DEFAULT 'active',
+                        \"scheduled_at\" TIMESTAMP NULL, \"description\" TEXT NULL,
+                        \"created_at\" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        \"updated_at\" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )");
                     $pdo->prepare("INSERT INTO \"$table\" ($cols) VALUES ($ph)")->execute(array_values($body));
-                } else {
-                    throw $insertEx;
-                }
+                } else { throw $insertEx; }
             }
             $stmt = $pdo->prepare("SELECT * FROM \"$table\" WHERE id = ?");
             $stmt->execute([$body['id']]);
@@ -1201,6 +1416,7 @@ try {
             jsonResponse(['success' => true]);
         }
     }
+
 
     jsonResponse(['error' => 'Endpoint Not Found'], 404);
 } catch (Exception $e) {

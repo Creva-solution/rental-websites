@@ -11,22 +11,10 @@ class SuperAdminMiddleware
     {
         $role = $request->attributes->get('auth_user_role');
 
-        if ($role !== 'superadmin' && $role !== 'staff') {
+        if ($role !== 'superadmin') {
             return response()->json([
-                'error' => 'Forbidden. Super Admin or Staff access required.',
+                'error' => 'Forbidden. Super Admin access required.',
             ], 403);
-        }
-
-        // Safeguard: Staff users cannot modify global settings
-        if ($role === 'staff') {
-            $path = $request->path();
-            if (str_contains($path, 'platform-settings')) {
-                if ($request->isMethod('post') || $request->isMethod('put') || $request->isMethod('patch') || $request->isMethod('delete')) {
-                    return response()->json([
-                        'error' => 'Forbidden. Staff users cannot modify platform settings.',
-                    ], 403);
-                }
-            }
         }
 
         return $next($request);

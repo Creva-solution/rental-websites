@@ -2162,8 +2162,8 @@ export default function OrdersPage() {
                   const maxCount = Math.max(...last7DaysSummary.map(d => d.count), 2);
                   const barHeight = (item.count / maxCount) * 100;
                   return (
-                    <div key={idx} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
-                      <div className="opacity-0 group-hover:opacity-100 bg-slate-900 text-white text-[8px] font-black uppercase tracking-wider px-2 py-1 rounded border border-slate-800 transition-all duration-200 transform translate-y-1 block shadow-md pointer-events-none z-10">
+                    <div key={idx} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group relative">
+                      <div className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-slate-900 text-white text-[8px] font-black uppercase tracking-wider px-2 py-1 rounded border border-slate-800 transition-all duration-200 block shadow-md pointer-events-none z-10 whitespace-nowrap">
                         {item.count} orders
                       </div>
                       <div
