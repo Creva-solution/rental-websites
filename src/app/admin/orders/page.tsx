@@ -1400,7 +1400,7 @@ export default function OrdersPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         
         {/* LEFT COLUMN: Advanced Filters and Orders Table (2 columns on lg) */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6 min-w-0">
           
           {/* Advanced Multi-Filters Panel */}
           <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-4 text-left print:hidden">
@@ -1508,7 +1508,7 @@ export default function OrdersPage() {
           {/* Improved Order Table */}
           <div className="bg-card text-card-foreground rounded-2xl border shadow-sm flex flex-col print:hidden overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
+              <table className="w-full min-w-[950px] text-sm text-left">
                 <thead className="text-[10px] font-black uppercase tracking-wider bg-muted/40 border-b text-muted-foreground">
                   <tr>
                     <th className="px-6 py-4 w-12 text-center">
