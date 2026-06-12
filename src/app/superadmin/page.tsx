@@ -941,7 +941,8 @@ export default function SuperAdminDashboard() {
   const sqlCommand = `-- Run this in your Supabase SQL Editor to add the new management columns:
 ALTER TABLE stores ADD COLUMN IF NOT EXISTS is_paused BOOLEAN DEFAULT FALSE;
 ALTER TABLE stores ADD COLUMN IF NOT EXISTS custom_domain_enabled BOOLEAN DEFAULT TRUE;
-ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WITH TIME ZONE;`;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS marketing_hub_enabled BOOLEAN DEFAULT TRUE;`;
 
   const fetchStores = async () => {
     setLoading(true);
@@ -1179,6 +1180,28 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
       setTimeout(() => setActionStatus(null), 3000);
     } catch (err: any) {
       alert(`Error updating domain permission: ${err.message}`);
+      setActionStatus(null);
+    }
+  };
+
+  const handleToggleMarketingHub = async (storeId: string, currentStatus: boolean) => {
+    setActionStatus(`Updating marketing hub feature flag...`);
+    try {
+      const newStatus = currentStatus === false ? true : false;
+      const { error } = await supabase
+        .from('stores')
+        .update({ marketing_hub_enabled: newStatus })
+        .eq('id', storeId);
+
+      if (error) {
+        throw error;
+      }
+
+      setStores(stores.map(s => s.id === storeId ? { ...s, marketing_hub_enabled: newStatus } : s));
+      setActionStatus(`Marketing hub permission updated!`);
+      setTimeout(() => setActionStatus(null), 3000);
+    } catch (err: any) {
+      alert(`Error updating marketing hub: ${err.message}`);
       setActionStatus(null);
     }
   };
@@ -2415,7 +2438,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                   <tr className="border-b border-gray-700/80 text-gray-400 text-xs font-bold uppercase bg-gray-900/40">
                     <th className="px-6 py-4">Shop details</th>
                     <th className="px-6 py-4">Subdomain / Domain</th>
-                    <th className="px-6 py-4 text-center">Custom Domain Permission</th>
+                    <th className="px-6 py-4 text-center">Permissions & Features</th>
                     <th className="px-6 py-4 text-center">Subscription Plan</th>
                     <th className="px-6 py-4 text-center">Storefront Status</th>
                   </tr>
@@ -2462,7 +2485,8 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                         </td>
 
                         <td className="px-6 py-4 text-center">
-                          <div className="flex justify-center">
+                          <div className="flex flex-col items-center gap-2 justify-center">
+                            {/* Custom Domain Toggle */}
                             <button
                               onClick={() => handleToggleCustomDomain(store.id, domainAllowed)}
                               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
@@ -2480,6 +2504,28 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WI
                                 <>
                                   <ShieldAlert className="w-3.5 h-3.5" />
                                   Domain Access: RESTRICTED
+                                </>
+                              )}
+                            </button>
+
+                            {/* Marketing Hub Toggle */}
+                            <button
+                              onClick={() => handleToggleMarketingHub(store.id, store.marketing_hub_enabled !== false)}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                                store.marketing_hub_enabled !== false
+                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25 hover:bg-emerald-500/20' 
+                                  : 'bg-amber-500/10 text-amber-400 border-amber-500/25 hover:bg-amber-500/20'
+                              }`}
+                            >
+                              {store.marketing_hub_enabled !== false ? (
+                                <>
+                                  <ToggleRight className="w-3.5 h-3.5 text-emerald-400" />
+                                  Marketing Hub: ENABLED
+                                </>
+                              ) : (
+                                <>
+                                  <ToggleLeft className="w-3.5 h-3.5 text-amber-400" />
+                                  Marketing Hub: DISABLED
                                 </>
                               )}
                             </button>

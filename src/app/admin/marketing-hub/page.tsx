@@ -73,7 +73,8 @@ export default function MarketingHubPage() {
   const hasClickToChat = true;
   const hasOrderUpdates = true;
 
-  const isWhatsAppEnabled = isGloballyEnabled && (hasClickToChat || hasOrderUpdates);
+  const isHubEnabledByAdmin = store?.marketing_hub_enabled !== false;
+  const isWhatsAppEnabled = isGloballyEnabled && (hasClickToChat || hasOrderUpdates) && isHubEnabledByAdmin;
 
   if (loading) {
     return (
@@ -92,7 +93,9 @@ export default function MarketingHubPage() {
         <div>
           <h2 className="text-xl font-black text-foreground uppercase tracking-wider">Marketing Hub Locked</h2>
           <p className="text-xs text-muted-foreground mt-2 leading-relaxed font-medium">
-            {!isGloballyEnabled ? (
+            {!isHubEnabledByAdmin ? (
+              "Marketing Hub has been deactivated for your store by the super-administrator. Please contact platform support to reactivate access."
+            ) : !isGloballyEnabled ? (
               "WhatsApp integration is globally deactivated by the platform super-administrator. Campaign features are currently unavailable."
             ) : (
               "WhatsApp broadcasts and automated marketing campaigns are not enabled for your subscription plan. Please upgrade your plan in the subscription hub to unlock the Marketing Hub."
@@ -100,10 +103,10 @@ export default function MarketingHubPage() {
           </p>
         </div>
         <a
-          href="/admin/subscription"
+          href={!isHubEnabledByAdmin ? "/admin/support" : "/admin/subscription"}
           className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md transition-all text-center"
         >
-          Upgrade Plan
+          {!isHubEnabledByAdmin ? "Contact Support" : "Upgrade Plan"}
         </a>
       </div>
     );

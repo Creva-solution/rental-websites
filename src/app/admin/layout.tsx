@@ -262,6 +262,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   ];
 
+  const filteredNavigationGroups = navigationGroups.map(group => ({
+    ...group,
+    items: group.items.filter(item => {
+      if (item.href === "/admin/marketing-hub") {
+        return store?.marketing_hub_enabled !== false;
+      }
+      return true;
+    })
+  }));
+
   return (
     <div className="h-screen bg-muted/20 flex w-full relative overflow-hidden">
       {/* Flash Screen Overlay Alert for New Orders */}
@@ -350,7 +360,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
         </div>
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6 scrollbar-thin">
-          {navigationGroups.map((group, gIdx) => (
+          {filteredNavigationGroups.map((group, gIdx) => (
             <div key={gIdx} className="space-y-2 text-left">
               <span className="text-[9px] font-black text-[#3C77C3] tracking-[0.15em] uppercase px-3 opacity-80 block">
                 {group.title}
@@ -423,7 +433,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
         </div>
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6 scrollbar-thin">
-          {navigationGroups.map((group, gIdx) => (
+          {filteredNavigationGroups.map((group, gIdx) => (
             <div key={gIdx} className="space-y-2 text-left">
               <span className="text-[9px] font-black text-[#3C77C3] tracking-[0.15em] uppercase px-3 opacity-80 block">
                 {group.title}
