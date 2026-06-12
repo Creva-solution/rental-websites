@@ -1900,6 +1900,9 @@ export default function OrdersPage() {
                                     setIsCustomDistrict(false);
                                     setTrackingDistrict(val);
                                   }
+                                  // Clear child inputs when district changes to avoid mismatched data
+                                  setTrackingTaluk('');
+                                  setTrackingPost('');
                                 }}
                                 className="w-full bg-background border rounded-lg h-9 px-2 text-xs outline-none focus:border-[#3C77C3]"
                               >
@@ -1935,7 +1938,7 @@ export default function OrdersPage() {
                         {/* 3. Taluk Selector/Input */}
                         <div className="space-y-1">
                           <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">3. Taluk</span>
-                          {(!trackingState || trackingState === 'Tamil Nadu') ? (
+                          {((!trackingState || trackingState === 'Tamil Nadu') && trackingDistrict === 'Kallakurichi') ? (
                             <>
                               <select
                                 value={commonTaluks.includes(trackingTaluk) ? trackingTaluk : (trackingTaluk ? 'Other' : '')}
@@ -1981,7 +1984,7 @@ export default function OrdersPage() {
                         {/* 4. Post Selector/Input */}
                         <div className="space-y-1">
                           <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">4. Post (Town/Locality)</span>
-                          {(!trackingState || trackingState === 'Tamil Nadu') ? (
+                          {((!trackingState || trackingState === 'Tamil Nadu') && trackingDistrict === 'Kallakurichi') ? (
                             <>
                               <select
                                 value={commonPosts.includes(trackingPost) ? trackingPost : (trackingPost ? 'Other' : '')}
