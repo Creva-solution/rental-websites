@@ -640,7 +640,7 @@ export default function OrdersPage() {
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     try {
       const orderToUpdate = orders.find(o => o.id === orderId);
-      const isConfirmed = newStatus === 'completed' || newStatus === 'processing';
+      const isConfirmed = newStatus === 'completed' || newStatus === 'processing' || newStatus === 'shipped' || newStatus === 'delivered';
       const screenshot = orderToUpdate?.payment_screenshot_url;
 
       const updatePayload: any = { status: newStatus };
@@ -651,6 +651,7 @@ export default function OrdersPage() {
       let trackingNumber = '';
       let deliveryDate = '';
       let cleanEmail = '';
+      let updatedPayStatus = 'unpaid';
 
       if (orderToUpdate) {
         cleanEmail = orderToUpdate.customer_email?.includes('|')
@@ -659,19 +660,31 @@ export default function OrdersPage() {
         
         const currentExtra = getExtraFields(orderToUpdate);
         const updatedScreenshot = isConfirmed ? '' : (screenshot || '');
-        const updatedPayStatus = isConfirmed ? 'paid' : (currentExtra.payment_status || 'unpaid');
+        updatedPayStatus = isConfirmed ? 'paid' : (currentExtra.payment_status || 'unpaid');
         trackingNumber = currentExtra.tracking_number || '';
         deliveryDate = currentExtra.delivery_date || '';
         
         updatePayload.customer_email = `${cleanEmail}|${updatedScreenshot}|${currentExtra.payment_method || 'WhatsApp Cash'}|${updatedPayStatus}|${trackingNumber}|${deliveryDate}`;
         updatePayload.payment_screenshot_url = isConfirmed ? null : (screenshot || null);
         updatePayload.payment_status = updatedPayStatus;
+
+        // Sync database values to localStorage cache
+        if (typeof window !== 'undefined') {
+          const key = `creva_order_extra_${orderId}`;
+          const existing = localStorage.getItem(key);
+          const parsed = existing ? JSON.parse(existing) : {};
+          const updated = {
+            ...parsed,
+            payment_status: updatedPayStatus
+          };
+          localStorage.setItem(key, JSON.stringify(updated));
+        }
       }
 
       const { error } = await supabase
-        .from('orders')
-        .update(updatePayload)
-        .eq('id', orderId);
+         .from('orders')
+         .update(updatePayload)
+         .eq('id', orderId);
       
       if (error) throw error;
 
@@ -690,7 +703,8 @@ export default function OrdersPage() {
               payment_screenshot_url: isConfirmed ? null : order.payment_screenshot_url,
               customer_email: cleanEmail,
               tracking_number: trackingNumber,
-              delivery_date: deliveryDate
+              delivery_date: deliveryDate,
+              payment_status: updatedPayStatus
             } 
           : order
       ));
@@ -702,8 +716,10 @@ export default function OrdersPage() {
           payment_screenshot_url: isConfirmed ? null : selectedOrder.payment_screenshot_url,
           customer_email: cleanEmail,
           tracking_number: trackingNumber,
-          delivery_date: deliveryDate
+          delivery_date: deliveryDate,
+          payment_status: updatedPayStatus
         });
+        setPayStatus(updatedPayStatus);
       }
     } catch (err) {
       console.error("Failed to update status:", err);
@@ -715,7 +731,7 @@ export default function OrdersPage() {
   const handleBulkStatusUpdate = async (newStatus: string) => {
     if (selectedOrderIds.length === 0) return;
     try {
-      const isConfirmed = newStatus === 'completed' || newStatus === 'processing';
+      const isConfirmed = newStatus === 'completed' || newStatus === 'processing' || newStatus === 'shipped' || newStatus === 'delivered';
       
       // If confirmed, find all orders that have screenshots to delete them
       const screenshotsToDelete: string[] = [];
@@ -754,6 +770,18 @@ export default function OrdersPage() {
           .from('orders')
           .update(payload)
           .eq('id', orderId);
+
+        // Sync database values to localStorage cache
+        if (typeof window !== 'undefined') {
+          const key = `creva_order_extra_${orderId}`;
+          const existing = localStorage.getItem(key);
+          const parsed = existing ? JSON.parse(existing) : {};
+          const updated = {
+            ...parsed,
+            payment_status: updatedPayStatus
+          };
+          localStorage.setItem(key, JSON.stringify(updated));
+        }
       }));
 
       if (screenshotsToDelete.length > 0) {
@@ -768,6 +796,7 @@ export default function OrdersPage() {
             ? o.customer_email.split('|')[0]
             : (o.customer_email || `${o.customer_phone || 'customer'}@whatsapp.com`);
           const currentExtra = getExtraFields(o);
+          const updatedPayStatus = isConfirmed ? 'paid' : (currentExtra.payment_status || 'unpaid');
 
           return {
             ...o,
@@ -775,7 +804,8 @@ export default function OrdersPage() {
             payment_screenshot_url: isConfirmed ? null : o.payment_screenshot_url,
             customer_email: cleanEmail,
             tracking_number: currentExtra.tracking_number || '',
-            delivery_date: currentExtra.delivery_date || ''
+            delivery_date: currentExtra.delivery_date || '',
+            payment_status: updatedPayStatus
           };
         }
         return o;
@@ -786,6 +816,7 @@ export default function OrdersPage() {
           ? selectedOrder.customer_email.split('|')[0]
           : (selectedOrder.customer_email || `${selectedOrder.customer_phone || 'customer'}@whatsapp.com`);
         const currentExtra = getExtraFields(selectedOrder);
+        const updatedPayStatus = isConfirmed ? 'paid' : (currentExtra.payment_status || 'unpaid');
 
         setSelectedOrder({
           ...selectedOrder,
@@ -793,8 +824,10 @@ export default function OrdersPage() {
           payment_screenshot_url: isConfirmed ? null : selectedOrder.payment_screenshot_url,
           customer_email: cleanEmail,
           tracking_number: currentExtra.tracking_number || '',
-          delivery_date: currentExtra.delivery_date || ''
+          delivery_date: currentExtra.delivery_date || '',
+          payment_status: updatedPayStatus
         });
+        setPayStatus(updatedPayStatus);
       }
 
       setSelectedOrderIds([]);
@@ -1388,7 +1421,8 @@ export default function OrdersPage() {
                   <option value="all">All Orders</option>
                   <option value="pending">Pending</option>
                   <option value="processing">Processing</option>
-                  <option value="completed">Completed / Shipped</option>
+                  <option value="shipped">Shipped</option>
+                  <option value="completed">Completed</option>
                   <option value="cancelled">Cancelled</option>
                 </select>
               </div>
@@ -1600,6 +1634,8 @@ export default function OrdersPage() {
                                   ? 'bg-green-50 text-green-800 border-green-200 hover:bg-green-100' 
                                   : order.status === 'processing'
                                   ? 'bg-blue-50 text-blue-800 border-blue-200 hover:bg-blue-100'
+                                  : order.status === 'shipped'
+                                  ? 'bg-purple-50 text-purple-800 border-purple-200 hover:bg-purple-100'
                                   : order.status === 'cancelled'
                                   ? 'bg-red-50 text-red-800 border-red-200 hover:bg-red-100'
                                   : 'bg-yellow-50 text-yellow-800 border-yellow-200 hover:bg-yellow-100'
@@ -1607,6 +1643,7 @@ export default function OrdersPage() {
                             >
                               <option value="pending">Pending</option>
                               <option value="processing">Processing</option>
+                              <option value="shipped">Shipped</option>
                               <option value="completed">Completed</option>
                               <option value="cancelled">Cancelled</option>
                             </select>
@@ -1671,13 +1708,21 @@ export default function OrdersPage() {
           {/* Detailed Order Inspector Card / Edit drawer (Pops up when selectedOrder is active) */}
           {selectedOrder ? (() => {
             const extra = getExtraFields(selectedOrder);
+            const trackingCps = extra.tracking_number ? extra.tracking_number.split(' ## ').filter(Boolean) : [];
+            const latestCps = trackingCps[trackingCps.length - 1];
+            const formattedLatest = latestCps
+              ? (latestCps.includes(' || ')
+                  ? latestCps.split(' || ').map((p: string) => p.trim()).filter((p: string) => p !== '' && p !== '-').join(', ')
+                  : latestCps.trim())
+              : '';
+
             const timelineSteps = [
               { label: 'Placed', active: true, desc: 'WhatsApp Checkout matched' },
               { label: 'Payment', active: extra.payment_status === 'paid', desc: extra.payment_method },
-              { label: 'Accepted', active: selectedOrder.status === 'processing' || selectedOrder.status === 'completed', desc: 'Fulfillment agreed' },
-              { label: 'Packed', active: selectedOrder.status === 'processing' || selectedOrder.status === 'completed', desc: 'Luxury soap wrap' },
-              { label: 'Shipped', active: selectedOrder.status === 'completed', desc: extra.tracking_number ? `TRK: ${extra.tracking_number}` : 'Awaiting courier' },
-              { label: 'Delivered', active: selectedOrder.status === 'completed', desc: extra.delivery_date ? `Date: ${extra.delivery_date}` : 'Awaiting confirmation' }
+              { label: 'Accepted', active: ['processing', 'shipped', 'completed', 'delivered'].includes(selectedOrder.status), desc: 'Fulfillment agreed' },
+              { label: 'Packed', active: ['processing', 'shipped', 'completed', 'delivered'].includes(selectedOrder.status), desc: 'Luxury soap wrap' },
+              { label: 'Shipped', active: ['shipped', 'completed', 'delivered'].includes(selectedOrder.status), desc: extra.tracking_number ? (formattedLatest ? `TRK: ${formattedLatest}` : `TRK: ${extra.tracking_number}`) : 'Awaiting courier' },
+              { label: 'Delivered', active: ['completed', 'delivered'].includes(selectedOrder.status), desc: extra.delivery_date ? `Date: ${extra.delivery_date}` : 'Awaiting confirmation' }
             ];
 
             return (
