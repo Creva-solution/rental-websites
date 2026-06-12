@@ -1669,26 +1669,42 @@ export default function OrdersPage() {
                                   setPayMethod(extra.payment_method || 'WhatsApp Cash');
                                   setPayStatus(extra.payment_status || 'unpaid');
                                 }}
-                                className="p-1 hover:bg-muted rounded text-[#3C77C3] transition-all flex items-center justify-center"
+                                className="px-2.5 py-1.5 bg-[#3C77C3]/15 hover:bg-[#3C77C3] text-[#3C77C3] hover:text-white rounded-xl flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider transition-all border border-[#3C77C3]/10 hover:border-transparent cursor-pointer shadow-sm"
                                 title="View Details"
                               >
                                 <ReceiptText className="w-3.5 h-3.5" />
+                                <span>Inspect</span>
                               </button>
 
                               <button 
                                 onClick={() => handleOpenWhatsAppDialog(order)}
-                                className="p-1 hover:bg-emerald-50 rounded text-emerald-600 transition-all flex items-center justify-center"
+                                className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white rounded-xl flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider transition-all border border-emerald-100 hover:border-transparent cursor-pointer shadow-sm"
                                 title="WhatsApp Customer"
                               >
                                 <MessageSquare className="w-3.5 h-3.5" />
+                                <span>Ping</span>
                               </button>
 
                               <button 
                                 onClick={() => handleCopyLink(order.id)}
-                                className={`p-1 hover:bg-indigo-50 rounded transition-all flex items-center justify-center ${copiedOrderId === order.id ? 'text-emerald-600' : 'text-indigo-650'}`}
+                                className={`px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider transition-all border cursor-pointer shadow-sm ${
+                                  copiedOrderId === order.id 
+                                    ? 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white hover:border-transparent' 
+                                    : 'bg-indigo-50 border-indigo-100 text-indigo-650 hover:bg-indigo-650 hover:text-white hover:border-transparent'
+                                }`}
                                 title="Copy Storefront tracking link"
                               >
-                                {copiedOrderId === order.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                                {copiedOrderId === order.id ? (
+                                  <>
+                                    <Check className="w-3.5 h-3.5 animate-bounce" />
+                                    <span>Copied</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3.5 h-3.5" />
+                                    <span>Link</span>
+                                  </>
+                                )}
                               </button>
                             </div>
                           </td>
