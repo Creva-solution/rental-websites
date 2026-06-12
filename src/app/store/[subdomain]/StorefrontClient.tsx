@@ -1109,6 +1109,83 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
   const [simulatedOrderId, setSimulatedOrderId] = useState('');
   const [simulatedOrder, setSimulatedOrder] = useState<any>(null);
 
+  // Automatically open tracking modal if trackOrder is present in query parameters
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const trackOrderId = params.get('trackOrder');
+    if (trackOrderId && store?.id) {
+      setIsTrackOpen(true);
+      setSimulatedOrderId(trackOrderId);
+      
+      const loadOrderFromParam = async () => {
+        setIsTracking(true);
+        setHasTracked(true);
+        try {
+          const cleanId = trackOrderId.trim().replace(/^#/, '');
+          const { data, error } = await supabase
+            .from('orders')
+            .select(`
+              *,
+              order_items (
+                quantity,
+                price_at_purchase,
+                products (
+                  name
+                )
+              )
+            `)
+            .eq('store_id', store.id);
+          
+          if (error) throw error;
+          
+          const foundOrder = (data || []).find((o: any) => 
+            o.id.toLowerCase() === cleanId.toLowerCase() ||
+            o.id.substring(0, 8).toLowerCase() === cleanId.toLowerCase() ||
+            o.id.replace(/-/g, '').substring(0, 8).toLowerCase() === cleanId.toLowerCase()
+          );
+          
+          if (foundOrder) {
+            let email = foundOrder.customer_email || '';
+            let trackNum = '';
+            if (email.includes('|')) {
+              const parts = email.split('|');
+              email = parts[0];
+              if (parts[4]) trackNum = parts[4];
+            }
+            const processed = {
+              ...foundOrder,
+              customer_email: email,
+              tracking_number: trackNum
+            };
+            setTrackedOrders([processed]);
+            setSimulatedOrder(null);
+          } else {
+            setTrackedOrders([]);
+            setSimulatedOrder({
+              id: cleanId.toUpperCase(),
+              created_at: new Date().toISOString(),
+              customer_name: 'Premium Customer',
+              total_amount: 320.00,
+              status: 'shipped',
+              est_delivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }),
+              items: [
+                { name: 'Signature Wool Overcoat', quantity: 1, price: 249.00 },
+                { name: 'Luxury Cotton Hoodie', quantity: 1, price: 71.00 }
+              ]
+            });
+          }
+        } catch (err) {
+          console.error("Failed to load order from url param:", err);
+        } finally {
+          setIsTracking(false);
+        }
+      };
+      
+      loadOrderFromParam();
+    }
+  }, [store?.id]);
+
   // Custom Detail Modal Variations State
   const [selectedSize, setSelectedSize] = useState('M');
   const [selectedColor, setSelectedColor] = useState('Midnight');
@@ -1322,25 +1399,74 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
     }
   };
 
-  // Simulated Order Tracking Search (for instant Order ID demo)
-  const handleSimulatedTracking = (e: React.FormEvent) => {
+  // Simulated Order Tracking Search (for instant Order ID demo / Real Order Lookup)
+  const handleSimulatedTracking = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!simulatedOrderId) return;
     
-    // Simulate active order states
+    setIsTracking(true);
     setHasTracked(true);
-    setSimulatedOrder({
-      id: simulatedOrderId.toUpperCase(),
-      created_at: new Date().toISOString(),
-      customer_name: 'Premium Customer',
-      total_amount: 320.00,
-      status: 'shipped', // placed -> processing -> shipped -> out_for_delivery -> delivered
-      est_delivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }),
-      items: [
-        { name: 'Signature Wool Overcoat', quantity: 1, price: 249.00 },
-        { name: 'Luxury Cotton Hoodie', quantity: 1, price: 71.00 }
-      ]
-    });
+    try {
+      const cleanId = simulatedOrderId.trim().replace(/^#/, '');
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          order_items (
+            quantity,
+            price_at_purchase,
+            products (
+              name
+            )
+          )
+        `)
+        .eq('store_id', store.id);
+      
+      if (error) throw error;
+      
+      const foundOrder = (data || []).find((o: any) => 
+        o.id.toLowerCase() === cleanId.toLowerCase() ||
+        o.id.substring(0, 8).toLowerCase() === cleanId.toLowerCase() ||
+        o.id.replace(/-/g, '').substring(0, 8).toLowerCase() === cleanId.toLowerCase()
+      );
+      
+      if (foundOrder) {
+        let email = foundOrder.customer_email || '';
+        let trackNum = '';
+        if (email.includes('|')) {
+          const parts = email.split('|');
+          email = parts[0];
+          if (parts[4]) trackNum = parts[4];
+        }
+        const processed = {
+          ...foundOrder,
+          customer_email: email,
+          tracking_number: trackNum
+        };
+        setTrackedOrders([processed]);
+        setSimulatedOrder(null);
+      } else {
+        // Fallback to simulated mockup
+        setTrackedOrders([]);
+        setSimulatedOrder({
+          id: simulatedOrderId.toUpperCase(),
+          created_at: new Date().toISOString(),
+          customer_name: 'Premium Customer',
+          total_amount: 320.00,
+          status: 'shipped',
+          est_delivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }),
+          items: [
+            { name: 'Signature Wool Overcoat', quantity: 1, price: 249.00 },
+            { name: 'Luxury Cotton Hoodie', quantity: 1, price: 71.00 }
+          ]
+        });
+      }
+    } catch (err) {
+      console.error("Failed to track order by ID:", err);
+      alert("Failed to track order by ID.");
+    } finally {
+      setIsTracking(false);
+    }
   };
 
   // Load Razorpay checkout SDK dynamically
