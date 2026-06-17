@@ -59,7 +59,7 @@ export default function MarketingNavbar() {
       {/* Mobile Menu Button */}
       <button
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        className="md:hidden p-2 text-slate-600 hover:text-blue-600 transition-colors"
+        className="md:hidden h-12 w-12 flex items-center justify-center text-slate-600 hover:text-blue-600 hover:bg-blue-500/10 rounded-xl transition-all duration-200"
         aria-label="Toggle menu"
       >
         {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
