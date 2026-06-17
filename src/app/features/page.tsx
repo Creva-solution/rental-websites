@@ -51,7 +51,7 @@ export default function FeaturesPage() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-white text-slate-800 font-sans antialiased pt-20">
+    <div className="flex flex-col min-h-screen bg-white text-slate-800 font-sans antialiased pt-20 relative overflow-x-hidden">
       <MarketingNavbar />
       
       {/* Background Decorative Patterns */}

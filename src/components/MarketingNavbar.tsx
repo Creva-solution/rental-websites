@@ -67,7 +67,7 @@ export default function MarketingNavbar() {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="absolute top-20 left-0 w-full bg-white border-b border-slate-100 shadow-xl p-6 flex flex-col gap-4 animate-in slide-in-from-top duration-200 md:hidden z-40">
+        <div className="absolute top-20 left-0 right-0 bg-white border-b border-slate-100 shadow-xl p-6 flex flex-col gap-4 animate-in slide-in-from-top duration-200 md:hidden z-40">
           {links.map((link) => (
             <Link
               key={link.href}

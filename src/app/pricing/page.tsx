@@ -70,7 +70,7 @@ export default function PricingPage() {
   const displayPlans = plans.length > 0 ? plans : fallbackPlans;
 
   return (
-    <div className="flex flex-col min-h-screen bg-white text-slate-800 font-sans antialiased pt-20">
+    <div className="flex flex-col min-h-screen bg-white text-slate-800 font-sans antialiased pt-20 relative overflow-x-hidden">
       <MarketingNavbar />
 
       {/* Decorative Background Elements */}
