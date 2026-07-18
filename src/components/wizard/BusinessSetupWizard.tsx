@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, Lock, CheckCircle2, Globe, FileText, Printer, Download, Edit3, Phone, Check, QrCode, Smartphone, Upload, Trash, X, Clipboard, HelpCircle, AlertTriangle } from 'lucide-react';
+import { Loader2, Lock, CheckCircle2, Globe, FileText, Printer, Download, Edit3, Phone, Check, QrCode, Smartphone, Upload, Trash, X, Clipboard, HelpCircle, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 
 export default function BusinessSetupWizard() {
   const router = useRouter();
@@ -34,7 +34,8 @@ export default function BusinessSetupWizard() {
   const [logoUploading, setLogoUploading] = useState(false);
 
   const [selectedTemplate, setSelectedTemplate] = useState<'minimal' | 'artisan' | 'bold' | 'luxe' | 'retro' | 'admire'>('minimal');
-
+  const [showAuthPassword, setShowAuthPassword] = useState(false);
+  const [showAuthConfirmPassword, setShowAuthConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
@@ -1757,14 +1758,23 @@ export default function BusinessSetupWizard() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Password *</label>
-                  <input
-                    type="password"
-                    name="authPassword"
-                    value={formData.authPassword}
-                    onChange={handleChange}
-                    className={`w-full h-10 px-3.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.authPassword ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
-                    placeholder="Min 8 chars, uppercase, lowercase, number"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showAuthPassword ? "text" : "password"}
+                      name="authPassword"
+                      value={formData.authPassword}
+                      onChange={handleChange}
+                      className={`w-full h-10 pl-3.5 pr-10 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.authPassword ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
+                      placeholder="Min 8 chars, uppercase, lowercase, number"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowAuthPassword(!showAuthPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none cursor-pointer"
+                    >
+                      {showAuthPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                   {errors.authPassword && <p className="text-red-500 text-xs mt-1 font-medium">{errors.authPassword}</p>}
                   {!errors.authPassword && formData.authPassword.length > 0 && (
                     <div className="flex gap-2 mt-2">
@@ -1783,14 +1793,23 @@ export default function BusinessSetupWizard() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Confirm Password *</label>
-                  <input
-                    type="password"
-                    name="authConfirmPassword"
-                    value={formData.authConfirmPassword}
-                    onChange={handleChange}
-                    className={`w-full h-10 px-3.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.authConfirmPassword ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
-                    placeholder="Re-enter your password"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showAuthConfirmPassword ? "text" : "password"}
+                      name="authConfirmPassword"
+                      value={formData.authConfirmPassword}
+                      onChange={handleChange}
+                      className={`w-full h-10 pl-3.5 pr-10 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.authConfirmPassword ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
+                      placeholder="Re-enter your password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowAuthConfirmPassword(!showAuthConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none cursor-pointer"
+                    >
+                      {showAuthConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                   {errors.authConfirmPassword && <p className="text-red-500 text-xs mt-1 font-medium">{errors.authConfirmPassword}</p>}
                 </div>
               </div>
