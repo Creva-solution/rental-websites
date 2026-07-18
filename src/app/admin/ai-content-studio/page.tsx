@@ -23,24 +23,30 @@ export default function AIContentStudioPage() {
   const fetchProducts = async () => {
     try {
       setLoadingProducts(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const userRes = await supabase.auth.getUser();
+      const user = userRes?.data?.user;
+      if (!user) {
+        setLoadingProducts(false);
+        return;
+      }
       
-      const { data: storeData } = await supabase
+      const storeRes = await supabase
         .from('stores')
         .select('*')
         .eq('owner_id', user.id)
         .neq('subdomain', '__creva_saas_global_settings__')
-        .single();
+        .maybeSingle();
 
+      const storeData = storeRes?.data;
       if (storeData) {
-        const { data: prodData } = await supabase
+        const prodRes = await supabase
           .from('products')
-          .select('*')
+          .select('id,name,price,description')
           .eq('store_id', storeData.id)
-          .order('created_at', { ascending: false });
+          .order('name', { ascending: true });
 
-        if (prodData) {
+        const prodData = prodRes?.data;
+        if (Array.isArray(prodData)) {
           setProducts(prodData);
         }
       }
@@ -80,15 +86,18 @@ export default function AIContentStudioPage() {
   const parsePrompt = (text: string) => {
     let name = '';
     let features: string[] = [];
+    let cleanText = text;
 
     // Try to find text in quotes
     const quoteMatch = text.match(/["']([^"']+)["']/);
     if (quoteMatch) {
       name = quoteMatch[1];
+      // Strip the matched quote text (e.g. "Signature Wool Overcoat") from the features search space
+      cleanText = text.replace(quoteMatch[0], '');
     }
 
-    // Clean the text to find product name / features
-    let cleanText = text
+    // Clean the text to find product features
+    cleanText = cleanText
       .replace(/write a (highly )?compelling (product description|whatsapp broadcast|social ad copy|seo meta tags) for/gi, '')
       .replace(/listing\.\.\./gi, '')
       .replace(/listing/gi, '')
