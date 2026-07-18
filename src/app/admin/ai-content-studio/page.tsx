@@ -11,6 +11,7 @@ export default function AIContentStudioPage() {
   const [generating, setGenerating] = useState(false);
   const [generatedText, setGeneratedText] = useState('');
   const [copied, setCopied] = useState(false);
+  const [groqKey, setGroqKey] = useState<string>('');
   
   const [products, setProducts] = useState<any[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>('custom');
@@ -48,6 +49,20 @@ export default function AIContentStudioPage() {
         const prodData = prodRes?.data;
         if (Array.isArray(prodData)) {
           setProducts(prodData);
+        }
+
+        // Fetch Meta AI integration key
+        const integRes = await supabase
+          .from('integrations')
+          .select('*')
+          .eq('store_id', storeData.id)
+          .eq('type', 'meta_ai')
+          .eq('is_enabled', true)
+          .maybeSingle();
+
+        const api_key = integRes?.data?.config?.api_key;
+        if (api_key) {
+          setGroqKey(api_key);
         }
       }
     } catch (err) {
@@ -168,11 +183,51 @@ export default function AIContentStudioPage() {
     return { name, features };
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!prompt.trim()) return;
     setGenerating(true);
+    const { name, features } = parsePrompt(prompt);
+
+    if (groqKey) {
+      try {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${groqKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'llama3-8b-8192',
+            messages: [
+              {
+                role: 'system',
+                content: `You are a professional e-commerce copywriter. Write highly engaging, structured, and sales-focused copies in a ${tone} tone.`
+              },
+              {
+                role: 'user',
+                content: `Write a compelling ${activePreset.toLowerCase()} for the product "${name}".\n\nFeatures to include:\n${features.map(f => `- ${f}`).join('\n')}\n\nProvide only the final copy. Keep formatting clean with line breaks and markdown if applicable. Do not include any intro/outro/meta text.`
+              }
+            ],
+            temperature: 0.7,
+            max_tokens: 1024
+          })
+        });
+
+        if (response.ok) {
+          const json = await response.json();
+          const text = json.choices?.[0]?.message?.content;
+          if (text) {
+            setGeneratedText(text.trim());
+            setGenerating(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Groq API call failed, falling back to local generation templates:', err);
+      }
+    }
+
     setTimeout(() => {
-      const { name, features } = parsePrompt(prompt);
       let result = '';
 
       if (activePreset === 'Product Description') {

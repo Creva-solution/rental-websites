@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
   Plug, Settings, Check, CreditCard, Package, Truck,
-  MessageSquare, BarChart3, X, Loader2, ToggleLeft, ToggleRight, Shield
+  MessageSquare, BarChart3, X, Loader2, ToggleLeft, ToggleRight, Shield, Sparkles
 } from 'lucide-react';
 
 interface Integration {
@@ -34,6 +34,16 @@ interface CatalogItem {
 }
 
 const CATALOG: CatalogItem[] = [
+  {
+    type: 'meta_ai',
+    name: 'Meta AI (Llama)',
+    category: 'AI Tools',
+    desc: 'Power your AI Content Studio with Meta Llama-3 models for free.',
+    icon: Sparkles,
+    fields: [
+      { key: 'api_key', label: 'Groq Cloud API Key', type: 'password', placeholder: 'gsk_...', hint: 'Get your 100% Free API Key from console.groq.com (No card required)' },
+    ],
+  },
   {
     type: 'razorpay',
     name: 'Razorpay',
@@ -81,7 +91,7 @@ const CATALOG: CatalogItem[] = [
   },
 ];
 
-const CATEGORIES = ['Payments'];
+const CATEGORIES = ['Payments', 'AI Tools'];
 
 export default function IntegrationsPage() {
   const [store, setStore] = useState<any>(null);
