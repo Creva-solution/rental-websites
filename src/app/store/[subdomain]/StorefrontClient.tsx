@@ -195,7 +195,7 @@ const renderCategoryIcon = (category: string, className = "w-3.5 h-3.5") => {
   return <Tag className={className} />;
 };
 
-export default function StorefrontClient({ store, products, videoSessions = [] }: { store: any, products: any[], videoSessions?: any[] }) {
+export default function StorefrontClient({ store, products, videoSessions = [], pages = [] }: { store: any, products: any[], videoSessions?: any[], pages?: any[] }) {
   const [liveStore, setLiveStore] = useState(store);
 
   useEffect(() => {
@@ -331,7 +331,7 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
 
   let activeCoupons: any[] = [];
   let blogArticles: any[] = [];
-  let customPages: any[] = [];
+  let customPages: any[] = pages || [];
   let videoReels: any[] = [];
   let ga4MeasurementId = '';
   let collectionTitle = '';
@@ -378,7 +378,7 @@ export default function StorefrontClient({ store, products, videoSessions = [] }
       // Extract competitor features
       activeCoupons = data.discountCoupons || data.discounts || data.coupons || [];
       blogArticles = data.articles || data.blogPosts || data.blog || [];
-      customPages = data.pages || data.staticPages || [];
+      customPages = pages && pages.length > 0 ? pages : (data.pages || data.staticPages || []);
       videoReels = data.videoReels || data.videoCommerce || data.reels || data.videos || [];
 
       // Extract configurable collection section title
