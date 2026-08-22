@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { 
   Loader2, Lock, CheckCircle2, Globe, FileText, Printer, Download, 
   Phone, Check, QrCode, Smartphone, Upload, Trash, X, Clipboard, 
-  HelpCircle, AlertTriangle, Eye, EyeOff, ChevronRight, Sparkles, Bot, MessageSquare
+  HelpCircle, AlertTriangle, Eye, EyeOff, ChevronRight, Sparkles, Bot, Info
 } from 'lucide-react';
 
 interface TemplateOption {
@@ -20,6 +20,12 @@ interface TemplateOption {
   thumb: string;
 }
 
+const RESERVED_SUBDOMAINS = [
+  'admin', 'login', 'dashboard', 'api', 'support', 'help', 'www', 'mail', 'app',
+  'store', 'settings', 'saas', 'auth', 'null', 'undefined', 'crevawebs', 'creva',
+  'checkout', 'payment', 'shop', 'portal', 'assets', 'images', 'static', 'cdn'
+];
+
 export default function BusinessSetupWizard() {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -29,13 +35,18 @@ export default function BusinessSetupWizard() {
   // Progress & Resume
   const [welcomeBack, setWelcomeBack] = useState(false);
 
-  // Subscription Plan & Signature
+  // Subscription Plan & Signature states
   const [selectedPlan, setSelectedPlan] = useState<string>('30');
   const [signature, setSignature] = useState<string | null>(null);
   const [isDrawingSig, setIsDrawingSig] = useState(false);
   const [isSignatureConfirmed, setIsSignatureConfirmed] = useState(false);
   const [assignedOfficer, setAssignedOfficer] = useState<any>(null);
   const sigCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // New Agreement Validation States
+  const [isAgreementAccepted, setIsAgreementAccepted] = useState(false);
+  const [agreementCheckbox, setAgreementCheckbox] = useState(false);
+  const [acceptedTimestamp, setAcceptedTimestamp] = useState<string | null>(null);
 
   // Payment states
   const [paymentScreenshot, setPaymentScreenshot] = useState<string | null>(null);
@@ -48,7 +59,7 @@ export default function BusinessSetupWizard() {
   const [showAuthPassword, setShowAuthPassword] = useState(false);
   const [showAuthConfirmPassword, setShowAuthConfirmPassword] = useState(false);
   
-  // Custom Webz AI Onboarding Assistant state
+  // Webz AI Onboarding Assistant state
   const [aiOpen, setAiOpen] = useState(false);
   const [aiMessages, setAiMessages] = useState<Array<{ sender: 'ai' | 'user'; text: string }>>([
     { sender: 'ai', text: "Hello! I am Webz AI. I am here to guide you through setting up your CrevaWebs online store. What can I help you with?" }
@@ -76,6 +87,7 @@ export default function BusinessSetupWizard() {
     state: '',
     pincode: '',
     currency: 'INR',
+    subdomain: '',
     authEmail: '',
     authPassword: '',
     authConfirmPassword: '',
@@ -107,7 +119,11 @@ export default function BusinessSetupWizard() {
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          setFormData(prev => ({ ...prev, ...parsed.data }));
+          setFormData(prev => ({
+            ...prev,
+            ...parsed.data,
+            subdomain: parsed.data.subdomain || parsed.data.businessName.toLowerCase().replace(/[^a-z0-9]/g, '-')
+          }));
           setStep(parsed.step || 1);
           setWelcomeBack(true);
         } catch(e) {}
@@ -184,7 +200,7 @@ export default function BusinessSetupWizard() {
 
   // Init canvas signature pad
   useEffect(() => {
-    if (step === 5) {
+    if (step === 5 && isAgreementAccepted) {
       const timer = setTimeout(() => {
         const canvas = sigCanvasRef.current;
         if (canvas) {
@@ -197,7 +213,7 @@ export default function BusinessSetupWizard() {
       }, 150);
       return () => clearTimeout(timer);
     }
-  }, [step]);
+  }, [step, isAgreementAccepted]);
 
   const validateStep = (s: number): Record<string, string> => {
     const errs: Record<string, string> = {};
@@ -229,22 +245,36 @@ export default function BusinessSetupWizard() {
       return;
     }
     
-    if (step === 4 && !domainChecked) {
-      alert("Please check subdomain availability to proceed.");
-      return;
-    }
-    if (step === 4 && !domainAvailable) {
-      alert("Subdomain address is not available. Please try another name.");
-      return;
+    if (step === 4) {
+      if (!formData.subdomain.trim() || formData.subdomain.length < 3) {
+        setErrors({ subdomain: 'Store address must be at least 3 characters.' });
+        return;
+      }
+      if (RESERVED_SUBDOMAINS.includes(formData.subdomain)) {
+        setErrors({ subdomain: "This store name isn't available. Please choose another name." });
+        return;
+      }
+      if (!domainChecked) {
+        setErrors({ subdomain: 'Please check store address availability to continue.' });
+        return;
+      }
+      if (!domainAvailable) {
+        setErrors({ subdomain: 'Store address is already taken. Please enter an available address.' });
+        return;
+      }
     }
 
     if (step === 5) {
+      if (!isAgreementAccepted) {
+        setErrors({ agreement: '⚠ Please read and accept the Merchant Licensing Agreement before continuing.' });
+        return;
+      }
       if (!signature || !isSignatureConfirmed) {
-        alert("Please draw and confirm your signature to continue.");
+        setErrors({ signature: '⚠ Please add and confirm your digital signature before continuing.' });
         return;
       }
       if (!paymentScreenshotUrl) {
-        alert("Please upload your payment verification screenshot.");
+        setErrors({ payment: 'Please upload your payment verification screenshot.' });
         return;
       }
     }
@@ -262,11 +292,31 @@ export default function BusinessSetupWizard() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
     if (name === 'businessName') {
+      const slug = value.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      setFormData(prev => ({
+        ...prev,
+        businessName: value,
+        subdomain: slug
+      }));
       setDomainChecked(false);
       setDomainAvailable(null);
+      setErrors(prev => { const n = { ...prev }; delete n.subdomain; return n; });
+    } else if (name === 'subdomain') {
+      // Allow letters, numbers, and hyphens. Silently normalize spaces and special characters.
+      const normalized = value.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-');
+      setFormData(prev => ({
+        ...prev,
+        subdomain: normalized
+      }));
+      setDomainChecked(false);
+      setDomainAvailable(null);
+      setErrors(prev => { const n = { ...prev }; delete n.subdomain; return n; });
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
     }
+    
     if (errors[name]) setErrors(prev => { const n = { ...prev }; delete n[name]; return n; });
   };
 
@@ -326,6 +376,7 @@ export default function BusinessSetupWizard() {
         const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(filePath);
         setPaymentScreenshotUrl(publicUrl);
         setPaymentScreenshot(publicUrl);
+        setErrors(prev => { const n = { ...prev }; delete n.payment; return n; });
       } catch (err: any) {
         console.error(err);
         const reader = new FileReader();
@@ -340,14 +391,20 @@ export default function BusinessSetupWizard() {
     }
   };
 
-  // Subdomain checker
+  // Subdomain availability check logic
   const handleCheckDomain = async () => {
-    const slug = formData.businessName.toLowerCase().replace(/[^a-z0-9]/g, '-').trim();
-    if (!slug) {
-      alert("Please enter a business name first.");
+    const slug = formData.subdomain.trim();
+    if (!slug || slug.length < 3) {
+      setErrors({ subdomain: 'Store name must be at least 3 characters.' });
+      return;
+    }
+    if (RESERVED_SUBDOMAINS.includes(slug)) {
+      setDomainAvailable(false);
+      setDomainChecked(true);
       return;
     }
     setCheckingDomain(true);
+    setErrors(prev => { const n = { ...prev }; delete n.subdomain; return n; });
     try {
       const { data } = await supabase
         .from('stores')
@@ -368,13 +425,14 @@ export default function BusinessSetupWizard() {
   // Signature drawing pad
   const startDrawingSig = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
+    if (!isAgreementAccepted || isSignatureConfirmed) return;
     const canvas = sigCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     setIsDrawingSig(true);
     ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
     
     const rect = canvas.getBoundingClientRect();
@@ -388,7 +446,7 @@ export default function BusinessSetupWizard() {
   };
 
   const drawSig = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDrawingSig) return;
+    if (!isDrawingSig || !isAgreementAccepted || isSignatureConfirmed) return;
     e.preventDefault();
     const canvas = sigCanvasRef.current;
     if (!canvas) return;
@@ -412,6 +470,7 @@ export default function BusinessSetupWizard() {
     if (canvas) {
       setSignature(canvas.toDataURL());
       setIsSignatureConfirmed(true);
+      setErrors(prev => { const n = { ...prev }; delete n.signature; return n; });
     }
   };
 
@@ -427,6 +486,17 @@ export default function BusinessSetupWizard() {
     }
     setSignature(null);
     setIsSignatureConfirmed(false);
+  };
+
+  const handleAgreeAndContinue = () => {
+    if (!agreementCheckbox) {
+      alert("Please read and check the agreement box before accepting.");
+      return;
+    }
+    setIsAgreementAccepted(true);
+    setAcceptedTimestamp(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    setShowAgreementModal(false);
+    setErrors(prev => { const n = { ...prev }; delete n.agreement; return n; });
   };
 
   const getSelectedPlanAmount = (): string => {
@@ -460,7 +530,7 @@ export default function BusinessSetupWizard() {
       if (authError) throw authError;
       if (!authData.user) throw new Error('Account creation failed.');
 
-      const subdomain = formData.businessName.toLowerCase().replace(/[^a-z0-9]/g, '-').trim();
+      const subdomain = formData.subdomain.trim();
       const contractDetails = {
         signedName: formData.ownerName,
         signatureUrl: signature,
@@ -470,7 +540,8 @@ export default function BusinessSetupWizard() {
         assignedOfficer,
         paymentScreenshotUrl,
         paymentStatus: 'pending',
-        selectedTemplate
+        selectedTemplate,
+        agreementAcceptedAt: acceptedTimestamp
       };
 
       const now = new Date();
@@ -500,7 +571,7 @@ export default function BusinessSetupWizard() {
 
       if (storeError) throw storeError;
 
-      // Register domains
+      // Register domains on Vercel
       try {
         await fetch('/api/domains/add', {
           method: 'POST',
@@ -509,10 +580,7 @@ export default function BusinessSetupWizard() {
         });
       } catch (domainErr) {}
 
-      // Clean local storage draft
       localStorage.removeItem('creva_onboarding_draft');
-
-      // Success routing
       router.push('/admin');
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred');
@@ -520,7 +588,7 @@ export default function BusinessSetupWizard() {
     }
   };
 
-  // Assistant chatbot parser
+  // Assistant actions
   const handleAssistantAction = (query: string) => {
     setAiMessages(prev => [...prev, { sender: 'user', text: query }]);
     
@@ -529,13 +597,13 @@ export default function BusinessSetupWizard() {
       if (step === 1) aiText = "On this step, we collect your business name, a short description for your shop, and category settings.";
       if (step === 2) aiText = "Here, select your website theme layout, upload a brand logo, and customize button highlight colors.";
       if (step === 3) aiText = "Provide your contact number, support email, and store coordinates for invoice generations.";
-      if (step === 4) aiText = "Define your unique storefront subdomain (e.g. yourname.crevawebs.in) and preferred sales currency.";
-      if (step === 5) aiText = "Choose a billing plan, draw your license signature, scan the UPI QR, and upload verification screenshots.";
-      if (step === 6) aiText = "Define your admin login credentials (email and password parameters).";
+      if (step === 4) aiText = "Choose a unique name address for your store URL. Customers will access your shop using this address.";
+      if (step === 5) aiText = "Review and accept our Licensing Agreement, sign digitally, and scan the UPI QR code to complete payment verification.";
+      if (step === 6) aiText = "Create your owner credentials (login email and password configurations).";
     } else if (query === 'Help me choose a template') {
-      aiText = "If you sell beauty or clothes, 'Minimal' or 'Bold' themes provide excellent layouts. Natural products look fantastic with 'Artisan'!";
-    } else if (query === 'What is a subdomain?') {
-      aiText = "A subdomain is your free digital address. e.g. entering 'myorganicsoaps' creates 'myorganicsoaps.crevawebs.in'. You can map a custom commercial domain later.";
+      aiText = "If you sell beauty or clothing, 'Minimal' layouts fit best. Natural foods or handmade items look spectacular with the warm tones of 'Artisan'.";
+    } else if (query === 'What is a store address?') {
+      aiText = "Your store address is the unique website link where customers visit your shop (e.g. entering 'myhandmade' creates 'myhandmade.crevawebs.in'). You can add a custom domain later.";
     }
 
     setTimeout(() => {
@@ -543,7 +611,21 @@ export default function BusinessSetupWizard() {
     }, 600);
   };
 
-  // Templates options list
+  const getSubdomainSuggestions = () => {
+    const slug = formData.subdomain.trim() || 'store';
+    return [
+      `${slug}-shop`,
+      `${slug}-india`,
+      `my-${slug}`
+    ];
+  };
+
+  const handleApplySuggestion = (suggestion: string) => {
+    setFormData(prev => ({ ...prev, subdomain: suggestion }));
+    setDomainChecked(false);
+    setDomainAvailable(null);
+  };
+
   const templatesList: TemplateOption[] = [
     { id: 'minimal', name: 'Minimal Elegance', category: 'Fashion & Boutique', desc: 'Sleek borders, white spaces, and high contrast layout.', color: '#000000', thumb: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=300' },
     { id: 'artisan', name: 'Artisan Craft', category: 'Natural Goods', desc: 'Warm tones, soft neutral grids, and comfortable borders.', color: '#8B5A2B', thumb: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&q=80&w=300' },
@@ -551,16 +633,20 @@ export default function BusinessSetupWizard() {
     { id: 'luxe', name: 'Dark Luxe', category: 'Luxury & Jewelry', desc: 'Elegant typography, gold color highlights, premium grids.', color: '#D4AF37', thumb: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=300' }
   ];
 
+  // Store Address validation flags
+  const isSubdomainValid = formData.subdomain.trim().length >= 3 && !RESERVED_SUBDOMAINS.includes(formData.subdomain.trim());
+  const showSuggestions = domainChecked && !domainAvailable && formData.subdomain.trim().length >= 3;
+
   return (
     <div className="w-full max-w-4xl mx-auto flex flex-col justify-between min-h-[500px]">
       
-      {/* Dynamic horizontal step indicator (Desktop) */}
+      {/* Step Indicator (Desktop) */}
       <div className="hidden md:flex items-center justify-between border-b border-slate-100 pb-6 mb-8 text-[11px] font-black uppercase tracking-wider text-slate-400 select-none">
         {[
           { num: 1, label: 'Business' },
           { num: 2, label: 'Branding' },
           { num: 3, label: 'Contact' },
-          { num: 4, label: 'Preferences' },
+          { num: 4, label: 'Store Address' },
           { num: 5, label: 'Plan & Pay' },
           { num: 6, label: 'Account' }
         ].map((s) => {
@@ -620,7 +706,7 @@ export default function BusinessSetupWizard() {
             >
               <div>
                 <h2 className="text-2xl font-black text-slate-900">Tell us about your business</h2>
-                <p className="text-slate-500 text-xs mt-1">Let's start with a few basic details to personalize your online store.</p>
+                <p className="text-slate-500 text-xs mt-1 font-medium">Let's start with a few basic details to personalize your online store.</p>
               </div>
 
               <div className="space-y-4 max-w-xl">
@@ -691,7 +777,7 @@ export default function BusinessSetupWizard() {
             >
               <div>
                 <h2 className="text-2xl font-black text-slate-900">Make your store look like your brand</h2>
-                <p className="text-slate-500 text-xs mt-1">Choose a design layout and add your logo coordinates. You can edit this later.</p>
+                <p className="text-slate-500 text-xs mt-1 font-medium">Choose a design layout and add your logo. You can change these settings later.</p>
               </div>
 
               {/* Template gallery selection */}
@@ -730,10 +816,8 @@ export default function BusinessSetupWizard() {
                 </div>
               </div>
 
-              {/* Upload logo drag drop & Brand Color pickers */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch pt-2">
-                
-                {/* Logo upload card */}
+                {/* Logo upload */}
                 <div className="space-y-3 flex flex-col justify-between">
                   <span className="text-xs font-bold text-slate-650 uppercase tracking-wider block">Add your logo</span>
                   
@@ -825,7 +909,6 @@ export default function BusinessSetupWizard() {
                     </button>
                   </div>
                 </div>
-
               </div>
             </motion.div>
           )}
@@ -841,12 +924,10 @@ export default function BusinessSetupWizard() {
             >
               <div>
                 <h2 className="text-2xl font-black text-slate-900">How can customers reach you?</h2>
-                <p className="text-slate-500 text-xs mt-1">Add your merchant contact details so clients know how to get in touch.</p>
+                <p className="text-slate-500 text-xs mt-1 font-medium">Add your contact details so customers know how to get in touch.</p>
               </div>
 
               <div className="space-y-6">
-                
-                {/* Contact information group */}
                 <div className="space-y-4 max-w-xl">
                   <span className="text-xs font-black text-slate-400 uppercase tracking-wider block border-b pb-1">Contact Information</span>
                   
@@ -899,7 +980,6 @@ export default function BusinessSetupWizard() {
                   </div>
                 </div>
 
-                {/* Address information group */}
                 <div className="space-y-4 max-w-xl">
                   <span className="text-xs font-black text-slate-400 uppercase tracking-wider block border-b pb-1">Business Address</span>
                   
@@ -919,7 +999,7 @@ export default function BusinessSetupWizard() {
 
                   <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-600 uppercase block">City *</label>
+                      <label className="text-[10px] font-bold text-slate-650 uppercase block">City *</label>
                       <input 
                         type="text" 
                         name="city"
@@ -931,7 +1011,7 @@ export default function BusinessSetupWizard() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-600 uppercase block">State *</label>
+                      <label className="text-[10px] font-bold text-slate-650 uppercase block">State *</label>
                       <input 
                         type="text" 
                         name="state"
@@ -943,7 +1023,7 @@ export default function BusinessSetupWizard() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-600 uppercase block">Pincode *</label>
+                      <label className="text-[10px] font-bold text-slate-650 uppercase block">Pincode *</label>
                       <input 
                         type="text" 
                         name="pincode"
@@ -957,12 +1037,11 @@ export default function BusinessSetupWizard() {
                   </div>
                   {(errors.city || errors.state || errors.pincode) && <span className="text-[10px] text-red-500 font-bold block">Please fill in all address parameters.</span>}
                 </div>
-
               </div>
             </motion.div>
           )}
 
-          {/* STEP 4: STORE PREFERENCES */}
+          {/* STEP 4: STORE ADDRESS preferences */}
           {step === 4 && (
             <motion.div
               key="step4"
@@ -972,22 +1051,25 @@ export default function BusinessSetupWizard() {
               className="space-y-6 text-left"
             >
               <div>
-                <h2 className="text-2xl font-black text-slate-900">Set up your store preferences</h2>
-                <p className="text-slate-500 text-xs mt-1">Configure your domain mapping details and currency options.</p>
+                <h2 className="text-2xl font-black text-slate-900 font-sans">Choose your store address</h2>
+                <p className="text-slate-500 text-xs mt-1 font-medium">Choose a unique name for your online store. Customers will use this address to visit your store.</p>
               </div>
 
-              <div className="space-y-5 max-w-xl">
+              <div className="space-y-6 max-w-xl">
                 
-                {/* Subdomain Input */}
+                {/* Store address structured inputs */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-650 uppercase tracking-wider block">Choose your store address</label>
-                  <div className="flex gap-2">
-                    <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3.5 flex-1 focus-within:border-blue-500 transition-colors">
+                  <label className="text-xs font-bold text-slate-900 block">Store address</label>
+                  <p className="text-[10px] text-slate-400 font-medium">This will become your unique CrevaWebs store URL.</p>
+                  
+                  {/* Desktop input layout */}
+                  <div className="hidden sm:flex gap-2">
+                    <div className="flex items-center bg-slate-50 border border-slate-250 rounded-xl px-3.5 flex-1 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all">
                       <span className="text-xs font-bold text-slate-400 select-none">https://</span>
                       <input 
                         type="text" 
-                        name="businessName"
-                        value={formData.businessName.toLowerCase().replace(/[^a-z0-9]/g, '-')}
+                        name="subdomain"
+                        value={formData.subdomain}
                         onChange={handleChange}
                         placeholder="your-store-name"
                         className="bg-transparent border-none outline-none pl-1 py-3 text-xs font-bold text-slate-800 w-full placeholder:text-slate-350"
@@ -997,26 +1079,87 @@ export default function BusinessSetupWizard() {
                     <button 
                       type="button"
                       onClick={handleCheckDomain}
-                      disabled={checkingDomain || !formData.businessName.trim()}
-                      className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] uppercase tracking-wider px-5 py-3 rounded-xl transition-all disabled:opacity-50 shrink-0"
+                      disabled={checkingDomain || !isSubdomainValid}
+                      className="bg-blue-600 hover:bg-blue-550 text-white font-bold text-[10px] uppercase tracking-wider px-6 py-3.5 rounded-xl transition-all disabled:opacity-40 shrink-0 shadow-md shadow-blue-500/5 cursor-pointer"
                     >
                       {checkingDomain ? 'Checking...' : 'Check Availability'}
                     </button>
                   </div>
 
-                  {domainChecked && (
-                    <div className="pt-1 text-xs">
-                      {domainAvailable ? (
-                        <span className="text-emerald-600 font-bold flex items-center gap-1">✓ Available! Your online storefront will launch at this address.</span>
-                      ) : (
-                        <span className="text-red-500 font-bold flex items-center gap-1">✕ This address name is already taken. Please customize your business name input.</span>
-                      )}
+                  {/* Mobile stacked input layout */}
+                  <div className="sm:hidden flex flex-col gap-3">
+                    <div className="flex items-center bg-slate-50 border border-slate-250 rounded-xl px-3.5 w-full">
+                      <span className="text-xs font-bold text-slate-400 select-none">https://</span>
+                      <input 
+                        type="text" 
+                        name="subdomain"
+                        value={formData.subdomain}
+                        onChange={handleChange}
+                        placeholder="your-store-name"
+                        className="bg-transparent border-none outline-none pl-1 py-3 text-xs font-bold text-slate-800 w-full placeholder:text-slate-350"
+                      />
+                      <span className="text-xs font-bold text-slate-400 select-none">.crevawebs.in</span>
                     </div>
-                  )}
+                    <button 
+                      type="button"
+                      onClick={handleCheckDomain}
+                      disabled={checkingDomain || !isSubdomainValid}
+                      className="bg-blue-600 hover:bg-blue-550 text-white font-bold text-[10px] uppercase tracking-wider w-full py-3 rounded-xl transition-all disabled:opacity-40 shadow-sm"
+                    >
+                      {checkingDomain ? 'Checking...' : 'Check Availability'}
+                    </button>
+                  </div>
+
+                  <p className="text-[10px] text-slate-450 font-medium">Use letters, numbers, and hyphens.</p>
+
+                  {/* Real-time inline validations */}
+                  <div className="pt-2">
+                    {!formData.subdomain.trim() && (
+                      <span className="text-amber-600 text-[10px] font-bold block">Enter a store name to continue.</span>
+                    )}
+                    {formData.subdomain.trim().length > 0 && formData.subdomain.trim().length < 3 && (
+                      <span className="text-red-500 text-[10px] font-bold block">✕ Store name must be at least 3 characters.</span>
+                    )}
+                    {RESERVED_SUBDOMAINS.includes(formData.subdomain.trim()) && (
+                      <span className="text-red-500 text-[10px] font-bold block">✕ This store name isn't available. Please choose another name.</span>
+                    )}
+                    {domainChecked && isSubdomainValid && (
+                      <div>
+                        {domainAvailable ? (
+                          <div className="space-y-1">
+                            <span className="text-emerald-600 text-[10.5px] font-extrabold flex items-center gap-1">✓ Available! Your store address is ready.</span>
+                            <span className="text-[10px] text-slate-400 block font-semibold">Address link: <Link href={`https://${formData.subdomain}.crevawebs.in`} target="_blank" className="text-blue-600 underline font-bold">https://{formData.subdomain}.crevawebs.in</Link></span>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <span className="text-red-500 text-[10.5px] font-extrabold block">✕ This store name is already taken.</span>
+                            {showSuggestions && (
+                              <div className="space-y-1.5 pt-1">
+                                <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider block">Suggested alternatives:</span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {getSubdomainSuggestions().map((sugg) => (
+                                    <button 
+                                      key={sugg}
+                                      type="button"
+                                      onClick={() => handleApplySuggestion(sugg)}
+                                      className="px-2.5 py-1 text-[9px] bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-650 font-bold transition-all"
+                                    >
+                                      {sugg}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {errors.subdomain && <span className="text-[10px] text-red-500 font-bold block mt-1">⚠ {errors.subdomain}</span>}
+                  </div>
                 </div>
 
                 {/* Currency selector */}
-                <div className="space-y-1.5 pt-2">
+                <div className="space-y-1.5 pt-2 border-t border-slate-100">
                   <label className="text-xs font-bold text-slate-650 uppercase tracking-wider block">Store currency</label>
                   <select 
                     name="currency"
@@ -1047,13 +1190,14 @@ export default function BusinessSetupWizard() {
             >
               <div>
                 <h2 className="text-2xl font-black text-slate-900">Choose your plan & complete setup</h2>
-                <p className="text-slate-500 text-xs mt-1">Complete your licensing agreement and pay setup fees to activate your store.</p>
+                <p className="text-slate-500 text-xs mt-1 font-medium">Complete your licensing agreement and pay setup fees to activate your store.</p>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 
                 {/* Left Side: Plans & Agreement Signing */}
                 <div className="lg:col-span-6 space-y-6">
+                  
                   {/* Plan Cards */}
                   <div className="space-y-3">
                     <span className="text-xs font-bold text-slate-650 uppercase tracking-wider block">Select Platform Plan</span>
@@ -1082,56 +1226,115 @@ export default function BusinessSetupWizard() {
                   </div>
 
                   {/* Licensing Agreement Sign block */}
-                  <div className="space-y-3 pt-2">
+                  <div className="space-y-3 pt-2 border-t border-slate-100">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-slate-650 uppercase tracking-wider">Merchant Licensing Agreement</span>
+                      <span className="text-xs font-bold text-slate-900">Merchant Licensing Agreement</span>
                       <button 
                         type="button"
                         onClick={() => setShowAgreementModal(true)}
-                        className="text-[10px] font-bold text-blue-600 flex items-center gap-0.5"
+                        className="text-[10px] font-extrabold text-blue-600 flex items-center gap-0.5 hover:underline"
                       >
                         Read Full License →
                       </button>
                     </div>
 
-                    {/* Signature Canvas */}
-                    <div className="space-y-2">
-                      <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-inner">
-                        <canvas
-                          ref={sigCanvasRef}
-                          width={350}
-                          height={120}
-                          onMouseDown={startDrawingSig}
-                          onMouseMove={drawSig}
-                          onMouseUp={stopDrawingSig}
-                          onMouseLeave={stopDrawingSig}
-                          onTouchStart={startDrawingSig}
-                          onTouchMove={drawSig}
-                          onTouchEnd={stopDrawingSig}
-                          className="w-full h-[120px] block cursor-crosshair"
-                        />
-                      </div>
+                    <p className="text-[10.5px] text-slate-500 leading-relaxed font-medium">
+                      Please review the agreement before continuing. Your signature confirms that you accept the CrevaWebs Merchant Licensing Agreement.
+                    </p>
+
+                    {/* Agreement State Notification */}
+                    <div className="py-1">
+                      {isAgreementAccepted ? (
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 text-[10.5px] font-bold">
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Agreement Accepted (Accepted just now)</span>
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-250 bg-amber-50 text-amber-800 text-[10.5px] font-bold">
+                          <Info className="w-3.5 h-3.5 text-amber-600" />
+                          <span>Agreement not accepted</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Signature Canvas container */}
+                    <div className="space-y-2 pt-2 relative">
                       
-                      <div className="flex gap-2">
-                        <button 
-                          type="button" 
-                          onClick={confirmSig}
-                          className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-[10px] font-bold shadow-sm"
-                        >
-                          Confirm & Lock Signature
-                        </button>
-                        <button 
-                          type="button" 
-                          onClick={clearSig}
-                          className="px-4 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-650 rounded-lg text-[10px] font-semibold"
-                        >
-                          Clear
-                        </button>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10.5px] font-bold text-slate-650 uppercase">Digital Signature</span>
+                        {isSignatureConfirmed && (
+                          <button 
+                            type="button" 
+                            onClick={() => setIsSignatureConfirmed(false)}
+                            className="text-[10px] text-blue-600 font-extrabold hover:underline"
+                          >
+                            Edit Signature
+                          </button>
+                        )}
                       </div>
 
-                      {isSignatureConfirmed && (
-                        <div className="text-[10px] text-emerald-600 font-bold flex items-center gap-1 pt-1">
-                          ✓ Digital signature recorded and verified.
+                      {/* Locked Canvas Wrapper */}
+                      <div className="relative">
+                        <div className={`border rounded-xl overflow-hidden bg-white shadow-inner transition-opacity ${
+                          !isAgreementAccepted ? 'border-slate-200 opacity-60 pointer-events-none' : 'border-slate-300'
+                        }`}>
+                          <canvas
+                            ref={sigCanvasRef}
+                            width={350}
+                            height={120}
+                            onMouseDown={startDrawingSig}
+                            onMouseMove={drawSig}
+                            onMouseUp={stopDrawingSig}
+                            onMouseLeave={stopDrawingSig}
+                            onTouchStart={startDrawingSig}
+                            onTouchMove={drawSig}
+                            onTouchEnd={stopDrawingSig}
+                            className={`w-full h-[120px] block ${isSignatureConfirmed ? 'pointer-events-none' : 'cursor-crosshair'}`}
+                          />
+                        </div>
+
+                        {/* Overlay Lock indicator */}
+                        {!isAgreementAccepted && (
+                          <div className="absolute inset-0 bg-slate-50/70 flex flex-col items-center justify-center text-center p-4 rounded-xl select-none">
+                            <Lock className="w-5 h-5 text-slate-400 mb-1" />
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">🔒 Signature Locked</p>
+                            <p className="text-[9px] text-slate-500 font-medium">Accept the licensing agreement to enable your digital signature.</p>
+                          </div>
+                        )}
+                        
+                        {isAgreementAccepted && !isSignatureConfirmed && (
+                          <div className="absolute top-2 right-2 bg-blue-50 text-blue-600 border border-blue-150 px-2 py-0.5 rounded text-[8.5px] font-black uppercase tracking-wider select-none animate-pulse">
+                            Active Pad
+                          </div>
+                        )}
+
+                        {isSignatureConfirmed && (
+                          <div className="absolute inset-0 bg-slate-50/30 flex items-center justify-center p-2 rounded-xl select-none pointer-events-none">
+                            <div className="bg-white/95 border border-emerald-250 px-3.5 py-2 rounded-xl shadow-md flex items-center gap-1.5">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                              <span className="text-[10.5px] font-black text-emerald-800 uppercase tracking-wide">✓ Signature Confirmed</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Control buttons */}
+                      {isAgreementAccepted && !isSignatureConfirmed && (
+                        <div className="flex gap-2 pt-1.5">
+                          <button 
+                            type="button" 
+                            onClick={confirmSig}
+                            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-550 text-white rounded-lg text-[10px] font-bold shadow-sm"
+                          >
+                            Confirm & Lock Signature
+                          </button>
+                          <button 
+                            type="button" 
+                            onClick={clearSig}
+                            className="px-4 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-650 rounded-lg text-[10px] font-semibold"
+                          >
+                            Clear
+                          </button>
                         </div>
                       )}
                     </div>
@@ -1147,7 +1350,7 @@ export default function BusinessSetupWizard() {
 
                   <div className="flex flex-col sm:flex-row gap-4 items-center">
                     <div className="w-28 h-28 bg-white border border-slate-200 p-2 rounded-xl shrink-0 shadow-sm">
-                      {/* Simple visual vector QR code simulation */}
+                      {/* QR Vector preview */}
                       <svg viewBox="0 0 100 100" className="w-full h-full text-slate-900">
                         <path d="M5 5h30v30H5zm45 0h30v30H50zM5 50h30v30H5zm45 10h10v10H50zm10-10h10v10h-10zm20 20h10v10H80zm-10-10h10v10h-10z" fill="currentColor" />
                         <rect x="12" y="12" width="16" height="16" fill="currentColor" />
@@ -1168,7 +1371,7 @@ export default function BusinessSetupWizard() {
                     <span className="text-[10px] font-bold text-slate-650 uppercase block">Upload screenshot confirmation *</span>
                     
                     {!paymentScreenshot ? (
-                      <div className="relative border border-dashed border-slate-300 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-50 transition-colors h-[90px]">
+                      <div className="relative border border-dashed border-slate-350 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-50 transition-colors h-[90px]">
                         <input 
                           type="file" 
                           accept="image/*"
@@ -1298,13 +1501,18 @@ export default function BusinessSetupWizard() {
         </AnimatePresence>
       </div>
 
-      {error && (
-        <div className="mt-6 p-4 bg-red-50 text-red-650 text-xs rounded-xl border border-red-200 text-left font-semibold">
-          ⚠ {error}
+      {/* Field Level Alert Warnings */}
+      {(errors.subdomain || errors.agreement || errors.signature || errors.payment || error) && (
+        <div className="mt-6 p-4 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200 text-left font-semibold space-y-1.5">
+          {errors.subdomain && <p>⚠ {errors.subdomain}</p>}
+          {errors.agreement && <p>{errors.agreement}</p>}
+          {errors.signature && <p>{errors.signature}</p>}
+          {errors.payment && <p>⚠ {errors.payment}</p>}
+          {error && <p>⚠ {error}</p>}
         </div>
       )}
 
-      {/* Onboarding Wizard Footer Navigation Controls */}
+      {/* Onboarding Wizard Footer Controls */}
       <div className="mt-8 pt-6 border-t border-slate-100 flex justify-between select-none">
         <button
           onClick={prevStep}
@@ -1317,7 +1525,7 @@ export default function BusinessSetupWizard() {
           <button
             onClick={nextStep}
             disabled={loading}
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-500 px-8 text-xs font-bold uppercase tracking-wider text-white shadow-md shadow-blue-500/10 transition-colors cursor-pointer"
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-550 px-8 text-xs font-bold uppercase tracking-wider text-white shadow-md shadow-blue-500/10 transition-colors cursor-pointer"
           >
             Continue →
           </button>
@@ -1338,38 +1546,65 @@ export default function BusinessSetupWizard() {
         )}
       </div>
 
-      {/* Licensing Terms & Conditions Agreement Full Modal Drawer */}
+      {/* Licensing Terms Agreement Modal Drawer */}
       <AnimatePresence>
         {showAgreementModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/35 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh]"
+              className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]"
             >
-              <div className="p-4 border-b border-slate-100 flex justify-between items-center">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-800">Licensing Agreement Full Terms</span>
-                <button onClick={() => setShowAgreementModal(false)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-400"><X className="w-4 h-4" /></button>
+              <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-800">CrevaWebs Merchant Licensing Agreement</span>
+                <button onClick={() => setShowAgreementModal(false)} className="p-1 hover:bg-slate-200 rounded-lg text-slate-400"><X className="w-4 h-4" /></button>
               </div>
               <div className="flex-1 overflow-y-auto p-6 text-xs text-slate-500 leading-relaxed text-left space-y-4">
                 <div className="flex gap-2 mb-2 select-none">
                   <button onClick={() => setSelectedAgreementLang('en')} className={`px-3 py-1 rounded text-[10px] font-bold ${selectedAgreementLang==='en' ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'border'}`}>English</button>
                   <button onClick={() => setSelectedAgreementLang('ta')} className={`px-3 py-1 rounded text-[10px] font-bold ${selectedAgreementLang==='ta' ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'border'}`}>Tamil</button>
                 </div>
-                <p className="whitespace-pre-line bg-slate-50 p-4 border rounded-xl font-mono text-[10.5px]">
+                <div className="whitespace-pre-line bg-slate-50 p-4 border rounded-xl font-mono text-[10px] leading-relaxed text-slate-700">
+                  <h4 className="font-extrabold text-[11px] mb-2 text-slate-950 uppercase">OFFICIAL MERCHANT LICENSING CONTRACT TERMS</h4>
                   {agreementTemplates[selectedAgreementLang] || defaultTemplates[selectedAgreementLang]}
-                </p>
+                </div>
               </div>
-              <div className="p-4 border-t border-slate-100 flex justify-end">
-                <button onClick={() => setShowAgreementModal(false)} className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase rounded-xl">Accept & Close</button>
+              
+              {/* Checkbox and confirmation controls */}
+              <div className="p-5 border-t border-slate-100 bg-slate-50 flex flex-col gap-4">
+                <label className="flex items-start gap-2.5 cursor-pointer text-xs select-none">
+                  <input 
+                    type="checkbox"
+                    checked={agreementCheckbox}
+                    onChange={(e) => setAgreementCheckbox(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 mt-0.5 cursor-pointer"
+                  />
+                  <span className="font-bold text-slate-700 text-[11.5px]">I have read and agree to the CrevaWebs Merchant Licensing Agreement</span>
+                </label>
+
+                <div className="flex justify-end gap-2">
+                  <button 
+                    onClick={() => setShowAgreementModal(false)}
+                    className="px-5 py-2 border border-slate-200 rounded-xl text-slate-650 hover:bg-slate-100 text-xs font-bold"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={handleAgreeAndContinue}
+                    disabled={!agreementCheckbox}
+                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-550 disabled:opacity-40 text-white font-bold text-xs uppercase rounded-xl shadow-md cursor-pointer"
+                  >
+                    I Agree & Continue
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      {/* 14. DYNAMIC INTEGRATED WEBZ AI WIZARD HELPER */}
+      {/* Floating Webz AI Wizard Helper */}
       <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end gap-3">
         {aiOpen && (
           <motion.div
@@ -1406,22 +1641,22 @@ export default function BusinessSetupWizard() {
               <div className="flex gap-1.5 overflow-x-auto pb-0.5 select-none">
                 <button 
                   onClick={() => handleAssistantAction('Explain this step')}
-                  className="px-2.5 py-1 text-[9px] bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 whitespace-nowrap cursor-pointer hover:bg-slate-100"
+                  className="px-2.5 py-1 text-[9px] bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-650 whitespace-nowrap cursor-pointer hover:bg-slate-100"
                 >
                   💡 Explain Step
                 </button>
                 {step === 2 && (
                   <button 
                     onClick={() => handleAssistantAction('Help me choose a template')}
-                    className="px-2.5 py-1 text-[9px] bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 whitespace-nowrap cursor-pointer hover:bg-slate-100"
+                    className="px-2.5 py-1 text-[9px] bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-650 whitespace-nowrap cursor-pointer hover:bg-slate-100"
                   >
                     🎨 Suggest Theme
                   </button>
                 )}
                 {step === 4 && (
                   <button 
-                    onClick={() => handleAssistantAction('What is a subdomain?')}
-                    className="px-2.5 py-1 text-[9px] bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 whitespace-nowrap cursor-pointer hover:bg-slate-100"
+                    onClick={() => handleAssistantAction('What is a store address?')}
+                    className="px-2.5 py-1 text-[9px] bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-650 whitespace-nowrap cursor-pointer hover:bg-slate-100"
                   >
                     🌐 What is a domain?
                   </button>
@@ -1433,7 +1668,7 @@ export default function BusinessSetupWizard() {
 
         <button
           onClick={() => setAiOpen(!aiOpen)}
-          className="bg-blue-600 hover:bg-blue-500 text-white p-3.5 rounded-full shadow-lg flex items-center justify-center cursor-pointer"
+          className="bg-blue-600 hover:bg-blue-550 text-white p-3.5 rounded-full shadow-lg flex items-center justify-center cursor-pointer"
         >
           <Bot className="w-5 h-5" />
         </button>
