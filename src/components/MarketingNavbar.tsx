@@ -19,21 +19,22 @@ export default function MarketingNavbar() {
   }, []);
 
   const links = [
-    { name: 'Home', href: '/' },
-    { name: 'Features', href: '/features' },
-    { name: 'Templates', href: '/templates' },
-    { name: 'Pricing', href: '/pricing' }
+    { name: 'Features', href: '/#features' },
+    { name: 'How It Works', href: '/#how-it-works' },
+    { name: 'Templates', href: '/#templates' },
+    { name: 'Pricing', href: '/#pricing' },
+    { name: 'FAQ', href: '/#faq' }
   ];
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 border-b ${
       scrolled 
-        ? 'bg-white/95 backdrop-blur-md border-slate-200/80 shadow-[0_2px_20px_rgba(0,0,0,0.02)] h-16' 
+        ? 'bg-white/95 backdrop-blur-md border-slate-200/80 shadow-[0_2px_20px_rgba(0,0,0,0.01)] h-16' 
         : 'bg-white border-slate-100 h-20'
     } px-6 lg:px-14 flex items-center justify-between`}>
       <Link className="flex items-center" href="/">
         <span className="inline-flex items-center">
-          <img src="/logo-creva.svg" alt="Creva Webzz" className="h-10 w-auto object-contain" />
+          <img src="/logo-creva.svg" alt="CrevaWebs" className="h-9 w-auto object-contain" />
         </span>
       </Link>
 
@@ -41,13 +42,9 @@ export default function MarketingNavbar() {
       <nav className="hidden md:flex gap-8 items-center">
         {links.map((link) => (
           <Link
-            key={link.href}
+            key={link.name}
             href={link.href}
-            className={`text-sm font-semibold transition-colors duration-150 ${
-              pathname === link.href 
-                ? 'text-blue-600' 
-                : 'text-slate-600 hover:text-blue-600'
-            }`}
+            className="text-sm font-semibold text-slate-650 hover:text-blue-600 transition-colors duration-150"
           >
             {link.name}
           </Link>
@@ -62,10 +59,10 @@ export default function MarketingNavbar() {
           Login
         </Link>
         <Link
-          className="text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-650 text-white shadow-md shadow-blue-500/10 h-10 px-5 flex items-center rounded-xl hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200"
+          className="text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-500/10 h-10 px-5 flex items-center rounded-xl hover:-translate-y-0.5 transition-all duration-200"
           href="/register"
         >
-          Start Free Trial
+          Create Your Store
         </Link>
       </div>
 
@@ -83,12 +80,10 @@ export default function MarketingNavbar() {
         <div className="absolute top-[100%] left-0 right-0 bg-white border-b border-slate-200 shadow-xl p-6 flex flex-col gap-4 animate-in slide-in-from-top duration-200 md:hidden z-45">
           {links.map((link) => (
             <Link
-              key={link.href}
+              key={link.name}
               href={link.href}
               onClick={() => setMobileMenuOpen(false)}
-              className={`text-sm font-semibold py-1 ${
-                pathname === link.href ? 'text-blue-600' : 'text-slate-600 hover:text-blue-600'
-              }`}
+              className="text-sm font-semibold py-1 text-slate-600 hover:text-blue-600"
             >
               {link.name}
             </Link>
@@ -104,9 +99,9 @@ export default function MarketingNavbar() {
           <Link
             href="/register"
             onClick={() => setMobileMenuOpen(false)}
-            className="text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-650 text-white text-center py-2.5 rounded-xl shadow-md transition-colors"
+            className="text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white text-center py-2.5 rounded-xl shadow-md transition-colors"
           >
-            Start Free Trial
+            Create Your Store
           </Link>
         </div>
       )}

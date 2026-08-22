@@ -76,15 +76,15 @@ export default function PricingPage() {
     },
     {
       question: 'Why does GPay or PhonePe show a warning for the payment link?',
-      answer: 'When opening newly generated custom VPA deep-links in mobile payment apps, NPCI standards prompt default security popups like "Unverified Merchant URL" to ensure security. RWeb payment transfers are fully verified. You can copy the merchant VPA ID (creva@ybl) and complete payments manually inside your UPI app to bypass these checks.'
+      answer: 'When opening newly generated custom VPA deep-links in mobile payment apps, NPCI standards prompt default security popups like "Unverified Merchant URL" to ensure security. CrevaWebs payment transfers are fully verified. You can copy the merchant VPA ID (creva@ybl) and complete payments manually inside your UPI app to bypass these checks.'
     },
     {
       question: 'Are there any transaction fees or commission cuts?',
-      answer: 'No. RWeb does not act as a payment gateway intermediary. Payments go directly from your customers to your configured UPI accounts, ensuring zero hidden fees, zero commission percentages, and instant settlement.'
+      answer: 'No. CrevaWebs does not act as a payment gateway intermediary. Payments go directly from your customers to your configured UPI accounts, ensuring zero hidden fees, zero commission percentages, and instant settlement.'
     },
     {
       question: 'Can I connect a custom domain name later?',
-      answer: 'Yes! While on the Professional or Lifetime packages, you can map your custom commercial domain (e.g. www.yourbrand.com) directly to your RWeb storefront from your dashboard settings at any time.'
+      answer: 'Yes! While on the Professional or Lifetime packages, you can map your custom commercial domain (e.g. www.yourbrand.com) directly to your CrevaWebs storefront from your dashboard settings at any time.'
     }
   ];
 
