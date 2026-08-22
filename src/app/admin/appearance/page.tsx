@@ -372,6 +372,14 @@ export default function AppearancePage() {
 
       if (error) throw error;
       
+      window.dispatchEvent(new CustomEvent('store_activity', {
+        detail: {
+          type: 'success',
+          message: 'Logo uploaded successfully',
+          subtitle: logoUrl ? 'Custom logo updated' : 'Default branding'
+        }
+      }));
+      
       setMessage('Appearance settings saved successfully!');
       setTimeout(() => setMessage(''), 3000);
     } catch (err: any) {

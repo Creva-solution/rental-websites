@@ -291,6 +291,14 @@ export default function ProductsPage() {
       
       if (error) throw error;
       
+      window.dispatchEvent(new CustomEvent('store_activity', {
+        detail: {
+          type: 'success',
+          message: 'Product created successfully',
+          subtitle: newProduct.name
+        }
+      }));
+      
       setShowModal(false);
       setShowNewCategoryInput(false);
       setNewProduct({ name: '', price: '', sku: '', description: '', inventory_quantity: 10, category: 'Fashion', sizes: 'S, M, L, XL', image_url: '', colors: 'Black, White, Purple' });
@@ -345,6 +353,14 @@ export default function ProductsPage() {
         
       if (error) throw error;
       
+      window.dispatchEvent(new CustomEvent('store_activity', {
+        detail: {
+          type: 'success',
+          message: 'Product updated successfully',
+          subtitle: editingProduct.name
+        }
+      }));
+      
       setEditingProduct(null);
       fetchData();
     } catch (err: any) {
@@ -364,6 +380,14 @@ export default function ProductsPage() {
 
       const { error } = await supabase.from('products').delete().eq('id', id);
       if (error) throw error;
+
+      window.dispatchEvent(new CustomEvent('store_activity', {
+        detail: {
+          type: 'success',
+          message: 'Product deleted successfully',
+          subtitle: targetProduct?.name || 'Product'
+        }
+      }));
 
       setProducts(products.filter(p => p.id !== id));
 
