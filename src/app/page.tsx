@@ -22,14 +22,60 @@ const getGraphemes = (text: string) => {
   return Array.from(text);
 };
 
-const languages = [
-  { text: '5 Minutes' },
-  { text: '5 நிமிடங்களில்' },
-  { text: '5 മിനിറ്റിൽ' },
-  { text: '5 నిమిషాల్లో' },
-  { text: '5 ನಿಮಿಷಗಳಲ್ಲಿ' },
-  { text: '5 मिनटों में' }
+const headlines = [
+  {
+    parts: [
+      { text: 'Create your business website in just ', highlight: false },
+      { text: '5 Minutes', highlight: true }
+    ]
+  },
+  {
+    parts: [
+      { text: 'உங்கள் வணிக இணையதளத்தை வெறும் ', highlight: false },
+      { text: '5 நிமிடங்களில்', highlight: true },
+      { text: ' உருவாக்குங்கள்', highlight: false }
+    ]
+  },
+  {
+    parts: [
+      { text: 'വെറും ', highlight: false },
+      { text: '5 മിനിറ്റിൽ', highlight: true },
+      { text: ' നിങ്ങളുടെ ബിസിനസ് വെബ്സൈറ്റ് സൃഷ്ടിക്കൂ', highlight: false }
+    ]
+  },
+  {
+    parts: [
+      { text: 'కేవలం ', highlight: false },
+      { text: '5 నిమిഷాల్లో', highlight: true },
+      { text: ' మీ బిజినెస్ వెబ్సైట్ను రూపొందించండి', highlight: false }
+    ]
+  },
+  {
+    parts: [
+      { text: 'ಕೇವಲ ', highlight: false },
+      { text: '5 ನಿಮಿಷಗಳಲ್ಲಿ', highlight: true },
+      { text: ' ನಿಮ್ಮ ಬಿಸಿನೆಸ್ ವೆಬ್ಸೈಟ್ ರಚಿಸಿ', highlight: false }
+    ]
+  },
+  {
+    parts: [
+      { text: 'सिर्फ ', highlight: false },
+      { text: '5 मिनट', highlight: true },
+      { text: ' में अपनी बिज़नेस वेबसाइट बनाएं', highlight: false }
+    ]
+  }
 ];
+
+const getPartGraphemes = (parts: any[]) => {
+  return parts.flatMap((part, partIdx) => {
+    const textGraphemes = getGraphemes(part.text);
+    return textGraphemes.map(char => ({
+      char,
+      highlight: part.highlight,
+      partIdx
+    }));
+  });
+};
 
 export default function Home() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -39,39 +85,49 @@ export default function Home() {
   const [finalStoreName, setFinalStoreName] = useState('');
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [currentLangIdx, setCurrentLangIdx] = useState(0);
-  const [displayedText, setDisplayedText] = useState('');
+  const [charCount, setCharCount] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+    const listener = (e: any) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener('change', listener);
+    return () => mediaQuery.removeEventListener('change', listener);
+  }, []);
+
+  useEffect(() => {
+    if (prefersReducedMotion) return;
+
     let timer: NodeJS.Timeout;
-    const fullText = languages[currentLangIdx].text;
-    const graphemes = getGraphemes(fullText);
-    const currentGraphemes = getGraphemes(displayedText);
+    const currentHeadline = headlines[currentLangIdx];
+    const allGraphemes = getPartGraphemes(currentHeadline.parts);
 
     if (isDeleting) {
-      if (currentGraphemes.length > 0) {
+      if (charCount > 0) {
         timer = setTimeout(() => {
-          setDisplayedText(currentGraphemes.slice(0, -1).join(''));
-        }, 55);
+          setCharCount(prev => prev - 1);
+        }, 35);
       } else {
         setIsDeleting(false);
-        setCurrentLangIdx((prev) => (prev + 1) % languages.length);
+        setCurrentLangIdx((prev) => (prev + 1) % headlines.length);
       }
     } else {
-      if (currentGraphemes.length < graphemes.length) {
+      if (charCount < allGraphemes.length) {
         timer = setTimeout(() => {
-          setDisplayedText(graphemes.slice(0, currentGraphemes.length + 1).join(''));
-        }, 110);
+          setCharCount(prev => prev + 1);
+        }, 85);
       } else {
         timer = setTimeout(() => {
           setIsDeleting(true);
-        }, 2000);
+        }, 2700);
       }
     }
 
     return () => clearTimeout(timer);
-  }, [displayedText, isDeleting, currentLangIdx]);
+  }, [charCount, isDeleting, currentLangIdx, prefersReducedMotion]);
 
   useEffect(() => {
     fetch('/api/templates').then(r => r.json()).then(setDynamicTemplates).catch(() => {});
@@ -148,6 +204,33 @@ export default function Home() {
     { id: 'lifetime', name: 'Business Lifetime', price: '9,999', days: 99999, desc: 'For businesses that need permanent flexibility.', badge: 'Best Value' }
   ];
 
+  const currentHeadline = headlines[currentLangIdx];
+  const allGraphemes = getPartGraphemes(currentHeadline.parts);
+  const visibleGraphemes = prefersReducedMotion 
+    ? allGraphemes 
+    : allGraphemes.slice(0, charCount);
+
+  const renderedParts: { text: string; highlight: boolean }[] = [];
+  let currentPartIdx = -1;
+  let currentGroup: string[] = [];
+  let currentHighlight = false;
+
+  for (const g of visibleGraphemes) {
+    if (g.partIdx !== currentPartIdx) {
+      if (currentGroup.length > 0) {
+        renderedParts.push({ text: currentGroup.join(''), highlight: currentHighlight });
+      }
+      currentPartIdx = g.partIdx;
+      currentGroup = [g.char];
+      currentHighlight = g.highlight;
+    } else {
+      currentGroup.push(g.char);
+    }
+  }
+  if (currentGroup.length > 0) {
+    renderedParts.push({ text: currentGroup.join(''), highlight: currentHighlight });
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-white text-slate-800 overflow-x-hidden antialiased font-sans pt-20 relative">
       <MarketingNavbar />
@@ -155,24 +238,38 @@ export default function Home() {
       <main className="flex-1 relative z-10">
         
         {/* 1. HERO SECTION */}
-        <section className="w-full py-16 lg:py-24 bg-white flex justify-center border-b border-slate-100">
-          <div className="container px-6 max-w-7xl mx-auto">
+        <section className="w-full py-16 lg:py-24 bg-white flex justify-center border-b border-slate-100 relative overflow-hidden">
+          {/* Subtle animated background glow */}
+          {!prefersReducedMotion && (
+            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+              <div className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] rounded-full bg-blue-50/50 blur-[140px] animate-blob-slow" />
+              <div className="absolute -bottom-[40%] -right-[20%] w-[80%] h-[80%] rounded-full bg-indigo-50/40 blur-[140px] animate-blob-slower" />
+            </div>
+          )}
+          
+          <div className="container px-6 max-w-7xl mx-auto relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-              
-              {/* Left Column: Conversion Copy & Store Input */}
-              <div className="lg:col-span-6 space-y-8 text-left">
+              <motion.div 
+                initial={{ opacity: 0, x: -25 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+                className="lg:col-span-6 space-y-8 text-left"
+              >
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 text-xs font-semibold w-fit">
                   <Sparkles className="w-3.5 h-3.5 text-blue-500" />
                   <span>No-code online store builder</span>
                 </div>
                 
                 <div className="space-y-4">
-                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.2] min-h-[140px] sm:min-h-[160px] lg:min-h-[180px]">
-                    Create your business website in just <br />
-                    <span className="text-blue-600 inline-flex items-center mt-1 sm:mt-2">
-                      {displayedText}
-                      <span className="inline-block w-1.5 h-9 sm:h-11 lg:h-14 bg-blue-600 ml-1.5 animate-pulse" style={{ animationDuration: '0.8s' }}></span>
-                    </span>
+                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.2] min-h-[140px] sm:min-h-[160px] lg:min-h-[200px]">
+                    {renderedParts.map((rp, i) => (
+                      <span key={i} className={rp.highlight ? "text-blue-600" : "text-slate-900"}>
+                        {rp.text}
+                      </span>
+                    ))}
+                    {!prefersReducedMotion && (
+                      <span className="inline-block w-[3px] h-[32px] sm:h-[42px] lg:h-[52px] bg-blue-600 ml-1.5 align-middle animate-pulse" style={{ animationDuration: '0.8s' }}></span>
+                    )}
                   </h1>
                   <p className="text-slate-500 text-base sm:text-lg leading-relaxed max-w-xl">
                     Create a professional online store with CrevaWebs. Customize your storefront, add products, manage customer orders, and collect UPI payments — all without writing code.
@@ -206,11 +303,16 @@ export default function Home() {
                     <span>✓ Built for growing businesses</span>
                   </div>
                 </form>
-              </div>
+              </motion.div>
 
               {/* Right Column: Premium Dashboard Mockup Preview */}
-              <div className="lg:col-span-6 w-full">
-                <div className="border border-slate-200 rounded-2xl bg-white shadow-[0_20px_50px_rgba(0,0,0,0.03)] overflow-hidden flex flex-col h-[400px]">
+              <motion.div 
+                initial={{ opacity: 0, y: 35 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.2, ease: 'easeOut' }}
+                className="lg:col-span-6 w-full"
+              >
+                <div className="border border-slate-200 rounded-2xl bg-white shadow-[0_20px_50px_rgba(0,0,0,0.03)] overflow-hidden flex flex-col h-[400px] animate-dashboard-float">
                   <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-full bg-slate-300" />
@@ -247,21 +349,53 @@ export default function Home() {
 
                     {/* Simulated Notifications */}
                     <div className="space-y-2">
-                      <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-xl flex items-center justify-between text-[11px]">
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ delay: 1.5, duration: 0.4 }}
+                        className="p-3 bg-blue-50/50 border border-blue-100 rounded-xl flex items-center justify-between text-[11px]"
+                      >
                         <span className="font-semibold text-blue-700">🔔 New Order Received from Priya (₹890)</span>
                         <span className="text-[9px] text-blue-600 font-bold bg-white px-2 py-0.5 rounded border border-blue-100">Just Now</span>
-                      </div>
-                      <div className="p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl flex items-center justify-between text-[11px]">
+                      </motion.div>
+                      
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ delay: 3.0, duration: 0.4 }}
+                        className="p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl flex items-center justify-between text-[11px]"
+                      >
                         <span className="font-semibold text-emerald-700">✓ Custom Domain mappings published successfully</span>
                         <span className="text-[9px] text-emerald-600 font-bold bg-white px-2 py-0.5 rounded border border-emerald-100">Live</span>
-                      </div>
+                      </motion.div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
             </div>
           </div>
+          
+          <style dangerouslySetInnerHTML={{__html: `
+            @keyframes blob {
+              0%, 100% { transform: translate(0px, 0px) scale(1); }
+              50% { transform: translate(45px, -45px) scale(1.08); }
+            }
+            @keyframes float {
+              0%, 100% { transform: translateY(0); }
+              50% { transform: translateY(-7px); }
+            }
+            .animate-blob-slow {
+              animation: blob 16s ease-in-out infinite;
+            }
+            .animate-blob-slower {
+              animation: blob 22s ease-in-out infinite;
+              animation-delay: 5s;
+            }
+            .animate-dashboard-float {
+              animation: float 5.5s ease-in-out infinite;
+            }
+          `}} />
         </section>
 
         {/* 2. TRUST / SOCIAL PROOF STRIP */}
