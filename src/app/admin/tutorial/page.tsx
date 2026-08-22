@@ -113,8 +113,8 @@ export default function TutorialsPage() {
           <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full flex items-center gap-1.5 w-fit">
             <Sparkles className="w-3.5 h-3.5" /> Tutorial Portal
           </span>
-          <h2 className="text-2xl md:text-3xl font-black tracking-tight mt-3">
-            🏪 Merchant Training Center
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight mt-3 flex items-center gap-2">
+            <BookOpen className="w-7 h-7 text-primary" /> Merchant Training Center
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
             Watch the video setup tutorial below and complete the setup checklist to launch your e-commerce storefront.

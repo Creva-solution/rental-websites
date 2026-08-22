@@ -129,8 +129,8 @@ export default function CustomersPage() {
           <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full flex items-center gap-1.5 w-fit">
             <Sparkles className="w-3.5 h-3.5" /> Customer Relationship Management
           </span>
-          <h2 className="text-2xl md:text-3xl font-black tracking-tight mt-3">
-            👥 Customers Directory
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight mt-3 flex items-center gap-2">
+            <Users className="w-7 h-7 text-primary" /> Customers Directory
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
             Track customer lifetime values, total order counts, and chat directly with them on WhatsApp.
