@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Users, Search, MessageSquare, PhoneCall, Sparkles, UserCheck, Lock, X } from 'lucide-react';
+import { Loader2, Users, Search, MessageSquare, PhoneCall, Sparkles, UserCheck, Lock, X, Gem } from 'lucide-react';
 
 export default function CustomersPage() {
   const [store, setStore] = useState<any>(null);
@@ -163,8 +163,8 @@ export default function CustomersPage() {
         </div>
 
         <div className="bg-card text-card-foreground p-5 rounded-2xl border border-border/60 shadow-sm flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center shrink-0">
-            <span className="text-lg">💎</span>
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/20 flex items-center justify-center shrink-0">
+            <Gem className="w-5 h-5" />
           </div>
           <div>
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">VIP Customers (₹3000+ LTV)</span>
