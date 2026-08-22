@@ -28,22 +28,26 @@ export default function Home() {
     {
       icon: Layout,
       title: "Stunning Layout Templates",
-      desc: "Select from five hand-crafted visual systems to instantly change the structure, colors, and layout of your customer storefront."
+      desc: "Select from five hand-crafted visual systems to instantly change the structure, colors, and layout of your customer storefront.",
+      color: "blue"
     },
     {
       icon: CreditCard,
       title: "Seamless UPI & Card Payments",
-      desc: "Connect UPI QR codes, direct wire transfers, or integrate card processing gateways in seconds to receive payments directly."
+      desc: "Connect UPI QR codes, direct wire transfers, or integrate card processing gateways in seconds to receive payments directly.",
+      color: "red"
     },
     {
       icon: ShoppingBag,
       title: "Fulfillment & Blue Invoices",
-      desc: "Track orders dynamically and generate beautiful blue-themed PDF invoices with automatically calculated amounts in words."
+      desc: "Track orders dynamically and generate beautiful blue-themed PDF invoices with automatically calculated amounts in words.",
+      color: "green"
     },
     {
       icon: MessageSquare,
       title: "WhatsApp Alerts & Live Chat",
-      desc: "Send pre-filled status updates directly to customers' WhatsApp and engage storefront users with a dynamic floating chat widget."
+      desc: "Send pre-filled status updates directly to customers' WhatsApp and engage storefront users with a dynamic floating chat widget.",
+      color: "orange"
     }
   ];
 
@@ -89,13 +93,13 @@ export default function Home() {
 
               <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto px-4 sm:px-0">
                 <Link
-                  className="inline-flex h-12 items-center justify-center rounded-xl bg-blue-600 px-8 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-blue-500/25 hover:bg-blue-500 hover:scale-105 transition-all"
+                  className="inline-flex h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-650 px-8 text-sm font-bold text-white shadow-md shadow-blue-500/10 hover:shadow-xl hover:shadow-blue-500/20 hover:-translate-y-0.5 transition-all duration-200"
                   href="/register"
                 >
                   Start Free Trial <ArrowRight className="w-4 h-4 ml-2" />
                 </Link>
                 <Link
-                  className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-8 text-sm font-black uppercase tracking-widest text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 hover:border-slate-350 hover:scale-105 transition-all"
+                  className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-250 bg-white px-8 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 hover:border-slate-350 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200"
                   href="/templates"
                 >
                   View Templates
@@ -133,18 +137,39 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {features.map((f, i) => (
-                <div 
-                  key={i} 
-                  className="p-6 bg-white border border-blue-50/60 rounded-2xl flex flex-col items-start gap-4 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-500/5 transition-all group hover:scale-102"
-                >
-                  <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                    <f.icon className="w-5 h-5" />
+              {features.map((f, i) => {
+                const colorsMap: Record<string, { border: string; icon: string }> = {
+                  blue: {
+                    border: 'border-slate-100 hover:border-blue-200 hover:shadow-blue-500/5',
+                    icon: 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white'
+                  },
+                  red: {
+                    border: 'border-slate-100 hover:border-red-200 hover:shadow-red-500/5',
+                    icon: 'bg-red-50 text-red-650 group-hover:bg-red-600 group-hover:text-white'
+                  },
+                  green: {
+                    border: 'border-slate-100 hover:border-emerald-200 hover:shadow-emerald-500/5',
+                    icon: 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white'
+                  },
+                  orange: {
+                    border: 'border-slate-100 hover:border-amber-200 hover:shadow-amber-500/5',
+                    icon: 'bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white'
+                  }
+                };
+                const theme = colorsMap[f.color || 'blue'] || colorsMap.blue;
+                return (
+                  <div 
+                    key={i} 
+                    className={`p-6 bg-white border rounded-2xl flex flex-col items-start gap-4 hover:shadow-lg transition-all duration-200 group hover:-translate-y-1 ${theme.border}`}
+                  >
+                    <div className={`p-3 rounded-xl transition-all duration-200 ${theme.icon}`}>
+                      <f.icon className="w-5 h-5" />
+                    </div>
+                    <h3 className="font-bold text-base text-slate-800">{f.title}</h3>
+                    <p className="text-xs text-slate-500 leading-relaxed text-left">{f.desc}</p>
                   </div>
-                  <h3 className="font-bold text-base text-slate-800">{f.title}</h3>
-                  <p className="text-xs text-slate-500 leading-relaxed text-left">{f.desc}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>

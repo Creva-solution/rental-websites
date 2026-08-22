@@ -373,13 +373,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <Link
                       key={iIdx}
                       href={item.href}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 ${
+                      className={`relative flex items-center gap-3 pl-4 pr-3 py-2 rounded-xl font-semibold text-xs transition-all duration-150 ${
                         isActive
-                          ? 'bg-[#3C77C3]/10 text-[#3C77C3]'
-                          : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                          ? 'bg-[#3C77C3]/5 text-[#3C77C3]'
+                          : 'text-slate-605 hover:bg-slate-50 hover:text-slate-900'
                       }`}
                     >
-                      <Icon className={`w-4 h-4 ${isActive ? 'text-[#3C77C3]' : 'text-muted-foreground'}`} />
+                      {isActive && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-[#3C77C3] rounded-r-md animate-in slide-in-from-left duration-200" />
+                      )}
+                      <Icon className={`w-4 h-4 ${isActive ? 'text-[#3C77C3]' : 'text-slate-500'}`} />
                       {item.label}
                     </Link>
                   );
@@ -395,14 +398,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="space-y-1">
               <Link
                 href="/admin/support"
-                className={`flex items-center gap-3 px-3 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 ${pathname === '/admin/support' ? 'bg-emerald-50 text-emerald-700' : 'text-emerald-600 hover:bg-emerald-50/50'}`}
+                className={`relative flex items-center gap-3 pl-4 pr-3 py-2 rounded-xl font-semibold text-xs transition-all duration-150 ${
+                  pathname === '/admin/support'
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'text-slate-605 hover:bg-slate-50 hover:text-slate-900'
+                }`}
               >
+                {pathname === '/admin/support' && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-emerald-500 rounded-r-md animate-in slide-in-from-left duration-200" />
+                )}
                 <HelpCircle className="w-4 h-4 text-emerald-500" />
                 Support Help
               </Link>
               <button 
                 onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl font-bold text-xs uppercase tracking-wider text-rose-600 hover:bg-rose-50/50 transition-all duration-200 text-left"
+                className="w-full flex items-center gap-3 pl-4 pr-3 py-2 rounded-xl font-semibold text-xs text-rose-600 hover:bg-rose-50/50 transition-all duration-150 text-left"
               >
                 <LogOut className="w-4 h-4 text-rose-500" />
                 Logout Account
@@ -446,13 +456,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <Link
                       key={iIdx}
                       href={item.href}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 ${
+                      className={`relative flex items-center gap-3 pl-4 pr-3 py-2 rounded-xl font-semibold text-xs transition-all duration-150 ${
                         isActive
-                          ? 'bg-[#3C77C3]/10 text-[#3C77C3]'
-                          : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                          ? 'bg-[#3C77C3]/5 text-[#3C77C3]'
+                          : 'text-slate-605 hover:bg-slate-50 hover:text-slate-900'
                       }`}
                     >
-                      <Icon className={`w-4 h-4 ${isActive ? 'text-[#3C77C3]' : 'text-muted-foreground'}`} />
+                      {isActive && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-[#3C77C3] rounded-r-md animate-in slide-in-from-left duration-200" />
+                      )}
+                      <Icon className={`w-4 h-4 ${isActive ? 'text-[#3C77C3]' : 'text-slate-500'}`} />
                       {item.label}
                     </Link>
                   );
@@ -468,14 +481,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="space-y-1">
               <Link
                 href="/admin/support"
-                className={`flex items-center gap-3 px-3 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 ${pathname === '/admin/support' ? 'bg-emerald-50 text-emerald-700' : 'text-emerald-600 hover:bg-emerald-50/50'}`}
+                className={`relative flex items-center gap-3 pl-4 pr-3 py-2 rounded-xl font-semibold text-xs transition-all duration-150 ${
+                  pathname === '/admin/support'
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'text-slate-605 hover:bg-slate-50 hover:text-slate-900'
+                }`}
               >
+                {pathname === '/admin/support' && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-emerald-500 rounded-r-md animate-in slide-in-from-left duration-200" />
+                )}
                 <HelpCircle className="w-4 h-4 text-emerald-500" />
                 Support Help
               </Link>
               <button 
                 onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl font-bold text-xs uppercase tracking-wider text-rose-600 hover:bg-rose-50/50 transition-all duration-200 text-left"
+                className="w-full flex items-center gap-3 pl-4 pr-3 py-2 rounded-xl font-semibold text-xs text-rose-600 hover:bg-rose-50/50 transition-all duration-150 text-left"
               >
                 <LogOut className="w-4 h-4 text-rose-500" />
                 Logout Account
