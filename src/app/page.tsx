@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  X, ArrowRight, Store, Layout, CreditCard,
-  ShoppingBag, MessageSquare, ShieldCheck, Zap, Globe, Sparkles,
-  HelpCircle, Bot, Smartphone, CheckCircle2, FileText, Landmark, Clipboard, AlertTriangle
+  X, ArrowRight, Layout, CreditCard, ShoppingBag, MessageSquare, 
+  ShieldCheck, Zap, Globe, Sparkles, HelpCircle, Bot, Smartphone, 
+  CheckCircle2, Clipboard, AlertTriangle, Gem, UserCheck, Play, ArrowUpRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MarketingNavbar from '@/components/MarketingNavbar';
@@ -24,33 +24,6 @@ export default function Home() {
     fetch('/api/templates').then(r => r.json()).then(setDynamicTemplates).catch(() => {});
   }, []);
 
-  const features = [
-    {
-      icon: Layout,
-      title: "Stunning Layout Templates",
-      desc: "Select from five hand-crafted visual systems to instantly change the structure, colors, and layout of your customer storefront.",
-      color: "blue"
-    },
-    {
-      icon: CreditCard,
-      title: "Seamless UPI & Card Payments",
-      desc: "Connect UPI QR codes, direct wire transfers, or integrate card processing gateways in seconds to receive payments directly.",
-      color: "red"
-    },
-    {
-      icon: ShoppingBag,
-      title: "Fulfillment & Blue Invoices",
-      desc: "Track orders dynamically and generate beautiful blue-themed PDF invoices with automatically calculated amounts in words.",
-      color: "green"
-    },
-    {
-      icon: MessageSquare,
-      title: "WhatsApp Alerts & Live Chat",
-      desc: "Send pre-filled status updates directly to customers' WhatsApp and engage storefront users with a dynamic floating chat widget.",
-      color: "orange"
-    }
-  ];
-
   const fallbackTemplates: DynamicTemplate[] = [
     { id: 'minimal', name: 'Minimal Elegance', category: 'Boutique', thumb: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=800', previewPath: '/templates/preview?template=minimal' },
     { id: 'artisan', name: 'Artisan Craft', category: 'Natural Goods', thumb: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&q=80&w=800', previewPath: '/templates/preview?template=artisan' },
@@ -63,259 +36,369 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen bg-white text-slate-800 overflow-x-hidden antialiased font-sans pt-20 relative">
-      {/* Decorative Background Elements */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#fff_70%,transparent_100%)] pointer-events-none" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[350px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute top-[600px] right-0 w-[400px] h-[300px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
-
+      
       {/* Header */}
       <MarketingNavbar />
 
-      {/* Hero Section */}
       <main className="flex-1 relative z-10">
-        <section className="w-full py-16 md:py-28 lg:py-36 flex justify-center">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center space-y-8 text-center">
-              {/* Dynamic Tag */}
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-200 bg-blue-50/80 text-blue-600 text-xs font-semibold">
-                <Sparkles className="w-3.5 h-3.5 text-blue-500" />
-                <span>Next-Gen Store Builder</span>
+        
+        {/* Hero Section */}
+        <section className="w-full py-16 lg:py-24 bg-white flex justify-center border-b border-slate-100">
+          <div className="container px-6 max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+              
+              {/* Left Column: Headline and CTAs */}
+              <div className="lg:col-span-6 space-y-8 text-left">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 text-xs font-semibold w-fit">
+                  <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+                  <span>Build your online store</span>
+                </div>
+                <div className="space-y-4">
+                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.1]">
+                    Launch your online store. Without the complexity.
+                  </h1>
+                  <p className="text-slate-650 text-base sm:text-lg leading-relaxed max-w-xl">
+                    Create, customize, and manage a beautiful e-commerce storefront. Connect with customers directly on WhatsApp, accept UPI payments instantly, and track orders from one clean dashboard.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                  <Link
+                    className="inline-flex h-12 items-center justify-center rounded-xl bg-blue-600 px-8 text-sm font-bold text-white shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 hover:-translate-y-0.5 transition-all duration-200"
+                    href="/register"
+                  >
+                    Start Free Trial <ArrowRight className="w-4 h-4 ml-2" />
+                  </Link>
+                  <Link
+                    className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-8 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200"
+                    href="#templates"
+                  >
+                    Explore Templates
+                  </Link>
+                </div>
+                <div className="pt-4 flex flex-wrap gap-6 text-xs text-slate-500 font-semibold">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                    No Coding Required
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-amber-500" />
+                    Instant Setup
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-blue-500" />
+                    Custom Domains
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-4 max-w-4xl">
-                <h1 className="text-4xl font-black tracking-tight sm:text-6xl md:text-7xl/none bg-clip-text text-transparent bg-gradient-to-r from-blue-700 via-blue-900 to-slate-900">
-                  Build Your Online Store <br className="hidden sm:inline" /> in 10 Minutes
-                </h1>
-                <p className="mx-auto max-w-[750px] text-slate-600 text-sm sm:text-base md:text-lg leading-relaxed">
-                  No coding required. Launch your beautiful e-commerce storefront website, manage products, accept payments instantly, and coordinate with clients directly via WhatsApp integration.
-                </p>
+              {/* Right Column: Realistic Product Workspace Mockup */}
+              <div className="lg:col-span-6 w-full">
+                <div className="border border-slate-200/80 rounded-2xl bg-white shadow-[0_20px_50px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col h-[420px]">
+                  {/* Mock Workspace Titlebar */}
+                  <div className="p-3 bg-slate-50 border-b border-slate-200/60 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-slate-250" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-slate-250" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-slate-250" />
+                      <span className="text-[11px] text-slate-400 font-medium ml-2">crevawebzz.com/admin/dashboard</span>
+                    </div>
+                    <span className="text-[10px] bg-blue-50 text-blue-600 font-bold px-2 py-0.5 rounded-md">Live Store</span>
+                  </div>
+                  {/* Mock Workspace Content */}
+                  <div className="flex-1 bg-slate-50/50 p-6 flex flex-col gap-6 overflow-y-auto text-left">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h4 className="text-lg font-black text-slate-900">Elite Lifestyle Store</h4>
+                        <span className="text-xs text-slate-400">Merchant Portal Overview</span>
+                      </div>
+                      <span className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-xl">Today</span>
+                    </div>
+                    
+                    {/* Metrics Grid */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Sales</span>
+                        <span className="text-lg font-black text-slate-900 mt-1 block">₹24,850</span>
+                      </div>
+                      <div className="bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Orders</span>
+                        <span className="text-lg font-black text-slate-900 mt-1 block">18</span>
+                      </div>
+                      <div className="bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Active Products</span>
+                        <span className="text-lg font-black text-slate-900 mt-1 block">142</span>
+                      </div>
+                    </div>
+
+                    {/* Order Row list */}
+                    <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-hidden">
+                      <div className="p-3 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center">
+                        <span className="text-xs font-bold text-slate-800">Recent Orders</span>
+                        <span className="text-[10px] font-bold text-blue-600 cursor-default">View All</span>
+                      </div>
+                      <div className="p-3 divide-y divide-slate-100">
+                        <div className="py-2.5 flex justify-between items-center text-xs">
+                          <div>
+                            <span className="font-bold text-slate-800 block">Karthik Raja</span>
+                            <span className="text-[10px] text-slate-400">Order #ORD-9284 • 1 item</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-bold text-slate-800 block">₹1,250</span>
+                            <span className="text-[9px] bg-emerald-50 text-emerald-600 font-bold px-1.5 py-0.5 rounded-md">Paid</span>
+                          </div>
+                        </div>
+                        <div className="py-2.5 flex justify-between items-center text-xs">
+                          <div>
+                            <span className="font-bold text-slate-800 block">Ananya Sharma</span>
+                            <span className="text-[10px] text-slate-400">Order #ORD-9283 • 2 items</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-bold text-slate-800 block">₹3,400</span>
+                            <span className="text-[9px] bg-amber-50 text-amber-600 font-bold px-1.5 py-0.5 rounded-md">Pending</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto px-4 sm:px-0">
-                <Link
-                  className="inline-flex h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-650 px-8 text-sm font-bold text-white shadow-md shadow-blue-500/10 hover:shadow-xl hover:shadow-blue-500/20 hover:-translate-y-0.5 transition-all duration-200"
-                  href="/register"
-                >
-                  Start Free Trial <ArrowRight className="w-4 h-4 ml-2" />
-                </Link>
-                <Link
-                  className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-250 bg-white px-8 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 hover:border-slate-350 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200"
-                  href="/templates"
-                >
-                  View Templates
-                </Link>
-              </div>
+            </div>
+          </div>
+        </section>
 
-              <div className="pt-8 flex flex-wrap justify-center gap-6 sm:gap-10 text-xs text-slate-500 font-medium">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  No Coding Required
-                </div>
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-amber-500" />
-                  Instant Activation
-                </div>
-                <div className="flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-blue-600" />
-                  Custom Domain Support
-                </div>
+        {/* Social Proof metrics strip */}
+        <section className="w-full py-8 bg-slate-50 border-b border-slate-100 flex justify-center">
+          <div className="container px-6 max-w-7xl mx-auto">
+            <div className="flex flex-wrap justify-between items-center gap-8 text-slate-600">
+              <div className="flex flex-col text-left">
+                <span className="text-2xl font-black text-slate-900">500+</span>
+                <span className="text-xs text-slate-500 font-medium mt-0.5">Active Merchants Live</span>
+              </div>
+              <div className="w-px h-8 bg-slate-200 hidden md:block" />
+              <div className="flex flex-col text-left">
+                <span className="text-2xl font-black text-slate-900">10,000+</span>
+                <span className="text-xs text-slate-500 font-medium mt-0.5">Monthly Transactions Processed</span>
+              </div>
+              <div className="w-px h-8 bg-slate-200 hidden md:block" />
+              <div className="flex flex-col text-left">
+                <span className="text-2xl font-black text-slate-900">99.9%</span>
+                <span className="text-xs text-slate-500 font-medium mt-0.5">Uptime SLA Guaranteed</span>
+              </div>
+              <div className="w-px h-8 bg-slate-200 hidden md:block" />
+              <div className="flex flex-col text-left">
+                <span className="text-2xl font-black text-slate-900">24/7</span>
+                <span className="text-xs text-slate-500 font-medium mt-0.5">Dedicated Customer Support</span>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Features Section */}
-        <section id="features" className="w-full py-16 md:py-24 border-t border-slate-100 bg-white/60 relative">
-          <div className="container px-4 md:px-6 mx-auto max-w-7xl">
-            <div className="text-center space-y-3 mb-16">
-              <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl text-slate-900">
-                Everything You Need To Sell Online
+        {/* Editorial Features Section */}
+        <section id="features" className="w-full py-16 lg:py-24 bg-white flex justify-center">
+          <div className="container px-6 max-w-7xl mx-auto space-y-24">
+            
+            {/* Header Text */}
+            <div className="text-center max-w-2xl mx-auto space-y-4">
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
+                Everything you need to sell online
               </h2>
-              <p className="text-slate-500 text-sm max-w-xl mx-auto">
-                Power your boutique, store, or artisanal brand with an elegant SaaS storefront platform.
+              <p className="text-slate-500 text-sm sm:text-base">
+                From your first product listing to your first order fulfillment, RWeb provides a unified, structured suite to power your online catalog operations.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {features.map((f, i) => {
-                const colorsMap: Record<string, { border: string; icon: string }> = {
-                  blue: {
-                    border: 'border-slate-100 hover:border-blue-200 hover:shadow-blue-500/5',
-                    icon: 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white'
-                  },
-                  red: {
-                    border: 'border-slate-100 hover:border-red-200 hover:shadow-red-500/5',
-                    icon: 'bg-red-50 text-red-650 group-hover:bg-red-600 group-hover:text-white'
-                  },
-                  green: {
-                    border: 'border-slate-100 hover:border-emerald-200 hover:shadow-emerald-500/5',
-                    icon: 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white'
-                  },
-                  orange: {
-                    border: 'border-slate-100 hover:border-amber-200 hover:shadow-amber-500/5',
-                    icon: 'bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white'
-                  }
-                };
-                const theme = colorsMap[f.color || 'blue'] || colorsMap.blue;
-                return (
-                  <div 
-                    key={i} 
-                    className={`p-6 bg-white border rounded-2xl flex flex-col items-start gap-4 hover:shadow-lg transition-all duration-200 group hover:-translate-y-1 ${theme.border}`}
-                  >
-                    <div className={`p-3 rounded-xl transition-all duration-200 ${theme.icon}`}>
-                      <f.icon className="w-5 h-5" />
-                    </div>
-                    <h3 className="font-bold text-base text-slate-800">{f.title}</h3>
-                    <p className="text-xs text-slate-500 leading-relaxed text-left">{f.desc}</p>
-                  </div>
-                );
-              })}
+            {/* Alternating Feature Grid 1: Layout Themes */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+              <div className="lg:col-span-5 space-y-6 text-left">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+                  <Layout className="w-5 h-5" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900">Stunning Visual Templates</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  Select from five hand-crafted responsive themes designed specifically for digital product storefronts. Change your brand’s layout structure, primary highlight colors, and navigation behaviors instantly in one click.
+                </p>
+                <Link href="#templates" className="inline-flex items-center text-sm font-bold text-blue-600 hover:text-blue-700 gap-1">
+                  Preview themes <ArrowUpRight className="w-4 h-4" />
+                </Link>
+              </div>
+              <div className="lg:col-span-7 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                <img 
+                  src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=800" 
+                  alt="Visual Templates Mockup" 
+                  className="rounded-xl border border-slate-200/80 shadow-md w-full object-cover h-[280px]"
+                />
+              </div>
             </div>
+
+            {/* Alternating Feature Grid 2: Product & Inventory */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+              <div className="lg:col-span-7 bg-slate-50 p-6 rounded-2xl border border-slate-100 order-last lg:order-first">
+                <div className="bg-white rounded-xl border border-slate-200 shadow-md p-5 text-xs text-slate-600">
+                  <div className="flex justify-between items-center border-b pb-3 mb-4">
+                    <span className="font-bold text-slate-800">Add New Product</span>
+                    <span className="text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded">In Stock</span>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 mb-1">PRODUCT NAME</label>
+                        <span className="block border border-slate-200 rounded p-2 bg-slate-50 font-bold text-slate-800">Lavender Soap</span>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 mb-1">PRICE (INR)</label>
+                        <span className="block border border-slate-200 rounded p-2 bg-slate-50 font-bold text-slate-800">₹249.00</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1">DESCRIPTION</label>
+                      <span className="block border border-slate-200 rounded p-2 bg-slate-50 text-[11px] text-slate-500 leading-relaxed">
+                        Handmade organic soap infused with premium French lavender essence and moisturizing raw citrus extracts.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="lg:col-span-5 space-y-6 text-left">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
+                  <ShoppingBag className="w-5 h-5" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900">Structured Catalog Management</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  List products with rich attributes, custom pricing models, SKU codes, stock quantities, and categorization rules. The backend automatically handles pagination and search structures on your customer site.
+                </p>
+              </div>
+            </div>
+
+            {/* Alternating Feature Grid 3: Order Fulfilment */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+              <div className="lg:col-span-5 space-y-6 text-left">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900">Seamless UPI Payments</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  Avoid paying transactional cuts. Configure your UPI VPA ID and let customers checkout smoothly. They pay instantly using their mobile banking apps and upload receipt screenshots which you verify in the admin panel.
+                </p>
+              </div>
+              <div className="lg:col-span-7 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                <img 
+                  src="https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=800" 
+                  alt="UPI Payments Mockup" 
+                  className="rounded-xl border border-slate-200/80 shadow-md w-full object-cover h-[280px]"
+                />
+              </div>
+            </div>
+
           </div>
         </section>
 
         {/* How It Works Section */}
-        <section className="w-full py-16 md:py-24 border-t border-slate-100 bg-blue-50/20 relative">
-          <div className="container px-4 md:px-6 mx-auto max-w-7xl">
+        <section className="w-full py-16 lg:py-24 border-t border-slate-100 bg-slate-50/50 flex justify-center">
+          <div className="container px-6 max-w-7xl mx-auto">
             <div className="text-center space-y-3 mb-16">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider">
-                Simple Setup
-              </div>
-              <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl text-slate-900">
-                How{' '}
-                <span className="inline-flex items-center align-middle mx-1">
-                  <img src="/logo-creva.svg" alt="Creva Webzz" className="h-6 w-auto object-contain" />
-                </span>{' '}
-                Works
+              <h2 className="text-3xl font-extrabold tracking-tight text-slate-900">
+                A simple 3-step setup flow
               </h2>
-              <p className="text-slate-500 text-sm max-w-xl mx-auto">
-                Follow our step-by-step setup wizard to customize, license, pay, and go live instantly.
+              <p className="text-slate-500 text-sm max-w-md mx-auto">
+                No complex forms or configuration checklists. Go live with your fully active brand domain in minutes.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
               {/* Step 1 */}
-              <div className="bg-white border border-slate-200 p-6 rounded-2xl space-y-4 shadow-sm relative">
-                <span className="absolute -top-4 left-6 w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center shadow-md">1</span>
-                <div className="pt-2">
-                  <h3 className="font-bold text-base text-slate-800">Branding & Store Setup</h3>
-                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                    Enter your shop details, set custom brand colors, and upload your business logo. Choose from five modern visual templates tailored for your catalog.
-                  </p>
-                </div>
+              <div className="text-left space-y-4 relative">
+                <div className="text-5xl font-black text-blue-600/10">01</div>
+                <h3 className="font-bold text-base text-slate-900">Branding & Store Setup</h3>
+                <p className="text-slate-500 text-xs leading-relaxed">
+                  Enter your business name, select your primary highlight brand colors, and upload your custom logo placeholder. Choose a responsive theme structure.
+                </p>
               </div>
 
               {/* Step 2 */}
-              <div className="bg-white border border-slate-200 p-6 rounded-2xl space-y-4 shadow-sm relative">
-                <span className="absolute -top-4 left-6 w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center shadow-md">2</span>
-                <div className="pt-2">
-                  <h3 className="font-bold text-base text-slate-800">Plan & Digital Contract</h3>
-                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                    Select a trial or annual subscription plan. Draw your digital signature on the screen to instantly lock your merchant licensing agreement in your local language.
-                  </p>
-                </div>
+              <div className="text-left space-y-4 relative">
+                <div className="text-5xl font-black text-blue-600/10">02</div>
+                <h3 className="font-bold text-base text-slate-900">Select Plan & Signature</h3>
+                <p className="text-slate-500 text-xs leading-relaxed">
+                  Select a trial package or an annual tier. Provide your electronic signature directly on the screen to generate a localized digital license agreement.
+                </p>
               </div>
 
               {/* Step 3 */}
-              <div className="bg-white border border-slate-200 p-6 rounded-2xl space-y-4 shadow-sm relative">
-                <span className="absolute -top-4 left-6 w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center shadow-md">3</span>
-                <div className="pt-2">
-                  <h3 className="font-bold text-base text-slate-800">UPI Payment & Activation</h3>
-                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                    Scan the dynamic merchant QR code or trigger mobile app UPI intents. Upload a screenshot to activate your store, set your credentials, and access the admin dashboard.
-                  </p>
-                </div>
+              <div className="text-left space-y-4 relative">
+                <div className="text-5xl font-black text-blue-600/10">03</div>
+                <h3 className="font-bold text-base text-slate-900">UPI Pay & Go Live</h3>
+                <p className="text-slate-500 text-xs leading-relaxed">
+                  Scan the dynamic UPI QR code or pay manually using VPA details. Once you upload a transaction screenshot, your shop instantly launches live on the internet!
+                </p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* AI Store Assistant Feature Highlight */}
-        <section className="w-full py-16 md:py-24 border-t border-slate-100 bg-white relative">
-          <div className="container px-4 md:px-6 mx-auto max-w-7xl">
+        {/* Store Onboarding AI Assistant Section */}
+        <section className="w-full py-16 lg:py-24 bg-white flex justify-center border-t border-slate-100">
+          <div className="container px-6 max-w-7xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-              {/* Feature Text */}
-              <div className="lg:col-span-7 space-y-6 text-left">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider">
-                  Dashboard Helper
+              
+              {/* Left Column: AI Assistant Copy */}
+              <div className="lg:col-span-6 space-y-6 text-left">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 text-xs font-semibold w-fit">
+                  <Bot className="w-3.5 h-3.5" />
+                  <span>RWeb Assistant</span>
                 </div>
-                <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl text-slate-900 leading-tight">
-                  Meet Your AI Store Assistant
+                <h2 className="text-3xl font-extrabold tracking-tight text-slate-900">
+                  Get help while you build your business.
                 </h2>
-                <p className="text-slate-650 text-sm leading-relaxed">
-                  Inside the store owner admin panel, you'll find our dynamic, floating <strong>Store Assistant</strong> chatbot designed to guide you step-by-step through catalog creation and shop operations.
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  Inside your merchant dashboard portal, you will have access to a dedicated AI Store Assistant chatbot designed to provide step-by-step guidance on setting up your storefront.
                 </p>
-                
                 <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="p-1 bg-blue-50 text-blue-600 rounded-lg shrink-0 mt-0.5">
-                      <Bot className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-xs text-slate-800">Interactive Setup Guidance</h4>
-                      <p className="text-xs text-slate-500 mt-0.5">Instant directions on how to add products, configure discount coupons, manage order fulfillment, customize banners, or link custom subdomains.</p>
-                    </div>
+                  <div className="flex gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                    <p className="text-xs text-slate-600 font-medium">Instantly learn how to list new inventory categories, edit discounts, and add tags.</p>
                   </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="p-1 bg-blue-50 text-blue-600 rounded-lg shrink-0 mt-0.5">
-                      <Sparkles className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-xs text-slate-800">Smart Sales Suggestions</h4>
-                      <p className="text-xs text-slate-500 mt-0.5">Get automatic recommendations on setting up discount campaigns, featuring best-selling products, or tweaking homepage sections for higher conversion.</p>
-                    </div>
+                  <div className="flex gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                    <p className="text-xs text-slate-600 font-medium">Get suggestions on design layouts and branding modifications tailored to your products.</p>
                   </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="p-1 bg-blue-50 text-blue-600 rounded-lg shrink-0 mt-0.5">
-                      <HelpCircle className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-xs text-slate-800">Human Escalation & Support Tickets</h4>
-                      <p className="text-xs text-slate-500 mt-0.5">If the AI helper cannot address your query, submit support tickets directly or access active platform hotlines and click-to-chat WhatsApp links.</p>
-                    </div>
+                  <div className="flex gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                    <p className="text-xs text-slate-600 font-medium">Escalate issues directly to real customer support representatives via integrated WhatsApp hotlines.</p>
                   </div>
                 </div>
               </div>
 
-              {/* Chatbot Interface Mockup Graphic */}
-              <div className="lg:col-span-5">
-                <div className="border border-slate-200 rounded-3xl bg-white shadow-xl shadow-blue-500/5 overflow-hidden flex flex-col h-[400px]">
-                  {/* Mock Chatbot Header */}
-                  <div className="p-4 border-b border-slate-100 bg-blue-50/40 flex items-center justify-between">
+              {/* Right Column: Clean Chat Mockup UI */}
+              <div className="lg:col-span-6 w-full">
+                <div className="border border-slate-200/80 rounded-2xl bg-white shadow-[0_15px_40px_rgba(0,0,0,0.03)] overflow-hidden flex flex-col h-[380px]">
+                  {/* Chat Mockup Header */}
+                  <div className="p-4 bg-slate-50 border-b border-slate-200/60 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 bg-blue-600 rounded-xl flex items-center justify-center text-white">
-                        <Bot className="w-4 h-4" />
+                      <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center">
+                        <Bot className="w-4.5 h-4.5" />
                       </div>
                       <div className="text-left">
                         <span className="block font-bold text-xs text-slate-800">Store Assistant</span>
                         <span className="text-[9px] text-blue-600 font-bold uppercase tracking-wider block">AI Agent Online</span>
                       </div>
                     </div>
-                    <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
                   </div>
 
-                  {/* Mock Chatbot Tabs */}
-                  <div className="flex border-b border-slate-100 text-[10px] font-bold text-slate-500">
-                    <span className="flex-1 py-2 text-center bg-white border-b-2 border-blue-500 text-blue-600">AI Assistant</span>
-                    <span className="flex-1 py-2 text-center hover:bg-slate-50">Setup Guide</span>
-                    <span className="flex-1 py-2 text-center hover:bg-slate-50">Escalate</span>
-                  </div>
-
-                  {/* Mock Chatbot Body */}
-                  <div className="flex-1 p-4 bg-slate-50/40 space-y-3.5 overflow-y-auto text-left">
-                    <div className="flex gap-2">
-                      <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
+                  {/* Chat Content Body */}
+                  <div className="flex-1 p-4 bg-slate-50/20 space-y-4 overflow-y-auto text-left">
+                    <div className="flex gap-2.5">
+                      <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100 text-xs">
                         <Bot className="w-3.5 h-3.5" />
                       </div>
-                      <div className="bg-white border border-blue-50/80 rounded-2xl rounded-tl-none p-3 text-[11px] text-slate-650 leading-relaxed shadow-sm max-w-[85%]">
+                      <div className="bg-white border border-slate-200/80 rounded-2xl rounded-tl-none p-3 text-xs text-slate-650 leading-relaxed shadow-sm max-w-[85%]">
                         Hello! I am your Store Assistant. I can show you how to list your products, configure coupons, or link UPI accounts. What would you like to set up first?
                       </div>
                     </div>
 
                     <div className="flex justify-end">
-                      <div className="bg-blue-600 text-white rounded-2xl rounded-tr-none p-3 text-[11px] leading-relaxed shadow-sm max-w-[80%]">
+                      <div className="bg-blue-600 text-white rounded-2xl rounded-tr-none p-3 text-xs leading-relaxed shadow-sm max-w-[80%]">
                         How do I configure coupons?
                       </div>
                     </div>
@@ -331,106 +414,93 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+
             </div>
           </div>
         </section>
 
-        {/* UPI Payments & Verification Warning Solution Section */}
-        <section className="w-full py-16 md:py-24 border-t border-slate-100 bg-blue-50/20 relative">
-          <div className="container px-4 md:px-6 mx-auto max-w-7xl">
+        {/* UPI Payments & Verification Section */}
+        <section className="w-full py-16 lg:py-24 border-t border-slate-100 bg-slate-50/50 flex justify-center">
+          <div className="container px-6 max-w-7xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-              {/* Device Graphic Mockup */}
-              <div className="lg:col-span-5 order-last lg:order-first">
-                <div className="border border-slate-200 rounded-3xl bg-white shadow-xl shadow-blue-500/5 p-5 space-y-4 text-left">
+              
+              {/* Left Column: UI QR Code payment simulation */}
+              <div className="lg:col-span-5 w-full order-last lg:order-first">
+                <div className="border border-slate-200/85 rounded-2xl bg-white shadow-[0_15px_40px_rgba(0,0,0,0.03)] p-6 space-y-4 text-left">
                   <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
                     <Smartphone className="w-5 h-5 text-blue-600" />
-                    <span className="font-bold text-xs text-slate-800">Simulated UPI App / Intent</span>
+                    <span className="font-bold text-xs text-slate-800">Dynamic Payment Intent</span>
                   </div>
 
-                  {/* Warning dialog simulation */}
-                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-[11px] leading-relaxed text-amber-900 space-y-2">
-                    <p className="flex items-start gap-1.5 font-bold">
-                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                      <span>Security & Safety Check</span>
-                    </p>
-                    <p className="text-[10px] text-amber-800 font-medium">
-                      Google Pay or PhonePe may display a warning such as <em>"This payment cannot be verified as safe" / "Unverified Merchant"</em> when paying a newly created direct VPA link. This is a normal standard security notification for custom browser redirections.
-                    </p>
-                    <div className="pt-1.5 border-t border-amber-200/50 flex justify-between items-center text-[9px] font-bold text-amber-900">
-                      <span>NPCI Standard Guidelines</span>
-                      <span className="px-2 py-0.5 bg-amber-100 border border-amber-300 rounded-lg">Verified Link</span>
+                  {/* QR Image Placeholder mockup */}
+                  <div className="flex justify-center p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                    <div className="w-40 h-40 bg-slate-200 flex items-center justify-center rounded-lg border border-slate-300">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">[ QR CODE ]</span>
                     </div>
                   </div>
 
-                  {/* VPA copy clipboard box helper */}
+                  {/* Copy clipboard action box */}
                   <div className="space-y-1.5">
-                    <span className="text-[9px] font-bold uppercase text-slate-500 tracking-wider">Simple Fix: Copy Merchant VPA ID</span>
+                    <span className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">Alternative: Copy VPA ID</span>
                     <div className="flex items-center">
-                      <span className="font-mono text-[11px] bg-slate-100 border border-slate-200 border-r-0 rounded-l-xl px-3 py-2 text-slate-700 flex-1 overflow-hidden text-ellipsis shadow-inner">
+                      <span className="font-mono text-xs bg-slate-50 border border-slate-200 border-r-0 rounded-l-lg px-3 py-2 text-slate-600 flex-1 overflow-hidden">
                         creva@ybl
                       </span>
-                      <button type="button" className="font-bold text-[10px] bg-blue-600 hover:bg-blue-500 text-white rounded-r-xl px-3.5 py-2 flex items-center gap-1 shadow-sm">
-                        <Clipboard className="w-3.5 h-3.5" /> Copy VPA
+                      <button type="button" className="font-bold text-[10px] bg-blue-600 hover:bg-blue-500 text-white rounded-r-lg px-4 py-2">
+                        Copy
                       </button>
                     </div>
-                    <span className="text-[9px] text-slate-400 block">Copy the VPA ID and pay manually inside your UPI app to avoid app verification limits.</span>
                   </div>
                 </div>
               </div>
 
-              {/* Explanatory text */}
+              {/* Right Column: Safe checkouts copy */}
               <div className="lg:col-span-7 space-y-6 text-left">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider">
-                  Safe Checkout
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 text-xs font-semibold w-fit">
+                  <CreditCard className="w-3.5 h-3.5" />
+                  <span>Simple Payments</span>
                 </div>
-                <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl text-slate-900 leading-tight">
-                  Verified Offline Payments & Simple Fixes
+                <h2 className="text-3xl font-extrabold tracking-tight text-slate-900">
+                  Accept payments with confidence.
                 </h2>
-                <p className="text-slate-650 text-sm leading-relaxed">
-                  To keep platform setup costs low, we utilize direct UPI merchant settlement transfers. We provide dynamic Scan-to-Pay QR codes and direct VPA ID copy tools.
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  We use standard direct UPI settlement transfers to keep setup transaction costs 100% free for all merchant packages.
                 </p>
-
                 <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="p-1 bg-blue-50 text-blue-600 rounded-lg shrink-0 mt-0.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    </div>
+                  <div className="flex gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                     <div>
                       <h4 className="font-bold text-xs text-slate-800">Dynamic Scan-To-Pay QR Codes</h4>
-                      <p className="text-xs text-slate-500 mt-0.5">Displays a real-time QR code configured with your exact subscription amount. Open any banking app, scan, pay, and take a screenshot to upload.</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Calculates exact subscription values instantly on checkout dialogs. Use any local banking application to finalize transfers.</p>
                     </div>
                   </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="p-1 bg-blue-50 text-blue-600 rounded-lg shrink-0 mt-0.5">
-                      <HelpCircle className="w-4 h-4 text-blue-600" />
-                    </div>
+                  <div className="flex gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                     <div>
-                      <h4 className="font-bold text-xs text-slate-800">Standard NPCI Guidelines Clarification</h4>
-                      <p className="text-xs text-slate-500 mt-0.5">GPay occasionally throws a warning check for custom URLs to ensure the payer reviews the VPA destination. Use our one-click **Copy VPA ID** tool, paste it directly in your app, and complete payments seamlessly.</p>
+                      <h4 className="font-bold text-xs text-slate-800">Zero Transaction Cuts</h4>
+                      <p className="text-xs text-slate-500 mt-0.5">We charge no processing percentages or commissions. Everything your customers pay enters your UPI merchant accounts directly.</p>
                     </div>
                   </div>
                 </div>
               </div>
+
             </div>
           </div>
         </section>
 
-        {/* Templates Preview Section */}
-        <section id="templates" className="w-full py-16 md:py-24 border-t border-slate-100 bg-white">
-          <div className="container px-4 md:px-6 mx-auto max-w-7xl">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center mb-16">
-              <div className="space-y-2">
-                <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl text-slate-900">
-                  Stunning Hand-Crafted Visual Templates
-                </h2>
-                <p className="max-w-[700px] text-slate-500 text-xs sm:text-sm">
-                  Select a template that represents your brand aesthetic. Click any card to preview the full layout live.
-                </p>
-              </div>
+        {/* Templates Gallery Preview Showcase Section */}
+        <section id="templates" className="w-full py-16 lg:py-24 bg-white flex justify-center border-t border-slate-100">
+          <div className="container px-6 max-w-7xl mx-auto space-y-16">
+            <div className="text-center space-y-3 max-w-xl mx-auto">
+              <h2 className="text-3xl font-extrabold tracking-tight text-slate-900">
+                Choose a store that fits your brand.
+              </h2>
+              <p className="text-slate-500 text-sm">
+                Select from our collection of hand-crafted layouts. Tap to preview any storefront layout structure live.
+              </p>
             </div>
 
-            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 items-stretch">
+            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               {templates.map((template, idx) => (
                 <div
                   key={template.id}
@@ -438,24 +508,24 @@ export default function Home() {
                     setPreviewUrl(template.previewPath);
                     setSelectedTemplateId(template.id);
                   }}
-                  className="group relative overflow-hidden rounded-2xl border border-blue-100 bg-white text-slate-800 shadow-sm transition-all hover:border-blue-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-blue-500/5 flex flex-col justify-between cursor-pointer"
+                  className="group relative overflow-hidden rounded-xl border border-slate-200/80 bg-white text-slate-800 shadow-sm transition-all hover:border-blue-500/30 hover:-translate-y-1 hover:shadow-md flex flex-col justify-between cursor-pointer"
                 >
-                  <div className="aspect-[4/3] relative overflow-hidden bg-blue-50">
+                  <div className="aspect-[4/3] relative overflow-hidden bg-slate-50 border-b border-slate-100">
                     <img
                       src={template.thumb}
                       alt={template.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 opacity-90 group-hover:opacity-100"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-103"
                     />
                     <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <span className="text-white text-xs font-black uppercase tracking-widest bg-blue-600 px-4 py-2.5 rounded-xl shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform">
-                        Preview Layout
+                      <span className="text-white text-[10px] font-bold uppercase tracking-wider bg-blue-600 px-4 py-2 rounded-lg shadow-md transform translate-y-3 group-hover:translate-y-0 transition-transform">
+                        Preview template
                       </span>
                     </div>
                   </div>
-                  <div className="p-5 flex-1 flex flex-col justify-between">
+                  <div className="p-4 flex-1 flex flex-col justify-between text-left">
                     <div>
-                      <span className="text-[9px] font-black text-blue-600 tracking-wider uppercase mb-1.5 block">{template.category || `Template ${idx + 1}`}</span>
-                      <h3 className="font-bold text-sm mb-2 text-slate-850">{template.name}</h3>
+                      <span className="text-[9px] font-bold text-blue-600 tracking-wider uppercase mb-1 block">{template.category || `Template ${idx + 1}`}</span>
+                      <h3 className="font-bold text-sm text-slate-800">{template.name}</h3>
                     </div>
                   </div>
                 </div>
@@ -463,6 +533,81 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* Why RWeb Section */}
+        <section className="w-full py-16 lg:py-24 bg-slate-50 border-t border-b border-slate-100 flex justify-center">
+          <div className="container px-6 max-w-7xl mx-auto space-y-16">
+            <div className="text-center space-y-3 max-w-xl mx-auto">
+              <h2 className="text-3xl font-extrabold tracking-tight text-slate-900">
+                Built for businesses that want to move faster.
+              </h2>
+              <p className="text-slate-500 text-sm">
+                RWeb streamlines e-commerce setups by replacing complex catalog setups with clean, visual controls.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+              <div className="space-y-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+                <h4 className="font-bold text-slate-950 text-base">No coding required</h4>
+                <p className="text-slate-500 text-xs leading-relaxed">
+                  Design storefront layouts, list items, structure pricing, configure subdomains, and invite team administrators without entering a single line of script.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+                  <Zap className="w-5 h-5" />
+                </div>
+                <h4 className="font-bold text-slate-950 text-base">Launch faster</h4>
+                <p className="text-slate-500 text-xs leading-relaxed">
+                  Follow a guided setup pipeline. Activate your custom shop instantly upon transaction upload verification to skip multi-day platform approvals.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
+                  <MessageSquare className="w-5 h-5" />
+                </div>
+                <h4 className="font-bold text-slate-950 text-base">Direct communication</h4>
+                <p className="text-slate-500 text-xs leading-relaxed">
+                  Avoid paying intermediary fees. Engage directly with customers via WhatsApp integrations to confirm deliveries, screenshots, and custom item sizes.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Final CTA Banner */}
+        <section className="w-full py-16 lg:py-24 bg-white flex justify-center">
+          <div className="container px-6 max-w-4xl mx-auto">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-650 rounded-3xl p-8 sm:p-12 text-center text-white shadow-xl shadow-blue-500/10 space-y-6">
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+                Ready to build your online store?
+              </h2>
+              <p className="text-blue-100 text-sm sm:text-base max-w-md mx-auto leading-relaxed">
+                Start with RWeb and launch your storefront without the usual complex setup pipelines. Get started free today.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2">
+                <Link
+                  className="bg-white hover:bg-slate-50 text-blue-600 font-bold h-12 px-8 rounded-xl flex items-center justify-center transition-colors shadow-lg"
+                  href="/register"
+                >
+                  Start Free Trial
+                </Link>
+                <Link
+                  className="border border-blue-300 hover:bg-white/10 text-white font-bold h-12 px-8 rounded-xl flex items-center justify-center transition-colors"
+                  href="#templates"
+                >
+                  View Templates
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
       </main>
 
       {/* Footer */}
@@ -477,14 +622,14 @@ export default function Home() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="relative w-full max-w-6xl h-full max-h-[85vh] bg-white border border-blue-100 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+              className="relative w-full max-w-6xl h-full max-h-[85vh] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
             >
               <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-white/80 backdrop-blur-sm shrink-0">
                 <div className="flex items-center gap-2">
                   <span className="w-3 h-3 rounded-full bg-red-500/80" />
                   <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
                   <span className="w-3 h-3 rounded-full bg-green-500/80" />
-                  <span className="text-xs text-slate-500 font-bold ml-2 font-mono">Store Preview</span>
+                  <span className="text-xs text-slate-500 font-semibold ml-2 font-mono">Store Preview</span>
                 </div>
                 <button 
                   onClick={() => {
@@ -509,7 +654,7 @@ export default function Home() {
                     setPreviewUrl(null);
                     setSelectedTemplateId(null);
                   }}
-                  className="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-650 hover:bg-slate-100 hover:text-slate-850 font-bold text-xs uppercase tracking-wider transition-colors"
+                  className="px-6 py-2.5 rounded-xl border border-slate-250 text-slate-600 hover:bg-slate-100 font-bold text-xs uppercase tracking-wider transition-colors"
                 >
                   Cancel
                 </button>

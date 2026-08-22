@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import MarketingNavbar from '@/components/MarketingNavbar';
 import MarketingFooter from '@/components/MarketingFooter';
 import Link from 'next/link';
-import { Check, Info, ShieldCheck, HelpCircle, Smartphone, AlertTriangle } from 'lucide-react';
+import { Check, Info, ShieldCheck, HelpCircle } from 'lucide-react';
 
 type DynamicPlan = { id: string; name: string; price: string; days: number; description: string; badge: string };
 
@@ -69,30 +69,45 @@ export default function PricingPage() {
 
   const displayPlans = plans.length > 0 ? plans : fallbackPlans;
 
+  const faqs = [
+    {
+      question: 'How are UPI payments verified?',
+      answer: 'After you scan the dynamic payment QR code or copy the VPA ID and complete the payment in your banking app, simply upload the payment confirmation screenshot in the setup wizard. Our support administrators verify the transaction details offline and activate your merchant credentials immediately.'
+    },
+    {
+      question: 'Why does GPay or PhonePe show a warning for the payment link?',
+      answer: 'When opening newly generated custom VPA deep-links in mobile payment apps, NPCI standards prompt default security popups like "Unverified Merchant URL" to ensure security. RWeb payment transfers are fully verified. You can copy the merchant VPA ID (creva@ybl) and complete payments manually inside your UPI app to bypass these checks.'
+    },
+    {
+      question: 'Are there any transaction fees or commission cuts?',
+      answer: 'No. RWeb does not act as a payment gateway intermediary. Payments go directly from your customers to your configured UPI accounts, ensuring zero hidden fees, zero commission percentages, and instant settlement.'
+    },
+    {
+      question: 'Can I connect a custom domain name later?',
+      answer: 'Yes! While on the Professional or Lifetime packages, you can map your custom commercial domain (e.g. www.yourbrand.com) directly to your RWeb storefront from your dashboard settings at any time.'
+    }
+  ];
+
   return (
     <div className="flex flex-col min-h-screen bg-white text-slate-800 font-sans antialiased pt-20 relative overflow-x-hidden">
       <MarketingNavbar />
 
-      {/* Decorative Background Elements */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#fff_70%,transparent_100%)] pointer-events-none" />
-      <div className="absolute top-[100px] left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-blue-500/5 rounded-full blur-[100px] pointer-events-none" />
-
-      <main className="flex-1 relative z-10 py-16 md:py-24 max-w-7xl mx-auto px-4 md:px-6 w-full">
-        {/* Title */}
+      <main className="flex-1 relative z-10 py-16 md:py-24 max-w-7xl mx-auto px-6 w-full">
+        {/* Title Header */}
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-16">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-semibold">
             Plans & Pricing
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl text-slate-900 leading-tight">
-            Transparent Pricing with <br className="hidden sm:inline" /> Zero Transaction Fees
+            Transparent Pricing. Zero Transaction Fees.
           </h1>
-          <p className="text-slate-500 text-sm sm:text-base">
-            Select a package that fits your storefront scale. All payments are verified offline with zero hidden commission rates.
+          <p className="text-slate-500 text-sm sm:text-base max-w-xl mx-auto">
+            Select a package that fits your storefront scale. All payments are settled directly into your accounts without commissions.
           </p>
         </div>
 
         {/* Pricing Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch mb-20">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch mb-24">
           {displayPlans.map((p) => {
             const features = planFeatures[p.id] || [
               'Complete Storefront access',
@@ -104,38 +119,38 @@ export default function PricingPage() {
             return (
               <div 
                 key={p.id}
-                className={`p-8 bg-white border rounded-3xl flex flex-col justify-between relative shadow-sm transition-all hover:shadow-lg ${
+                className={`p-8 bg-white border rounded-2xl flex flex-col justify-between relative shadow-sm transition-all duration-200 ${
                   isPopular 
-                    ? 'border-blue-500 ring-2 ring-blue-500/20 scale-[1.02]' 
-                    : 'border-slate-200 hover:border-blue-200'
+                    ? 'border-blue-600 shadow-[0_10px_30px_rgba(37,99,235,0.06)]' 
+                    : 'border-slate-200 hover:border-slate-350'
                 }`}
               >
                 {p.badge && (
-                  <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-blue-600 text-white font-extrabold text-[9px] uppercase tracking-widest px-3.5 py-1 rounded-full shadow-sm animate-pulse">
+                  <span className="absolute -top-3 left-6 bg-blue-600 text-white font-bold text-[9px] uppercase tracking-wider px-3 py-1 rounded-full shadow-sm">
                     {p.badge}
                   </span>
                 )}
 
                 <div className="space-y-6">
-                  <div>
-                    <span className="text-xs font-bold text-blue-600 uppercase tracking-widest block">{p.name}</span>
+                  <div className="text-left">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">{p.name}</span>
                     <div className="flex items-baseline gap-1 mt-2">
-                      <span className="text-4xl font-black text-slate-850 font-mono">₹{Number(p.price || 0).toLocaleString()}</span>
-                      <span className="text-xs text-slate-400 font-semibold">
+                      <span className="text-4xl font-black text-slate-900">₹{Number(p.price || 0).toLocaleString()}</span>
+                      <span className="text-xs text-slate-450 font-semibold">
                         {p.days >= 99999 ? '/ lifetime' : p.days >= 365 ? `/ ${Math.round(p.days / 365)} yr` : `/ ${p.days} days`}
                       </span>
                     </div>
                     {p.description && (
-                      <p className="text-xs text-slate-500 mt-3.5 leading-relaxed">{p.description}</p>
+                      <p className="text-xs text-slate-500 mt-4 leading-relaxed">{p.description}</p>
                     )}
                   </div>
 
                   <hr className="border-slate-100" />
 
-                  <ul className="space-y-3.5 text-xs text-slate-600 font-medium">
+                  <ul className="space-y-4 text-xs text-slate-600 font-medium text-left">
                     {features.map((f, i) => (
                       <li key={i} className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                        <Check className="w-4 h-4 text-blue-650 shrink-0 mt-0.5" />
                         <span>{f}</span>
                       </li>
                     ))}
@@ -145,9 +160,9 @@ export default function PricingPage() {
                 <div className="pt-8">
                   <Link
                     href="/register"
-                    className={`w-full h-11 flex items-center justify-center rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
+                    className={`w-full h-11 flex items-center justify-center rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-150 ${
                       isPopular
-                        ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-500/20'
+                        ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md'
                         : 'border border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
                     }`}
                   >
@@ -159,19 +174,20 @@ export default function PricingPage() {
           })}
         </div>
 
-        {/* Off-Platform UPI Verification Callout */}
-        <div className="border border-slate-200 rounded-3xl bg-slate-50/50 p-6 md:p-8 max-w-4xl mx-auto space-y-6">
-          <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-            <div className="space-y-2 text-left">
-              <h4 className="font-bold text-sm text-slate-800">Standard NPCI & Mobile App Safety Note</h4>
-              <p className="text-xs text-slate-550 leading-relaxed">
-                When initiating transfers via mobile UPI apps (like Google Pay), you may occasionally see safety alerts such as <em>"This payment cannot be verified as safe" / "Unverified merchant URL"</em>. 
-              </p>
-              <p className="text-xs text-slate-550 leading-relaxed">
-                This is a standard default check for web-to-app deep-linking protocols. The licensing payment process is fully verified and secure. If your application blocks the transaction, simply copy the merchant VPA ID (<strong className="font-mono text-blue-600">creva@ybl</strong>) and complete the transfer manually in GPay or PhonePe!
-              </p>
-            </div>
+        {/* Structured FAQs / Safety Guidelines Section */}
+        <div className="border border-slate-200/80 rounded-2xl bg-white p-8 max-w-4xl mx-auto text-left space-y-8">
+          <div className="flex items-center gap-2 border-b border-slate-100 pb-4">
+            <HelpCircle className="w-5 h-5 text-blue-600" />
+            <h3 className="font-bold text-base text-slate-900">Frequently Asked Questions</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {faqs.map((faq, i) => (
+              <div key={i} className="space-y-2">
+                <h4 className="font-bold text-xs text-slate-800">{faq.question}</h4>
+                <p className="text-slate-500 text-xs leading-relaxed">{faq.answer}</p>
+              </div>
+            ))}
           </div>
         </div>
       </main>
