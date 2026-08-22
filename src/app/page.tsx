@@ -14,6 +14,23 @@ import MarketingFooter from '@/components/MarketingFooter';
 
 type DynamicTemplate = { id: string; name: string; category: string; thumb: string; previewPath: string };
 
+const getGraphemes = (text: string) => {
+  if (typeof Intl !== 'undefined' && (Intl as any).Segmenter) {
+    const segmenter = new (Intl as any).Segmenter(undefined, { granularity: 'grapheme' });
+    return Array.from(segmenter.segment(text)).map((s: any) => s.segment);
+  }
+  return Array.from(text);
+};
+
+const languages = [
+  { text: '5 Minutes' },
+  { text: '5 நிமிடங்களில்' },
+  { text: '5 മിനിറ്റിൽ' },
+  { text: '5 నిమిషాల్లో' },
+  { text: '5 ನಿಮಿಷಗಳಲ್ಲಿ' },
+  { text: '5 मिनटों में' }
+];
+
 export default function Home() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -21,7 +38,40 @@ export default function Home() {
   const [heroStoreName, setHeroStoreName] = useState('');
   const [finalStoreName, setFinalStoreName] = useState('');
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const [currentLangIdx, setCurrentLangIdx] = useState(0);
+  const [displayedText, setDisplayedText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    const fullText = languages[currentLangIdx].text;
+    const graphemes = getGraphemes(fullText);
+    const currentGraphemes = getGraphemes(displayedText);
+
+    if (isDeleting) {
+      if (currentGraphemes.length > 0) {
+        timer = setTimeout(() => {
+          setDisplayedText(currentGraphemes.slice(0, -1).join(''));
+        }, 55);
+      } else {
+        setIsDeleting(false);
+        setCurrentLangIdx((prev) => (prev + 1) % languages.length);
+      }
+    } else {
+      if (currentGraphemes.length < graphemes.length) {
+        timer = setTimeout(() => {
+          setDisplayedText(graphemes.slice(0, currentGraphemes.length + 1).join(''));
+        }, 110);
+      } else {
+        timer = setTimeout(() => {
+          setIsDeleting(true);
+        }, 2000);
+      }
+    }
+
+    return () => clearTimeout(timer);
+  }, [displayedText, isDeleting, currentLangIdx]);
 
   useEffect(() => {
     fetch('/api/templates').then(r => r.json()).then(setDynamicTemplates).catch(() => {});
@@ -117,8 +167,12 @@ export default function Home() {
                 </div>
                 
                 <div className="space-y-4">
-                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.1]">
-                    Your business deserves its own online store.
+                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.2] min-h-[140px] sm:min-h-[160px] lg:min-h-[180px]">
+                    Create your business website in just <br />
+                    <span className="text-blue-600 inline-flex items-center mt-1 sm:mt-2">
+                      {displayedText}
+                      <span className="inline-block w-1.5 h-9 sm:h-11 lg:h-14 bg-blue-600 ml-1.5 animate-pulse" style={{ animationDuration: '0.8s' }}></span>
+                    </span>
                   </h1>
                   <p className="text-slate-500 text-base sm:text-lg leading-relaxed max-w-xl">
                     Create a professional online store with CrevaWebs. Customize your storefront, add products, manage customer orders, and collect UPI payments — all without writing code.
