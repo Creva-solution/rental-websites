@@ -1,11 +1,24 @@
-"use client";
+'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, Lock, CheckCircle2, Globe, FileText, Printer, Download, Edit3, Phone, Check, QrCode, Smartphone, Upload, Trash, X, Clipboard, HelpCircle, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { 
+  Loader2, Lock, CheckCircle2, Globe, FileText, Printer, Download, 
+  Phone, Check, QrCode, Smartphone, Upload, Trash, X, Clipboard, 
+  HelpCircle, AlertTriangle, Eye, EyeOff, ChevronRight, Sparkles, Bot, MessageSquare
+} from 'lucide-react';
+
+interface TemplateOption {
+  id: 'minimal' | 'artisan' | 'bold' | 'luxe' | 'retro' | 'admire';
+  name: string;
+  category: string;
+  desc: string;
+  color: string;
+  thumb: string;
+}
 
 export default function BusinessSetupWizard() {
   const router = useRouter();
@@ -13,7 +26,10 @@ export default function BusinessSetupWizard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Subscription Plan & Signature states
+  // Progress & Resume
+  const [welcomeBack, setWelcomeBack] = useState(false);
+
+  // Subscription Plan & Signature
   const [selectedPlan, setSelectedPlan] = useState<string>('30');
   const [signature, setSignature] = useState<string | null>(null);
   const [isDrawingSig, setIsDrawingSig] = useState(false);
@@ -25,23 +41,31 @@ export default function BusinessSetupWizard() {
   const [paymentScreenshot, setPaymentScreenshot] = useState<string | null>(null);
   const [paymentScreenshotUrl, setPaymentScreenshotUrl] = useState<string | null>(null);
   const [screenshotUploading, setScreenshotUploading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'qr' | 'app'>('qr');
-  const [selectedUpiApp, setSelectedUpiApp] = useState<'gpay' | 'phonepe' | 'paytm' | 'bhim' | null>(null);
-  const [isUpiSimulating, setIsUpiSimulating] = useState(false);
-  const [upiSimulationStep, setUpiSimulationStep] = useState<number>(0);
-
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
 
   const [selectedTemplate, setSelectedTemplate] = useState<'minimal' | 'artisan' | 'bold' | 'luxe' | 'retro' | 'admire'>('minimal');
   const [showAuthPassword, setShowAuthPassword] = useState(false);
   const [showAuthConfirmPassword, setShowAuthConfirmPassword] = useState(false);
+  
+  // Custom Webz AI Onboarding Assistant state
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiMessages, setAiMessages] = useState<Array<{ sender: 'ai' | 'user'; text: string }>>([
+    { sender: 'ai', text: "Hello! I am Webz AI. I am here to guide you through setting up your CrevaWebs online store. What can I help you with?" }
+  ]);
+
+  // Form errors & domain checker
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [domainChecked, setDomainChecked] = useState(false);
+  const [domainAvailable, setDomainAvailable] = useState<boolean | null>(null);
+  const [checkingDomain, setCheckingDomain] = useState(false);
+  const [showAgreementModal, setShowAgreementModal] = useState(false);
+  const [advancedColor, setAdvancedColor] = useState(false);
 
   const [formData, setFormData] = useState({
     businessName: '',
     businessDescription: '',
-    category: '',
+    category: 'Fashion',
     logo: null as string | null,
     primaryColor: '#3B82F6',
     ownerName: '',
@@ -59,59 +83,49 @@ export default function BusinessSetupWizard() {
 
   const defaultTemplates: Record<string, string> = {
     en: `1. PROVISIONS OF SERVICE: The Creva E-Commerce SaaS platform grants the undersigned Merchant the license to operate an automated retail storefront website using our cloud architecture. Custom domain mappings are active permissions subject to the subscription plan level.
-
 2. PLAN RENEWALS & INQUIRY SYSTEM: The Merchant understands that platform billing utilizes an inquiry activation system. Upon plan expiration, storefront access may be suspended unless renewed by contacting the support sales team directly.
-
 3. ACCEPTABLE USAGE & LEGAL LIMITS: The Merchant agrees to list only legally compliant goods. Sales of prohibited, illegal, counterfeited, or unauthorized products will lead to instant termination of this license without refund.
-
 4. SECURITY & DATA PRIVACY: The platform will protect merchant database assets, catalog listings, and custom styling. The platform is not responsible for off-site customer disputes.`,
-    
     ta: `1. சேவைகளின் விதிகள்: கிரெவா ஈ-காமர்ஸ் சாஸ் தளம், கையொப்பமிட்ட வணிகருக்கு எங்கள் கிளவுட் கட்டமைப்பைப் பயன்படுத்தி ஒரு தானியங்கி சில்லறை விற்பனை இணையதளத்தை இயக்க உரிமம் வழங்குகிறது. தனிப்பயன் டொமேன் இணைப்புகள் சந்தா திட்ட நிலைக்கு உட்பட்டது.
-
 2. புதுப்பித்தல் மற்றும் விசாரிக்கும் முறை: வணிகர் தளம் கட்டணம் செலுத்தும் விசாரணை முறையை பயன்படுத்துகிறது என்பதை புரிந்து கொள்கிறார். சந்தா காலம் முடிந்ததும், ஆதரவு விற்பனை குழுவை நேரடியாக தொடர்பு கொண்டு புதுப்பிக்காவிட்டால் அணுகல் நிறுத்தப்படலாம்.
-
 3. ஏற்கத்தக்க பயன்பாடு மற்றும் சட்ட வரம்புகள்: வணிகர் சட்டப்பூர்வமான பொருட்களை மட்டுமே பட்டியலிட ஒப்புக்கொள்கிறார். தடைசெய்யப்பட்ட, சட்டவிரோதமான அல்லது அங்கீகரிக்கப்படாத தயாரிப்புகளை விற்பனை செய்வது பணத்தைத் திரும்பப்பெறாமல் உடனடியாக இந்த உரிமத்தை ரத்து செய்ய வழிவகுக்கும்.
-
 4. பாதுகாப்பு மற்றும் தரவு தனியுரிமை: இந்த தளம் வணிகர் தரவுத்தள சொத்துக்கள், தயாரிப்பு பட்டியல்கள் மற்றும் தனிப்பயன் பாணிகளைப் பாதுகாக்கும். தளம் சாராத வாடிக்கையாளர் தகராறுகளுக்கு இந்த தளம் பொறுப்பல்ல.`,
-    
-    hi: `1. सेवा के प्रावधान: क्रेवा ई-कॉमर्स सास प्लेटफॉर्म हस्ताक्षरकर्ता मर्चेंट को हमारे क्लाउड आर्किटेक्चर का उपयोग करके एक स्वचालित खुदरा स्टोरफ्रंट वेबसाइट संचालित करने का लाइसेंस प्रदान करता है। कस्टम डोमेन मैपिंग सदस्यता योजना स्तर के अधीन है।
-
-2. योजना नवीनीकरण और पूछताछ प्रणाली: मर्चेंट समझता है कि प्लेटफॉर्म बिलिंग एक पूछताछ सक्रियण प्रणाली का उपयोग करती है। योजना की समाप्ति पर, सहायता बिक्री टीम से सीधे संपर्क करके नवीनीकरण न किए जाने तक स्टोरफ्रंट एक्सेस को निलंबित किया जा सकता है।
-
-3. स्वीकार्य उपयोग और कानूनी सीमाएं: मर्चेंट केवल कानूनी रूप से अनुपालन करने वाले सामानों को सूचीबद्ध करने के लिए सहमत है। प्रतिबंधित, अवैध या अनधिकृत उत्पादों की बिक्री से बिना किसी रिफंड के इस लाइसेंस को तत्काल समाप्त कर दिया जाएगा।
-
-4. सुरक्षा और गोपनीयता: प्लेटफॉर्म मर्चेंट डेटाबेस संपत्ति, कैटलॉग लिस्टिंग और कस्टम स्टाइलिंग की रक्षा करेगा। प्लेटफॉर्म ऑफ-साइट ग्राहक विवादों के लिए जिम्मेदार नहीं है।`,
-    
-    te: `1. సేవా నిబంధనలు: క్రెవా ఇ-కామర్స్ సాస్ ప్లాట్‌ఫారమ్ సంతకం చేసిన వ్యాపారికి మా క్లౌడ్ ఆర్కిటెక్చర్‌ని ఉపయోగించి స్వయంచాలక రిటైల్ స్టోర్‌ఫ్రంట్ వెబ్‌సైట్‌ను నిర్వహించడానికి లైసెన్స్ మంజూరు చేస్తుంది. కస్టమ్ డొమైన్ మ్యాపింగ్స్ సభ్యత్వ ప్లాన్ శాతం లోబడి ఉంటాయి.
-
-2. ప్లాన్ పునరుద్ధరణలు & విచారణ వ్యవస్థ: ప్లాట్‌ఫారమ్ బిల్లింగ్ ఒక విచారణ యాక్టివేషన్ సిస్టమ్‌ను ఉపయోగిస్తుందని వ్యాపారి అర్థం చేసుకున్నారు. ప్లాన్ గడువు ముగిసిన తర్వాత, సేల్స్ టీమ్‌ని సంప్రదించి పునరుద్ధరించకపోతే స్టోర్‌ఫ్రంట్ యాక్సెస్ నిలిపివేయబడవచ్చు.
-
-3. అనుమతించదగిన వినియోగం & చట్టపరమైన పరిమితులు: వ్యాపారి చట్టబద్ధమైన వస్తువులను మాత్రమే విక్రయించడానికి అంగీకరిస్తారు. నిషేధించబడిన, చట్టవిరుద్ధమైన లేదా అనధికారిక ఉత్పత్తుల విక్రయాలు ఎటువంటి రీఫండ్ లేకుండా ఈ లైసెన్స్‌ను వెంటనే రద్దు చేయడానికి దారితీస్తాయి.
-
-4. భద్రత & డేటా గోప్యత: ప్లాట్‌ఫారమ్ వ్యాపారి డేటాబేస్ ఆస్తులు, కేటలాగ్ జాబితాలు మరియు కస్టమ్ స్టైలింగ్‌ను రక్షిస్తుంది. ఆఫ్-సైట్ కస్టమర్ వివాదాలకు ప్లాట్‌ఫారమ్ బాధ్యత వహించదు.`,
-    
-    ml: `1. സേവന വ്യവസ്ഥകൾ: ക്രെവ ഇ-കൊമേഴ്‌സ് സാസ് പ്ലാറ്റ്‌ഫോം ഒപ്പിട്ട വ്യാപാരിക്ക് ഞങ്ങളുടെ ക്ലൗഡ് ആർക്കിടെക്ചർ ഉപയോഗിച്ച് ഒരു ഓട്ടോമേറ്റഡ് റീട്ടെയിൽ സ്റ്റോർഫ്രണ്ട് വെബ്‌സൈറ്റ് പ്രവർത്തിപ്പിക്കാൻ ലൈസൻസ് നൽകുന്നു. കസ്റ്റം ഡൊമെയ്ൻ മാപ്പിംഗുകൾ സബ്‌സ്‌ക്രിപ്‌ഷൻ പ്ലാൻ ലെവലിന് വിധേയമാണ്.
-
-2. പ്ലാൻ പുതുക്കലും അന്വേഷണ സംവിധാനവും: പ്ലാറ്റ്‌ഫോം ബില്ലിംഗ് ഒരു അന്വേഷണ സജീവമാക്കൽ സംവിധാനമാണ് ഉപയോഗിക്കുന്നതെന്ന് വ്യാപാരി മനസ്സിലാക്കുന്നു. പ്ലാൻ കാലഹരണപ്പെടുമ്പോൾ, സപ്പോർട്ട് ടീമുമായി നേരിട്ട് ബന്ധപ്പെട്ട് പുതുക്കിയില്ലെങ്കിൽ ആക്സസ് താൽക്കാലികമായി നിർത്താം.
-
-3. സ്വീകാര്യമായ ഉപയോഗവും നിയമപരമായ പരിധികളും: നിയമപരമായി അനുസരിക്കുന്ന സാധനങ്ങൾ മാത്രം ലിസ്റ്റ് ചെയ്യാൻ വ്യാപാരി സമ്മതിക്കുന്നു. നിരോധിതമോ നിയമവിരുദ്ധമോ അനധികൃതമോ ആയ ഉൽപ്പന്നങ്ങളുടെ വിൽപ്പന റീഫണ്ട് ഇല്ലാതെ ഈ ലൈസൻസ് ഉടനടി റദ്ദാക്കാൻ ഇടയാക്കും.
-
-4. സുരക്ഷയും ഡാറ്റാ സ്വകാര്യതയും: പ്ലാറ്റ്‌ഫോം വ്യാപാരിയുടെ ഡാറ്റാബേസ് അസറ്റുകൾ, ഉൽപ്പന്ന ലിസ്റ്റിംഗുകൾ, കസ്റ്റം സ്റ്റൈലിംഗ് എന്നിവ സംരക്ഷിക്കും. ഓഫ്-സൈറ്റ് ഉപഭോക്തൃ തർക്കങ്ങൾക്ക് പ്ലാറ്റ്‌ഫോം ഉത്തരവാദിയല്ല.`,
-    
-    kn: `1. ಸೇವಾ ನಿಬಂಧನೆಗಳು: ಕ್ರೆವಾ ಇ-ಕಾಮರ್ಸ್ ಸಾಸ್ ಪ್ಲಾಟ್‌ಫಾರ್ಮ್ ಸಹಿ ಮಾಡಿದ ವ್ಯಾಪಾರಿಗೆ ನಮ್ಮ ಕೃತಕ ಬುದ್ಧಿಮತ್ತೆ ಕ್ಲೌಡ್ ಆರ್ಕಿಟೆಕ್ಚರ್ ಬಳಸಿ ಸ್ವಯಂಚಾಲಿತ ಚಿಲ್ಲರೆ ಸ್ಟೋರ್‌ಫ್ರಂಟ್ ವೆಬ್‌ಸೈಟ್ ನಿರ್ವಹಿಸಲು ಪರವานಗಿ ನೀಡುತ್ತದೆ. ಕಸ್ಟಮ್ ಡೊಮೇನ್ ಮ್ಯಾಪಿಂಗ್‌ಗಳು ಚಂದಾದಾರಿಕೆ ಯೋಜನೆ ಮಟ್ಟಕ್ಕೆ ಒಳಪಟ್ಟಿರುತ್ತವೆ.
-
-2. ಯೋಜನೆ ನವೀಕರಣಗಳು ಮತ್ತು ವಿಚಾರಣಾ ವ್ಯವಸ್ಥೆ: ಪ್ಲಾಟ್‌ಫಾರ್ಮ್ ಬಿಲ್ಲಿಂಗ್ ವಿಚಾರಣಾ ಸಕ್ರಿಯಗೊಳಿಸುವ ವ್ಯವಸ್ಥೆಯನ್ನು ಬಳಸುತ್ತದೆ ಎಂದು ವ್ಯಾపಾರಿ ಅರ್ಥಮಾಡಿಕೊಳ್ಳುತ್ತಾರೆ. ಯೋಜನೆ ಅವಧಿ ಮುಗಿದ ನಂತರ, ಸಪೋರ್ಟ್ ಸೇಲ್ಸ್ ತಂಡವನ್ನು ನೇರವಾಗಿ ಸಂಪర్కಿಸಿ ನವೀಕರಿಸದಿದ್ದರೆ ಪ್ರವೇಶವನ್ನು ಅಮಾನತುಗೊಳಿಸಬಹುದು.
-
-3. ಸ್ವೀಕಾರಾರ್ಹ ಬಳಕೆ ಮತ್ತು ಕಾನೂನು ಮಿತಿಗಳು: ವ್ಯಾಪಾರಿ ಕಾನೂನುಬದ್ಧ ಸರകുಗಳನ್ನು ಮಾತ್ರ ಪಟ್ಟಿ ಮಾಡಲು ಒಪ್ಪಿಕೊಳ್ಳುತ್ತಾರೆ. ನಿಷೇಧಿತ, ಅಕ್ರಮ ಅಥವಾ ಅನಧಿಕೃತ ಉತ್ಪನ್ನಗಳ ಮಾರಾಟವು ಯಾವುದೇ ಮರುಪಾವತಿ ಇಲ್ಲದೆ ಈ ಪರವಾನಗಿಯನ್ನು ತಕ್ಷಣವೇ ರದ್ದುಗೊಳಿಸಲು ಕಾರಣವಾಗುತ್ತದೆ.
-
-4. ಸುರಕ್ಷತೆ ಮತ್ತು ಡೇಟಾ ಗೌಪ್ಯತೆ: ಪ್ಲಾಟ್‌ಫಾರ್ಮ್ ವ್ಯಾಪಾರಿಯ ಡೇಟಾಬೇಸ್ ಆಸ್ತಿಗಳು, ಕ್ಯಾಟಲಾಗ್ ಪಟ್ಟಿಗಳು ಮತ್ತು ಕಸ್ಟಮ್ ಶೈಲಿಯನ್ನು ರಕ್ಷಿಸುತ್ತದೆ. ಆಫ್-ಸೈಟ್ ಗ್ರಾಹಕ ವಿವಾದಗಳಿಗೆ ಪ್ಲಾಟ್‌ಫಾರ್ಮ್ ಜವಾಬ್ದಾರನಾಗಿರುವುದಿಲ್ಲ.`
+    hi: `1. सेवा के प्रावधान: क्रेवा ई-कॉमर्स सास प्लेटफॉर्म मर्चेंट को हमारे क्लाउड आर्किटेक्चर का उपयोग करके एक खुदरा स्टोर संचालित करने का लाइसेंस प्रदान करता है।
+2. योजना नवीनीकरण: मर्चेंट समझता है कि प्लेटफॉर्म बिलिंग पूछताछ प्रणाली का उपयोग करती है। नवीनीकरण न किए जाने तक स्टोरफ्रंट निलंबित किया जा सकता है।
+3. स्वीकार्य उपयोग: मर्चेंट केवल कानूनी रूप से अनुपालन करने वाले सामानों को सूचीबद्ध करने के लिए सहमत है। प्रतिबंधित उत्पादों की बिक्री पर तत्काल लाइसेंस रद्द कर दिया जाएगा।
+4. सुरक्षा और गोपनीयता: प्लेटफॉर्म मर्चेंट डेटाबेस संपत्ति, कैटलॉग लिस्टिंग और कस्टम स्टाइलिंग की रक्षा करेगा।`
   };
 
-  const [agreementTemplates, setAgreementTemplates] = useState<Record<string, string>>(defaultTemplates);
+  const [agreementTemplates] = useState<Record<string, string>>(defaultTemplates);
   const [selectedAgreementLang, setSelectedAgreementLang] = useState<string>('en');
   const [globalSettings, setGlobalSettings] = useState<any>(null);
 
-  // Pre-select template from URL query parameters if present
+  // Resume state if exists in localstorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('creva_onboarding_draft');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setFormData(prev => ({ ...prev, ...parsed.data }));
+          setStep(parsed.step || 1);
+          setWelcomeBack(true);
+        } catch(e) {}
+      }
+    }
+  }, []);
+
+  // Save progress changes
+  const saveProgress = (nextStepNum: number) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('creva_onboarding_draft', JSON.stringify({
+        step: nextStepNum,
+        data: formData
+      }));
+    }
+  };
+
+  // Pre-select template from URL
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -138,11 +152,11 @@ export default function BusinessSetupWizard() {
     }
   }, []);
 
-  // Fetch SaaS settings on mount
+  // Fetch settings
   useEffect(() => {
     const loadGlobalSettings = async () => {
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('stores')
           .select('description')
           .eq('subdomain', '__creva_saas_global_settings__')
@@ -151,112 +165,24 @@ export default function BusinessSetupWizard() {
         if (data && data.description) {
           const parsed = JSON.parse(data.description);
           setGlobalSettings(parsed);
-
-          if (parsed.agreementTemplates) {
-            setAgreementTemplates(parsed.agreementTemplates);
-            localStorage.setItem('saas_agreement_templates', JSON.stringify(parsed.agreementTemplates));
-          } else if (parsed.agreementTemplate) {
-            const migrated = { ...defaultTemplates, en: parsed.agreementTemplate };
-            setAgreementTemplates(migrated);
-            localStorage.setItem('saas_agreement_templates', JSON.stringify(migrated));
-          }
-
-          // Seed local storage with these global settings so print/agreement windows can access them
-          if (parsed.brandName) localStorage.setItem('saas_brand_name', parsed.brandName);
-          if (parsed.brandLogo) localStorage.setItem('saas_brand_logo', parsed.brandLogo);
-          if (parsed.officers) localStorage.setItem('saas_licensing_officers', JSON.stringify(parsed.officers));
-          if (parsed.agreementTemplate) localStorage.setItem('saas_agreement_template', parsed.agreementTemplate);
-          if (parsed.plan30Price) localStorage.setItem('saas_plan_30_price', parsed.plan30Price);
-          if (parsed.plan365Price) localStorage.setItem('saas_plan_365_price', parsed.plan365Price);
-          if (parsed.planLifetimePrice) localStorage.setItem('saas_plan_lifetime_price', parsed.planLifetimePrice);
-          if (parsed.disabledDefaultPackages) localStorage.setItem('saas_disabled_default_packages', JSON.stringify(parsed.disabledDefaultPackages));
-          if (parsed.customPackages) localStorage.setItem('saas_custom_packages', JSON.stringify(parsed.customPackages));
         }
-      } catch (err) {
-        console.error("Failed to load global SaaS settings from DB:", err);
-      }
+      } catch (err) {}
     };
     loadGlobalSettings();
   }, []);
 
-  // Helper to resolve plan amounts dynamically (strips currency/commas for UPI)
-  const getSelectedPlanAmount = (): string => {
-    let amount = '0';
-    if (selectedPlan === '30') {
-      amount = (globalSettings?.plan30Price || '499').toString();
-    } else if (selectedPlan === '365') {
-      amount = (globalSettings?.plan365Price || '3999').toString();
-    } else if (selectedPlan === 'lifetime') {
-      amount = (globalSettings?.planLifetimePrice || '9999').toString();
-    } else {
-      const customPkg = (globalSettings?.customPackages || []).find((pkg: any) => pkg.id === selectedPlan);
-      amount = customPkg ? (customPkg.price || '0').toString() : '0';
-    }
-    return amount.replace(/[^0-9.]/g, '');
-  };
-
-  // Helper to resolve plan label dynamically
-  const getSelectedPlanLabel = (): string => {
-    if (selectedPlan === '30') return '1 Month (30 Days)';
-    if (selectedPlan === '365') return '1 Year (365 Days)';
-    if (selectedPlan === 'lifetime') return 'Lifetime Subscription';
-    const customPkg = (globalSettings?.customPackages || []).find((pkg: any) => pkg.id === selectedPlan);
-    return customPkg ? `${customPkg.name} (${customPkg.days} Days)` : 'Custom Subscription';
-  };
-
-  // Auto-select the first available plan when settings load (especially if '30' is disabled)
-  useEffect(() => {
-    if (globalSettings) {
-      const defaultPlans = [
-        { id: '30' },
-        { id: '365' },
-        { id: 'lifetime' }
-      ].filter(plan => !(globalSettings?.disabledDefaultPackages || []).includes(plan.id));
-      
-      const customPlans = (globalSettings?.customPackages || []).map((pkg: any) => ({
-        id: pkg.id
-      }));
-      
-      const allAvailable = [...defaultPlans, ...customPlans];
-      if (allAvailable.length > 0) {
-        if (!allAvailable.some(p => p.id === selectedPlan)) {
-          setSelectedPlan(allAvailable[0].id);
-        }
-      }
-    }
-  }, [globalSettings, selectedPlan]);
-
-  // Randomly assign one of 4 licensing officers when step 5 is active
+  // Set licensing officer
   useEffect(() => {
     if (step === 5 && !assignedOfficer) {
-      let officersList = [
-        { id: 1, name: 'Kavin Kumar', title: 'Senior Licensing Officer', signature: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="150" height="50" viewBox="0 0 150 50"><text x="10" y="35" font-family="Brush Script MT, cursive, sans-serif" font-size="28" fill="%230f172a">Kavin Kumar</text></svg>' },
-        { id: 2, name: 'Abhishek Sharma', title: 'Executive Officer - Creva', signature: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="150" height="50" viewBox="0 0 150 50"><text x="10" y="35" font-family="Brush Script MT, cursive, sans-serif" font-size="28" fill="%230f172a">Abhishek S.</text></svg>' },
-        { id: 3, name: 'Preethi Rajan', title: 'Licensing Director', signature: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="150" height="50" viewBox="0 0 150 50"><text x="10" y="35" font-family="Brush Script MT, cursive, sans-serif" font-size="28" fill="%230f172a">Preethi R.</text></svg>' },
-        { id: 4, name: 'Sanjay Sen', title: 'Registrar of Merchants', signature: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="150" height="50" viewBox="0 0 150 50"><text x="10" y="35" font-family="Brush Script MT, cursive, sans-serif" font-size="28" fill="%230f172a">Sanjay Sen</text></svg>' }
+      const officersList = [
+        { id: 1, name: 'Kavin Kumar', title: 'Senior Licensing Officer', signature: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="150" height="50" viewBox="0 0 150 50"><text x="10" y="35" font-family="Brush Script MT, cursive" font-size="26" fill="%230f172a">Kavin Kumar</text></svg>' },
+        { id: 2, name: 'Preethi Rajan', title: 'Licensing Director', signature: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="150" height="50" viewBox="0 0 150 50"><text x="10" y="35" font-family="Brush Script MT, cursive" font-size="26" fill="%230f172a">Preethi R.</text></svg>' }
       ];
-
-      if (globalSettings?.officers && globalSettings.officers.length > 0) {
-        officersList = globalSettings.officers;
-      } else if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem('saas_licensing_officers');
-        if (saved) {
-          try {
-            officersList = JSON.parse(saved);
-          } catch (e) {}
-        }
-      }
-
-      // Filter to only select officers who have a custom stamp/signature uploaded
-      const officersWithStamp = officersList.filter(o => o.signature && o.signature.trim().length > 0);
-      const finalSelectionList = officersWithStamp.length > 0 ? officersWithStamp : officersList;
-
-      const random = finalSelectionList[Math.floor(Math.random() * finalSelectionList.length)];
-      setAssignedOfficer(random);
+      setAssignedOfficer(officersList[Math.floor(Math.random() * officersList.length)]);
     }
-  }, [step, assignedOfficer, globalSettings]);
+  }, [step, assignedOfficer]);
 
-  // Canvas digital signature pad logic - Init once on step 5 mount
+  // Init canvas signature pad
   useEffect(() => {
     if (step === 5) {
       const timer = setTimeout(() => {
@@ -264,7 +190,6 @@ export default function BusinessSetupWizard() {
         if (canvas) {
           const ctx = canvas.getContext('2d');
           if (ctx) {
-            // Set pure white background for crisp, high-contrast, professional look when printed/downloaded
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
           }
@@ -274,87 +199,187 @@ export default function BusinessSetupWizard() {
     }
   }, [step]);
 
+  const validateStep = (s: number): Record<string, string> => {
+    const errs: Record<string, string> = {};
+    if (s === 1) {
+      if (!formData.businessName.trim()) errs.businessName = 'Please enter your business name.';
+      else if (formData.businessName.trim().length < 3) errs.businessName = 'Business name must be at least 3 characters.';
+      if (!formData.category) errs.category = 'Business category is required.';
+      if (!formData.businessDescription.trim()) errs.businessDescription = 'Please provide a short description.';
+    }
+    if (s === 3) {
+      if (!formData.ownerName.trim()) errs.ownerName = 'Please enter your full name.';
+      if (!formData.email.trim()) errs.email = 'Email address is required.';
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) errs.email = 'Please enter a valid email address.';
+      if (!formData.phone.trim()) errs.phone = 'Phone number is required.';
+      else if (formData.phone.replace(/\D/g, '').length < 10) errs.phone = 'Phone number must be at least 10 digits.';
+      if (!formData.address.trim()) errs.address = 'Business address is required.';
+      if (!formData.city.trim()) errs.city = 'City is required.';
+      if (!formData.state.trim()) errs.state = 'State is required.';
+      if (!formData.pincode.trim()) errs.pincode = 'Pincode is required.';
+    }
+    return errs;
+  };
+
   const nextStep = () => {
     setErrors({});
-    if (step === 5) {
-      if (!signature || !isSignatureConfirmed) {
-        alert("Please digitally sign the SaaS agreement and click 'Confirm & Lock Signature' below the canvas to proceed!");
-        return;
-      }
-      if (!paymentScreenshotUrl) {
-        alert("Please pay via scan QR code or UPI app, and upload your payment screenshot to proceed!");
-        return;
-      }
-    }
     const stepErrors = validateStep(step);
     if (Object.keys(stepErrors).length > 0) {
       setErrors(stepErrors);
       return;
     }
-    setStep((s) => Math.min(s + 1, 6));
+    
+    if (step === 4 && !domainChecked) {
+      alert("Please check subdomain availability to proceed.");
+      return;
+    }
+    if (step === 4 && !domainAvailable) {
+      alert("Subdomain address is not available. Please try another name.");
+      return;
+    }
+
+    if (step === 5) {
+      if (!signature || !isSignatureConfirmed) {
+        alert("Please draw and confirm your signature to continue.");
+        return;
+      }
+      if (!paymentScreenshotUrl) {
+        alert("Please upload your payment verification screenshot.");
+        return;
+      }
+    }
+
+    const nextStepNum = Math.min(step + 1, 6);
+    setStep(nextStepNum);
+    saveProgress(nextStepNum);
   };
-  const prevStep = () => setStep((s) => Math.max(s - 1, 1));
+
+  const prevStep = () => {
+    const prevStepNum = Math.max(step - 1, 1);
+    setStep(prevStepNum);
+    saveProgress(prevStepNum);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'businessName') {
+      setDomainChecked(false);
+      setDomainAvailable(null);
+    }
     if (errors[name]) setErrors(prev => { const n = { ...prev }; delete n[name]; return n; });
   };
 
-  const validateStep = (s: number): Record<string, string> => {
-    const errs: Record<string, string> = {};
-    if (s === 1) {
-      if (!formData.businessName.trim()) errs.businessName = 'Store name is required.';
-      else if (formData.businessName.trim().length < 3) errs.businessName = 'Store name must be at least 3 characters.';
-      if (!formData.category) errs.category = 'Store category is required.';
-      if (!formData.businessDescription.trim()) errs.businessDescription = 'Store description is required.';
+  // Logo upload
+  const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert("Logo must be under 2MB.");
+        return;
+      }
+      setLogoUploading(true);
+      try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `logo-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+        const filePath = `store-logos/${fileName}`;
+
+        const { data, error } = await supabase.storage
+          .from('products')
+          .upload(filePath, file, { cacheControl: '3600', upsert: false });
+
+        if (error) throw error;
+        const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(filePath);
+        setFormData(prev => ({ ...prev, logo: publicUrl }));
+      } catch (err: any) {
+        console.error(err);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFormData(prev => ({ ...prev, logo: reader.result as string }));
+        };
+        reader.readAsDataURL(file);
+      } finally {
+        setLogoUploading(false);
+      }
     }
-    if (s === 3) {
-      if (!formData.ownerName.trim()) errs.ownerName = 'Full name is required.';
-      if (!formData.email.trim()) errs.email = 'Email address is required.';
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) errs.email = 'Please enter a valid email address.';
-      if (!formData.phone.trim()) errs.phone = 'Phone number is required.';
-      else if (formData.phone.replace(/\D/g, '').length < 10) errs.phone = 'Phone number must be at least 10 digits.';
-      if (!formData.address.trim()) errs.address = 'Address is required.';
-      if (!formData.city.trim()) errs.city = 'City is required.';
-      if (!formData.state.trim()) errs.state = 'State is required.';
-      if (!formData.pincode.trim()) errs.pincode = 'Pincode is required.';
-      else if (!/^\d{4,8}$/.test(formData.pincode.trim())) errs.pincode = 'Please enter a valid pincode.';
-    }
-    return errs;
   };
 
-  const validateStep6 = (): Record<string, string> => {
-    const errs: Record<string, string> = {};
-    if (!formData.authEmail.trim()) errs.authEmail = 'Email address is required.';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.authEmail.trim())) errs.authEmail = 'Please enter a valid email address.';
-    if (!formData.authPassword) errs.authPassword = 'Password is required.';
-    else if (formData.authPassword.length < 8) errs.authPassword = 'Password must be at least 8 characters.';
-    else if (!/[A-Z]/.test(formData.authPassword)) errs.authPassword = 'Password must contain at least one uppercase letter.';
-    else if (!/[a-z]/.test(formData.authPassword)) errs.authPassword = 'Password must contain at least one lowercase letter.';
-    else if (!/[0-9]/.test(formData.authPassword)) errs.authPassword = 'Password must contain at least one number.';
-    if (!formData.authConfirmPassword) errs.authConfirmPassword = 'Please confirm your password.';
-    else if (formData.authPassword !== formData.authConfirmPassword) errs.authConfirmPassword = 'Passwords do not match.';
-    return errs;
+  // Screenshot upload
+  const handleScreenshotFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Screenshot must be under 5MB.");
+        return;
+      }
+      setScreenshotUploading(true);
+      try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `payment-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+        const filePath = `payment-screenshots/${fileName}`;
+
+        const { data, error } = await supabase.storage
+          .from('products')
+          .upload(filePath, file, { cacheControl: '3600', upsert: false });
+
+        if (error) throw error;
+        const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(filePath);
+        setPaymentScreenshotUrl(publicUrl);
+        setPaymentScreenshot(publicUrl);
+      } catch (err: any) {
+        console.error(err);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPaymentScreenshot(reader.result as string);
+          setPaymentScreenshotUrl(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      } finally {
+        setScreenshotUploading(false);
+      }
+    }
   };
 
+  // Subdomain checker
+  const handleCheckDomain = async () => {
+    const slug = formData.businessName.toLowerCase().replace(/[^a-z0-9]/g, '-').trim();
+    if (!slug) {
+      alert("Please enter a business name first.");
+      return;
+    }
+    setCheckingDomain(true);
+    try {
+      const { data } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('subdomain', slug)
+        .maybeSingle();
+
+      setDomainAvailable(!data);
+      setDomainChecked(true);
+    } catch(e) {
+      setDomainAvailable(true);
+      setDomainChecked(true);
+    } finally {
+      setCheckingDomain(false);
+    }
+  };
+
+  // Signature drawing pad
   const startDrawingSig = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     const canvas = sigCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
     setIsDrawingSig(true);
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2;
     ctx.lineCap = 'round';
     
     const rect = canvas.getBoundingClientRect();
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    
-    // Scale coordinates accurately to internal canvas dimension mapping
     const x = ((clientX - rect.left) / rect.width) * canvas.width;
     const y = ((clientY - rect.top) / rect.height) * canvas.height;
     
@@ -373,8 +398,6 @@ export default function BusinessSetupWizard() {
     const rect = canvas.getBoundingClientRect();
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-
-    // Scale coordinates accurately to internal canvas dimension mapping
     const x = ((clientX - rect.left) / rect.width) * canvas.width;
     const y = ((clientY - rect.top) / rect.height) * canvas.height;
 
@@ -382,19 +405,13 @@ export default function BusinessSetupWizard() {
     ctx.stroke();
   };
 
-  const stopDrawingSig = () => {
-    setIsDrawingSig(false);
-  };
+  const stopDrawingSig = () => setIsDrawingSig(false);
 
   const confirmSig = () => {
     const canvas = sigCanvasRef.current;
     if (canvas) {
-      const dataUrl = canvas.toDataURL();
-      setSignature(dataUrl);
+      setSignature(canvas.toDataURL());
       setIsSignatureConfirmed(true);
-      alert("Digital signature captured and locked successfully!");
-    } else {
-      alert("Error capturing signature. Please try drawing again.");
     }
   };
 
@@ -412,356 +429,63 @@ export default function BusinessSetupWizard() {
     setIsSignatureConfirmed(false);
   };
 
-  const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert("Logo image is too large! Please choose a file under 2MB.");
-        return;
-      }
-      await uploadLogo(file);
-    }
+  const getSelectedPlanAmount = (): string => {
+    if (selectedPlan === '30') return '499';
+    if (selectedPlan === '365') return '3999';
+    return '9999';
   };
 
-  const uploadLogo = async (file: File) => {
-    setLogoUploading(true);
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `logo-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-      const filePath = `store-logos/${fileName}`;
-
-      let publicUrl = '';
-      
-      const { data, error } = await supabase.storage
-        .from('assets')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (error) {
-        console.warn("Upload logo to 'assets' bucket failed, attempting 'products'...", error);
-        
-        const { data: dataAlt, error: errorAlt } = await supabase.storage
-          .from('products')
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: false
-          });
-
-        if (errorAlt) throw errorAlt;
-        
-        if (dataAlt && dataAlt.path && (dataAlt.path.startsWith('http://') || dataAlt.path.startsWith('https://'))) {
-          publicUrl = dataAlt.path;
-        } else {
-          const { data: { publicUrl: url } } = supabase.storage
-            .from('products')
-            .getPublicUrl(filePath);
-          publicUrl = url;
-        }
-      } else {
-        if (data && data.path && (data.path.startsWith('http://') || data.path.startsWith('https://'))) {
-          publicUrl = data.path;
-        } else {
-          const { data: { publicUrl: url } } = supabase.storage
-            .from('assets')
-            .getPublicUrl(filePath);
-          publicUrl = url;
-        }
-      }
-
-      setFormData(prev => ({ ...prev, logo: publicUrl }));
-
-    } catch (err: any) {
-      console.error("Storage logo upload failed, falling back to base64 encoding", err);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, logo: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
-    } finally {
-      setLogoUploading(false);
-    }
+  const getSelectedPlanLabel = (): string => {
+    if (selectedPlan === '30') return '1 Month (₹499)';
+    if (selectedPlan === '365') return '1 Year (₹3,999)';
+    return 'Lifetime (₹9,999)';
   };
 
-  const handleScreenshotFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert("Screenshot image is too large! Please choose a file under 5MB.");
-        return;
-      }
-      await uploadScreenshot(file);
-    }
-  };
-
-  const uploadScreenshot = async (file: File) => {
-    setScreenshotUploading(true);
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `payment-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-      const filePath = `payment-screenshots/${fileName}`;
-
-      let publicUrl = '';
-      
-      // Try to upload to assets storage bucket first
-      const { data, error } = await supabase.storage
-        .from('assets')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (error) {
-        console.warn("Upload to 'assets' bucket failed, attempting 'products'...", error);
-        
-        const { data: dataAlt, error: errorAlt } = await supabase.storage
-          .from('products')
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: false
-          });
-
-        if (errorAlt) throw errorAlt;
-        
-        if (dataAlt && dataAlt.path && (dataAlt.path.startsWith('http://') || dataAlt.path.startsWith('https://'))) {
-          publicUrl = dataAlt.path;
-        } else {
-          const { data: { publicUrl: url } } = supabase.storage
-            .from('products')
-            .getPublicUrl(filePath);
-          publicUrl = url;
-        }
-      } else {
-        if (data && data.path && (data.path.startsWith('http://') || data.path.startsWith('https://'))) {
-          publicUrl = data.path;
-        } else {
-          const { data: { publicUrl: url } } = supabase.storage
-            .from('assets')
-            .getPublicUrl(filePath);
-          publicUrl = url;
-        }
-      }
-
-      setPaymentScreenshotUrl(publicUrl);
-
-      // Also set preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPaymentScreenshot(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-
-    } catch (err: any) {
-      console.error("Storage upload failed, falling back to base64 encoding", err);
-      // Base64 fallback if storage bucket has issue
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPaymentScreenshot(reader.result as string);
-        setPaymentScreenshotUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    } finally {
-      setScreenshotUploading(false);
-    }
-  };
-
-  const handleSimulateUpiApp = (appName: 'gpay' | 'phonepe' | 'paytm' | 'bhim') => {
-    // 1. Generate real UPI deep link!
-    const upiId = globalSettings?.platformUpi || 'creva@ybl';
-    const planAmount = getSelectedPlanAmount();
-    const merchantName = globalSettings?.brandName || 'StoreBuilder';
-    const upiIntent = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${planAmount}&cu=INR`;
-
-    // 2. If user is on a mobile device, try opening the real UPI deep link!
-    if (typeof window !== 'undefined') {
-      const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
-      if (isMobile) {
-        window.location.href = upiIntent;
-      } else {
-        alert(`📲 Mobile Device Required:\nTo pay directly via ${appName === 'gpay' ? 'Mobile Payment' : appName === 'paytm' ? 'Paytm' : 'BHIM'}, please scan the QR Code on the left or open this page on your mobile device!`);
-      }
-    }
-  };
-
-  const handlePrintContract = () => {
-    if (typeof window === 'undefined') return;
-    const activeTerms = agreementTemplates[selectedAgreementLang] || defaultTemplates[selectedAgreementLang];
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-
-    const planLabel = getSelectedPlanLabel();
-
-    const logoUrl = localStorage.getItem('saas_brand_logo') || '';
-    const logoHtml = logoUrl 
-      ? `<img src="${logoUrl}" style="max-height: 55px; max-width: 180px; display: block; margin: 0 auto 15px auto;" />`
-      : `<svg width="50" height="50" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; margin: 0 auto 15px auto;">
-           <circle cx="50" cy="50" r="45" stroke="#1e3a8a" stroke-width="3" fill="#f8fafc"/>
-           <path d="M50 20 L75 40 L65 75 L35 75 L25 40 Z" fill="#1e3a8a"/>
-           <text x="50" y="58" font-family="'Georgia', serif" font-weight="bold" font-size="24" fill="#ffffff" text-anchor="middle">C</text>
-         </svg>`;
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Creva SaaS Storefront Agreement - ${formData.businessName}</title>
-          <style>
-            body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; }
-            .header { border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; text-align: center; }
-            .title { font-size: 22px; font-weight: 850; text-transform: uppercase; letter-spacing: 0.5px; color: #0f172a; margin-top: 5px; }
-            .subtitle { font-size: 13px; color: #64748b; margin-top: 3px; }
-            .section { margin-bottom: 25px; }
-            .section-title { font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 10px; border-left: 4px solid #3b82f6; padding-left: 10px; text-transform: uppercase; }
-            .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            .meta-table td { padding: 9px; border: 1px solid #e2e8f0; font-size: 13px; }
-            .meta-table td.label { font-weight: bold; background-color: #f8fafc; width: 30%; }
-            .terms { background: #f8fafc; border: 1px solid #e2e8f0; padding: 18px; border-radius: 8px; font-size: 11px; max-height: 250px; overflow-y: auto; text-align: justify; }
-            .signature-area { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 50px; }
-            .sig-box { border-bottom: 1px solid #000; width: 45%; text-align: center; padding-bottom: 10px; }
-            .sig-img { max-height: 60px; max-width: 100%; display: block; margin: 0 auto 5px auto; }
-            .badge { display: inline-block; padding: 4px 10px; background: #e0f2fe; color: #0369a1; font-weight: bold; font-size: 11px; border-radius: 9999px; text-transform: uppercase; }
-            @media print { .no-print { display: none; } }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            ${logoHtml}
-            <div class="title">Creva SaaS Storefront Agreement</div>
-            <div class="subtitle">Official Digital Merchant & Licensing Contract</div>
-          </div>
-
-          <div class="section">
-            <div class="section-title">Merchant & Storefront Details</div>
-            <table class="meta-table">
-              <tr>
-                <td class="label">Merchant Name</td>
-                <td>${formData.businessName}</td>
-              </tr>
-              <tr>
-                <td class="label">Primary Subdomain</td>
-                <td>${formData.businessName.toLowerCase().replace(/[^a-z0-9]/g, '-')}.crevasolution.in</td>
-              </tr>
-              <tr>
-                <td class="label">Contact Email</td>
-                <td>${formData.email}</td>
-              </tr>
-              <tr>
-                <td class="label">Contact Phone</td>
-                <td>${formData.phone}</td>
-              </tr>
-              <tr>
-                <td class="label">Subscription Tier</td>
-                <td><span class="badge">${planLabel}</span></td>
-              </tr>
-              <tr>
-                <td class="label">Date Signed</td>
-                <td>${new Date().toLocaleDateString('en-IN')}</td>
-              </tr>
-            </table>
-          </div>
-
-          <div class="section">
-            <div class="section-title">Terms &amp; Conditions of Service (${selectedAgreementLang.toUpperCase()})</div>
-            <div class="terms">
-              ${activeTerms
-                .split('\n')
-                .filter((line: string) => line.trim())
-                .map((para: string) => `<p>${para.trim().replace(/&/g, '&amp;')}</p>`)
-                .join('')
-              }
-            </div>
-          </div>
-
-          <div class="signature-area">
-            <div class="sig-box">
-              <div style="font-size: 10px; color: #64748b; margin-bottom: 5px;">${assignedOfficer?.title || 'Creva Licensing Officer'}</div>
-              ${assignedOfficer?.signature 
-                ? `<img class="sig-img" src="${assignedOfficer.signature}" alt="${assignedOfficer.name}" />` 
-                : `<div style="font-family: 'Courier New', monospace; font-weight: bold; font-size: 13px; margin-bottom: 12px; letter-spacing: 1px;">CREVA OFFICIAL STAMP</div>`
-              }
-              <div style="font-size: 11px; font-weight: bold; border-top: 1px solid #cbd5e1; padding-top: 5px;">${assignedOfficer?.name || 'Authorized Signature'}</div>
-            </div>
-            <div class="sig-box">
-              <div style="font-size: 11px; color: #64748b; margin-bottom: 5px;">Signed Digitally by Merchant</div>
-              ${signature ? `<img class="sig-img" src="${signature}" alt="Merchant Signature" />` : '<div style="height: 70px;">[MISSING SIGNATURE]</div>'}
-              <div style="font-size: 12px; font-weight: bold; border-top: 1px solid #cbd5e1; padding-top: 5px;">Merchant Signature</div>
-            </div>
-          </div>
-
-          <div style="text-align: center; margin-top: 40px;" class="no-print">
-            <button onclick="window.print()" style="padding: 10px 20px; font-size: 14px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
-              🖨️ Print or Save as PDF
-            </button>
-          </div>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-  };
-
+  // Submit and create account
   const handleSubmit = async () => {
     setErrors({});
-    const step6Errors = validateStep6();
-    if (Object.keys(step6Errors).length > 0) {
-      setErrors(step6Errors);
+    if (!formData.authEmail.trim() || !formData.authPassword) {
+      alert("Please enter login credentials.");
       return;
     }
     setLoading(true);
     setError(null);
 
     try {
-      // 1. Sign up the user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.authEmail,
         password: formData.authPassword,
       });
 
       if (authError) throw authError;
-      if (!authData.user) throw new Error('Failed to create account. Please try again.');
+      if (!authData.user) throw new Error('Account creation failed.');
 
-      // 2. Create the store record with contract details and subscription expiry dates
-      const subdomain = formData.businessName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      
-      let expiryDate = null;
-      const now = new Date();
-      if (selectedPlan === '30') {
-        expiryDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
-      } else if (selectedPlan === '365') {
-        expiryDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
-      } else if (selectedPlan === 'lifetime') {
-        expiryDate = null;
-      } else {
-        const customPkg = (globalSettings?.customPackages || []).find((pkg: any) => pkg.id === selectedPlan);
-        if (customPkg) {
-          expiryDate = new Date(now.getTime() + Number(customPkg.days || 30) * 24 * 60 * 60 * 1000).toISOString();
-        }
-      }
-
+      const subdomain = formData.businessName.toLowerCase().replace(/[^a-z0-9]/g, '-').trim();
       const contractDetails = {
-        description: formData.businessDescription,
-        ownerName: formData.ownerName,
-        address: formData.address,
-        city: formData.city,
-        state: formData.state,
-        pincode: formData.pincode,
-        contractSigned: true,
-        contractSignedAt: new Date().toISOString(),
-        contractSignature: signature,
-        selectedLanguage: selectedAgreementLang,
-        signedAgreementTerms: agreementTemplates[selectedAgreementLang] || defaultTemplates[selectedAgreementLang],
-        selectedPlan: selectedPlan,
-        assignedOfficer: assignedOfficer,
-        paymentScreenshotUrl: paymentScreenshotUrl,
+        signedName: formData.ownerName,
+        signatureUrl: signature,
+        signedDate: new Date().toLocaleDateString('en-IN'),
+        termsText: agreementTemplates[selectedAgreementLang],
+        selectedPlan,
+        assignedOfficer,
+        paymentScreenshotUrl,
         paymentStatus: 'pending',
-        selectedTemplate: selectedTemplate
+        selectedTemplate
       };
+
+      const now = new Date();
+      const expiryDate = selectedPlan === '30' 
+        ? new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+        : selectedPlan === '365'
+          ? new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000)
+          : new Date(now.getTime() + 99999 * 24 * 60 * 60 * 1000);
 
       const { error: storeError } = await supabase
         .from('stores')
         .insert([{
           owner_id: authData.user.id,
           store_name: formData.businessName,
-          subdomain: subdomain,
+          subdomain,
           business_category: formData.category,
           description: JSON.stringify(contractDetails),
           primary_color: formData.primaryColor,
@@ -771,57 +495,24 @@ export default function BusinessSetupWizard() {
           contact_phone: formData.phone,
           subscription_expires_at: expiryDate,
           custom_domain_enabled: false,
-          is_paused: true // Started as paused until verified
+          is_paused: true
         }]);
 
       if (storeError) throw storeError;
 
-      // 3. Register the subdomain alias with Vercel automatically (runs securely on server-side)
+      // Register domains
       try {
         await fetch('/api/domains/add', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ subdomain }),
         });
-      } catch (domainErr) {
-        console.error('Failed to register subdomain automatically on Vercel:', domainErr);
-        // Continue transition since store record creation succeeded
-      }
+      } catch (domainErr) {}
 
-      // 4. Send welcome email + all-superadmin notification (fire-and-forget)
-      const regDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
-      fetch('/api/email/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'welcome',
-          to: formData.email,
-          ownerName: formData.ownerName || formData.businessName,
-          storeName: formData.businessName,
-          storeUrl: `https://${subdomain}.crevasolution.in`,
-          subdomain,
-          phone: formData.phone,
-          registrationDate: regDate,
-        }),
-      }).catch(() => {});
-      fetch('/api/email/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'new_store',
-          storeName: formData.businessName,
-          ownerName: formData.ownerName || formData.businessName,
-          ownerEmail: formData.email,
-          ownerPhone: formData.phone,
-          subdomain,
-          plan: getSelectedPlanLabel(),
-          registrationDate: regDate,
-        }),
-      }).catch(() => {});
+      // Clean local storage draft
+      localStorage.removeItem('creva_onboarding_draft');
 
-      // 5. Success! Redirect to dashboard
+      // Success routing
       router.push('/admin');
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred');
@@ -829,1037 +520,925 @@ export default function BusinessSetupWizard() {
     }
   };
 
+  // Assistant chatbot parser
+  const handleAssistantAction = (query: string) => {
+    setAiMessages(prev => [...prev, { sender: 'user', text: query }]);
+    
+    let aiText = "I can help guide you on this step! Let me know if you need assistance with inputs.";
+    if (query === 'Explain this step') {
+      if (step === 1) aiText = "On this step, we collect your business name, a short description for your shop, and category settings.";
+      if (step === 2) aiText = "Here, select your website theme layout, upload a brand logo, and customize button highlight colors.";
+      if (step === 3) aiText = "Provide your contact number, support email, and store coordinates for invoice generations.";
+      if (step === 4) aiText = "Define your unique storefront subdomain (e.g. yourname.crevawebs.in) and preferred sales currency.";
+      if (step === 5) aiText = "Choose a billing plan, draw your license signature, scan the UPI QR, and upload verification screenshots.";
+      if (step === 6) aiText = "Define your admin login credentials (email and password parameters).";
+    } else if (query === 'Help me choose a template') {
+      aiText = "If you sell beauty or clothes, 'Minimal' or 'Bold' themes provide excellent layouts. Natural products look fantastic with 'Artisan'!";
+    } else if (query === 'What is a subdomain?') {
+      aiText = "A subdomain is your free digital address. e.g. entering 'myorganicsoaps' creates 'myorganicsoaps.crevawebs.in'. You can map a custom commercial domain later.";
+    }
+
+    setTimeout(() => {
+      setAiMessages(prev => [...prev, { sender: 'ai', text: aiText }]);
+    }, 600);
+  };
+
+  // Templates options list
+  const templatesList: TemplateOption[] = [
+    { id: 'minimal', name: 'Minimal Elegance', category: 'Fashion & Boutique', desc: 'Sleek borders, white spaces, and high contrast layout.', color: '#000000', thumb: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=300' },
+    { id: 'artisan', name: 'Artisan Craft', category: 'Natural Goods', desc: 'Warm tones, soft neutral grids, and comfortable borders.', color: '#8B5A2B', thumb: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&q=80&w=300' },
+    { id: 'bold', name: 'Bold Commerce', category: 'Electronics & Retail', desc: 'Dark outlines, uppercase headers, and solid action boxes.', color: '#E11D48', thumb: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=300' },
+    { id: 'luxe', name: 'Dark Luxe', category: 'Luxury & Jewelry', desc: 'Elegant typography, gold color highlights, premium grids.', color: '#D4AF37', thumb: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=300' }
+  ];
+
   return (
-    <div className="w-full max-w-5xl mx-auto bg-white text-slate-800 rounded-3xl shadow-[0_20px_50px_rgba(15,23,42,0.06)] border border-slate-200 overflow-hidden grid grid-cols-1 lg:grid-cols-12">
-      {/* Sidebar - Visible on Desktop */}
-      <div className="lg:col-span-4 bg-slate-50/50 border-r border-slate-100 p-8 flex flex-col justify-between hidden lg:flex">
-        <div className="space-y-8">
-          <div>
-            <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest block mb-1">Onboarding</span>
-            <h3 className="font-bold text-lg text-slate-800">Store Setup</h3>
-          </div>
-          
-          <div className="space-y-6">
-            {[
-              { id: 1, label: 'Business Info', desc: 'Category and details' },
-              { id: 2, label: 'Branding Design', desc: 'Colors & custom logo' },
-              { id: 3, label: 'Contact Details', desc: 'Support line settings' },
-              { id: 4, label: 'Preferences', desc: 'Currency & subdomain' },
-              { id: 5, label: 'Plan & Contract', desc: 'Licensing & payment' },
-              { id: 6, label: 'Account Setup', desc: 'Owner credentials' },
-            ].map((s) => {
-              const isActive = step === s.id;
-              const isCompleted = step > s.id;
-              return (
-                <div key={s.id} className="flex items-start gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all ${
-                    isCompleted 
-                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/10' 
-                      : isActive 
-                        ? 'bg-blue-50 text-blue-600 border border-blue-200 scale-105 shadow-sm shadow-blue-500/5' 
-                        : 'bg-white border border-slate-200 text-slate-400'
-                  }`}>
-                    {isCompleted ? <Check className="w-3.5 h-3.5" /> : s.id}
-                  </div>
-                  <div className="text-left">
-                    <span className={`block text-xs font-bold ${isActive ? 'text-blue-600' : isCompleted ? 'text-slate-700' : 'text-slate-400'}`}>
-                      {s.label}
-                    </span>
-                    <span className="block text-[10px] text-slate-400 font-medium leading-tight mt-0.5">{s.desc}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+    <div className="w-full max-w-4xl mx-auto flex flex-col justify-between min-h-[500px]">
+      
+      {/* Dynamic horizontal step indicator (Desktop) */}
+      <div className="hidden md:flex items-center justify-between border-b border-slate-100 pb-6 mb-8 text-[11px] font-black uppercase tracking-wider text-slate-400 select-none">
+        {[
+          { num: 1, label: 'Business' },
+          { num: 2, label: 'Branding' },
+          { num: 3, label: 'Contact' },
+          { num: 4, label: 'Preferences' },
+          { num: 5, label: 'Plan & Pay' },
+          { num: 6, label: 'Account' }
+        ].map((s) => {
+          const isActive = step === s.num;
+          const isDone = step > s.num;
+          return (
+            <div key={s.num} className="flex items-center gap-2">
+              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
+                isActive 
+                  ? 'bg-blue-600 text-white' 
+                  : isDone 
+                    ? 'bg-blue-50 text-blue-600' 
+                    : 'bg-slate-50 text-slate-400'
+              }`}>
+                {isDone ? '✓' : s.num}
+              </span>
+              <span className={isActive ? 'text-slate-900 font-extrabold' : isDone ? 'text-slate-650' : ''}>
+                {s.label}
+              </span>
+              {s.num < 6 && <ChevronRight className="w-3.5 h-3.5 text-slate-350" />}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Mobile Step details */}
+      <div className="md:hidden flex flex-col gap-2 mb-6 text-left">
+        <div className="flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-wider">
+          <span>Step {step} of 6</span>
+          <span>{Math.round((step / 6) * 100)}% Complete</span>
         </div>
-        
-        <div className="text-[10px] text-slate-400 font-medium">
-          Need help? <Link href="/features" className="text-blue-600 font-semibold hover:underline">Read docs</Link>
+        <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-full bg-blue-600 transition-all duration-300" style={{ width: `${(step / 6) * 100}%` }} />
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="lg:col-span-8 p-6 sm:p-8 md:p-10 flex flex-col justify-between">
-        {/* Mobile Header / Progress Bar */}
-        <div className="lg:hidden mb-8">
-          <div className="flex justify-between items-center mb-3 text-xs font-bold text-slate-500">
-            <span>STEP {step} OF 6</span>
-            <span className="text-blue-600 uppercase tracking-widest font-extrabold">
-              {step === 1 ? "Business Info" :
-               step === 2 ? "Branding Design" :
-               step === 3 ? "Contact Details" :
-               step === 4 ? "Store Preferences" :
-               step === 5 ? "Plan & Contract" : "Account Setup"}
-            </span>
-          </div>
-          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-blue-600 transition-all duration-300"
-              style={{ width: `${((step - 1) / 5) * 100}%` }}
-            />
-          </div>
+      {/* Welcome Back Banner */}
+      {welcomeBack && (
+        <div className="p-3 mb-6 bg-blue-50 border border-blue-150 rounded-xl text-xs text-blue-800 text-left font-semibold flex items-center justify-between">
+          <span>👋 Welcome back! Your onboarding setup is draft saved and successfully restored.</span>
+          <button onClick={() => setWelcomeBack(false)} className="p-1 hover:bg-blue-100 rounded-lg"><X className="w-3.5 h-3.5" /></button>
         </div>
+      )}
 
-        <div className="min-h-[300px] flex flex-col justify-between flex-1">
-          <AnimatePresence mode="wait">
+      {/* Steps Main Content Panels */}
+      <div className="bg-white text-slate-800 flex-1">
+        <AnimatePresence mode="wait">
+          
+          {/* STEP 1: BUSINESS INFORMATION */}
           {step === 1 && (
             <motion.div
               key="step1"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
+              className="space-y-6 text-left"
             >
               <div>
-                <h2 className="text-2xl font-bold tracking-tight mb-2 text-blue-900">Tell us about your business</h2>
-                <p className="text-slate-500 text-sm font-medium">This information will be displayed on your storefront.</p>
+                <h2 className="text-2xl font-black text-slate-900">Tell us about your business</h2>
+                <p className="text-slate-500 text-xs mt-1">Let's start with a few basic details to personalize your online store.</p>
               </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-blue-600 uppercase tracking-wider">Business Name *</label>
-                  <input
+
+              <div className="space-y-4 max-w-xl">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-650 uppercase tracking-wider block">Business Name *</label>
+                  <input 
+                    type="text" 
                     name="businessName"
                     value={formData.businessName}
                     onChange={handleChange}
-                    className={`w-full h-10 px-3.5 rounded-xl border bg-blue-50/30 text-slate-900 text-sm focus:ring-1 outline-none transition-all placeholder:text-slate-400 shadow-sm ${errors.businessName ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-blue-100 focus:border-blue-500 focus:ring-blue-500'}`}
                     placeholder="e.g. Handmade Soaps Co."
+                    className={`w-full bg-white border rounded-xl px-4 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-800 transition-colors shadow-sm placeholder:text-slate-350 ${
+                      errors.businessName ? 'border-red-400' : 'border-slate-200'
+                    }`}
                   />
-                  {errors.businessName && <p className="text-red-500 text-xs mt-1 font-medium">{errors.businessName}</p>}
+                  {errors.businessName && <span className="text-[10px] text-red-500 font-bold block">{errors.businessName}</span>}
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-blue-600 uppercase tracking-wider">Category *</label>
-                  <select
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-650 uppercase tracking-wider block">Business Category *</label>
+                  <select 
                     name="category"
                     value={formData.category}
                     onChange={handleChange}
-                    className={`w-full h-10 px-3.5 rounded-xl border bg-blue-50/30 text-slate-900 text-sm focus:ring-1 outline-none transition-all shadow-sm ${errors.category ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-blue-100 focus:border-blue-500 focus:ring-blue-500'}`}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-800 transition-colors shadow-sm cursor-pointer"
                   >
-                    <option value="" className="bg-white text-slate-500">Select a category</option>
-                    <option value="soap" className="bg-white text-slate-700">Handmade Soap</option>
-                    <option value="fashion" className="bg-white text-slate-700">Fashion & Apparel</option>
-                    <option value="food" className="bg-white text-slate-700">Food & Beverages</option>
-                    <option value="decor" className="bg-white text-slate-700">Home Decor</option>
-                    <option value="other" className="bg-white text-slate-700">Other</option>
+                    <option value="Fashion">Fashion & Boutique</option>
+                    <option value="Food & Grocery">Food & Grocery</option>
+                    <option value="Electronics">Electronics</option>
+                    <option value="Beauty">Beauty & Cosmetics</option>
+                    <option value="Home & Lifestyle">Home & Lifestyle</option>
+                    <option value="Services">Services</option>
+                    <option value="Handmade">Handmade & Crafts</option>
+                    <option value="Other">Other</option>
                   </select>
-                  {errors.category && <p className="text-red-500 text-xs mt-1 font-medium">{errors.category}</p>}
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-blue-600 uppercase tracking-wider">Description *</label>
-                  <textarea
+
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-bold text-slate-650 uppercase tracking-wider block">About your business *</label>
+                    <span className="text-[10px] text-slate-400 font-semibold">{formData.businessDescription.length} / 300</span>
+                  </div>
+                  <textarea 
                     name="businessDescription"
                     value={formData.businessDescription}
                     onChange={handleChange}
-                    className={`w-full min-h-[100px] p-3.5 rounded-xl border bg-blue-50/30 text-slate-900 text-sm focus:ring-1 outline-none transition-all placeholder:text-slate-400 shadow-sm ${errors.businessDescription ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-blue-100 focus:border-blue-500 focus:ring-blue-500'}`}
-                    placeholder="Tell your customers what makes your products special..."
+                    maxLength={300}
+                    placeholder="Tell customers what your business offers..."
+                    rows={4}
+                    className={`w-full bg-white border rounded-xl p-4 text-xs outline-none focus:border-blue-500 text-slate-800 resize-none transition-colors shadow-sm placeholder:text-slate-350 ${
+                      errors.businessDescription ? 'border-red-400' : 'border-slate-200'
+                    }`}
                   />
-                  {errors.businessDescription && <p className="text-red-500 text-xs mt-1 font-medium">{errors.businessDescription}</p>}
+                  {errors.businessDescription && <span className="text-[10px] text-red-500 font-bold block">{errors.businessDescription}</span>}
                 </div>
               </div>
             </motion.div>
           )}
 
+          {/* STEP 2: BRANDING CUSTOMIZER */}
           {step === 2 && (
             <motion.div
               key="step2"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
+              className="space-y-8 text-left"
             >
               <div>
-                <h2 className="text-2xl font-bold tracking-tight mb-2 text-blue-900">Design your brand & template</h2>
-                <p className="text-slate-500 text-sm font-medium">Select a storefront template, upload your logo and customize your primary theme color.</p>
+                <h2 className="text-2xl font-black text-slate-900">Make your store look like your brand</h2>
+                <p className="text-slate-500 text-xs mt-1">Choose a design layout and add your logo coordinates. You can edit this later.</p>
               </div>
 
-              {/* Template Selection Section */}
+              {/* Template gallery selection */}
               <div className="space-y-3">
-                <label className="block text-xs font-semibold text-blue-600 uppercase tracking-wider">Choose Storefront Design Template</label>
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                  {[
-                    { id: 'minimal', name: 'Minimal Elegance', defaultColor: '#000000', desc: 'Sleek luxury, high contrast, clean typography. Perfect for boutique brands.', defaultThumb: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=600' },
-                    { id: 'artisan', name: 'Artisan Craft', defaultColor: '#8B5A2B', desc: 'Warm cream tones, classical serif accents, hand-crafted organic feel.', defaultThumb: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=600' },
-                    { id: 'bold', name: 'Bold Commerce', defaultColor: '#E11D48', desc: 'Vibrant, thick-bordered grid layouts, chunky shadows, high-impact details.', defaultThumb: 'https://images.unsplash.com/photo-1540959733332-eab4deceeaf7?auto=format&fit=crop&q=80&w=600' },
-                    { id: 'luxe', name: 'Dark Luxe', defaultColor: '#D4AF37', desc: 'Exclusive gold on pitch black premium layout. For luxury items & accessories.', defaultThumb: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=600' },
-                    { id: 'retro', name: 'Retro Grid', defaultColor: '#8B5CF6', desc: 'Space-grotesk flat shadow neon theme. Heavy borders, nostalgic retro aesthetics.', defaultThumb: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=600' },
-                    { id: 'admire', name: 'Admire Essence', defaultColor: '#f2852a', desc: 'Warm orange (#f2852a) and deep navy (#04113f) contrast with soft soap-bar rounded contours.', defaultThumb: 'https://images.unsplash.com/photo-1607006342411-91f11f6d021c?auto=format&fit=crop&q=80&w=600' }
-                  ].map((tpl, idx) => {
-                    const customThumbnail = globalSettings?.templateThumbnails?.[tpl.id];
-                    const thumbnailUrl = customThumbnail || tpl.defaultThumb;
-
+                <span className="text-xs font-bold text-slate-650 uppercase tracking-wider block">Select Storefront Template Theme</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  {templatesList.map((t) => {
+                    const isSelected = selectedTemplate === t.id;
                     return (
-                      <button
-                        key={tpl.id}
-                        type="button"
+                      <div 
+                        key={t.id}
                         onClick={() => {
-                          setSelectedTemplate(tpl.id as any);
-                          setFormData(prev => ({ ...prev, primaryColor: tpl.defaultColor }));
+                          setSelectedTemplate(t.id);
+                          setFormData(prev => ({ ...prev, primaryColor: t.color }));
                         }}
-                        className={`flex flex-col text-left rounded-xl border-2 overflow-hidden transition-all relative group ${
-                          selectedTemplate === tpl.id
-                            ? 'border-blue-500 bg-blue-50/50 shadow-md scale-[1.02]'
-                            : 'border-blue-100 bg-white hover:bg-blue-50 hover:scale-[1.01] shadow-sm'
+                        className={`border rounded-2xl overflow-hidden bg-white cursor-pointer transition-all hover:scale-102 hover:shadow-md flex flex-col ${
+                          isSelected ? 'border-blue-600 shadow-sm ring-1 ring-blue-500/20' : 'border-slate-200 hover:border-slate-350'
                         }`}
                       >
-                        {/* Thumbnail image slot */}
-                        <div className="w-full h-24 relative overflow-hidden bg-blue-50 border-b border-blue-100">
-                          <img 
-                            src={thumbnailUrl} 
-                            alt={tpl.name}
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          />
+                        <div className="aspect-[4/3] bg-slate-50 border-b border-slate-100 overflow-hidden relative">
+                          <img src={t.thumb} alt={t.name} className="w-full h-full object-cover" />
+                          {isSelected && (
+                            <span className="absolute top-2 right-2 bg-blue-600 text-white rounded-full p-1 shadow-sm"><Check className="w-3.5 h-3.5" /></span>
+                          )}
                         </div>
-
-                        {selectedTemplate === tpl.id && (
-                          <span className="absolute top-2.5 right-2.5 bg-blue-600 text-white rounded-full p-0.5 z-10 shadow-sm animate-in zoom-in">
-                            <Check className="w-3.5 h-3.5" />
-                          </span>
-                        )}
-                        
-                        <div className="p-4 flex flex-col flex-1">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-blue-600">Template {idx + 1}</span>
-                          <span className="text-sm font-black text-slate-800 mt-1">{tpl.name}</span>
-                          <p className="text-[10px] text-slate-550 mt-2 leading-relaxed flex-1">{tpl.desc}</p>
-                          
-                          {/* Theme color hint circle */}
-                          <div className="mt-3.5 flex items-center gap-1.5 text-[9px] font-bold text-slate-500 uppercase tracking-widest">
-                            <span className="w-3 h-3 rounded-full border border-blue-200" style={{ backgroundColor: tpl.defaultColor }} />
-                            Apply Palette
+                        <div className="p-3 text-left flex-1 flex flex-col justify-between gap-1">
+                          <div>
+                            <h4 className="font-bold text-xs text-slate-950">{t.name}</h4>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mt-0.5">{t.category}</span>
+                            <p className="text-[10px] text-slate-450 mt-1 leading-relaxed">{t.desc}</p>
                           </div>
                         </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-3">
-                <div>
-                  <label className="block text-sm font-semibold mb-2 text-blue-900">Logo</label>
-                  <input 
-                    type="file" 
-                    ref={logoInputRef}
-                    onChange={handleLogoFileChange}
-                    accept="image/*"
-                    className="hidden"
-                  />
+
+              {/* Upload logo drag drop & Brand Color pickers */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch pt-2">
+                
+                {/* Logo upload card */}
+                <div className="space-y-3 flex flex-col justify-between">
+                  <span className="text-xs font-bold text-slate-650 uppercase tracking-wider block">Add your logo</span>
                   
-                  {formData.logo ? (
-                    <div className="relative border border-blue-100 rounded-xl p-6 flex flex-col items-center justify-center bg-blue-50/40">
-                      <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-white border border-blue-100 flex items-center justify-center p-2 shadow-inner">
-                        <img 
-                          src={formData.logo} 
-                          alt="Store Logo Preview" 
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, logo: null }))}
-                        className="mt-3 text-xs text-red-500 hover:underline font-bold flex items-center gap-1 cursor-pointer"
-                      >
-                        <X className="w-3.5 h-3.5" /> Remove Logo
-                      </button>
+                  {!formData.logo ? (
+                    <div className="relative border border-dashed border-slate-300 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-50/50 transition-colors h-[120px]">
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={handleLogoFileChange}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        disabled={logoUploading}
+                      />
+                      {logoUploading ? (
+                        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                      ) : (
+                        <>
+                          <Upload className="w-5 h-5 text-slate-400 mb-2" />
+                          <span className="text-xs font-semibold text-slate-700 block">Drag & drop logo here, or choose file</span>
+                          <span className="text-[9px] text-slate-400 mt-0.5 block">PNG, JPG, SVG up to 2MB</span>
+                        </>
+                      )}
                     </div>
                   ) : (
-                    <div 
-                      onClick={() => logoInputRef.current?.click()}
-                      className="border border-dashed border-blue-300 rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-blue-50 transition-colors"
-                    >
-                      <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4 shadow-sm border border-blue-200">
-                        {logoUploading ? (
-                          <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-                        ) : (
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
-                        )}
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <img src={formData.logo} alt="Logo" className="w-14 h-14 rounded-lg object-contain border bg-white" />
+                        <div>
+                          <span className="text-xs font-bold text-slate-800 block">Store Logo Attached</span>
+                          <span className="text-[9px] text-emerald-600 font-bold uppercase mt-0.5 block">✓ Configured</span>
+                        </div>
                       </div>
-                      <p className="text-sm font-medium mb-1 text-slate-700">
-                        {logoUploading ? 'Uploading...' : 'Click to upload logo'}
-                      </p>
-                      <p className="text-xs text-slate-500">PNG, JPG up to 2MB. Square recommended.</p>
+                      <button 
+                        type="button" 
+                        onClick={() => setFormData(prev => ({ ...prev, logo: null }))}
+                        className="p-2 bg-white hover:bg-red-50 text-red-650 rounded-xl border border-slate-200 hover:border-red-200 transition-colors"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </button>
                     </div>
                   )}
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1.5 text-slate-700">Primary Color</label>
-                  <div className="flex items-center gap-3">
-                    <input 
-                      type="color" 
-                      name="primaryColor"
-                      value={formData.primaryColor}
-                      onChange={handleChange}
-                      className="w-10 h-10 rounded-xl border border-slate-200 cursor-pointer p-0 bg-transparent shadow-sm" 
-                    />
-                    <input 
-                      type="text" 
-                      name="primaryColor"
-                      value={formData.primaryColor}
-                      onChange={handleChange}
-                      className="flex-1 h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none uppercase shadow-sm" 
-                    />
+
+                {/* Color Picker with live preview */}
+                <div className="space-y-3 flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <span className="text-xs font-bold text-slate-650 uppercase tracking-wider block">Choose your brand color</span>
+                    <div className="flex flex-wrap gap-2.5 select-none">
+                      {['#3B82F6', '#8B5A2B', '#E11D48', '#D4AF37', '#8B5CF6', '#10B981', '#F59E0B', '#000000'].map((color) => (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, primaryColor: color }))}
+                          className={`w-7 h-7 rounded-full border transition-all ${
+                            formData.primaryColor === color ? 'ring-2 ring-blue-500 scale-105 border-white' : 'border-slate-200'
+                          }`}
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                      <button 
+                        type="button"
+                        onClick={() => setAdvancedColor(!advancedColor)}
+                        className="text-[10px] font-bold text-blue-600 border border-blue-200 bg-blue-50/50 px-2.5 py-1.5 rounded-xl"
+                      >
+                        {advancedColor ? 'Simple Colors' : 'Advanced HEX'}
+                      </button>
+                    </div>
+
+                    {advancedColor && (
+                      <input 
+                        type="text"
+                        name="primaryColor"
+                        value={formData.primaryColor}
+                        onChange={handleChange}
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs outline-none focus:border-blue-500 text-slate-800"
+                        placeholder="#HEX color value"
+                      />
+                    )}
                   </div>
-                  
-                  {/* Preset Quick Previews */}
-                  <div className="mt-4 p-4 rounded-xl border border-slate-200 bg-slate-50/50">
-                    <p className="text-xs font-semibold uppercase text-slate-500 mb-2.5 tracking-wider">Store Button Preview</p>
+
+                  {/* Live preview component */}
+                  <div className="p-4 border border-slate-100 rounded-2xl bg-slate-50 flex items-center justify-between text-xs">
+                    <span className="font-semibold text-slate-700">Live Button Preview:</span>
                     <button 
                       type="button"
-                      className="w-full py-2.5 px-4 font-medium transition-all uppercase text-[10px] font-black tracking-widest"
-                      style={{ 
-                        backgroundColor: formData.primaryColor,
-                        color: selectedTemplate === 'luxe' || selectedTemplate === 'retro' ? '#000000' : '#FFFFFF',
-                        borderRadius: selectedTemplate === 'minimal' || selectedTemplate === 'retro' ? '0px' : selectedTemplate === 'luxe' ? '2px' : selectedTemplate === 'artisan' ? '9999px' : selectedTemplate === 'admire' ? '16px' : '8px',
-                        border: selectedTemplate === 'retro' ? '3px solid #000000' : selectedTemplate === 'bold' ? '2px solid #000000' : 'none',
-                        boxShadow: selectedTemplate === 'retro' || selectedTemplate === 'bold' ? '3px 3px 0px 0px #000000' : 'none'
-                      }}
+                      className="px-5 py-2.5 rounded-xl text-white font-bold text-[10px] uppercase tracking-wider shadow-md pointer-events-none transition-colors"
+                      style={{ backgroundColor: formData.primaryColor }}
                     >
-                      {selectedTemplate === 'minimal' 
-                        ? 'EXPLORE CATALOG' 
-                        : selectedTemplate === 'artisan' 
-                          ? 'Shop Handcrafted' 
-                          : selectedTemplate === 'luxe'
-                            ? 'DISCOVER LUXE'
-                            : selectedTemplate === 'retro'
-                              ? 'GO RETRO'
-                              : selectedTemplate === 'admire'
-                                ? 'Shop Organic Essence'
-                                : 'ADD TO CART'
-                      }
+                      Explore Catalog →
                     </button>
                   </div>
                 </div>
+
               </div>
             </motion.div>
           )}
 
+          {/* STEP 3: CONTACT DETAILS */}
           {step === 3 && (
             <motion.div
               key="step3"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
+              className="space-y-6 text-left"
             >
               <div>
-                <h2 className="text-2xl font-bold tracking-tight mb-2 text-slate-850">How can customers reach you?</h2>
-                <p className="text-slate-500 text-sm font-medium">Provide your contact details for customer support.</p>
+                <h2 className="text-2xl font-black text-slate-900">How can customers reach you?</h2>
+                <p className="text-slate-500 text-xs mt-1">Add your merchant contact details so clients know how to get in touch.</p>
               </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Full Name *</label>
-                  <input
-                    name="ownerName"
-                    value={formData.ownerName}
-                    onChange={handleChange}
-                    className={`w-full h-10 px-3.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.ownerName ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
-                    placeholder="Your full name"
-                  />
-                  {errors.ownerName && <p className="text-red-500 text-xs mt-1 font-medium">{errors.ownerName}</p>}
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Email Address *</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className={`w-full h-10 px-3.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.email ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
-                    placeholder="support@yourstore.com"
-                  />
-                  {errors.email && <p className="text-red-500 text-xs mt-1 font-medium">{errors.email}</p>}
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Phone Number *</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    className={`w-full h-10 px-3.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.phone ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
-                    placeholder="+91 98765 43210"
-                  />
-                  {errors.phone && <p className="text-red-500 text-xs mt-1 font-medium">{errors.phone}</p>}
+
+              <div className="space-y-6">
+                
+                {/* Contact information group */}
+                <div className="space-y-4 max-w-xl">
+                  <span className="text-xs font-black text-slate-400 uppercase tracking-wider block border-b pb-1">Contact Information</span>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-600 uppercase block">Full Name *</label>
+                      <input 
+                        type="text" 
+                        name="ownerName"
+                        value={formData.ownerName}
+                        onChange={handleChange}
+                        className={`w-full bg-white border rounded-xl px-4 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-800 ${
+                          errors.ownerName ? 'border-red-400' : 'border-slate-200'
+                        }`}
+                      />
+                      {errors.ownerName && <span className="text-[10px] text-red-500 font-bold block">{errors.ownerName}</span>}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-600 uppercase block">Phone Number *</label>
+                      <div className="flex gap-2">
+                        <span className="px-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center text-xs font-bold text-slate-450 select-none">+91</span>
+                        <input 
+                          type="text" 
+                          name="phone"
+                          value={formData.phone}
+                          onChange={handleChange}
+                          placeholder="98765 43210"
+                          className={`w-full bg-white border rounded-xl px-4 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-800 ${
+                            errors.phone ? 'border-red-400' : 'border-slate-200'
+                          }`}
+                        />
+                      </div>
+                      {errors.phone && <span className="text-[10px] text-red-500 font-bold block">{errors.phone}</span>}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-600 uppercase block">Email Address *</label>
+                    <input 
+                      type="email" 
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className={`w-full bg-white border rounded-xl px-4 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-800 ${
+                        errors.email ? 'border-red-400' : 'border-slate-200'
+                      }`}
+                    />
+                    {errors.email && <span className="text-[10px] text-red-500 font-bold block">{errors.email}</span>}
+                  </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Business Address</p>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Address *</label>
-                      <input
-                        name="address"
-                        value={formData.address}
+                {/* Address information group */}
+                <div className="space-y-4 max-w-xl">
+                  <span className="text-xs font-black text-slate-400 uppercase tracking-wider block border-b pb-1">Business Address</span>
+                  
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-600 uppercase block">Street Address *</label>
+                    <input 
+                      type="text" 
+                      name="address"
+                      value={formData.address}
+                      onChange={handleChange}
+                      className={`w-full bg-white border rounded-xl px-4 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-800 ${
+                        errors.address ? 'border-red-400' : 'border-slate-200'
+                      }`}
+                    />
+                    {errors.address && <span className="text-[10px] text-red-500 font-bold block">{errors.address}</span>}
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-600 uppercase block">City *</label>
+                      <input 
+                        type="text" 
+                        name="city"
+                        value={formData.city}
                         onChange={handleChange}
-                        className={`w-full h-10 px-3.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.address ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
-                        placeholder="Street / Building / Area"
+                        className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-800 ${
+                          errors.city ? 'border-red-400' : 'border-slate-200'
+                        }`}
                       />
-                      {errors.address && <p className="text-red-500 text-xs mt-1 font-medium">{errors.address}</p>}
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">City *</label>
-                        <input
-                          name="city"
-                          value={formData.city}
-                          onChange={handleChange}
-                          className={`w-full h-10 px-3.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.city ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
-                          placeholder="City"
-                        />
-                        {errors.city && <p className="text-red-500 text-xs mt-1 font-medium">{errors.city}</p>}
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">State *</label>
-                        <input
-                          name="state"
-                          value={formData.state}
-                          onChange={handleChange}
-                          className={`w-full h-10 px-3.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.state ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
-                          placeholder="State"
-                        />
-                        {errors.state && <p className="text-red-500 text-xs mt-1 font-medium">{errors.state}</p>}
-                      </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-600 uppercase block">State *</label>
+                      <input 
+                        type="text" 
+                        name="state"
+                        value={formData.state}
+                        onChange={handleChange}
+                        className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-800 ${
+                          errors.state ? 'border-red-400' : 'border-slate-200'
+                        }`}
+                      />
                     </div>
-                    <div>
-                      <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Pincode *</label>
-                      <input
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-600 uppercase block">Pincode *</label>
+                      <input 
+                        type="text" 
                         name="pincode"
                         value={formData.pincode}
                         onChange={handleChange}
-                        maxLength={8}
-                        className={`w-full h-10 px-3.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.pincode ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
-                        placeholder="600001"
+                        className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-800 ${
+                          errors.pincode ? 'border-red-400' : 'border-slate-200'
+                        }`}
                       />
-                      {errors.pincode && <p className="text-red-500 text-xs mt-1 font-medium">{errors.pincode}</p>}
                     </div>
                   </div>
+                  {(errors.city || errors.state || errors.pincode) && <span className="text-[10px] text-red-500 font-bold block">Please fill in all address parameters.</span>}
                 </div>
+
               </div>
             </motion.div>
           )}
 
+          {/* STEP 4: STORE PREFERENCES */}
           {step === 4 && (
             <motion.div
               key="step4"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
+              className="space-y-6 text-left"
             >
               <div>
-                <h2 className="text-2xl font-bold tracking-tight mb-2 text-slate-850">Store Preferences</h2>
-                <p className="text-slate-500 text-sm font-medium">Final details before we generate your storefront website.</p>
+                <h2 className="text-2xl font-black text-slate-900">Set up your store preferences</h2>
+                <p className="text-slate-500 text-xs mt-1">Configure your domain mapping details and currency options.</p>
               </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Currency *</label>
+
+              <div className="space-y-5 max-w-xl">
+                
+                {/* Subdomain Input */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-650 uppercase tracking-wider block">Choose your store address</label>
+                  <div className="flex gap-2">
+                    <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3.5 flex-1 focus-within:border-blue-500 transition-colors">
+                      <span className="text-xs font-bold text-slate-400 select-none">https://</span>
+                      <input 
+                        type="text" 
+                        name="businessName"
+                        value={formData.businessName.toLowerCase().replace(/[^a-z0-9]/g, '-')}
+                        onChange={handleChange}
+                        placeholder="your-store-name"
+                        className="bg-transparent border-none outline-none pl-1 py-3 text-xs font-bold text-slate-800 w-full placeholder:text-slate-350"
+                      />
+                      <span className="text-xs font-bold text-slate-400 select-none">.crevawebs.in</span>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={handleCheckDomain}
+                      disabled={checkingDomain || !formData.businessName.trim()}
+                      className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] uppercase tracking-wider px-5 py-3 rounded-xl transition-all disabled:opacity-50 shrink-0"
+                    >
+                      {checkingDomain ? 'Checking...' : 'Check Availability'}
+                    </button>
+                  </div>
+
+                  {domainChecked && (
+                    <div className="pt-1 text-xs">
+                      {domainAvailable ? (
+                        <span className="text-emerald-600 font-bold flex items-center gap-1">✓ Available! Your online storefront will launch at this address.</span>
+                      ) : (
+                        <span className="text-red-500 font-bold flex items-center gap-1">✕ This address name is already taken. Please customize your business name input.</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Currency selector */}
+                <div className="space-y-1.5 pt-2">
+                  <label className="text-xs font-bold text-slate-650 uppercase tracking-wider block">Store currency</label>
                   <select 
                     name="currency"
                     value={formData.currency}
                     onChange={handleChange}
-                    className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors shadow-sm"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-800 shadow-sm cursor-pointer"
                   >
-                    <option value="INR" className="text-slate-800 bg-white">Indian Rupee (₹)</option>
-                    <option value="USD" className="text-slate-800 bg-white">US Dollar ($)</option>
+                    <option value="INR">Indian Rupee (₹)</option>
+                    <option value="USD">United States Dollar ($)</option>
+                    <option value="EUR">Euro (€)</option>
+                    <option value="GBP">British Pound (£)</option>
                   </select>
+                  <span className="text-[10px] text-slate-400 block mt-1">You can change your storefront sales currency later from settings.</span>
                 </div>
-                <div className="pt-4 p-4 bg-blue-50/40 rounded-xl border border-blue-100">
-                  <h3 className="font-semibold text-sm mb-2 text-slate-800">Your Subdomain</h3>
-                  <div className="flex items-center">
-                    <span className="font-mono text-sm bg-white border border-slate-200 rounded-l-xl px-3 py-2 text-slate-700 flex-1 overflow-hidden text-ellipsis whitespace-nowrap shadow-inner">
-                      {formData.businessName ? formData.businessName.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'your-store'}
-                    </span>
-                    <span className="font-mono text-sm bg-slate-100 border border-l-0 border-slate-200 rounded-r-xl px-3 py-2 text-slate-550 shadow-inner">
-                      .crevasolution.in
-                    </span>
-                  </div>
-                </div>
+
               </div>
             </motion.div>
           )}
 
+          {/* STEP 5: PLANS, SIGNATURE, PAYMENTS */}
           {step === 5 && (
             <motion.div
               key="step5"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
+              className="space-y-6 text-left"
             >
               <div>
-                <h2 className="text-2xl font-bold tracking-tight mb-1 text-slate-850">Subscription Plan & Digital Agreement</h2>
-                <p className="text-slate-500 text-sm font-medium">Select your subscription plan and digitally sign storefront license agreement.</p>
+                <h2 className="text-2xl font-black text-slate-900">Choose your plan & complete setup</h2>
+                <p className="text-slate-500 text-xs mt-1">Complete your licensing agreement and pay setup fees to activate your store.</p>
               </div>
 
-              {/* Sub Plans Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {(() => {
-                  let plans: { id: string; name: string; price: string; desc: string; badge?: string }[] = [];
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                {/* Left Side: Plans & Agreement Signing */}
+                <div className="lg:col-span-6 space-y-6">
+                  {/* Plan Cards */}
+                  <div className="space-y-3">
+                    <span className="text-xs font-bold text-slate-650 uppercase tracking-wider block">Select Platform Plan</span>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { id: '30', name: 'Starter', price: '499', days: '30' },
+                        { id: '365', name: 'Growth', price: '3,999', days: '1 Year' },
+                        { id: 'lifetime', name: 'Lifetime', price: '9,999', days: 'Permanent' }
+                      ].map((p) => {
+                        const isSel = selectedPlan === p.id;
+                        return (
+                          <div
+                            key={p.id}
+                            onClick={() => setSelectedPlan(p.id)}
+                            className={`p-4 border rounded-xl bg-white text-left cursor-pointer transition-all ${
+                              isSel ? 'border-blue-600 bg-blue-50/10' : 'border-slate-200 hover:border-slate-350'
+                            }`}
+                          >
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{p.name}</span>
+                            <span className="text-lg font-black text-slate-950 mt-1 block">₹{p.price}</span>
+                            <span className="text-[9px] text-slate-400 block mt-1">{p.days}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-                  if (Array.isArray(globalSettings?.subscriptionPlans) && globalSettings.subscriptionPlans.length > 0) {
-                    plans = globalSettings.subscriptionPlans
-                      .filter((p: any) => p.isActive !== false)
-                      .sort((a: any, b: any) => (a.displayOrder || 0) - (b.displayOrder || 0))
-                      .map((p: any) => ({
-                        id: p.id,
-                        name: p.name,
-                        price: `₹${Number(p.price || 0).toLocaleString()}`,
-                        desc: p.description || '',
-                        badge: p.badge || ''
-                      }));
-                  } else {
-                    const disabled: string[] = globalSettings?.disabledDefaultPackages || [];
-                    if (!disabled.includes('30')) plans.push({ id: '30', name: '1 Month Plan', price: `₹${globalSettings?.plan30Price || '499'}`, desc: 'Best for trial storefronts' });
-                    if (!disabled.includes('365')) plans.push({ id: '365', name: '1 Year Plan', price: `₹${Number(globalSettings?.plan365Price || 3999).toLocaleString()}`, desc: 'Most popular for small shops', badge: 'Most Popular' });
-                    if (!disabled.includes('lifetime')) plans.push({ id: 'lifetime', name: 'Lifetime Plan', price: `₹${Number(globalSettings?.planLifetimePrice || 9999).toLocaleString()}`, desc: 'Ultimate professional pack', badge: 'Best Value' });
-                    (globalSettings?.customPackages || []).forEach((pkg: any) => {
-                      plans.push({ id: pkg.id, name: pkg.name, price: `₹${Number(pkg.price || 0).toLocaleString()}`, desc: `${pkg.days} Days Access` });
-                    });
-                  }
-
-                  return plans.map((plan) => (
-                    <button
-                      key={plan.id}
-                      type="button"
-                      onClick={() => setSelectedPlan(plan.id as any)}
-                      className={`flex flex-col text-left p-4 rounded-xl border-2 transition-all relative ${
-                        selectedPlan === plan.id
-                          ? 'border-blue-500 bg-blue-50/50 shadow-md scale-[1.01]'
-                          : 'border-slate-200 bg-white hover:bg-slate-55/30 hover:scale-[1.005]'
-                      }`}
-                    >
-                      {plan.badge && (
-                        <span className="absolute -top-2.5 left-3 px-2.5 py-0.5 bg-blue-600 text-white text-[8px] font-black uppercase tracking-widest rounded-full">
-                          {plan.badge}
-                        </span>
-                      )}
-                      {selectedPlan === plan.id && (
-                        <span className="absolute top-2.5 right-2.5 bg-blue-600 text-white rounded-full p-0.5 animate-in zoom-in">
-                          <Check className="w-3.5 h-3.5" />
-                        </span>
-                      )}
-                      <span className="text-[10px] text-blue-600 uppercase font-bold tracking-wider">{plan.name}</span>
-                      <span className="text-2xl font-black text-slate-850 mt-1.5 font-mono">{plan.price}</span>
-                      {plan.desc && <span className="text-[10px] text-slate-500 mt-2 leading-relaxed">{plan.desc}</span>}
-                    </button>
-                  ));
-                })()}
-              </div>
-
-              {/* Inquiry Message Box */}
-              <div className="bg-blue-55/40 border border-blue-100 text-slate-700 rounded-xl p-4 flex gap-3 text-xs leading-relaxed shadow-sm shadow-blue-500/2">
-                <Phone className="w-4 h-4 shrink-0 text-blue-600 mt-0.5" />
-                <div>
-                  <strong className="block mb-0.5 text-blue-700">Off-Platform Verification & Payment</strong>
-                  After registering, our sales team will contact you directly via call or WhatsApp at <strong className="font-mono text-blue-600">{formData.phone || 'your phone number'}</strong> to activate your plan. No automatic credit card charges!
-                </div>
-              </div>
-
-              {/* Legal Merchant Agreement Content */}
-              <div className="space-y-2.5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Creva merchant licensing agreement
-                  </label>
-                  
-                  {/* Language Selector Dropdown/Tabs */}
-                  <div className="flex gap-1 p-0.5 bg-white rounded-xl border border-slate-200 shadow-sm self-start sm:self-auto">
-                    {[
-                      { code: 'en', label: 'EN' },
-                      { code: 'ta', label: 'TA' },
-                      { code: 'hi', label: 'HI' },
-                      { code: 'te', label: 'TE' },
-                      { code: 'ml', label: 'ML' },
-                      { code: 'kn', label: 'KN' }
-                    ].map((lang) => (
-                      <button
-                        key={lang.code}
+                  {/* Licensing Agreement Sign block */}
+                  <div className="space-y-3 pt-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-slate-650 uppercase tracking-wider">Merchant Licensing Agreement</span>
+                      <button 
                         type="button"
-                        onClick={() => setSelectedAgreementLang(lang.code)}
-                        className={`px-2 py-1 text-[10px] font-black rounded-lg transition-all ${
-                          selectedAgreementLang === lang.code
-                            ? 'bg-blue-50 text-blue-600 border border-blue-200/60 shadow-sm'
-                            : 'text-slate-500 hover:text-blue-600'
-                        }`}
+                        onClick={() => setShowAgreementModal(true)}
+                        className="text-[10px] font-bold text-blue-600 flex items-center gap-0.5"
                       >
-                        {lang.label}
+                        Read Full License →
                       </button>
-                    ))}
+                    </div>
+
+                    {/* Signature Canvas */}
+                    <div className="space-y-2">
+                      <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-inner">
+                        <canvas
+                          ref={sigCanvasRef}
+                          width={350}
+                          height={120}
+                          onMouseDown={startDrawingSig}
+                          onMouseMove={drawSig}
+                          onMouseUp={stopDrawingSig}
+                          onMouseLeave={stopDrawingSig}
+                          onTouchStart={startDrawingSig}
+                          onTouchMove={drawSig}
+                          onTouchEnd={stopDrawingSig}
+                          className="w-full h-[120px] block cursor-crosshair"
+                        />
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <button 
+                          type="button" 
+                          onClick={confirmSig}
+                          className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-[10px] font-bold shadow-sm"
+                        >
+                          Confirm & Lock Signature
+                        </button>
+                        <button 
+                          type="button" 
+                          onClick={clearSig}
+                          className="px-4 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-650 rounded-lg text-[10px] font-semibold"
+                        >
+                          Clear
+                        </button>
+                      </div>
+
+                      {isSignatureConfirmed && (
+                        <div className="text-[10px] text-emerald-600 font-bold flex items-center gap-1 pt-1">
+                          ✓ Digital signature recorded and verified.
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="h-44 bg-white border border-slate-200 rounded-xl p-4 overflow-y-auto text-xs space-y-3 font-sans leading-relaxed text-slate-600 text-justify shadow-inner">
-                  {(agreementTemplates[selectedAgreementLang] || defaultTemplates[selectedAgreementLang] || '')
-                    .split('\n')
-                    .filter((line: string) => line.trim())
-                    .map((para: string, i: number) => (
-                      <p key={i}>{para.trim()}</p>
-                    ))
-                  }
-                </div>
-              </div>
-
-              {/* Signature Canvas Drawing Area */}
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <label className="block text-xs font-semibold text-slate-650 uppercase tracking-wider flex items-center gap-1.5">
-                    <Edit3 className="w-3.5 h-3.5 text-blue-600" />
-                    Draw your digital signature here *
-                  </label>
-                  {signature && (
-                    <button
-                      type="button"
-                      onClick={handlePrintContract}
-                      className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1"
-                    >
-                      <Printer className="w-3.5 h-3.5" />
-                      Print / Download signed copy
-                    </button>
-                  )}
-                </div>
-
-                <div className="relative border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                  <canvas
-                    ref={sigCanvasRef}
-                    width={500}
-                    height={120}
-                    onMouseDown={startDrawingSig}
-                    onMouseMove={drawSig}
-                    onMouseUp={stopDrawingSig}
-                    onMouseLeave={stopDrawingSig}
-                    onTouchStart={startDrawingSig}
-                    onTouchMove={drawSig}
-                    onTouchEnd={stopDrawingSig}
-                    className="w-full h-[120px] bg-white cursor-crosshair touch-none"
-                  />
-                  
-                  <div className="absolute right-3 bottom-3 flex gap-2">
-                    <button
-                      type="button"
-                      onClick={clearSig}
-                      className="bg-white border border-slate-200 hover:bg-slate-50 text-[10px] font-bold px-3 py-1.5 rounded-lg text-slate-650 transition-colors shadow-sm"
-                    >
-                      Clear Pad
-                    </button>
-                    <button
-                      type="button"
-                      onClick={confirmSig}
-                      className={`${
-                        isSignatureConfirmed 
-                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
-                          : 'bg-blue-600 hover:bg-blue-500 text-white'
-                      } text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors shadow-sm flex items-center gap-1`}
-                    >
-                      {isSignatureConfirmed ? (
-                        <>
-                          <Check className="w-3.5 h-3.5" />
-                          Signature Locked
-                        </>
-                      ) : (
-                        'Confirm & Lock Signature'
-                      )}
-                    </button>
+                {/* Right Side: UPI Scan QR Payment */}
+                <div className="lg:col-span-6 border border-slate-200/80 rounded-2xl p-6 bg-slate-55 flex flex-col gap-5 justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md uppercase tracking-wider">UPI SCAN PAYMENT</span>
+                    <h4 className="font-bold text-xs text-slate-850 mt-1">Setup fee: ₹{getSelectedPlanAmount()}</h4>
                   </div>
-                </div>
-                <p className="text-[10px] text-slate-500 text-center font-medium">
-                  Use your finger (on mobile) or mouse drag to sign in the box above, then click <strong>Confirm & Lock Signature</strong>.
-                </p>
-              </div>
 
-              {/* Dynamic Payment Verification Section (Reveals only after Signature Locked) */}
-              <AnimatePresence>
-                {isSignatureConfirmed && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="border-t border-slate-100 pt-6 mt-6 space-y-6 overflow-hidden animate-in fade-in duration-300"
-                  >
-                    <div>
-                      <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500 animate-bounce" />
-                        Onboarding Fee & License Payment
-                      </h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Please pay the onboarding setup fee below to instantly register your business in paused state. Our admin team will verify it.
-                      </p>
+                  <div className="flex flex-col sm:flex-row gap-4 items-center">
+                    <div className="w-28 h-28 bg-white border border-slate-200 p-2 rounded-xl shrink-0 shadow-sm">
+                      {/* Simple visual vector QR code simulation */}
+                      <svg viewBox="0 0 100 100" className="w-full h-full text-slate-900">
+                        <path d="M5 5h30v30H5zm45 0h30v30H50zM5 50h30v30H5zm45 10h10v10H50zm10-10h10v10h-10zm20 20h10v10H80zm-10-10h10v10h-10z" fill="currentColor" />
+                        <rect x="12" y="12" width="16" height="16" fill="currentColor" />
+                        <rect x="57" y="12" width="16" height="16" fill="currentColor" />
+                        <rect x="12" y="57" width="16" height="16" fill="currentColor" />
+                      </svg>
                     </div>
+                    
+                    <div className="text-left space-y-2 text-[11px] text-slate-500 leading-relaxed">
+                      <p>1. Scan the QR code using Google Pay, PhonePe, or Paytm.</p>
+                      <p>2. Send the exact setup fee of <strong>₹{getSelectedPlanAmount()}</strong>.</p>
+                      <p>3. Capture and upload your payment confirmation receipt screenshot.</p>
+                    </div>
+                  </div>
 
-                    {/* Cost summary card */}
-                    <div className="bg-blue-50/40 p-4 rounded-xl border border-blue-100/80 flex items-center justify-between shadow-sm">
-                      <div>
-                        <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Plan Selected</span>
-                        <span className="block text-sm font-bold text-slate-800 mt-0.5">
-                          {(() => {
-                            if (selectedPlan === '30') return '1 Month Plan';
-                            if (selectedPlan === '365') return '1 Year Plan';
-                            if (selectedPlan === 'lifetime') return 'Lifetime Plan';
-                            const customPkg = (globalSettings?.customPackages || []).find((pkg: any) => pkg.id === selectedPlan);
-                            return customPkg ? customPkg.name : 'SaaS Plan';
-                          })()}
-                        </span>
+                  {/* Screenshot Dropzone */}
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold text-slate-650 uppercase block">Upload screenshot confirmation *</span>
+                    
+                    {!paymentScreenshot ? (
+                      <div className="relative border border-dashed border-slate-300 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-50 transition-colors h-[90px]">
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          onChange={handleScreenshotFileChange}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          disabled={screenshotUploading}
+                        />
+                        {screenshotUploading ? (
+                          <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4 text-slate-400 mb-1" />
+                            <span className="text-[10px] font-semibold text-slate-700">Choose file or drag & drop</span>
+                          </>
+                        )}
                       </div>
-                      <div className="text-right">
-                        <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Setup Price</span>
-                        <span className="block text-xl font-black text-blue-600 mt-0.5 font-mono">
-                          ₹{Number(getSelectedPlanAmount()).toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Payment methods switchers */}
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod('qr')}
-                        className={`flex-1 py-2.5 rounded-xl border-2 text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                          paymentMethod === 'qr'
-                            ? 'border-blue-500 bg-blue-500/10 text-blue-600'
-                            : 'border-slate-200 bg-white text-slate-550 hover:bg-slate-50'
-                        }`}
-                      >
-                        <QrCode className="w-4 h-4" />
-                        Scan UPI QR Code
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod('app')}
-                        className={`flex-1 py-2.5 rounded-xl border-2 text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                          paymentMethod === 'app'
-                            ? 'border-blue-500 bg-blue-500/10 text-blue-600'
-                            : 'border-slate-200 bg-white text-slate-550 hover:bg-slate-50'
-                        }`}
-                      >
-                        <Smartphone className="w-4 h-4" />
-                        Pay via UPI Apps
-                      </button>
-                    </div>
-
-                    {/* QR Code Scan Area */}
-                    {paymentMethod === 'qr' && (
-                      <div className="p-6 bg-white border border-slate-200 rounded-2xl flex flex-col md:flex-row items-center gap-6 shadow-sm">
-                        <div className="flex flex-col items-center gap-3 shrink-0">
-                          {(() => {
-                            const upiId = globalSettings?.platformUpi || 'creva@ybl';
-                            const planAmount = getSelectedPlanAmount();
-                            const merchantName = globalSettings?.brandName || 'StoreBuilder';
-                            const upiIntent = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${planAmount}&cu=INR`;
-                            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiIntent)}&margin=10`;
-
-                            return (
-                              <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-inner relative group shrink-0">
-                                <img 
-                                  src={qrUrl} 
-                                  alt="Real UPI Payment QR Code" 
-                                  className="w-[150px] h-[150px] object-contain block transition-transform group-hover:scale-105 duration-300"
-                                />
-                                <div className="absolute inset-0 bg-black/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center font-bold text-[10px] text-blue-600 select-none">
-                                  SCAN TO PAY
-                                </div>
-                              </div>
-                            );
-                          })()}
-                          <div className="text-center space-y-1">
-                            <span className="text-[9px] uppercase font-bold text-slate-500 tracking-widest block">Merchant VPA UPI ID</span>
-                            <span className="inline-block text-[11px] font-black font-mono bg-slate-100 text-slate-700 border border-slate-200 px-3 py-1 rounded-xl shadow-sm select-all">
-                              {globalSettings?.platformUpi || 'creva@ybl'}
-                            </span>
+                    ) : (
+                      <div className="bg-white border border-slate-200 rounded-xl p-3 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <img src={paymentScreenshot} alt="Receipt" className="w-10 h-10 object-cover rounded border" />
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-800 block">Screenshot Attached</span>
+                            <span className="text-[9px] text-emerald-600 font-bold block">✓ Ready</span>
                           </div>
                         </div>
- 
-                        <div className="space-y-2">
-                          <span className="text-xs font-bold text-slate-800 block text-left">How to pay via QR Code:</span>
-                          <ol className="text-xs text-slate-600 list-decimal pl-4 space-y-1.5 leading-relaxed text-left">
-                            <li>Open Google Pay, PhonePe, Paytm, or any banking App on your mobile.</li>
-                            <li>Scan the QR code displayed on the left or send to VPA ID: <strong className="text-blue-600 font-mono select-all bg-slate-100 px-1.5 py-0.5 rounded border border-slate-250">{globalSettings?.platformUpi || 'creva@ybl'}</strong></li>
-                            <li>Pay the designated plan amount (<strong className="text-blue-650 font-mono">₹{Number(getSelectedPlanAmount()).toLocaleString()}</strong>).</li>
-                            <li>Take a clear screenshot of the transaction success page.</li>
-                            <li>Upload the screenshot in the dropzone below to proceed.</li>
-                          </ol>
-                        </div>
+                        <button 
+                          type="button" 
+                          onClick={() => { setPaymentScreenshot(null); setPaymentScreenshotUrl(null); }}
+                          className="p-1.5 bg-red-50 hover:bg-red-100 text-red-650 rounded-lg border border-red-200"
+                        >
+                          <Trash className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     )}
+                  </div>
+                </div>
 
-                    {/* UPI App Selection Area */}
-                    {paymentMethod === 'app' && (
-                      <div className="space-y-4 w-full">
-                        <div className="bg-amber-50/50 border border-amber-200/60 text-amber-800 rounded-2xl p-4 text-xs text-left leading-relaxed space-y-2">
-                          <p className="flex items-start gap-1.5">
-                            <HelpCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                            <span>
-                              <strong>Mobile UPI App Tip:</strong> If your app shows a <em>"Bank limit exceeded"</em> or a Google Pay security warning like <em>"This payment cannot be verified as safe" / "Unverified Merchant"</em>, do not worry! This is a standard Google/NPCI security warning for direct browser links when paying a new or personal UPI account.
-                            </span>
-                          </p>
-                          <p className="flex items-start gap-1.5">
-                            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                            <span>
-                              <strong>Simple Fix:</strong> Click on the UPI ID below to copy it: <strong className="font-mono bg-slate-100 px-1.5 py-0.5 rounded select-all text-amber-900 border border-slate-200 cursor-pointer inline-flex items-center gap-1 hover:text-amber-955" title="Click to copy" onClick={() => { navigator.clipboard.writeText(globalSettings?.platformUpi || 'creva@ybl'); alert('Copied VPA ID: ' + (globalSettings?.platformUpi || 'creva@ybl')); }}>{globalSettings?.platformUpi || 'creva@ybl'} <Clipboard className="w-3 h-3 text-amber-600" /></strong>. Then open your GPay, PhonePe, or Paytm app directly and pay manually by pasting this UPI ID!
-                            </span>
-                          </p>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {[
-                          { 
-                            id: 'gpay', 
-                            name: 'Mobile Payment', 
-                            color: 'hover:border-indigo-500 hover:bg-indigo-50/50', 
-                            icon: (
-                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 shrink-0">
-                                <rect width="24" height="24" rx="6" fill="#6366f1" />
-                                <rect x="8" y="4" width="8" height="16" rx="2" stroke="#ffffff" strokeWidth="1.5" fill="none" />
-                                <circle cx="12" cy="17" r="0.75" fill="#ffffff" />
-                                <path d="M10 8h4M10 11h4" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" />
-                                <path d="M10 14h2" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" />
-                              </svg>
-                            ) 
-                          },
-                          { 
-                            id: 'paytm', 
-                            name: 'Paytm Wallet', 
-                            color: 'hover:border-sky-500 hover:bg-sky-50/50', 
-                            icon: (
-                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 shrink-0">
-                                <rect width="24" height="24" rx="6" fill="#002e6e" />
-                                <text x="12" y="15" fill="#00baf2" fontStyle="italic" fontWeight="bold" fontSize="9" textAnchor="middle" fontFamily="sans-serif">paytm</text>
-                              </svg>
-                            ) 
-                          },
-                          { 
-                            id: 'bhim', 
-                            name: 'BHIM UPI', 
-                            color: 'hover:border-orange-500 hover:bg-orange-50/50', 
-                            icon: (
-                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 shrink-0">
-                                <rect width="24" height="24" rx="6" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1" />
-                                <path d="M6 10l6-6 6 6-6 6-6-6z" fill="#097939" />
-                                <path d="M12 4l6 6-6 6V4z" fill="#ed1c24" />
-                                <text x="12" y="14" fill="#ffffff" fontWeight="black" fontSize="5" textAnchor="middle" fontFamily="sans-serif">BHIM</text>
-                              </svg>
-                            ) 
-                          }
-                        ].map((app) => (
-                          <button
-                            key={app.id}
-                            type="button"
-                            onClick={() => handleSimulateUpiApp(app.id as any)}
-                            className={`flex items-center gap-3.5 p-4 rounded-2xl border border-slate-200 bg-white text-left text-xs font-bold transition-all hover:scale-102 hover:shadow-md ${app.color}`}
-                          >
-                            <div className="shrink-0">{app.icon}</div>
-                            <div>
-                              <span className="block font-bold text-slate-800 text-[13px]">{app.name}</span>
-                              <span className="text-[10px] text-slate-500 font-normal block mt-0.5">Pay directly via instant deep link</span>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                    {/* Screenshot Upload Dropzone */}
-                    <div className="space-y-2.5">
-                      <label className="block text-xs font-black text-slate-500 uppercase tracking-wider">
-                        Upload Successful Payment Screenshot *
-                      </label>
-
-                      {!paymentScreenshot ? (
-                        <div className="relative border-2 border-dashed border-slate-350 rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-50 transition-colors animate-fade-in">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleScreenshotFileChange}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            disabled={screenshotUploading}
-                          />
-                          {screenshotUploading ? (
-                            <div className="flex flex-col items-center gap-2">
-                              <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
-                              <p className="text-sm font-semibold text-slate-600">Uploading to secure storage...</p>
-                            </div>
-                          ) : (
-                            <>
-                              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-3 border border-blue-150">
-                                <Upload className="w-6 h-6" />
-                              </div>
-                              <p className="text-xs font-medium text-slate-700 mb-0.5">Click or drag payment screenshot to upload</p>
-                              <p className="text-[10px] text-slate-500">PNG, JPG, JPEG up to 5MB</p>
-                            </>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="bg-slate-55 border border-slate-200 rounded-xl p-4 flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 bg-white shrink-0 shadow-inner">
-                              <img
-                                src={paymentScreenshot}
-                                alt="Payment Screenshot"
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                            <div className="min-w-0">
-                              <span className="block text-xs font-bold text-slate-800 truncate">Screenshot Attached</span>
-                              <span className="inline-flex items-center gap-1 mt-1 text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                                <Check className="w-3 h-3" />
-                                Saved successfully
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setPaymentScreenshot(null);
-                              setPaymentScreenshotUrl(null);
-                            }}
-                            className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors border border-red-200"
-                            title="Remove Screenshot"
-                          >
-                            <Trash className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-
+              </div>
             </motion.div>
           )}
 
+          {/* STEP 6: ACCOUNT CREATION */}
           {step === 6 && (
             <motion.div
               key="step6"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
+              className="space-y-6 text-left"
             >
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-blue-55 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-150">
-                  <Lock className="w-8 h-8" />
+              <div className="text-center max-w-sm mx-auto space-y-3 py-6">
+                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center border border-blue-150 mx-auto">
+                  <Lock className="w-6 h-6" />
                 </div>
-                <h2 className="text-2xl font-bold tracking-tight text-slate-850">Create your account</h2>
-                <p className="text-slate-500 text-xs mt-1 font-medium">Last step! Set up your login for the admin panel.</p>
-              </div>
-              
-              <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Email Address *</label>
-                  <input
-                    type="email"
+                  <h2 className="text-2xl font-black text-slate-900">Create your login credentials</h2>
+                  <p className="text-slate-500 text-xs mt-1">Set up your owner details to log in to the admin panel dashboard later.</p>
+                </div>
+              </div>
+
+              <div className="space-y-4 max-w-sm mx-auto">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-650 uppercase tracking-wider block">Email Address *</label>
+                  <input 
+                    type="email" 
                     name="authEmail"
                     value={formData.authEmail}
                     onChange={handleChange}
-                    className={`w-full h-10 px-3.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.authEmail ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
-                    placeholder="you@example.com"
+                    placeholder="you@domain.com"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-800 shadow-sm"
                   />
-                  {errors.authEmail && <p className="text-red-500 text-xs mt-1 font-medium">{errors.authEmail}</p>}
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Password *</label>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-650 uppercase tracking-wider block">Password *</label>
                   <div className="relative">
-                    <input
-                      type={showAuthPassword ? "text" : "password"}
+                    <input 
+                      type={showAuthPassword ? "text" : "password"} 
                       name="authPassword"
                       value={formData.authPassword}
                       onChange={handleChange}
-                      className={`w-full h-10 pl-3.5 pr-10 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.authPassword ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
-                      placeholder="Min 8 chars, uppercase, lowercase, number"
+                      placeholder="Min 8 chars, uppercase, number"
+                      className="w-full bg-white border border-slate-200 rounded-xl pl-4 pr-10 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-800 shadow-sm"
                     />
                     <button
                       type="button"
                       onClick={() => setShowAuthPassword(!showAuthPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none cursor-pointer"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                     >
                       {showAuthPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
-                  {errors.authPassword && <p className="text-red-500 text-xs mt-1 font-medium">{errors.authPassword}</p>}
-                  {!errors.authPassword && formData.authPassword.length > 0 && (
-                    <div className="flex gap-2 mt-2">
-                      {[
-                        { label: '8+ chars', ok: formData.authPassword.length >= 8 },
-                        { label: 'Uppercase', ok: /[A-Z]/.test(formData.authPassword) },
-                        { label: 'Lowercase', ok: /[a-z]/.test(formData.authPassword) },
-                        { label: 'Number', ok: /[0-9]/.test(formData.authPassword) },
-                      ].map(r => (
-                        <span key={r.label} className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${r.ok ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
-                          {r.label}
-                        </span>
-                      ))}
+
+                  {formData.authPassword.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${formData.authPassword.length >= 8 ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-slate-50 text-slate-400'}`}>8+ Chars</span>
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${/[A-Z]/.test(formData.authPassword) ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-slate-50 text-slate-400'}`}>Uppercase</span>
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${/[0-9]/.test(formData.authPassword) ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-slate-50 text-slate-400'}`}>Number</span>
                     </div>
                   )}
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-slate-650 uppercase tracking-wider">Confirm Password *</label>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-650 uppercase tracking-wider block">Confirm Password *</label>
                   <div className="relative">
-                    <input
-                      type={showAuthConfirmPassword ? "text" : "password"}
+                    <input 
+                      type={showAuthConfirmPassword ? "text" : "password"} 
                       name="authConfirmPassword"
                       value={formData.authConfirmPassword}
                       onChange={handleChange}
-                      className={`w-full h-10 pl-3.5 pr-10 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder:text-slate-400 ${errors.authConfirmPassword ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'}`}
-                      placeholder="Re-enter your password"
+                      placeholder="Confirm password"
+                      className="w-full bg-white border border-slate-200 rounded-xl pl-4 pr-10 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-800 shadow-sm"
                     />
                     <button
                       type="button"
                       onClick={() => setShowAuthConfirmPassword(!showAuthConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none cursor-pointer"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                     >
                       {showAuthConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
-                  {errors.authConfirmPassword && <p className="text-red-500 text-xs mt-1 font-medium">{errors.authConfirmPassword}</p>}
                 </div>
               </div>
             </motion.div>
           )}
+
         </AnimatePresence>
       </div>
 
       {error && (
-        <div className="mt-4 p-3 bg-red-50 text-red-650 text-xs rounded-xl border border-red-200 animate-in fade-in slide-in-from-top-1">
-          {error}
+        <div className="mt-6 p-4 bg-red-50 text-red-650 text-xs rounded-xl border border-red-200 text-left font-semibold">
+          ⚠ {error}
         </div>
       )}
 
-      <div className="mt-8 pt-6 border-t border-slate-200 flex justify-between">
+      {/* Onboarding Wizard Footer Navigation Controls */}
+      <div className="mt-8 pt-6 border-t border-slate-100 flex justify-between select-none">
         <button
           onClick={prevStep}
           disabled={step === 1 || loading}
-          className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:pointer-events-none transition-colors shadow-sm"
+          className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 hover:border-slate-350 bg-white px-6 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-40 cursor-pointer"
         >
-          Back
+          ← Back
         </button>
         {step < 6 ? (
           <button
             onClick={nextStep}
             disabled={loading}
-            className="inline-flex h-10 items-center justify-center rounded-xl bg-blue-600 px-8 text-sm font-bold text-white shadow-lg shadow-blue-500/10 hover:bg-blue-500 transition-colors disabled:opacity-50"
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-500 px-8 text-xs font-bold uppercase tracking-wider text-white shadow-md shadow-blue-500/10 transition-colors cursor-pointer"
           >
-            Continue
+            Continue →
           </button>
         ) : (
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="inline-flex h-10 items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-8 text-sm font-bold text-white shadow-lg shadow-blue-500/10 hover:from-blue-550 hover:to-indigo-550 transition-all disabled:opacity-50"
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-650 hover:from-blue-550 hover:to-indigo-550 px-8 text-xs font-bold uppercase tracking-wider text-white shadow-md shadow-blue-500/10 transition-all cursor-pointer"
           >
             {loading ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Creating Store...
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Launching Store...
               </>
             ) : (
-              <>
-                Create My Store
-              </>
+              'Launch My Store →'
             )}
           </button>
         )}
       </div>
+
+      {/* Licensing Terms & Conditions Agreement Full Modal Drawer */}
+      <AnimatePresence>
+        {showAgreementModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/35 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh]"
+            >
+              <div className="p-4 border-b border-slate-100 flex justify-between items-center">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-800">Licensing Agreement Full Terms</span>
+                <button onClick={() => setShowAgreementModal(false)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-400"><X className="w-4 h-4" /></button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6 text-xs text-slate-500 leading-relaxed text-left space-y-4">
+                <div className="flex gap-2 mb-2 select-none">
+                  <button onClick={() => setSelectedAgreementLang('en')} className={`px-3 py-1 rounded text-[10px] font-bold ${selectedAgreementLang==='en' ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'border'}`}>English</button>
+                  <button onClick={() => setSelectedAgreementLang('ta')} className={`px-3 py-1 rounded text-[10px] font-bold ${selectedAgreementLang==='ta' ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'border'}`}>Tamil</button>
+                </div>
+                <p className="whitespace-pre-line bg-slate-50 p-4 border rounded-xl font-mono text-[10.5px]">
+                  {agreementTemplates[selectedAgreementLang] || defaultTemplates[selectedAgreementLang]}
+                </p>
+              </div>
+              <div className="p-4 border-t border-slate-100 flex justify-end">
+                <button onClick={() => setShowAgreementModal(false)} className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase rounded-xl">Accept & Close</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 14. DYNAMIC INTEGRATED WEBZ AI WIZARD HELPER */}
+      <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end gap-3">
+        {aiOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            className="w-80 h-96 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col text-left font-sans"
+          >
+            <div className="bg-slate-900 text-white p-3 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <div className="p-1 bg-slate-800 rounded-lg"><Bot className="w-4 h-4" /></div>
+                <div>
+                  <h4 className="font-extrabold text-[10px] uppercase tracking-wider">Webz AI Setup Helper</h4>
+                  <span className="text-[8px] text-slate-400 block font-semibold">Online Assistant</span>
+                </div>
+              </div>
+              <button onClick={() => setAiOpen(false)} className="p-1 hover:bg-slate-800 rounded text-slate-450"><X className="w-3.5 h-3.5" /></button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0 bg-slate-50/20">
+              {aiMessages.map((msg, i) => (
+                <div key={i} className={`flex gap-2 max-w-[85%] ${msg.sender === 'user' ? 'ml-auto flex-row-reverse' : 'mr-auto'}`}>
+                  <div className={`p-2.5 rounded-2xl text-[11px] leading-relaxed border ${
+                    msg.sender === 'user' ? 'bg-blue-600 text-white border-blue-650' : 'bg-white text-slate-800 border-slate-200'
+                  }`}>
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-3 border-t border-slate-100 bg-white flex flex-col gap-2 shrink-0">
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">Choose Helper Prompt</span>
+              <div className="flex gap-1.5 overflow-x-auto pb-0.5 select-none">
+                <button 
+                  onClick={() => handleAssistantAction('Explain this step')}
+                  className="px-2.5 py-1 text-[9px] bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 whitespace-nowrap cursor-pointer hover:bg-slate-100"
+                >
+                  💡 Explain Step
+                </button>
+                {step === 2 && (
+                  <button 
+                    onClick={() => handleAssistantAction('Help me choose a template')}
+                    className="px-2.5 py-1 text-[9px] bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 whitespace-nowrap cursor-pointer hover:bg-slate-100"
+                  >
+                    🎨 Suggest Theme
+                  </button>
+                )}
+                {step === 4 && (
+                  <button 
+                    onClick={() => handleAssistantAction('What is a subdomain?')}
+                    className="px-2.5 py-1 text-[9px] bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 whitespace-nowrap cursor-pointer hover:bg-slate-100"
+                  >
+                    🌐 What is a domain?
+                  </button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        <button
+          onClick={() => setAiOpen(!aiOpen)}
+          className="bg-blue-600 hover:bg-blue-500 text-white p-3.5 rounded-full shadow-lg flex items-center justify-center cursor-pointer"
+        >
+          <Bot className="w-5 h-5" />
+        </button>
       </div>
+
     </div>
   );
 }
