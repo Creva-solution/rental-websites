@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { 
   MessageSquare, X, Minimize2, Maximize2, Send, Sparkles, BookOpen, 
   Bot, Phone, FileText, ChevronRight, CheckCircle2, ArrowLeft, Loader2,
-  Layout, CreditCard, ShoppingBag, Landmark, Clipboard, AlertTriangle, UserCheck, Check, Trash2, ArrowUpRight, Upload
+  Layout, CreditCard, ShoppingBag, Landmark, Clipboard, AlertTriangle, UserCheck, Check, Trash2, ArrowUpRight, Upload, Headphones, Globe
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -58,6 +58,20 @@ export default function StoreAssistant() {
   const [ticketSubject, setTicketSubject] = useState('');
   const [ticketMessage, setTicketMessage] = useState('');
   const [ticketStatus, setTicketStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
+  const [guideSearch, setGuideSearch] = useState('');
+
+  // Conversational state machine for interactive actions
+  const [assistantState, setAssistantState] = useState<{
+    activeIntent: 'ADD_LOGO' | 'ADD_PRODUCT' | 'EDIT_PRODUCT' | 'DELETE_PRODUCT' | 'PAYMENT_GATEWAY' | 'UPI' | 'DOMAIN' | 'ANALYZE_STORE' | null;
+    currentStep: number;
+    collectedData: Record<string, any>;
+    pendingConfirmation: boolean;
+  }>({
+    activeIntent: null,
+    currentStep: 0,
+    collectedData: {},
+    pendingConfirmation: false
+  });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -315,6 +329,534 @@ export default function StoreAssistant() {
     }
   };
 
+  // Intents Dictionary configuration supporting English, Tamil, Tanglish, Hindi, Malayalam, Telugu, Kannada
+  const intents = {
+    add_logo: {
+      keywords: [
+        "add logo", "logo add", "upload logo", "logo update", "logo change", "logo pannanum", "logo add pannum", "logo add panna", "logo change panna",
+        "லோகோ", "लोगो", "ലോഗോ", "లోగో", "ಲೋಗೋ"
+      ],
+      action: "ADD_LOGO"
+    },
+    add_product: {
+      keywords: [
+        "add product", "create product", "product add", "new product", "product add pannum", "product add pannanum",
+        "உருவாக்கு", "தயாரிப்பு", "प्रोडक्ट", "ഉൽപ്പന്നം", "ఉత్పత్తి", "ಉತ್ಪನ್ನ"
+      ],
+      action: "ADD_PRODUCT"
+    },
+    payment_gateway: {
+      keywords: [
+        "payment gateway", "add payment", "payment setup", "razorpay", "cashfree", "stripe", "payment gateway add pannum", "gateway setup",
+        "பேமெண்ட்", "पेमेंट", "പേയ്‌മെന്റ്", "పేమెంట్", "ಪೇಮೆಂಟ್"
+      ],
+      action: "PAYMENT_GATEWAY"
+    },
+    upi: {
+      keywords: [
+        "upi add", "add upi", "upi payment", "upi config", "upi setup", "upi add pannum"
+      ],
+      action: "UPI"
+    },
+    change_price: {
+      keywords: [
+        "change price", "update price", "price change", "price update", "விலை", "कीमत", "വില", "ధర", "ಬೆಲೆ", "price change pannanum"
+      ],
+      action: "EDIT_PRODUCT"
+    },
+    delete_product: {
+      keywords: [
+        "delete product", "remove product", "delete panna", "remove pannanum"
+      ],
+      action: "DELETE_PRODUCT"
+    },
+    domain: {
+      keywords: [
+        "domain", "subdomain", "domain change", "custom domain", "domain set", "domain set pannanum"
+      ],
+      action: "DOMAIN"
+    },
+    analyze_store: {
+      keywords: [
+        "analyze store", "check store", "store analysis", "en store analyze", "store check pannu", "analyze", "பகுப்பாய்வு", "বিশ্লেষণ"
+      ],
+      action: "ANALYZE_STORE"
+    }
+  };
+
+  const resetWizard = () => {
+    setAssistantState({
+      activeIntent: null,
+      currentStep: 0,
+      collectedData: {},
+      pendingConfirmation: false
+    });
+  };
+
+  const startWizardFlow = (intent: any) => {
+    setAssistantState({
+      activeIntent: intent,
+      currentStep: 1,
+      collectedData: {},
+      pendingConfirmation: false
+    });
+
+    let greeting = '';
+    if (intent === 'ADD_LOGO') {
+      if (storeData?.logo_url) {
+        greeting = 'Your store already has a logo. Would you like to replace it? Please select an action below.';
+      } else {
+        greeting = 'Sure. Please upload your store logo.';
+      }
+    } else if (intent === 'ADD_PRODUCT') {
+      greeting = "Sure. Let's add a new product. What is the product name?";
+    } else if (intent === 'EDIT_PRODUCT') {
+      greeting = 'Which product would you like to update? Please enter or select the product name below.';
+    } else if (intent === 'DELETE_PRODUCT') {
+      greeting = 'Which product would you like to delete? Please enter or select the product name below.';
+    } else if (intent === 'PAYMENT_GATEWAY') {
+      greeting = 'Sure. Which payment provider would you like to connect? Choose Razorpay, Cashfree, Stripe, or UPI.';
+    } else if (intent === 'UPI') {
+      greeting = 'Enter your UPI ID (e.g. merchant@okaxis):';
+    } else if (intent === 'DOMAIN') {
+      greeting = 'Would you like to use a CrevaWebs subdomain or your own custom domain? Select an option below.';
+    } else if (intent === 'ANALYZE_STORE') {
+      greeting = `Store Setup Analysis
+Setup Completion Score: ${completionPercentage}% Complete
+
+Completed Tasks:
+✓ Business Information
+✓ Branding Logo
+✓ Contact Details
+
+Needs Attention:
+○ Payment Gateway Setup
+○ Subdomain / Domain Setup
+○ Account Verification Setup
+
+Recommended Next Step:
+Set up your payment method to start receiving online payments.`;
+      resetWizard();
+    }
+
+    setMessages(prev => [...prev, {
+      sender: 'ai',
+      text: greeting,
+      timestamp: new Date()
+    }]);
+    setIsTyping(false);
+  };
+
+  const handleWizardStepInput = (text: string) => {
+    const { activeIntent, currentStep } = assistantState;
+    const collectedData = assistantState.collectedData as any;
+    if (!activeIntent) return;
+
+    if (activeIntent === 'ADD_PRODUCT') {
+      if (currentStep === 1) {
+        setAssistantState(prev => ({
+          ...prev,
+          currentStep: 2,
+          collectedData: { ...prev.collectedData, name: text }
+        }));
+        setMessages(prev => [...prev, { sender: 'ai', text: 'What is the product price (in ₹)?', timestamp: new Date() }]);
+      } else if (currentStep === 2) {
+        const price = parseFloat(text);
+        if (isNaN(price)) {
+          setMessages(prev => [...prev, { sender: 'ai', text: 'Please enter a valid price number.', timestamp: new Date() }]);
+          setIsTyping(false);
+          return;
+        }
+        setAssistantState(prev => ({
+          ...prev,
+          currentStep: 3,
+          collectedData: { ...prev.collectedData, price }
+        }));
+        setMessages(prev => [...prev, { sender: 'ai', text: 'What is the category for this product?', timestamp: new Date() }]);
+      } else if (currentStep === 3) {
+        setAssistantState(prev => ({
+          ...prev,
+          currentStep: 4,
+          collectedData: { ...prev.collectedData, category: text }
+        }));
+        setMessages(prev => [...prev, { sender: 'ai', text: 'Enter a brief description for this product:', timestamp: new Date() }]);
+      } else if (currentStep === 4) {
+        setAssistantState(prev => ({
+          ...prev,
+          currentStep: 5,
+          collectedData: { ...prev.collectedData, description: text }
+        }));
+        setMessages(prev => [...prev, { sender: 'ai', text: 'Add an optional image URL or upload a file for the product:', timestamp: new Date() }]);
+      } else if (currentStep === 5) {
+        setAssistantState(prev => ({
+          ...prev,
+          currentStep: 6,
+          collectedData: { ...prev.collectedData, image_url: text }
+        }));
+        setMessages(prev => [...prev, { sender: 'ai', text: 'Enter the available stock quantity:', timestamp: new Date() }]);
+      } else if (currentStep === 6) {
+        const stock = parseInt(text);
+        if (isNaN(stock)) {
+          setMessages(prev => [...prev, { sender: 'ai', text: 'Please enter a valid stock quantity.', timestamp: new Date() }]);
+          setIsTyping(false);
+          return;
+        }
+        const updatedData = { ...collectedData, stock };
+        setAssistantState(prev => ({
+          ...prev,
+          currentStep: 7,
+          collectedData: updatedData,
+          pendingConfirmation: true
+        }));
+        setMessages(prev => [...prev, {
+          sender: 'ai',
+          text: `Here is your product details:
+Product Name: ${updatedData.name}
+Price: ₹${updatedData.price}
+Category: ${updatedData.category}
+Description: ${updatedData.description}
+Stock: ${updatedData.stock} units
+
+Would you like to create this product?`,
+          timestamp: new Date()
+        }]);
+      }
+      setIsTyping(false);
+    } 
+    else if (activeIntent === 'EDIT_PRODUCT') {
+      if (currentStep === 1) {
+        const match = productsList.find(p => p.name.toLowerCase().includes(text.toLowerCase()));
+        if (!match) {
+          setMessages(prev => [...prev, { sender: 'ai', text: `Sorry, I couldn't find any product matching "${text}". Please enter or select a valid name.`, timestamp: new Date() }]);
+          setIsTyping(false);
+          return;
+        }
+        setAssistantState(prev => ({
+          ...prev,
+          currentStep: 2,
+          collectedData: { ...prev.collectedData, selectedProduct: match }
+        }));
+        setMessages(prev => [...prev, { sender: 'ai', text: `Current price: ₹${match.price}\nWhat should be the new price?`, timestamp: new Date() }]);
+      } else if (currentStep === 2) {
+        const newPrice = parseFloat(text);
+        if (isNaN(newPrice)) {
+          setMessages(prev => [...prev, { sender: 'ai', text: 'Please enter a valid price number.', timestamp: new Date() }]);
+          setIsTyping(false);
+          return;
+        }
+        const updatedData = { ...collectedData, newPrice };
+        setAssistantState(prev => ({
+          ...prev,
+          currentStep: 3,
+          collectedData: updatedData,
+          pendingConfirmation: true
+        }));
+        setMessages(prev => [...prev, {
+          sender: 'ai',
+          text: `Product: ${collectedData.selectedProduct.name}
+Old Price: ₹${collectedData.selectedProduct.price}
+New Price: ₹${newPrice}
+
+Would you like to update the price?`,
+          timestamp: new Date()
+        }]);
+      }
+      setIsTyping(false);
+    }
+    else if (activeIntent === 'DELETE_PRODUCT') {
+      if (currentStep === 1) {
+        const match = productsList.find(p => p.name.toLowerCase().includes(text.toLowerCase()));
+        if (!match) {
+          setMessages(prev => [...prev, { sender: 'ai', text: `Sorry, I couldn't find any product matching "${text}". Please enter or select a valid name.`, timestamp: new Date() }]);
+          setIsTyping(false);
+          return;
+        }
+        setAssistantState(prev => ({
+          ...prev,
+          currentStep: 2,
+          collectedData: { selectedProduct: match },
+          pendingConfirmation: true
+        }));
+        setMessages(prev => [...prev, {
+          sender: 'ai',
+          text: `Are you sure you want to delete ${match.name}?\n\nThis action cannot be undone.`,
+          timestamp: new Date()
+        }]);
+      }
+      setIsTyping(false);
+    }
+    else if (activeIntent === 'PAYMENT_GATEWAY') {
+      if (currentStep === 2) {
+        setAssistantState(prev => ({
+          ...prev,
+          currentStep: 3,
+          collectedData: { ...prev.collectedData, keyId: text }
+        }));
+        setMessages(prev => [...prev, { sender: 'ai', text: `Enter key secret details for ${collectedData.provider}:`, timestamp: new Date() }]);
+      } else if (currentStep === 3) {
+        const updatedData = { ...collectedData, keySecret: text };
+        setAssistantState(prev => ({
+          ...prev,
+          currentStep: 4,
+          collectedData: updatedData,
+          pendingConfirmation: true
+        }));
+
+        const maskedKey = updatedData.keyId.length > 8 
+          ? `${updatedData.keyId.substring(0, 8)}****${updatedData.keyId.substring(updatedData.keyId.length - 4)}` 
+          : '••••••••••••';
+
+        setMessages(prev => [...prev, {
+          sender: 'ai',
+          text: `Provider: ${collectedData.provider}
+Key ID: ${maskedKey}
+Key Secret: ••••••••••••
+Status: Ready to Connect
+
+Would you like to save and activate ${collectedData.provider}?`,
+          timestamp: new Date()
+        }]);
+      }
+      setIsTyping(false);
+    }
+    else if (activeIntent === 'UPI') {
+      if (currentStep === 1) {
+        if (!text.includes('@')) {
+          setMessages(prev => [...prev, { sender: 'ai', text: 'Please enter a valid UPI ID format (containing @).', timestamp: new Date() }]);
+          setIsTyping(false);
+          return;
+        }
+        setAssistantState(prev => ({
+          ...prev,
+          currentStep: 2,
+          collectedData: { ...prev.collectedData, upiId: text }
+        }));
+        setMessages(prev => [...prev, { sender: 'ai', text: 'Enter the account holder name:', timestamp: new Date() }]);
+      } else if (currentStep === 2) {
+        const updatedData = { ...collectedData, holderName: text };
+        setAssistantState(prev => ({
+          ...prev,
+          currentStep: 3,
+          collectedData: updatedData,
+          pendingConfirmation: true
+        }));
+        setMessages(prev => [...prev, {
+          sender: 'ai',
+          text: `UPI ID: ${updatedData.upiId}
+Holder Name: ${updatedData.holderName}
+
+Would you like to save and connect this UPI configuration?`,
+          timestamp: new Date()
+        }]);
+      }
+      setIsTyping(false);
+    }
+    else {
+      setIsTyping(false);
+    }
+  };
+
+  const handleSaveLogoWizard = async (logoUrl: string) => {
+    try {
+      setActionLoading(true);
+      const { error } = await supabase
+        .from('stores')
+        .update({ logo_url: logoUrl })
+        .eq('id', storeData.id);
+      if (error) throw error;
+      setMessages(prev => [...prev, { sender: 'ai', text: 'Your store logo has been updated successfully.', timestamp: new Date() }]);
+      addNotification('success', 'Logo updated successfully', storeData.store_name);
+      fetchStoreStatus();
+    } catch (e: any) {
+      addNotification('error', 'Failed to save logo', e.message);
+    } finally {
+      setActionLoading(false);
+      resetWizard();
+    }
+  };
+
+  const handleCreateProductWizard = async () => {
+    try {
+      setActionLoading(true);
+      const data = assistantState.collectedData;
+      const descData = {
+        description: data.description || '',
+        category: data.category || 'General',
+        sizes: [],
+        colors: [],
+        image_url: data.image_url || ''
+      };
+      const { error } = await supabase.from('products').insert([{
+        store_id: storeData.id,
+        name: data.name,
+        price: Number(data.price),
+        sku: 'SKU-' + Math.floor(Math.random() * 10000),
+        description: JSON.stringify(descData),
+        is_active: true,
+        inventory_quantity: Number(data.stock || 10)
+      }]);
+      if (error) throw error;
+      setMessages(prev => [...prev, { sender: 'ai', text: 'Product created successfully!', timestamp: new Date() }]);
+      addNotification('success', 'Product created successfully', data.name);
+      fetchStoreStatus();
+    } catch (e: any) {
+      addNotification('error', 'Failed to create product', e.message);
+    } finally {
+      setActionLoading(false);
+      resetWizard();
+    }
+  };
+
+  const handleUpdatePriceWizard = async () => {
+    try {
+      setActionLoading(true);
+      const { selectedProduct, newPrice } = assistantState.collectedData;
+      const { error } = await supabase
+        .from('products')
+        .update({ price: newPrice })
+        .eq('id', selectedProduct.id);
+      if (error) throw error;
+      setMessages(prev => [...prev, { sender: 'ai', text: `Updated ${selectedProduct.name} price successfully to ₹${newPrice}.`, timestamp: new Date() }]);
+      addNotification('success', 'Price updated successfully', selectedProduct.name);
+      fetchStoreStatus();
+    } catch (e: any) {
+      addNotification('error', 'Failed to update price', e.message);
+    } finally {
+      setActionLoading(false);
+      resetWizard();
+    }
+  };
+
+  const handleDeleteProductWizard = async () => {
+    try {
+      setActionLoading(true);
+      const { selectedProduct } = assistantState.collectedData;
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', selectedProduct.id);
+      if (error) throw error;
+      setMessages(prev => [...prev, { sender: 'ai', text: `Removed ${selectedProduct.name} from your catalog.`, timestamp: new Date() }]);
+      addNotification('success', 'Product deleted successfully', selectedProduct.name);
+      fetchStoreStatus();
+    } catch (e: any) {
+      addNotification('error', 'Failed to delete product', e.message);
+    } finally {
+      setActionLoading(false);
+      resetWizard();
+    }
+  };
+
+  const handleSaveGatewayWizard = async () => {
+    try {
+      setActionLoading(true);
+      const { provider, keyId, keySecret } = assistantState.collectedData;
+      const config = { keyId, keySecret };
+      const typeVal = provider.toLowerCase();
+      
+      const { data: existing } = await supabase
+        .from('integrations')
+        .select('id')
+        .eq('store_id', storeData.id)
+        .eq('type', typeVal)
+        .maybeSingle();
+
+      if (existing) {
+        const { error } = await supabase
+          .from('integrations')
+          .update({
+            is_enabled: true,
+            config: JSON.stringify(config)
+          })
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('integrations')
+          .insert([{
+            store_id: storeData.id,
+            type: typeVal,
+            is_enabled: true,
+            config: JSON.stringify(config)
+          }]);
+        if (error) throw error;
+      }
+
+      setMessages(prev => [...prev, { sender: 'ai', text: `${provider} has been connected and activated successfully.`, timestamp: new Date() }]);
+      addNotification('success', `${provider} activated`, storeData.store_name);
+      fetchStoreStatus();
+    } catch (e: any) {
+      addNotification('error', 'Failed to connect gateway', e.message);
+    } finally {
+      setActionLoading(false);
+      resetWizard();
+    }
+  };
+
+  const handleSaveUPIWizard = async () => {
+    try {
+      setActionLoading(true);
+      const { upiId, holderName } = assistantState.collectedData;
+      const config = { upiId, holderName };
+
+      const { data: existing } = await supabase
+        .from('integrations')
+        .select('id')
+        .eq('store_id', storeData.id)
+        .eq('type', 'upi')
+        .maybeSingle();
+
+      if (existing) {
+        const { error } = await supabase
+          .from('integrations')
+          .update({
+            is_enabled: true,
+            config: JSON.stringify(config)
+          })
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('integrations')
+          .insert([{
+            store_id: storeData.id,
+            type: 'upi',
+            is_enabled: true,
+            config: JSON.stringify(config)
+          }]);
+        if (error) throw error;
+      }
+
+      setMessages(prev => [...prev, { sender: 'ai', text: 'UPI payments connected successfully.', timestamp: new Date() }]);
+      addNotification('success', 'UPI Connected', upiId);
+      fetchStoreStatus();
+    } catch (e: any) {
+      addNotification('error', 'Failed to connect UPI', e.message);
+    } finally {
+      setActionLoading(false);
+      resetWizard();
+    }
+  };
+
+  const handleSaveSubdomainWizard = async (subdomain: string) => {
+    try {
+      setActionLoading(true);
+      const { error } = await supabase
+        .from('stores')
+        .update({ subdomain })
+        .eq('id', storeData.id);
+      if (error) throw error;
+      setMessages(prev => [...prev, { sender: 'ai', text: `Store address updated successfully to ${subdomain}.crevawebs.in.`, timestamp: new Date() }]);
+      addNotification('success', 'Subdomain updated', `${subdomain}.crevawebs.in`);
+      fetchStoreStatus();
+    } catch (e: any) {
+      addNotification('error', 'Failed to set address', e.message);
+    } finally {
+      setActionLoading(false);
+      resetWizard();
+    }
+  };
+
   const parseUserCommand = (text: string) => {
     if (!text.trim()) return;
 
@@ -326,212 +868,33 @@ export default function StoreAssistant() {
     setTimeout(() => {
       const lower = text.toLowerCase().trim();
 
-      // INTENT 1: Store Setup Checklist / Health Analysis queries
-      if (lower.includes('complete') || lower.includes('progress') || lower.includes('status') || lower.includes('health') || lower.includes('analyze') || lower.includes('check setup') || lower.includes('செட்டப்') || lower.includes('முழுமை') || lower.includes('प्रगति')) {
-        let textResult = '';
-        if (lower.includes('panna') || lower.includes('epdi') || lower.includes('tamil') || lower.includes('செட்டப்') || lower.includes('முழுமை')) {
-          textResult = `உங்க ஸ்டோர் செட்டப் தற்போது ${completionPercentage}% முடிந்துள்ளது. மீதமுள்ளவை:
-${!storeData?.logo_url ? '⚠ Add store logo\n' : ''}${productsList.length === 0 ? '⚠ Add your first product\n' : ''}${integrationsList.length === 0 ? '⚠ Configure payment integrations\n' : ''}${storeData?.is_paused ? '⚠ Publish storefront live' : ''}`;
-        } else if (lower.includes('hindi') || lower.includes('प्रगति') || lower.includes('विश्लेषण')) {
-          textResult = `आपका स्टोर सेटअप वर्तमान में ${completionPercentage}% पूरा हो गया है। शेष कार्य:
-${!storeData?.logo_url ? '⚠ Add store logo\n' : ''}${productsList.length === 0 ? '⚠ Add your first product\n' : ''}${integrationsList.length === 0 ? '⚠ Configure payment integrations\n' : ''}${storeData?.is_paused ? '⚠ Publish storefront live' : ''}`;
-        } else {
-          textResult = `Your store setup is currently ${completionPercentage}% complete. The remaining items are:
-${!storeData?.logo_url ? '⚠ Add store logo\n' : ''}${productsList.length === 0 ? '⚠ Add your first product\n' : ''}${integrationsList.length === 0 ? '⚠ Configure payment integrations\n' : ''}${storeData?.is_paused ? '⚠ Publish storefront live' : ''}`;
-        }
+      // If active flow is running, route directly to the step handler
+      if (assistantState.activeIntent) {
+        handleWizardStepInput(text);
+        return;
+      }
 
+      // Check intent mapping match
+      let detectedIntent: any = null;
+      for (const [key, intentObj] of Object.entries(intents)) {
+        if (intentObj.keywords.some(kw => lower.includes(kw))) {
+          detectedIntent = intentObj.action;
+          break;
+        }
+      }
+
+      if (detectedIntent) {
+        startWizardFlow(detectedIntent);
+      } else {
+        // Fallback default help response
         setMessages(prev => [...prev, {
           sender: 'ai',
-          text: textResult,
+          text: `I’m not sure I understood that. You can ask me about products, payments, orders, branding, domains, or store setup.`,
           timestamp: new Date()
         }]);
         setIsTyping(false);
-        return;
       }
-
-      // INTENT 2: Logo setup guides (Multilingual checks)
-      if (lower.includes('logo') || lower.includes('லோகோ') || lower.includes('लोगो') || lower.includes('ലോഗോ')) {
-        let logoText = '';
-        // Tamil / Tanglish
-        if (lower.includes('panna') || lower.includes('epdi') || lower.includes('tamil') || lower.includes('லோகோ')) {
-          logoText = 'Branding Design → Logo setting-க்கு போங்க. உங்கள் லோகோ-வை அப்லோடு பண்ணிட்டு Save Changes க்ளிக் பண்ணுங்க.';
-        }
-        // Hindi
-        else if (lower.includes('hindi') || lower.includes('लोगो') || lower.includes('कैसे')) {
-          logoText = 'Store Setup → Branding Design → Logo पर जाएं। अपना लोगो अपलोड करें और फिर Save Changes पर क्लिक करें।';
-        }
-        // Malayalam
-        else if (lower.includes('malayalam') || lower.includes('ലോഗോ')) {
-          logoText = 'Store Setup → Branding Design → Logo പേജിലേക്ക് പോകുക. നിങ്ങളുടെ ലോഗോ അപ്‌ലോഡ് ചെയ്ത് മാറ്റങ്ങൾ സേവ് ചെയ്യുക.';
-        }
-        // Telugu
-        else if (lower.includes('telugu') || lower.includes('లోగో')) {
-          logoText = 'Store Setup → Branding Design → Logo కు వెళ్ళండి. మీ లోగోను అప్లోడ్ చేసి, సేవ్ చేసుకోండి.';
-        }
-        // Kannada
-        else if (lower.includes('kannada') || lower.includes('ಲೋಗೋ')) {
-          logoText = 'Store Setup → Branding Design → Logo ಗೆ ಹೋಗಿ. ನಿಮ್ಮ ಲೋಗೋವನ್ನು ಅಪ್ಲೋಡ್ ಮಾಡಿ ಮತ್ತು ಸೇವ್ ಮಾಡಿ.';
-        }
-        // English default
-        else {
-          logoText = 'Go to Store Setup → Branding Design → Logo. Upload your PNG or JPG logo, then click Save Changes.';
-        }
-
-        setMessages(prev => [...prev, {
-          sender: 'ai',
-          text: logoText,
-          timestamp: new Date()
-        }]);
-        setIsTyping(false);
-        return;
-      }
-
-      // INTENT 3: Payment setup guides (Multilingual checks)
-      if (lower.includes('payment') || lower.includes('upi') || lower.includes('gateway') || lower.includes('பேமெண்ட்') || lower.includes('पेमेंट') || lower.includes('പേയ്‌മെന്റ്')) {
-        let paymentText = '';
-        // Tamil / Tanglish
-        if (lower.includes('panna') || lower.includes('epdi') || lower.includes('tamil') || lower.includes('பேமெண்ட்')) {
-          paymentText = 'Settings → Payments → Add Payment Method ஓபன் பண்ணுங்க. உங்க பேமெண்ட் முறையை தேர்வு செய்து விவரங்களை சேமிக்கவும்.';
-        }
-        // Hindi
-        else if (lower.includes('hindi') || lower.includes('पेमेंट')) {
-          paymentText = 'Settings → Payments → Add Payment Method पर जाएं। अपना पेमेंट गेटवे चुनें और आवश्यक जानकारी भरकर सुरक्षित करें।';
-        }
-        // Malayalam
-        else if (lower.includes('malayalam') || lower.includes('പേയ്‌മെന്റ്')) {
-          paymentText = 'Settings → Payments → Add Payment Method സന്ദർശിക്കുക. നിങ്ങളുടെ പേയ്‌മെന്റ് വിതരണക്കാരനെ തിരഞ്ഞെടുത്ത് വിവരങ്ങൾ സേവ് ചെയ്യുക.';
-        }
-        // Telugu
-        else if (lower.includes('telugu') || lower.includes('పేమెంట్')) {
-          paymentText = 'Settings → Payments → Add Payment Method కి వెళ్ళండి. మీ పేమెంట్ ప్రొవైడర్‌ను ఎంచుకుని వివరాలను సేవ్ చేయండి.';
-        }
-        // Kannada
-        else if (lower.includes('kannada') || lower.includes('ಪೇಮೆಂಟ್')) {
-          paymentText = 'Settings → Payments → Add Payment Method ಗೆ ಹೋಗಿ. ನಿಮ್ಮ ಪೇಮೆಂಟ್ ವಿಧಾನವನ್ನು ಆಯ್ಕೆ ಮಾಡಿ ಮತ್ತು ಸೇವ್ ಮಾಡಿ.';
-        }
-        // English default
-        else {
-          paymentText = 'Go to Settings → Payments → Add Payment Method. Choose your payment provider and complete the required details.';
-        }
-
-        setMessages(prev => [...prev, {
-          sender: 'ai',
-          text: paymentText,
-          timestamp: new Date()
-        }]);
-        setIsTyping(false);
-        return;
-      }
-
-      // INTENT 4: Why is my store not live? queries
-      if (lower.includes('live') || lower.includes('paused') || lower.includes('publish') || lower.includes('launch')) {
-        let liveText = '';
-        if (storeData?.is_paused) {
-          liveText = 'Your store is currently paused. Go to Settings → Store Visibility to publish your store. Ensure you have added a logo, listed products, and configured payment options first.';
-        } else {
-          liveText = 'Your store is already live! You can share your storefront URL with customers to start receiving orders.';
-        }
-
-        setMessages(prev => [...prev, {
-          sender: 'ai',
-          text: liveText,
-          timestamp: new Date()
-        }]);
-        setIsTyping(false);
-        return;
-      }
-
-      // COMMAND: Create / Add Product
-      if (lower.includes('create product') || lower.includes('add product') || lower.includes('new product')) {
-        setMessages(prev => [...prev, {
-          sender: 'ai',
-          text: "I can help you add a new product. Please fill in the details below:",
-          timestamp: new Date(),
-          actionType: 'create_product'
-        }]);
-        setIsTyping(false);
-        return;
-      }
-
-      // COMMAND: Show Products
-      if (lower.includes('show products') || lower.includes('view products') || lower.includes('list products')) {
-        if (productsList.length === 0) {
-          setMessages(prev => [...prev, {
-            sender: 'ai',
-            text: "You currently have no products listed. Type 'add product' to create one!",
-            timestamp: new Date()
-          }]);
-        } else {
-          const listText = productsList.slice(0, 5).map(p => `• ${p.name} (₹${p.price}) - Stock: ${p.inventory_quantity}`).join('\n');
-          setMessages(prev => [...prev, {
-            sender: 'ai',
-            text: `You have ${productsList.length} products in your catalog. Here are the recent ones:\n\n${listText}\n\n[View All Products →](/admin/products)`,
-            timestamp: new Date()
-          }]);
-        }
-        setIsTyping(false);
-        return;
-      }
-
-      // COMMAND: Update Price (Change price of [Name] to [Price])
-      const priceMatch = lower.match(/(?:change|update|edit) price of (.+?) to (?:rs\.?|₹)?(\d+)/i);
-      if (priceMatch && priceMatch[1] && priceMatch[2]) {
-        const prodSearchName = priceMatch[1].trim();
-        const newPrice = Number(priceMatch[2]);
-
-        const matchedProd = productsList.find(p => p.name.toLowerCase().includes(prodSearchName));
-        if (matchedProd) {
-          setMessages(prev => [...prev, {
-            sender: 'ai',
-            text: `I found matching product ${matchedProd.name}.\n\nCurrent Price: ₹${matchedProd.price}\nNew Price: ₹${newPrice}\n\nConfirm update?`,
-            timestamp: new Date(),
-            actionType: 'confirm_update',
-            actionData: { id: matchedProd.id, price: newPrice, name: matchedProd.name }
-          }]);
-        } else {
-          setMessages(prev => [...prev, {
-            sender: 'ai',
-            text: `Sorry, I couldn't find any product matching "${prodSearchName}" in your catalog.`,
-            timestamp: new Date()
-          }]);
-        }
-        setIsTyping(false);
-        return;
-      }
-
-      // COMMAND: Delete Product (Delete [Name])
-      const deleteMatch = lower.match(/delete (.+)/i);
-      if (deleteMatch && deleteMatch[1]) {
-        const prodSearchName = deleteMatch[1].trim();
-        const matchedProd = productsList.find(p => p.name.toLowerCase().includes(prodSearchName));
-
-        if (matchedProd) {
-          setMessages(prev => [...prev, {
-            sender: 'ai',
-            text: `Are you sure you want to delete ${matchedProd.name}?\n\n⚠ Warning: This action will permanently remove this product from your catalog.`,
-            timestamp: new Date(),
-            actionType: 'confirm_delete',
-            actionData: { id: matchedProd.id, name: matchedProd.name }
-          }]);
-        } else {
-          setMessages(prev => [...prev, {
-            sender: 'ai',
-            text: `Sorry, I couldn't find any product matching "${prodSearchName}" to delete.`,
-            timestamp: new Date()
-          }]);
-        }
-        setIsTyping(false);
-        return;
-      }
-
-      // Default Help Fallback
-      setMessages(prev => [...prev, {
-        sender: 'ai',
-        text: `I can help you manage products and check setups!\n\nTry commands like:\n• 'Add product' to open inline creation.\n• 'Show products' to view catalog.\n• 'Change price of [product name] to [price]'\n• 'Delete [product name]'\n• 'Analyze store' to run health check.`,
-        timestamp: new Date()
-      }]);
-      setIsTyping(false);
-    }, 800);
+    }, 600);
   };
 
   const handleSubmitTicket = (e: React.FormEvent) => {
@@ -682,7 +1045,7 @@ ${!storeData?.logo_url ? '⚠ Add store logo\n' : ''}${productsList.length === 0
                   { id: 'chat', label: 'CrevaWebs', icon: MessageSquare },
                   { id: 'checklist', label: 'Setup Status', icon: CheckCircle2 },
                   { id: 'knowledge', label: 'Guides', icon: BookOpen },
-                  { id: 'ticket', label: 'Support', icon: Phone }
+                  { id: 'ticket', label: 'Support', icon: Headphones }
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -727,90 +1090,546 @@ ${!storeData?.logo_url ? '⚠ Add store logo\n' : ''}${productsList.length === 0
                             {renderMessageContent(m.text)}
                           </div>
 
-                          {/* Action Render: Create Product Form inline */}
-                          {m.sender === 'ai' && m.actionType === 'create_product' && (
-                            <div className="p-4 bg-white border border-slate-200 rounded-2xl space-y-3 shadow-sm w-full max-w-[280px]">
-                              <span className="text-[9px] uppercase font-bold text-slate-400">Add New Product</span>
-                              <input 
-                                type="text" 
-                                placeholder="Product Name (e.g. Lavender Soap)"
-                                value={newProductName}
-                                onChange={e => setNewProductName(e.target.value)}
-                                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-500 text-slate-800"
-                              />
-                              <div className="grid grid-cols-2 gap-2">
-                                <input 
-                                  type="number" 
-                                  placeholder="Price (₹)"
-                                  value={newProductPrice}
-                                  onChange={e => setNewProductPrice(e.target.value)}
-                                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-500 text-slate-800"
-                                />
-                                <input 
-                                  type="number" 
-                                  placeholder="Stock"
-                                  value={newProductStock}
-                                  onChange={e => setNewProductStock(e.target.value)}
-                                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-500 text-slate-800"
-                                />
-                              </div>
-                              <textarea 
-                                placeholder="Short description details..."
-                                rows={2}
-                                value={newProductDesc}
-                                onChange={e => setNewProductDesc(e.target.value)}
-                                className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 text-slate-800 resize-none"
-                              />
-                              <button
-                                onClick={handleCreateProductInline}
-                                disabled={actionLoading || !newProductName.trim() || !newProductPrice.trim()}
-                                className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl flex items-center justify-center gap-1 shadow-sm disabled:opacity-50"
-                              >
-                                {actionLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Create Product'}
-                              </button>
-                            </div>
-                          )}
-
-                          {/* Action Render: Confirm price update */}
-                          {m.sender === 'ai' && m.actionType === 'confirm_update' && m.actionData && (
-                            <div className="flex gap-2 pt-1.5">
-                              <button
-                                onClick={() => handleUpdatePrice(m.actionData.id, m.actionData.price, m.actionData.name)}
-                                disabled={actionLoading}
-                                className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] rounded-lg shadow-sm"
-                              >
-                                {actionLoading ? 'Updating...' : 'Confirm Update'}
-                              </button>
-                              <button
-                                onClick={() => setMessages(prev => [...prev, { sender: 'ai', text: 'Cancelled update.', timestamp: new Date() }])}
-                                className="px-3.5 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-[10px] rounded-lg"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          )}
-
-                          {/* Action Render: Confirm Delete */}
-                          {m.sender === 'ai' && m.actionType === 'confirm_delete' && m.actionData && (
-                            <div className="flex gap-2 pt-1.5">
-                              <button
-                                onClick={() => handleDeleteProductConfirm(m.actionData.id, m.actionData.name)}
-                                disabled={actionLoading}
-                                className="px-3.5 py-1.5 bg-red-650 hover:bg-red-500 text-white font-bold text-[10px] rounded-lg shadow-sm flex items-center gap-1"
-                              >
-                                <Trash2 className="w-3 h-3" /> {actionLoading ? 'Deleting...' : 'Delete Product'}
-                              </button>
-                              <button
-                                onClick={() => setMessages(prev => [...prev, { sender: 'ai', text: 'Cancelled deletion.', timestamp: new Date() }])}
-                                className="px-3.5 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-[10px] rounded-lg"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          )}
                         </div>
                       </div>
                     ))}
+
+                    {/* Interactive Step Wizards */}
+                    {assistantState.activeIntent && (
+                      <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-xs space-y-3 w-full max-w-[320px] mr-auto">
+                        <div className="flex items-center justify-between border-b pb-1.5 mb-1 bg-slate-50 px-2 py-1 -mx-4 -mt-4 rounded-t-2xl">
+                          <span className="font-black text-[9px] uppercase tracking-wider text-slate-500">
+                            {assistantState.activeIntent.replace('_', ' ')}
+                          </span>
+                          <button onClick={resetWizard} className="p-1 hover:bg-slate-200 rounded text-slate-400">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* ADD_LOGO Wizard */}
+                        {assistantState.activeIntent === 'ADD_LOGO' && (
+                          <div className="space-y-3">
+                            {assistantState.currentStep === 1 && (
+                              <div className="space-y-2">
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase">Upload Store Logo</label>
+                                <div className="border-2 border-dashed border-slate-200 hover:border-blue-500 rounded-xl p-4 text-center cursor-pointer relative transition-colors">
+                                  <input 
+                                    type="file"
+                                    accept="image/png, image/jpeg, image/jpg"
+                                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        const reader = new FileReader();
+                                        reader.onload = (event) => {
+                                          setAssistantState(prev => ({
+                                            ...prev,
+                                            currentStep: 2,
+                                            collectedData: { ...prev.collectedData, logoPreview: event.target?.result }
+                                          }));
+                                        };
+                                        reader.readAsDataURL(file);
+                                      }
+                                    }}
+                                  />
+                                  <Upload className="w-6 h-6 mx-auto text-slate-400 mb-1.5" />
+                                  <span className="block text-[10px] text-slate-500 font-bold">Click to upload file</span>
+                                  <span className="block text-[9px] text-slate-400 mt-0.5">Supports PNG, JPG, JPEG</span>
+                                </div>
+                              </div>
+                            )}
+                            {assistantState.currentStep === 2 && (
+                              <div className="space-y-3">
+                                <div className="p-2 border rounded-xl bg-slate-50 flex items-center justify-center">
+                                  <img src={assistantState.collectedData.logoPreview} className="max-h-20 object-contain rounded" alt="Logo Preview" />
+                                </div>
+                                <span className="block text-[10px] text-slate-555 leading-relaxed">This logo will be used for your storefront branding.</span>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleSaveLogoWizard(assistantState.collectedData.logoPreview)}
+                                    disabled={actionLoading}
+                                    className="flex-1 py-2 bg-blue-600 hover:bg-blue-550 text-white font-bold rounded-xl flex items-center justify-center gap-1 cursor-pointer"
+                                  >
+                                    {actionLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Save Logo'}
+                                  </button>
+                                  <button
+                                    onClick={resetWizard}
+                                    className="px-3.5 py-2 border rounded-xl hover:bg-slate-50 text-slate-650 cursor-pointer font-bold"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* ADD_PRODUCT Wizard */}
+                        {assistantState.activeIntent === 'ADD_PRODUCT' && (
+                          <div className="space-y-3">
+                            {assistantState.currentStep === 1 && (
+                              <div className="space-y-2">
+                                <label className="block text-[9px] uppercase font-bold text-slate-400">Product Name</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="e.g. Handmade Soap"
+                                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-500 text-slate-800"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleWizardStepInput((e.target as HTMLInputElement).value);
+                                  }}
+                                />
+                                <span className="text-[9px] text-slate-400 font-medium">Press Enter to continue</span>
+                              </div>
+                            )}
+                            {assistantState.currentStep === 2 && (
+                              <div className="space-y-2">
+                                <label className="block text-[9px] uppercase font-bold text-slate-400">Product Price (₹)</label>
+                                <input 
+                                  type="number" 
+                                  placeholder="e.g. 299"
+                                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-500 text-slate-800"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleWizardStepInput((e.target as HTMLInputElement).value);
+                                  }}
+                                />
+                                <span className="text-[9px] text-slate-400 font-medium">Press Enter to continue</span>
+                              </div>
+                            )}
+                            {assistantState.currentStep === 3 && (
+                              <div className="space-y-2">
+                                <label className="block text-[9px] uppercase font-bold text-slate-400 font-black">Category</label>
+                                <div className="grid grid-cols-2 gap-1.5">
+                                  {['Fashion', 'Electronics', 'Handcrafted', 'Groceries', 'Services'].map((cat) => (
+                                    <button
+                                      key={cat}
+                                      onClick={() => handleWizardStepInput(cat)}
+                                      className="py-1.5 border rounded-lg hover:border-blue-500 hover:bg-blue-50/20 text-slate-700 font-semibold text-[10px] text-center cursor-pointer"
+                                    >
+                                      {cat}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {assistantState.currentStep === 4 && (
+                              <div className="space-y-2">
+                                <label className="block text-[9px] uppercase font-bold text-slate-400">Product Description</label>
+                                <textarea 
+                                  placeholder="Brief description of product features..."
+                                  rows={2}
+                                  className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 text-slate-800 resize-none"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                      e.preventDefault();
+                                      handleWizardStepInput((e.target as HTMLTextAreaElement).value);
+                                    }
+                                  }}
+                                />
+                                <span className="text-[9px] text-slate-400 font-medium">Press Enter to continue</span>
+                              </div>
+                            )}
+                            {assistantState.currentStep === 5 && (
+                              <div className="space-y-2">
+                                <label className="block text-[9px] uppercase font-bold text-slate-400">Product Image URL</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="https://example.com/image.jpg"
+                                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-500 text-slate-800"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleWizardStepInput((e.target as HTMLInputElement).value);
+                                  }}
+                                />
+                                <span className="text-[9px] text-slate-400 font-medium">Press Enter to continue</span>
+                              </div>
+                            )}
+                            {assistantState.currentStep === 6 && (
+                              <div className="space-y-2">
+                                <label className="block text-[9px] uppercase font-bold text-slate-400">Available Stock Quantity</label>
+                                <input 
+                                  type="number" 
+                                  placeholder="10"
+                                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-500 text-slate-800"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleWizardStepInput((e.target as HTMLInputElement).value);
+                                  }}
+                                />
+                                <span className="text-[9px] text-slate-400 font-medium">Press Enter to continue</span>
+                              </div>
+                            )}
+                            {assistantState.currentStep === 7 && assistantState.pendingConfirmation && (
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={handleCreateProductWizard}
+                                  disabled={actionLoading}
+                                  className="flex-1 py-2 bg-blue-600 hover:bg-blue-550 text-white font-bold rounded-xl flex items-center justify-center gap-1 cursor-pointer"
+                                >
+                                  {actionLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Create Product'}
+                                </button>
+                                <button
+                                  onClick={() => setAssistantState(prev => ({ ...prev, currentStep: 1, pendingConfirmation: false }))}
+                                  className="px-3.5 py-2 border rounded-xl hover:bg-slate-50 text-slate-655 cursor-pointer font-bold"
+                                >
+                                  Edit Details
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* EDIT_PRODUCT Wizard */}
+                        {assistantState.activeIntent === 'EDIT_PRODUCT' && (
+                          <div className="space-y-3">
+                            {assistantState.currentStep === 1 && (
+                              <div className="space-y-2">
+                                <label className="block text-[9px] uppercase font-bold text-slate-400">Select Product to Edit</label>
+                                <div className="max-h-[140px] overflow-y-auto space-y-1 pr-1">
+                                  {productsList.map((p) => (
+                                    <button
+                                      key={p.id}
+                                      onClick={() => {
+                                        setAssistantState(prev => ({
+                                          ...prev,
+                                          currentStep: 2,
+                                          collectedData: { ...prev.collectedData, selectedProduct: p }
+                                        }));
+                                        setMessages(prev => [...prev, { sender: 'ai', text: `Current price: ₹${p.price}\nWhat should be the new price?`, timestamp: new Date() }]);
+                                      }}
+                                      className="w-full p-2 border border-slate-100 hover:border-blue-500 rounded-lg text-left text-[11px] font-semibold text-slate-700 bg-slate-50 flex justify-between items-center cursor-pointer"
+                                    >
+                                      <span>{p.name}</span>
+                                      <span className="text-slate-400 font-bold">₹{p.price}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {assistantState.currentStep === 2 && (
+                              <div className="space-y-2">
+                                <label className="block text-[9px] uppercase font-bold text-slate-400">New Price (₹)</label>
+                                <input 
+                                  type="number" 
+                                  placeholder="e.g. 599"
+                                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-500 text-slate-800"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleWizardStepInput((e.target as HTMLInputElement).value);
+                                  }}
+                                />
+                                <span className="text-[9px] text-slate-400 font-medium">Press Enter to continue</span>
+                              </div>
+                            )}
+                            {assistantState.currentStep === 3 && assistantState.pendingConfirmation && (
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={handleUpdatePriceWizard}
+                                  disabled={actionLoading}
+                                  className="flex-1 py-2 bg-blue-600 hover:bg-blue-550 text-white font-bold rounded-xl flex items-center justify-center gap-1 cursor-pointer"
+                                >
+                                  {actionLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Update Price'}
+                                </button>
+                                <button
+                                  onClick={resetWizard}
+                                  className="px-3.5 py-2 border rounded-xl hover:bg-slate-50 text-slate-655 cursor-pointer font-bold"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* DELETE_PRODUCT Wizard */}
+                        {assistantState.activeIntent === 'DELETE_PRODUCT' && (
+                          <div className="space-y-3">
+                            {assistantState.currentStep === 1 && (
+                              <div className="space-y-2">
+                                <label className="block text-[9px] uppercase font-bold text-slate-400">Select Product to Delete</label>
+                                <div className="max-h-[140px] overflow-y-auto space-y-1 pr-1">
+                                  {productsList.map((p) => (
+                                    <button
+                                      key={p.id}
+                                      onClick={() => {
+                                        setAssistantState(prev => ({
+                                          ...prev,
+                                          currentStep: 2,
+                                          collectedData: { selectedProduct: p },
+                                          pendingConfirmation: true
+                                        }));
+                                        setMessages(prev => [...prev, { sender: 'ai', text: `Are you sure you want to delete ${p.name}?\n\nThis action cannot be undone.`, timestamp: new Date() }]);
+                                      }}
+                                      className="w-full p-2 border border-slate-100 hover:border-red-400 rounded-lg text-left text-[11px] font-semibold text-slate-700 bg-slate-50 flex justify-between items-center cursor-pointer"
+                                    >
+                                      <span>{p.name}</span>
+                                      <span className="text-red-550 font-bold hover:underline">Delete</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {assistantState.currentStep === 2 && assistantState.pendingConfirmation && (
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={handleDeleteProductWizard}
+                                  disabled={actionLoading}
+                                  className="flex-1 py-2 bg-red-650 hover:bg-red-550 text-white font-bold rounded-xl flex items-center justify-center gap-1 cursor-pointer"
+                                >
+                                  {actionLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Delete Product'}
+                                </button>
+                                <button
+                                  onClick={resetWizard}
+                                  className="px-3.5 py-2 border rounded-xl hover:bg-slate-50 text-slate-655 cursor-pointer font-bold"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* PAYMENT_GATEWAY Wizard */}
+                        {assistantState.activeIntent === 'PAYMENT_GATEWAY' && (
+                          <div className="space-y-3">
+                            {assistantState.currentStep === 1 && (
+                              <div className="space-y-2">
+                                <label className="block text-[9px] uppercase font-bold text-slate-400 font-black">Select Payment Provider</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                  {['Razorpay', 'Cashfree', 'Stripe', 'UPI'].map((prov) => (
+                                    <button
+                                      key={prov}
+                                      onClick={() => {
+                                        if (prov === 'UPI') {
+                                          setAssistantState({
+                                            activeIntent: 'UPI',
+                                            currentStep: 1,
+                                            collectedData: {},
+                                            pendingConfirmation: false
+                                          });
+                                          setMessages(prev => [...prev, { sender: 'ai', text: 'Enter your UPI ID (e.g. merchant@okaxis):', timestamp: new Date() }]);
+                                        } else {
+                                          setAssistantState(prev => ({
+                                            ...prev,
+                                            currentStep: 2,
+                                            collectedData: { provider: prov }
+                                          }));
+                                          setMessages(prev => [...prev, { sender: 'ai', text: `Enter Key ID details for ${prov}:`, timestamp: new Date() }]);
+                                        }
+                                      }}
+                                      className="p-3 border border-slate-200 hover:border-blue-500 rounded-xl bg-white font-bold text-slate-700 text-center text-[10px] shadow-sm flex flex-col items-center gap-1 cursor-pointer"
+                                    >
+                                      <CreditCard className="w-4 h-4 text-blue-650" />
+                                      <span>{prov}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {assistantState.currentStep === 2 && (
+                              <div className="space-y-2">
+                                <label className="block text-[9px] uppercase font-bold text-slate-400">Key ID</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="rzp_live_****1234"
+                                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-500 text-slate-800"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleWizardStepInput((e.target as HTMLInputElement).value);
+                                  }}
+                                />
+                                <span className="text-[9px] text-slate-400 font-medium">Press Enter to continue</span>
+                              </div>
+                            )}
+                            {assistantState.currentStep === 3 && (
+                              <div className="space-y-2">
+                                <label className="block text-[9px] uppercase font-bold text-slate-400">Key Secret</label>
+                                <input 
+                                  type="password" 
+                                  placeholder="••••••••••••"
+                                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-500 text-slate-800"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleWizardStepInput((e.target as HTMLInputElement).value);
+                                  }}
+                                />
+                                <span className="text-[9px] text-slate-400 font-medium">Press Enter to continue</span>
+                              </div>
+                            )}
+                            {assistantState.currentStep === 4 && assistantState.pendingConfirmation && (
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={handleSaveGatewayWizard}
+                                  disabled={actionLoading}
+                                  className="flex-1 py-2 bg-blue-600 hover:bg-blue-550 text-white font-bold rounded-xl flex items-center justify-center gap-1 cursor-pointer"
+                                >
+                                  {actionLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Save & Activate'}
+                                </button>
+                                <button
+                                  onClick={resetWizard}
+                                  className="px-3.5 py-2 border rounded-xl hover:bg-slate-50 text-slate-655 cursor-pointer font-bold"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* UPI Wizard */}
+                        {assistantState.activeIntent === 'UPI' && (
+                          <div className="space-y-3">
+                            {assistantState.currentStep === 1 && (
+                              <div className="space-y-2">
+                                <label className="block text-[9px] uppercase font-bold text-slate-400">UPI ID</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="e.g. merchant@upi"
+                                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-500 text-slate-800"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleWizardStepInput((e.target as HTMLInputElement).value);
+                                  }}
+                                />
+                                <span className="text-[9px] text-slate-400 font-medium">Press Enter to continue</span>
+                              </div>
+                            )}
+                            {assistantState.currentStep === 2 && (
+                              <div className="space-y-2">
+                                <label className="block text-[9px] uppercase font-bold text-slate-400">Account Holder Name</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="e.g. Ruth"
+                                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-500 text-slate-800"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleWizardStepInput((e.target as HTMLInputElement).value);
+                                  }}
+                                />
+                                <span className="text-[9px] text-slate-400 font-medium">Press Enter to continue</span>
+                              </div>
+                            )}
+                            {assistantState.currentStep === 3 && assistantState.pendingConfirmation && (
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={handleSaveUPIWizard}
+                                  disabled={actionLoading}
+                                  className="flex-1 py-2 bg-blue-600 hover:bg-blue-550 text-white font-bold rounded-xl flex items-center justify-center gap-1 cursor-pointer"
+                                >
+                                  {actionLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Save UPI'}
+                                </button>
+                                <button
+                                  onClick={resetWizard}
+                                  className="px-3.5 py-2 border rounded-xl hover:bg-slate-50 text-slate-655 cursor-pointer font-bold"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* DOMAIN Wizard */}
+                        {assistantState.activeIntent === 'DOMAIN' && (
+                          <div className="space-y-3">
+                            {assistantState.currentStep === 1 && (
+                              <div className="space-y-2">
+                                <label className="block text-[9px] uppercase font-bold text-slate-400 font-black">Select Domain Type</label>
+                                <div className="flex flex-col gap-2">
+                                  <button
+                                    onClick={() => {
+                                      setAssistantState(prev => ({
+                                        ...prev,
+                                        currentStep: 2,
+                                        collectedData: { domainType: 'subdomain' }
+                                      }));
+                                      setMessages(prev => [...prev, { sender: 'ai', text: 'Please enter your preferred store subdomain address:', timestamp: new Date() }]);
+                                    }}
+                                    className="p-3 border rounded-xl text-left bg-slate-50 hover:border-blue-500 hover:bg-blue-50/20 font-bold text-slate-700 text-xs flex justify-between items-center cursor-pointer"
+                                  >
+                                    <span>CrevaWebs Subdomain</span>
+                                    <Globe className="w-4 h-4 text-blue-650" />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setAssistantState(prev => ({
+                                        ...prev,
+                                        currentStep: 3,
+                                        collectedData: { domainType: 'custom' }
+                                      }));
+                                      setMessages(prev => [...prev, { sender: 'ai', text: 'Please enter your custom domain name (e.g. mystore.com):', timestamp: new Date() }]);
+                                    }}
+                                    className="p-3 border rounded-xl text-left bg-slate-50 hover:border-blue-500 hover:bg-blue-50/20 font-bold text-slate-700 text-xs flex justify-between items-center cursor-pointer"
+                                  >
+                                    <span>Custom Domain Mapping</span>
+                                    <Globe className="w-4 h-4 text-slate-400" />
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                            {assistantState.currentStep === 2 && (
+                              <div className="space-y-3">
+                                <div className="space-y-1">
+                                  <label className="block text-[10px] font-bold text-slate-500 uppercase font-black">Choose your store address</label>
+                                  <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-white focus-within:border-blue-500">
+                                    <input 
+                                      type="text"
+                                      placeholder="example-store"
+                                      id="wizard-subdomain-input"
+                                      className="flex-1 px-3 py-2 text-xs outline-none text-slate-800 bg-white"
+                                    />
+                                    <span className="px-3 py-2 bg-slate-100 border-l text-[11px] font-bold text-slate-455 select-none">.crevawebs.in</span>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={async () => {
+                                    const inputVal = (document.getElementById('wizard-subdomain-input') as HTMLInputElement)?.value?.trim()?.toLowerCase()?.replace(/\s+/g, '-');
+                                    if (!inputVal) return;
+                                    setActionLoading(true);
+                                    
+                                    setTimeout(() => {
+                                      setActionLoading(false);
+                                      const isTaken = ['admin', 'login', 'dashboard', 'api', 'support', 'www', 'store', 'shop'].includes(inputVal);
+                                      if (isTaken) {
+                                        setMessages(prev => [...prev, {
+                                          sender: 'ai',
+                                          text: `${inputVal}.crevawebs.in is unavailable. Try alternatives like ${inputVal}-shop or ${inputVal}-brand.`,
+                                          timestamp: new Date()
+                                        }]);
+                                      } else {
+                                        setAssistantState(prev => ({
+                                          ...prev,
+                                          currentStep: 4,
+                                          collectedData: { ...prev.collectedData, subdomainName: inputVal }
+                                        }));
+                                        setMessages(prev => [...prev, {
+                                          sender: 'ai',
+                                          text: `${inputVal}.crevawebs.in is available. Would you like to map this store address?`,
+                                          timestamp: new Date()
+                                        }]);
+                                      }
+                                    }, 800);
+                                  }}
+                                  disabled={actionLoading}
+                                  className="w-full py-2 bg-blue-600 hover:bg-blue-550 text-white font-bold rounded-xl flex items-center justify-center gap-1 cursor-pointer"
+                                >
+                                  {actionLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Check Availability'}
+                                </button>
+                              </div>
+                            )}
+                            {assistantState.currentStep === 4 && (
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleSaveSubdomainWizard(assistantState.collectedData.subdomainName)}
+                                  disabled={actionLoading}
+                                  className="flex-1 py-2 bg-blue-600 hover:bg-blue-550 text-white font-bold rounded-xl flex items-center justify-center gap-1 cursor-pointer"
+                                >
+                                  {actionLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Use This Address'}
+                                </button>
+                                <button
+                                  onClick={resetWizard}
+                                  className="px-3.5 py-2 border rounded-xl hover:bg-slate-50 text-slate-655 cursor-pointer font-bold"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Typing status */}
                     {isTyping && (
@@ -848,7 +1667,7 @@ ${!storeData?.logo_url ? '⚠ Add store logo\n' : ''}${productsList.length === 0
                       <div className="space-y-1">
                         <h4 className="font-extrabold text-xs text-slate-900 uppercase tracking-wide">Store Setup Progress</h4>
                         <span className="text-[10px] text-slate-500 block">Overall Setup Complete</span>
-                        <div className="text-[10px] text-slate-650 flex items-center gap-1.5 mt-1 font-bold">
+                          <div className="text-[10px] text-slate-650 flex items-center gap-1.5 mt-1 font-bold">
                           <span>Health Status:</span>
                           <span className={`px-2 py-0.5 rounded ${
                             storeHealth === 'Good' 
@@ -870,18 +1689,21 @@ ${!storeData?.logo_url ? '⚠ Add store logo\n' : ''}${productsList.length === 0
                         
                         <div className="py-2.5 flex items-center justify-between text-xs">
                           <span className="flex items-center gap-2">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                            <span className="font-semibold text-slate-700">Store Name Set</span>
+                            {storeData?.store_name 
+                              ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                              : <AlertTriangle className="w-4 h-4 text-amber-500" />
+                            }
+                            <span className="font-semibold text-slate-700">Business Information — {storeData?.store_name ? 'Completed' : 'Missing'}</span>
                           </span>
                         </div>
-
+ 
                         <div className="py-2.5 flex items-center justify-between text-xs">
                           <span className="flex items-center gap-2">
                             {storeData?.logo_url 
                               ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                               : <AlertTriangle className="w-4 h-4 text-amber-500" />
                             }
-                            <span className="font-semibold text-slate-700">Branding Logo</span>
+                            <span className="font-semibold text-slate-700">Branding — {storeData?.logo_url ? 'Completed' : 'Logo Missing'}</span>
                           </span>
                           {!storeData?.logo_url && (
                             <Link href="/admin/appearance" className="text-[10px] font-bold text-blue-600 flex items-center gap-0.5">
@@ -889,50 +1711,55 @@ ${!storeData?.logo_url ? '⚠ Add store logo\n' : ''}${productsList.length === 0
                             </Link>
                           )}
                         </div>
-
+ 
                         <div className="py-2.5 flex items-center justify-between text-xs">
                           <span className="flex items-center gap-2">
-                            {storeData?.description 
+                            {storeData?.contact_phone 
                               ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                               : <AlertTriangle className="w-4 h-4 text-amber-500" />
                             }
-                            <span className="font-semibold text-slate-700">Store Description</span>
+                            <span className="font-semibold text-slate-700">Contact Details — {storeData?.contact_phone ? 'Completed' : 'Missing'}</span>
                           </span>
-                          {!storeData?.description && (
+                          {!storeData?.contact_phone && (
                             <Link href="/admin/settings" className="text-[10px] font-bold text-blue-600 flex items-center gap-0.5">
-                              Add Description <ChevronRight className="w-3 h-3" />
+                              Add Details <ChevronRight className="w-3 h-3" />
                             </Link>
                           )}
                         </div>
-
-                        <div className="py-2.5 flex items-center justify-between text-xs">
-                          <span className="flex items-center gap-2">
-                            {productsList.length > 0 
-                              ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                              : <AlertTriangle className="w-4 h-4 text-amber-500" />
-                            }
-                            <span className="font-semibold text-slate-700">Products Listing ({productsList.length})</span>
-                          </span>
-                          {productsList.length === 0 && (
-                            <Link href="/admin/products" className="text-[10px] font-bold text-blue-600 flex items-center gap-0.5">
-                              Add Product <ChevronRight className="w-3 h-3" />
-                            </Link>
-                          )}
-                        </div>
-
+ 
                         <div className="py-2.5 flex items-center justify-between text-xs">
                           <span className="flex items-center gap-2">
                             {integrationsList.length > 0 
                               ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                               : <AlertTriangle className="w-4 h-4 text-amber-500" />
                             }
-                            <span className="font-semibold text-slate-700">Payment integrations</span>
+                            <span className="font-semibold text-slate-700">Payment Setup — {integrationsList.length > 0 ? 'Connected' : 'Not Configured'}</span>
                           </span>
                           {integrationsList.length === 0 && (
                             <Link href="/admin/integrations" className="text-[10px] font-bold text-blue-600 flex items-center gap-0.5">
                               Connect UPI <ChevronRight className="w-3 h-3" />
                             </Link>
                           )}
+                        </div>
+ 
+                        <div className="py-2.5 flex items-center justify-between text-xs">
+                          <span className="flex items-center gap-2">
+                            {storeData?.subdomain && !storeData.subdomain.startsWith('__')
+                              ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                              : <AlertTriangle className="w-4 h-4 text-amber-500" />
+                            }
+                            <span className="font-semibold text-slate-700">Preferences (Subdomain) — {storeData?.subdomain ? 'Connected' : 'Missing'}</span>
+                          </span>
+                        </div>
+
+                        <div className="py-2.5 flex items-center justify-between text-xs">
+                          <span className="flex items-center gap-2">
+                            {storeData?.billing_plan 
+                              ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                              : <AlertTriangle className="w-4 h-4 text-amber-500" />
+                            }
+                            <span className="font-semibold text-slate-700">Plan & Contract — {storeData?.billing_plan ? 'Completed' : 'Missing'}</span>
+                          </span>
                         </div>
 
                         <div className="py-2.5 flex items-center justify-between text-xs">
@@ -941,7 +1768,7 @@ ${!storeData?.logo_url ? '⚠ Add store logo\n' : ''}${productsList.length === 0
                               ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                               : <AlertTriangle className="w-4 h-4 text-amber-500" />
                             }
-                            <span className="font-semibold text-slate-700">Store Published</span>
+                            <span className="font-semibold text-slate-700">Account Setup — {!storeData?.is_paused ? 'Completed' : 'Missing'}</span>
                           </span>
                           {storeData?.is_paused && (
                             <Link href="/admin/settings" className="text-[10px] font-bold text-blue-600 flex items-center gap-0.5">
@@ -958,18 +1785,40 @@ ${!storeData?.logo_url ? '⚠ Add store logo\n' : ''}${productsList.length === 0
                 {activeTab === 'knowledge' && (
                   <div className="space-y-3 text-left">
                     <span className="text-[9px] font-black text-slate-450 uppercase tracking-widest pl-1">Onboarding Help Guides</span>
-                    {[
-                      { title: 'Store Setup Guide', content: 'Create your inventory catalog categories first, then list products with descriptions, pricing metrics, and image links.' },
-                      { title: 'Offline UPI Setup', content: 'Navigate to Business Operations > Integrations. Add your merchant UPI address and save to allow checkout scans.' },
-                      { title: 'WhatsApp Integration', content: 'Checkout triggers pre-structured messaging templates. Deliver order updates directly to customer phones.' }
-                    ].map((kb, idx) => (
-                      <div key={idx} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-                        <h4 className="font-bold text-xs text-slate-800 flex items-center gap-1.5 mb-1.5">
-                          <BookOpen className="w-4 h-4 text-blue-600" /> {kb.title}
-                        </h4>
-                        <p className="text-[10px] text-slate-500 leading-relaxed">{kb.content}</p>
-                      </div>
-                    ))}
+                    
+                    {/* Search Input Box */}
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        placeholder="Search setup guides..."
+                        value={guideSearch}
+                        onChange={e => setGuideSearch(e.target.value)}
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-500 text-slate-800"
+                      />
+                    </div>
+
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                      {[
+                        { title: 'How to add a logo', content: 'Go to Storefront → Theme Design. Upload a high-quality PNG logo with a transparent background.' },
+                        { title: 'How to add products', content: 'Navigate to Products tab, click Create Product. Fill in name, price, stock quantity, description, and save.' },
+                        { title: 'How to change price', content: 'Open the product from the catalog list, update the pricing input field, and confirm update changes.' },
+                        { title: 'How to manage orders', content: 'All incoming customer transactions appear in the Orders Dashboard. Use this screen to update shipping statuses.' },
+                        { title: 'How to connect payment gateway', content: 'Go to Settings → Integrations. Choose Razorpay, Cashfree, or Stripe, input API Keys, and save.' },
+                        { title: 'How to set up UPI', content: 'Add your UPI VPA ID and merchant name under Settings → Integrations → UPI to configure instant scan-to-pay checkouts.' },
+                        { title: 'How to connect domain', content: 'Update your subdomain label in settings or configure custom DNS records (CNAME/A) mapping to point your custom domain.' },
+                        { title: 'How to change store template', content: 'Visit Storefront → Appearance, choose from premium themes, and customize primary accent colors.' }
+                      ].filter(kb => 
+                        kb.title.toLowerCase().includes(guideSearch.toLowerCase()) || 
+                        kb.content.toLowerCase().includes(guideSearch.toLowerCase())
+                      ).map((kb, idx) => (
+                        <div key={idx} className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm">
+                          <h4 className="font-bold text-xs text-slate-800 flex items-center gap-1.5 mb-1.5">
+                            <BookOpen className="w-3.5 h-3.5 text-blue-650" /> {kb.title}
+                          </h4>
+                          <p className="text-[10px] text-slate-500 leading-relaxed">{kb.content}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 

@@ -70,7 +70,6 @@ class StoreController extends Controller
             'plan_starts_at' => $request->input('plan_starts_at'),
             'plan_ends_at' => $request->input('plan_ends_at'),
             'status' => $request->input('status', 'active'),
-            'marketing_hub_enabled' => (bool)$request->input('marketing_hub_enabled', false),
             'created_at' => now(),
             'updated_at' => now()
         ]);

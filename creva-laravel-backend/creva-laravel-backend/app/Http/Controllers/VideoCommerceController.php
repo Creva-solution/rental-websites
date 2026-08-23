@@ -8,6 +8,29 @@ use Illuminate\Support\Str;
 
 class VideoCommerceController extends Controller
 {
+    public function __construct()
+    {
+        $this->ensureTableExists();
+    }
+
+    private function ensureTableExists(): void
+    {
+        DB::statement("
+            CREATE TABLE IF NOT EXISTS video_sessions (
+                id VARCHAR(255) PRIMARY KEY,
+                store_id VARCHAR(255) NOT NULL,
+                title VARCHAR(500) NOT NULL,
+                video_url TEXT,
+                product_ids TEXT DEFAULT '[]',
+                status VARCHAR(50) DEFAULT 'active',
+                scheduled_at TIMESTAMP NULL,
+                description TEXT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ");
+    }
+
     public function index(Request $request)
     {
         $query = DB::table('video_sessions');
@@ -16,13 +39,13 @@ class VideoCommerceController extends Controller
             $query->where('store_id', $request->input('store_id'));
         }
 
-        if ($request->has('status')) {
-            $query->where('status', $request->input('status'));
-        }
+        $sortField = in_array($request->input('_sort'), ['created_at', 'title', 'status'])
+            ? $request->input('_sort')
+            : 'created_at';
+        $sortOrder = $request->input('_order', 'desc') === 'asc' ? 'asc' : 'desc';
 
-        $sessions = $query->orderBy('created_at', 'desc')->get();
+        $sessions = $query->orderBy($sortField, $sortOrder)->get();
 
-        // Decode product_ids JSON for each session
         return response()->json($sessions->map(function ($s) {
             $s->product_ids = json_decode($s->product_ids ?? '[]', true);
             return $s;
@@ -39,16 +62,15 @@ class VideoCommerceController extends Controller
         $id = 'vsn_' . Str::uuid()->toString();
 
         DB::table('video_sessions')->insert([
-            'id'           => $id,
-            'store_id'     => $request->input('store_id'),
-            'title'        => $request->input('title'),
-            'youtube_url'  => $request->input('youtube_url'),
-            'product_ids'  => json_encode($request->input('product_ids', [])),
-            'status'       => $request->input('status', 'scheduled'),
-            'scheduled_at' => $request->input('scheduled_at'),
-            'description'  => $request->input('description'),
-            'created_at'   => now(),
-            'updated_at'   => now(),
+            'id'          => $id,
+            'store_id'    => $request->input('store_id'),
+            'title'       => $request->input('title'),
+            'video_url'   => $request->input('video_url'),
+            'product_ids' => json_encode($request->input('product_ids', [])),
+            'status'      => 'active',
+            'description' => $request->input('description'),
+            'created_at'  => now(),
+            'updated_at'  => now(),
         ]);
 
         $session = DB::table('video_sessions')->where('id', $id)->first();
@@ -64,7 +86,7 @@ class VideoCommerceController extends Controller
             return response()->json(['error' => 'Video session not found'], 404);
         }
 
-        $data = $request->only(['title', 'youtube_url', 'status', 'scheduled_at', 'description']);
+        $data = $request->only(['title', 'video_url', 'status', 'description']);
         if ($request->has('product_ids')) {
             $data['product_ids'] = json_encode($request->input('product_ids'));
         }

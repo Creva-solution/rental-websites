@@ -42,6 +42,7 @@ CREATE TABLE "stores" (
   "is_paused" BOOLEAN DEFAULT TRUE,
   "custom_domain_enabled" BOOLEAN DEFAULT FALSE,
   "subscription_expires_at" TIMESTAMP DEFAULT NULL,
+  "marketing_hub_enabled" BOOLEAN DEFAULT TRUE,
   "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("id"),

@@ -71,22 +71,26 @@ if ($requestUri === '/' || empty($routeParts[0]) || $routeParts[0] === 'status')
         'status' => 'API Engine Active',
         'engine' => 'Creva Webzz Premium PHP Engine',
         'database_driver' => 'PostgreSQL (Active)',
-        'version' => '2026-06-08-support-tickets',
+        'version' => '2026-07-18-db-ssl-mode-fix',
         'timestamp' => date('Y-m-d H:i:s')
     ]);
     exit;
 }
 
 // 2. Establish PostgreSQL connection via PDO
-$dbHost = getenv('DB_HOST') ?: ($_ENV['DB_HOST'] ?? ($env['DB_HOST'] ?? '127.0.0.1'));
-$dbPort = getenv('DB_PORT') ?: ($_ENV['DB_PORT'] ?? ($env['DB_PORT'] ?? '5432'));
-$dbName = getenv('DB_DATABASE') ?: ($_ENV['DB_DATABASE'] ?? ($env['DB_DATABASE'] ?? 'creva_webzz'));
-$dbUser = getenv('DB_USERNAME') ?: ($_ENV['DB_USERNAME'] ?? ($env['DB_USERNAME'] ?? 'postgres'));
-$dbPass = getenv('DB_PASSWORD') ?: ($_ENV['DB_PASSWORD'] ?? ($env['DB_PASSWORD'] ?? ''));
+$dbHost = trim(getenv('DB_HOST') ?: ($_ENV['DB_HOST'] ?? ($env['DB_HOST'] ?? '127.0.0.1')));
+$dbPort = trim(getenv('DB_PORT') ?: ($_ENV['DB_PORT'] ?? ($env['DB_PORT'] ?? '5432')));
+$dbName = trim(getenv('DB_DATABASE') ?: ($_ENV['DB_DATABASE'] ?? ($env['DB_DATABASE'] ?? 'creva_webzz')));
+$dbUser = trim(getenv('DB_USERNAME') ?: ($_ENV['DB_USERNAME'] ?? ($env['DB_USERNAME'] ?? 'postgres')));
+$dbPass = trim(getenv('DB_PASSWORD') ?: ($_ENV['DB_PASSWORD'] ?? ($env['DB_PASSWORD'] ?? '')));
 
 try {
-    // Render requires sslmode=require for external connections
-    $ssl = (strpos($dbHost, '127.0.0.1') === false && strpos($dbHost, 'localhost') === false) ? ';sslmode=require' : '';
+    // Render requires sslmode=require for external connections, but allow overrides via DB_SSL_MODE
+    $sslMode = getenv('DB_SSL_MODE') ?: ($_ENV['DB_SSL_MODE'] ?? ($env['DB_SSL_MODE'] ?? ''));
+    if (!$sslMode) {
+        $sslMode = (strpos($dbHost, '127.0.0.1') === false && strpos($dbHost, 'localhost') === false) ? 'require' : '';
+    }
+    $ssl = $sslMode ? ";sslmode=$sslMode" : '';
     $dsn = "pgsql:host=$dbHost;port=$dbPort;dbname=$dbName$ssl";
     $pdo = new PDO($dsn, $dbUser, $dbPass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
@@ -94,7 +98,17 @@ try {
     ]);
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Database Connection Failed: ' . $e->getMessage()]);
+    echo json_encode([
+        'error' => 'Database Connection Failed: ' . $e->getMessage(),
+        'debug' => [
+            'host' => $dbHost,
+            'port' => $dbPort,
+            'database' => $dbName,
+            'username' => $dbUser,
+            'ssl_mode' => $sslMode ?? 'not_set',
+            'dsn' => $dsn ?? 'not_set'
+        ]
+    ]);
     exit;
 }
 
@@ -248,11 +262,89 @@ try {
         )";
         $createResult = 'ok';
         try { $pdo->exec($createSql); } catch (PDOException $e) { $createResult = 'error: ' . $e->getMessage(); }
+        
+        $alterResult = 'ok';
+        try {
+            $pdo->exec('ALTER TABLE "stores" ADD COLUMN IF NOT EXISTS "marketing_hub_enabled" BOOLEAN DEFAULT TRUE');
+            
+            // Create categories table
+            $pdo->exec('CREATE TABLE IF NOT EXISTS "categories" (
+              "id" VARCHAR(255) PRIMARY KEY,
+              "store_id" VARCHAR(255) NOT NULL,
+              "name" VARCHAR(255) NOT NULL,
+              "slug" VARCHAR(255) NOT NULL,
+              "image_url" TEXT DEFAULT NULL,
+              "sort_order" INTEGER DEFAULT 0,
+              "is_active" BOOLEAN DEFAULT TRUE,
+              "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )');
+            
+            // Create discounts table
+            $pdo->exec('CREATE TABLE IF NOT EXISTS "discounts" (
+              "id" VARCHAR(255) PRIMARY KEY,
+              "store_id" VARCHAR(255) NOT NULL,
+              "code" VARCHAR(255) NOT NULL,
+              "type" VARCHAR(50) DEFAULT \'percentage\',
+              "value" NUMERIC(12,2) DEFAULT 0.00,
+              "minimum_order" NUMERIC(12,2) DEFAULT 0.00,
+              "max_uses" INTEGER DEFAULT NULL,
+              "uses_count" INTEGER DEFAULT 0,
+              "expires_at" TIMESTAMP DEFAULT NULL,
+              "is_active" BOOLEAN DEFAULT TRUE,
+              "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )');
+            
+            // Create blog_posts table
+            $pdo->exec('CREATE TABLE IF NOT EXISTS "blog_posts" (
+              "id" VARCHAR(255) PRIMARY KEY,
+              "store_id" VARCHAR(255) NOT NULL,
+              "title" VARCHAR(500) NOT NULL,
+              "slug" VARCHAR(500) NOT NULL,
+              "content" TEXT DEFAULT NULL,
+              "excerpt" TEXT DEFAULT NULL,
+              "cover_image" TEXT DEFAULT NULL,
+              "status" VARCHAR(50) DEFAULT \'draft\',
+              "published_at" TIMESTAMP DEFAULT NULL,
+              "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )');
+            
+            // Create pages table
+            $pdo->exec('CREATE TABLE IF NOT EXISTS "pages" (
+              "id" VARCHAR(255) PRIMARY KEY,
+              "store_id" VARCHAR(255) NOT NULL,
+              "title" VARCHAR(500) NOT NULL,
+              "slug" VARCHAR(500) NOT NULL,
+              "content" TEXT DEFAULT NULL,
+              "is_active" BOOLEAN DEFAULT TRUE,
+              "sort_order" INTEGER DEFAULT 0,
+              "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )');
+            
+            // Create integrations table
+            $pdo->exec('CREATE TABLE IF NOT EXISTS "integrations" (
+              "id" VARCHAR(255) PRIMARY KEY,
+              "store_id" VARCHAR(255) NOT NULL,
+              "type" VARCHAR(255) NOT NULL,
+              "is_enabled" BOOLEAN DEFAULT FALSE,
+              "config" TEXT DEFAULT \'{}\',
+              "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              CONSTRAINT "integrations_store_type_unique" UNIQUE ("store_id", "type")
+            )');
+        } catch (PDOException $e) {
+            $alterResult = 'error: ' . $e->getMessage();
+        }
+        
         $stmt = $pdo->query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name");
         $allTables = $stmt->fetchAll(PDO::FETCH_COLUMN);
         jsonResponse([
             'create_video_sessions' => $createResult,
             'video_sessions_exists' => in_array('video_sessions', $allTables),
+            'alter_stores_marketing' => $alterResult,
             'all_tables'            => $allTables,
         ]);
     }
@@ -762,7 +854,7 @@ try {
                 jsonResponse(['error' => 'Subdomain is already taken'], 400);
             }
             
-            $stmt = $pdo->prepare('INSERT INTO "stores" (id, owner_id, store_name, subdomain, custom_domain, logo_url, primary_color, currency, contact_phone, contact_email, description, billing_plan, billing_price, plan_starts_at, plan_ends_at, status, is_paused, custom_domain_enabled, subscription_expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+            $stmt = $pdo->prepare('INSERT INTO "stores" (id, owner_id, store_name, subdomain, custom_domain, logo_url, primary_color, currency, contact_phone, contact_email, description, billing_plan, billing_price, plan_starts_at, plan_ends_at, status, is_paused, custom_domain_enabled, subscription_expires_at, marketing_hub_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
             $stmt->execute([
                 $storeId,
                 $body['owner_id'] ?? '',
@@ -782,7 +874,8 @@ try {
                 $body['status'] ?? 'active',
                 (isset($body['is_paused']) ? (bool)$body['is_paused'] : true) ? 1 : 0,
                 (isset($body['custom_domain_enabled']) ? (bool)$body['custom_domain_enabled'] : false) ? 1 : 0,
-                $body['subscription_expires_at'] ?? null
+                $body['subscription_expires_at'] ?? null,
+                (isset($body['marketing_hub_enabled']) ? (bool)$body['marketing_hub_enabled'] : false) ? 1 : 0
             ]);
             
             $stmt = $pdo->prepare('SELECT * FROM "stores" WHERE id = ?');
@@ -791,7 +884,7 @@ try {
         }
         
         if ($requestMethod === 'PUT' && $id) {
-            $allowedFields = ['store_name', 'custom_domain', 'logo_url', 'primary_color', 'currency', 'contact_phone', 'contact_email', 'description', 'billing_plan', 'billing_price', 'plan_starts_at', 'plan_ends_at', 'status', 'is_paused', 'custom_domain_enabled', 'subscription_expires_at'];
+            $allowedFields = ['store_name', 'custom_domain', 'logo_url', 'primary_color', 'currency', 'contact_phone', 'contact_email', 'description', 'billing_plan', 'billing_price', 'plan_starts_at', 'plan_ends_at', 'status', 'is_paused', 'custom_domain_enabled', 'subscription_expires_at', 'marketing_hub_enabled'];
             $sets = [];
             $values = [];
             foreach ($allowedFields as $field) {
