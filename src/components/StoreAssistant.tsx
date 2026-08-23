@@ -186,12 +186,21 @@ export default function StoreAssistant() {
 
         // Initialize welcome message with real data
         if (messages.length === 0) {
+          let ownerName = 'Ruth';
+          if (store.description) {
+            try {
+              const desc = JSON.parse(store.description);
+              if (desc.signedName) {
+                ownerName = desc.signedName.trim().split(' ')[0];
+              }
+            } catch (e) {}
+          }
           setMessages([
             {
               sender: 'ai',
-              text: `Welcome back to ${store.store_name}! 👋\n\nI have analyzed your store setup.\nYour storefront configuration is currently **${score}% complete**.\n\n${
+              text: `Welcome back, ${ownerName} 👋\n\nI have analyzed your store setup.\nYour storefront configuration is currently ${score}% complete.\n\n${
                 !store.logo_url 
-                  ? "⚠ **Store Logo is missing.** Adding a logo will make your storefront feel much more complete." 
+                  ? "⚠ Store logo is missing.\nAdding a logo will make your storefront feel more complete and professional." 
                   : "✓ Your logo and branding properties are all set."
               }`,
               timestamp: new Date()
@@ -422,6 +431,29 @@ export default function StoreAssistant() {
       
       addNotification('success', 'Support Ticket Submitted', ticketSubject);
     }, 1500);
+  const renderMessageContent = (text: string) => {
+    const cleanText = text.replace(/\*\*/g, '').replace(/\*/g, '');
+    const lines = cleanText.split('\n');
+    return lines.map((line, i) => {
+      let icon = null;
+      let displayLine = line;
+      
+      // Parse leading indicators for clean Lucide representation
+      if (line.trim().startsWith('⚠')) {
+        icon = <AlertTriangle className="inline-block w-3.5 h-3.5 text-amber-500 mr-1.5 align-middle shrink-0" />;
+        displayLine = line.trim().substring(1).trim();
+      } else if (line.trim().startsWith('✓')) {
+        icon = <CheckCircle2 className="inline-block w-3.5 h-3.5 text-emerald-500 mr-1.5 align-middle shrink-0" />;
+        displayLine = line.trim().substring(1).trim();
+      }
+      
+      return (
+        <div key={i} className="min-h-[18px] flex items-center flex-wrap">
+          {icon}
+          <span>{displayLine}</span>
+        </div>
+      );
+    });
   };
 
   return (
@@ -530,7 +562,7 @@ export default function StoreAssistant() {
               {/* Tab Navigation */}
               <div className="flex border-b border-slate-200 bg-slate-50 shrink-0 text-[10px] font-black uppercase tracking-wider text-slate-500 select-none">
                 {[
-                  { id: 'chat', label: 'Copilot', icon: MessageSquare },
+                  { id: 'chat', label: 'CrevaWebs', icon: MessageSquare },
                   { id: 'checklist', label: 'Setup Status', icon: CheckCircle2 },
                   { id: 'knowledge', label: 'Guides', icon: BookOpen },
                   { id: 'ticket', label: 'Support', icon: Phone }
@@ -575,7 +607,7 @@ export default function StoreAssistant() {
                               ? 'bg-blue-600 text-white border-blue-600 shadow-blue-500/5' 
                               : 'bg-white text-slate-800 border-slate-200/80'
                           }`}>
-                            {m.text}
+                            {renderMessageContent(m.text)}
                           </div>
 
                           {/* Action Render: Create Product Form inline */}
@@ -896,21 +928,24 @@ export default function StoreAssistant() {
                   <div className="flex gap-1.5 overflow-x-auto pb-1 select-none">
                     <button 
                       onClick={() => parseUserCommand('add product')}
-                      className="px-2.5 py-1 text-[10px] bg-slate-50 border border-slate-200 hover:border-slate-350 rounded-lg font-bold text-slate-600 whitespace-nowrap cursor-pointer shrink-0"
+                      className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] bg-slate-50 border border-slate-200 hover:border-slate-350 rounded-lg font-bold text-slate-650 whitespace-nowrap cursor-pointer shrink-0"
                     >
-                      + Add Product
+                      <Upload className="w-3 h-3 text-slate-500" />
+                      <span>Add Product</span>
                     </button>
                     <button 
                       onClick={() => parseUserCommand('show products')}
-                      className="px-2.5 py-1 text-[10px] bg-slate-50 border border-slate-200 hover:border-slate-350 rounded-lg font-bold text-slate-600 whitespace-nowrap cursor-pointer shrink-0"
+                      className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] bg-slate-50 border border-slate-200 hover:border-slate-350 rounded-lg font-bold text-slate-650 whitespace-nowrap cursor-pointer shrink-0"
                     >
-                      🔍 View Catalog
+                      <ShoppingBag className="w-3 h-3 text-slate-500" />
+                      <span>View Catalog</span>
                     </button>
                     <button 
                       onClick={() => setActiveTab('checklist')}
-                      className="px-2.5 py-1 text-[10px] bg-slate-50 border border-slate-200 hover:border-slate-350 rounded-lg font-bold text-slate-600 whitespace-nowrap cursor-pointer shrink-0"
+                      className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] bg-slate-50 border border-slate-200 hover:border-slate-350 rounded-lg font-bold text-slate-650 whitespace-nowrap cursor-pointer shrink-0"
                     >
-                      📊 Check Progress
+                      <CheckCircle2 className="w-3 h-3 text-slate-500" />
+                      <span>Check Progress</span>
                     </button>
                   </div>
 
