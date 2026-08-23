@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { 
   MessageSquare, X, Minimize2, Maximize2, Send, Sparkles, BookOpen, 
   Bot, Phone, FileText, ChevronRight, CheckCircle2, ArrowLeft, Loader2,
-  Layout, CreditCard, ShoppingBag, Landmark, Clipboard, AlertTriangle, UserCheck, Check, Trash2, ArrowUpRight
+  Layout, CreditCard, ShoppingBag, Landmark, Clipboard, AlertTriangle, UserCheck, Check, Trash2, ArrowUpRight, Upload
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -431,6 +431,8 @@ export default function StoreAssistant() {
       
       addNotification('success', 'Support Ticket Submitted', ticketSubject);
     }, 1500);
+  };
+
   const renderMessageContent = (text: string) => {
     const cleanText = text.replace(/\*\*/g, '').replace(/\*/g, '');
     const lines = cleanText.split('\n');
