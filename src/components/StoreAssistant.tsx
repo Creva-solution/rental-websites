@@ -324,7 +324,122 @@ export default function StoreAssistant() {
     setIsTyping(true);
 
     setTimeout(() => {
-      const lower = text.toLowerCase();
+      const lower = text.toLowerCase().trim();
+
+      // INTENT 1: Store Setup Checklist / Health Analysis queries
+      if (lower.includes('complete') || lower.includes('progress') || lower.includes('status') || lower.includes('health') || lower.includes('analyze') || lower.includes('check setup') || lower.includes('செட்டப்') || lower.includes('முழுமை') || lower.includes('प्रगति')) {
+        let textResult = '';
+        if (lower.includes('panna') || lower.includes('epdi') || lower.includes('tamil') || lower.includes('செட்டப்') || lower.includes('முழுமை')) {
+          textResult = `உங்க ஸ்டோர் செட்டப் தற்போது ${completionPercentage}% முடிந்துள்ளது. மீதமுள்ளவை:
+${!storeData?.logo_url ? '⚠ Add store logo\n' : ''}${productsList.length === 0 ? '⚠ Add your first product\n' : ''}${integrationsList.length === 0 ? '⚠ Configure payment integrations\n' : ''}${storeData?.is_paused ? '⚠ Publish storefront live' : ''}`;
+        } else if (lower.includes('hindi') || lower.includes('प्रगति') || lower.includes('विश्लेषण')) {
+          textResult = `आपका स्टोर सेटअप वर्तमान में ${completionPercentage}% पूरा हो गया है। शेष कार्य:
+${!storeData?.logo_url ? '⚠ Add store logo\n' : ''}${productsList.length === 0 ? '⚠ Add your first product\n' : ''}${integrationsList.length === 0 ? '⚠ Configure payment integrations\n' : ''}${storeData?.is_paused ? '⚠ Publish storefront live' : ''}`;
+        } else {
+          textResult = `Your store setup is currently ${completionPercentage}% complete. The remaining items are:
+${!storeData?.logo_url ? '⚠ Add store logo\n' : ''}${productsList.length === 0 ? '⚠ Add your first product\n' : ''}${integrationsList.length === 0 ? '⚠ Configure payment integrations\n' : ''}${storeData?.is_paused ? '⚠ Publish storefront live' : ''}`;
+        }
+
+        setMessages(prev => [...prev, {
+          sender: 'ai',
+          text: textResult,
+          timestamp: new Date()
+        }]);
+        setIsTyping(false);
+        return;
+      }
+
+      // INTENT 2: Logo setup guides (Multilingual checks)
+      if (lower.includes('logo') || lower.includes('லோகோ') || lower.includes('लोगो') || lower.includes('ലോഗോ')) {
+        let logoText = '';
+        // Tamil / Tanglish
+        if (lower.includes('panna') || lower.includes('epdi') || lower.includes('tamil') || lower.includes('லோகோ')) {
+          logoText = 'Branding Design → Logo setting-க்கு போங்க. உங்கள் லோகோ-வை அப்லோடு பண்ணிட்டு Save Changes க்ளிக் பண்ணுங்க.';
+        }
+        // Hindi
+        else if (lower.includes('hindi') || lower.includes('लोगो') || lower.includes('कैसे')) {
+          logoText = 'Store Setup → Branding Design → Logo पर जाएं। अपना लोगो अपलोड करें और फिर Save Changes पर क्लिक करें।';
+        }
+        // Malayalam
+        else if (lower.includes('malayalam') || lower.includes('ലോഗോ')) {
+          logoText = 'Store Setup → Branding Design → Logo പേജിലേക്ക് പോകുക. നിങ്ങളുടെ ലോഗോ അപ്‌ലോഡ് ചെയ്ത് മാറ്റങ്ങൾ സേവ് ചെയ്യുക.';
+        }
+        // Telugu
+        else if (lower.includes('telugu') || lower.includes('లోగో')) {
+          logoText = 'Store Setup → Branding Design → Logo కు వెళ్ళండి. మీ లోగోను అప్లోడ్ చేసి, సేవ్ చేసుకోండి.';
+        }
+        // Kannada
+        else if (lower.includes('kannada') || lower.includes('ಲೋಗೋ')) {
+          logoText = 'Store Setup → Branding Design → Logo ಗೆ ಹೋಗಿ. ನಿಮ್ಮ ಲೋಗೋವನ್ನು ಅಪ್ಲೋಡ್ ಮಾಡಿ ಮತ್ತು ಸೇವ್ ಮಾಡಿ.';
+        }
+        // English default
+        else {
+          logoText = 'Go to Store Setup → Branding Design → Logo. Upload your PNG or JPG logo, then click Save Changes.';
+        }
+
+        setMessages(prev => [...prev, {
+          sender: 'ai',
+          text: logoText,
+          timestamp: new Date()
+        }]);
+        setIsTyping(false);
+        return;
+      }
+
+      // INTENT 3: Payment setup guides (Multilingual checks)
+      if (lower.includes('payment') || lower.includes('upi') || lower.includes('gateway') || lower.includes('பேமெண்ட்') || lower.includes('पेमेंट') || lower.includes('പേയ്‌മെന്റ്')) {
+        let paymentText = '';
+        // Tamil / Tanglish
+        if (lower.includes('panna') || lower.includes('epdi') || lower.includes('tamil') || lower.includes('பேமெண்ட்')) {
+          paymentText = 'Settings → Payments → Add Payment Method ஓபன் பண்ணுங்க. உங்க பேமெண்ட் முறையை தேர்வு செய்து விவரங்களை சேமிக்கவும்.';
+        }
+        // Hindi
+        else if (lower.includes('hindi') || lower.includes('पेमेंट')) {
+          paymentText = 'Settings → Payments → Add Payment Method पर जाएं। अपना पेमेंट गेटवे चुनें और आवश्यक जानकारी भरकर सुरक्षित करें।';
+        }
+        // Malayalam
+        else if (lower.includes('malayalam') || lower.includes('പേയ്‌മെന്റ്')) {
+          paymentText = 'Settings → Payments → Add Payment Method സന്ദർശിക്കുക. നിങ്ങളുടെ പേയ്‌മെന്റ് വിതരണക്കാരനെ തിരഞ്ഞെടുത്ത് വിവരങ്ങൾ സേവ് ചെയ്യുക.';
+        }
+        // Telugu
+        else if (lower.includes('telugu') || lower.includes('పేమెంట్')) {
+          paymentText = 'Settings → Payments → Add Payment Method కి వెళ్ళండి. మీ పేమెంట్ ప్రొవైడర్‌ను ఎంచుకుని వివరాలను సేవ్ చేయండి.';
+        }
+        // Kannada
+        else if (lower.includes('kannada') || lower.includes('ಪೇಮೆಂಟ್')) {
+          paymentText = 'Settings → Payments → Add Payment Method ಗೆ ಹೋಗಿ. ನಿಮ್ಮ ಪೇಮೆಂಟ್ ವಿಧಾನವನ್ನು ಆಯ್ಕೆ ಮಾಡಿ ಮತ್ತು ಸೇವ್ ಮಾಡಿ.';
+        }
+        // English default
+        else {
+          paymentText = 'Go to Settings → Payments → Add Payment Method. Choose your payment provider and complete the required details.';
+        }
+
+        setMessages(prev => [...prev, {
+          sender: 'ai',
+          text: paymentText,
+          timestamp: new Date()
+        }]);
+        setIsTyping(false);
+        return;
+      }
+
+      // INTENT 4: Why is my store not live? queries
+      if (lower.includes('live') || lower.includes('paused') || lower.includes('publish') || lower.includes('launch')) {
+        let liveText = '';
+        if (storeData?.is_paused) {
+          liveText = 'Your store is currently paused. Go to Settings → Store Visibility to publish your store. Ensure you have added a logo, listed products, and configured payment options first.';
+        } else {
+          liveText = 'Your store is already live! You can share your storefront URL with customers to start receiving orders.';
+        }
+
+        setMessages(prev => [...prev, {
+          sender: 'ai',
+          text: liveText,
+          timestamp: new Date()
+        }]);
+        setIsTyping(false);
+        return;
+      }
 
       // COMMAND: Create / Add Product
       if (lower.includes('create product') || lower.includes('add product') || lower.includes('new product')) {
@@ -343,14 +458,14 @@ export default function StoreAssistant() {
         if (productsList.length === 0) {
           setMessages(prev => [...prev, {
             sender: 'ai',
-            text: "You currently have no products listed. Type *'add product'* to create one!",
+            text: "You currently have no products listed. Type 'add product' to create one!",
             timestamp: new Date()
           }]);
         } else {
-          const listText = productsList.slice(0, 5).map(p => `• **${p.name}** (₹${p.price}) - Stock: ${p.inventory_quantity}`).join('\n');
+          const listText = productsList.slice(0, 5).map(p => `• ${p.name} (₹${p.price}) - Stock: ${p.inventory_quantity}`).join('\n');
           setMessages(prev => [...prev, {
             sender: 'ai',
-            text: `You have **${productsList.length} products** in your catalog. Here are the recent ones:\n\n${listText}\n\n[View All Products →](/admin/products)`,
+            text: `You have ${productsList.length} products in your catalog. Here are the recent ones:\n\n${listText}\n\n[View All Products →](/admin/products)`,
             timestamp: new Date()
           }]);
         }
@@ -368,7 +483,7 @@ export default function StoreAssistant() {
         if (matchedProd) {
           setMessages(prev => [...prev, {
             sender: 'ai',
-            text: `I found matching product **${matchedProd.name}**.\n\n**Current Price:** ₹${matchedProd.price}\n**New Price:** ₹${newPrice}\n\nConfirm update?`,
+            text: `I found matching product ${matchedProd.name}.\n\nCurrent Price: ₹${matchedProd.price}\nNew Price: ₹${newPrice}\n\nConfirm update?`,
             timestamp: new Date(),
             actionType: 'confirm_update',
             actionData: { id: matchedProd.id, price: newPrice, name: matchedProd.name }
@@ -393,7 +508,7 @@ export default function StoreAssistant() {
         if (matchedProd) {
           setMessages(prev => [...prev, {
             sender: 'ai',
-            text: `Are you sure you want to delete **${matchedProd.name}**?\n\n⚠ Warning: This action will permanently remove this product from your catalog.`,
+            text: `Are you sure you want to delete ${matchedProd.name}?\n\n⚠ Warning: This action will permanently remove this product from your catalog.`,
             timestamp: new Date(),
             actionType: 'confirm_delete',
             actionData: { id: matchedProd.id, name: matchedProd.name }
@@ -412,7 +527,7 @@ export default function StoreAssistant() {
       // Default Help Fallback
       setMessages(prev => [...prev, {
         sender: 'ai',
-        text: `I can help you manage products and check setups!\n\nTry commands like:\n• *"Add product"* to open inline creation.\n• *"Show products"* to view catalog.\n• *"Change price of [product name] to [price]"*\n• *"Delete [product name]"*\n• *"Analyze store"* to run health check.`,
+        text: `I can help you manage products and check setups!\n\nTry commands like:\n• 'Add product' to open inline creation.\n• 'Show products' to view catalog.\n• 'Change price of [product name] to [price]'\n• 'Delete [product name]'\n• 'Analyze store' to run health check.`,
         timestamp: new Date()
       }]);
       setIsTyping(false);
