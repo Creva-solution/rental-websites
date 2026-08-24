@@ -1,10 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Save, Upload, Palette, Layers, Plus, Trash, Image as ImageIcon, SlidersHorizontal, Check, X, Move } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { Loader2, Save, Upload, Palette, Layers, Plus, Trash, Image as ImageIcon, SlidersHorizontal, Check, X, Move, AlertTriangle } from 'lucide-react';
 
-export default function AppearancePage() {
+function AppearancePageContent() {
+  const searchParams = useSearchParams();
+  const step = searchParams.get('checklist_step');
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -394,6 +397,21 @@ export default function AppearancePage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-12">
+      {step === 'branding' && (
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50/60 border border-amber-250 rounded-2xl p-4 mb-6 text-left shadow-sm space-y-2.5">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded font-black text-[10px] uppercase tracking-wider">
+              Step 2 of 7
+            </span>
+            <h4 className="font-extrabold text-xs text-slate-800 uppercase tracking-wide">
+              Upload Store Logo & Branding
+            </h4>
+          </div>
+          <p className="text-xs text-slate-650 leading-relaxed font-medium">
+            Please upload your official storefront logo brand file below. An eye-catching logo establishes merchant validation and increases brand recognition for retail buyers.
+          </p>
+        </div>
+      )}
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Appearance Settings</h2>
         <p className="text-muted-foreground">Customize how your storefront looks to your customers.</p>
@@ -415,7 +433,11 @@ export default function AppearancePage() {
                   </div>
                 ) : (
                   <div 
-                    className="w-24 h-24 rounded-2xl flex items-center justify-center border-2 border-dashed border-border"
+                    className={`w-24 h-24 rounded-2xl flex items-center justify-center border-2 border-dashed transition-all ${
+                      step === 'branding' && !logoUrl 
+                        ? 'border-amber-500 ring-2 ring-amber-400/50 animate-pulse bg-amber-50/15' 
+                        : 'border-border'
+                    }`}
                     style={{ backgroundColor: `${formData.primary_color}15`, color: formData.primary_color }}
                   >
                     <span className="font-bold text-3xl">{formData.store_name?.[0]?.toUpperCase() || 'S'}</span>
@@ -1138,5 +1160,13 @@ export default function AppearancePage() {
       )}
 
     </div>
+  );
+}
+
+export default function AppearancePage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center p-10"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>}>
+      <AppearancePageContent />
+    </Suspense>
   );
 }

@@ -2078,97 +2078,126 @@ Would you like to save and connect this UPI configuration?`,
                     {/* Setup Checklist list */}
                     <div className="space-y-2">
                       <span className="text-[9px] font-black text-slate-450 uppercase tracking-widest pl-1">Configuration Checklist</span>
-                      <div className="bg-white border border-slate-200 rounded-2xl p-4 divide-y divide-slate-100 shadow-sm">
+                      <div className="bg-white border border-slate-200 rounded-2xl divide-y divide-slate-100 shadow-sm overflow-hidden">
                         
-                        <div className="py-2.5 flex items-center justify-between text-xs">
-                          <span className="flex items-center gap-2">
+                        {/* 1. Business Information */}
+                        <Link 
+                          href="/admin/settings?checklist_step=business_info"
+                          className="py-3.5 px-4 flex items-center justify-between text-xs cursor-pointer hover:bg-slate-50 transition-colors group"
+                        >
+                          <span className="flex items-center gap-2.5">
                             {storeData?.store_name 
-                              ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                              : <AlertTriangle className="w-4 h-4 text-amber-500" />
+                              ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                              : <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
                             }
-                            <span className="font-semibold text-slate-700">Business Information — {storeData?.store_name ? 'Completed' : 'Missing'}</span>
+                            <span className="font-semibold text-slate-700">Business Information</span>
                           </span>
-                        </div>
+                          <span className="text-[10px] font-bold text-slate-450 group-hover:text-blue-600 transition-colors">
+                            {storeData?.store_name ? 'Completed ✓' : 'Click to complete →'}
+                          </span>
+                        </Link>
  
-                        <div className="py-2.5 flex items-center justify-between text-xs">
-                          <span className="flex items-center gap-2">
+                        {/* 2. Branding */}
+                        <Link 
+                          href="/admin/appearance?checklist_step=branding"
+                          className="py-3.5 px-4 flex items-center justify-between text-xs cursor-pointer hover:bg-slate-50 transition-colors group"
+                        >
+                          <span className="flex items-center gap-2.5">
                             {storeData?.logo_url 
-                              ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                              : <AlertTriangle className="w-4 h-4 text-amber-500" />
+                              ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                              : <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
                             }
-                            <span className="font-semibold text-slate-700">Branding — {storeData?.logo_url ? 'Completed' : 'Logo Missing'}</span>
+                            <span className="font-semibold text-slate-700">Branding</span>
                           </span>
-                          {!storeData?.logo_url && (
-                            <Link href="/admin/appearance" className="text-[10px] font-bold text-blue-600 flex items-center gap-0.5">
-                              Add Logo <ChevronRight className="w-3 h-3" />
-                            </Link>
-                          )}
-                        </div>
+                          <span className="text-[10px] font-bold text-slate-450 group-hover:text-blue-600 transition-colors">
+                            {storeData?.logo_url ? 'Completed ✓' : 'Click to complete →'}
+                          </span>
+                        </Link>
  
-                        <div className="py-2.5 flex items-center justify-between text-xs">
-                          <span className="flex items-center gap-2">
+                        {/* 3. Contact Details */}
+                        <Link 
+                          href="/admin/settings?checklist_step=contact_details"
+                          className="py-3.5 px-4 flex items-center justify-between text-xs cursor-pointer hover:bg-slate-50 transition-colors group"
+                        >
+                          <span className="flex items-center gap-2.5">
                             {storeData?.contact_phone 
-                              ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                              : <AlertTriangle className="w-4 h-4 text-amber-500" />
+                              ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                              : <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
                             }
-                            <span className="font-semibold text-slate-700">Contact Details — {storeData?.contact_phone ? 'Completed' : 'Missing'}</span>
+                            <span className="font-semibold text-slate-700">Contact Details</span>
                           </span>
-                          {!storeData?.contact_phone && (
-                            <Link href="/admin/settings" className="text-[10px] font-bold text-blue-600 flex items-center gap-0.5">
-                              Add Details <ChevronRight className="w-3 h-3" />
-                            </Link>
-                          )}
-                        </div>
+                          <span className="text-[10px] font-bold text-slate-450 group-hover:text-blue-600 transition-colors">
+                            {storeData?.contact_phone ? 'Completed ✓' : 'Click to complete →'}
+                          </span>
+                        </Link>
  
-                        <div className="py-2.5 flex items-center justify-between text-xs">
-                          <span className="flex items-center gap-2">
+                        {/* 4. Payment Setup */}
+                        <Link 
+                          href="/admin/integrations?checklist_step=payments"
+                          className="py-3.5 px-4 flex items-center justify-between text-xs cursor-pointer hover:bg-slate-50 transition-colors group"
+                        >
+                          <span className="flex items-center gap-2.5">
                             {integrationsList.length > 0 
-                              ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                              : <AlertTriangle className="w-4 h-4 text-amber-500" />
+                              ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                              : <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
                             }
-                            <span className="font-semibold text-slate-700">Payment Setup — {integrationsList.length > 0 ? 'Connected' : 'Not Configured'}</span>
+                            <span className="font-semibold text-slate-700">Payment Setup</span>
                           </span>
-                          {integrationsList.length === 0 && (
-                            <Link href="/admin/integrations" className="text-[10px] font-bold text-blue-600 flex items-center gap-0.5">
-                              Connect UPI <ChevronRight className="w-3 h-3" />
-                            </Link>
-                          )}
-                        </div>
+                          <span className="text-[10px] font-bold text-slate-450 group-hover:text-blue-600 transition-colors">
+                            {integrationsList.length > 0 ? 'Connected ✓' : 'Click to complete →'}
+                          </span>
+                        </Link>
  
-                        <div className="py-2.5 flex items-center justify-between text-xs">
-                          <span className="flex items-center gap-2">
+                        {/* 5. Preferences */}
+                        <Link 
+                          href="/admin/settings?checklist_step=preferences"
+                          className="py-3.5 px-4 flex items-center justify-between text-xs cursor-pointer hover:bg-slate-50 transition-colors group"
+                        >
+                          <span className="flex items-center gap-2.5">
                             {storeData?.subdomain && !storeData.subdomain.startsWith('__')
-                              ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                              : <AlertTriangle className="w-4 h-4 text-amber-500" />
+                              ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                              : <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
                             }
-                            <span className="font-semibold text-slate-700">Preferences (Subdomain) — {storeData?.subdomain ? 'Connected' : 'Missing'}</span>
+                            <span className="font-semibold text-slate-700">Preferences (Subdomain)</span>
                           </span>
-                        </div>
+                          <span className="text-[10px] font-bold text-slate-450 group-hover:text-blue-600 transition-colors">
+                            {storeData?.subdomain && !storeData.subdomain.startsWith('__') ? 'Completed ✓' : 'Click to complete →'}
+                          </span>
+                        </Link>
 
-                        <div className="py-2.5 flex items-center justify-between text-xs">
-                          <span className="flex items-center gap-2">
+                        {/* 6. Plan & Contract */}
+                        <Link 
+                          href="/admin/subscription?checklist_step=plan_contract"
+                          className="py-3.5 px-4 flex items-center justify-between text-xs cursor-pointer hover:bg-slate-50 transition-colors group"
+                        >
+                          <span className="flex items-center gap-2.5">
                             {storeData?.billing_plan 
-                              ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                              : <AlertTriangle className="w-4 h-4 text-amber-500" />
+                              ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                              : <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
                             }
-                            <span className="font-semibold text-slate-700">Plan & Contract — {storeData?.billing_plan ? 'Completed' : 'Missing'}</span>
+                            <span className="font-semibold text-slate-700">Plan & Contract</span>
                           </span>
-                        </div>
+                          <span className="text-[10px] font-bold text-slate-450 group-hover:text-blue-600 transition-colors">
+                            {storeData?.billing_plan ? 'Completed ✓' : 'Click to complete →'}
+                          </span>
+                        </Link>
 
-                        <div className="py-2.5 flex items-center justify-between text-xs">
-                          <span className="flex items-center gap-2">
+                        {/* 7. Account Setup */}
+                        <Link 
+                          href="/admin/settings?checklist_step=account_setup"
+                          className="py-3.5 px-4 flex items-center justify-between text-xs cursor-pointer hover:bg-slate-50 transition-colors group"
+                        >
+                          <span className="flex items-center gap-2.5">
                             {!storeData?.is_paused 
-                              ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                              : <AlertTriangle className="w-4 h-4 text-amber-500" />
+                              ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                              : <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
                             }
-                            <span className="font-semibold text-slate-700">Account Setup — {!storeData?.is_paused ? 'Completed' : 'Missing'}</span>
+                            <span className="font-semibold text-slate-700">Account Setup</span>
                           </span>
-                          {storeData?.is_paused && (
-                            <Link href="/admin/settings" className="text-[10px] font-bold text-blue-600 flex items-center gap-0.5">
-                              Go Live <ChevronRight className="w-3 h-3" />
-                            </Link>
-                          )}
-                        </div>
+                          <span className="text-[10px] font-bold text-slate-450 group-hover:text-blue-600 transition-colors">
+                            {!storeData?.is_paused ? 'Completed ✓' : 'Click to complete →'}
+                          </span>
+                        </Link>
 
                       </div>
                     </div>

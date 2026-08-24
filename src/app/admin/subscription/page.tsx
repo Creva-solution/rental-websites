@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useSearchParams } from 'next/navigation';
 import { 
-  CreditCard, Loader2, Phone, Calendar, Clock, Infinity, ShieldCheck, FileText, Printer, ShieldAlert, Upload, Trash2, Lock, X
+  CreditCard, Loader2, Phone, Calendar, Clock, Infinity, ShieldCheck, FileText, Printer, ShieldAlert, Upload, Trash2, Lock, X, AlertTriangle
 } from 'lucide-react';
 
-export default function SubscriptionPage() {
+function SubscriptionPageContent() {
+  const searchParams = useSearchParams();
+  const step = searchParams.get('checklist_step');
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -640,6 +643,21 @@ export default function SubscriptionPage() {
 
   return (
     <div className="space-y-8 w-full">
+      {step === 'plan_contract' && (
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50/60 border border-amber-250 rounded-2xl p-4.5 text-left shadow-sm space-y-2.5">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded font-black text-[10px] uppercase tracking-wider">
+              Step 6 of 7
+            </span>
+            <h4 className="font-extrabold text-xs text-slate-800 uppercase tracking-wide">
+              Select Subscription Plan & Sign Contract
+            </h4>
+          </div>
+          <p className="text-xs text-slate-650 leading-relaxed font-medium">
+            Your Plan & Contract setup is incomplete. Please select a plan, review the license agreement, accept the terms, and complete the required payment to continue.
+          </p>
+        </div>
+      )}
       {/* Expiry Header Banner */}
       {isExpired ? (
         <div className="bg-destructive/10 border border-destructive/20 text-destructive rounded-xl p-5 flex items-start gap-4">
@@ -874,7 +892,11 @@ export default function SubscriptionPage() {
                 </div>
               </div>
             ) : (
-              <div className="bg-muted/30 p-4 rounded-xl border border-border text-center space-y-3">
+              <div className={`p-4 rounded-xl border text-center space-y-3 transition-all duration-300 ${
+                step === 'plan_contract' 
+                  ? 'border-amber-500 ring-2 ring-amber-400/50 animate-pulse bg-amber-50/10' 
+                  : 'bg-muted/30 border-border'
+              }`}>
                 <FileText className="w-8 h-8 text-muted-foreground mx-auto animate-pulse" />
                 <p className="text-xs text-muted-foreground font-medium">No signed agreement found on your storefront record.</p>
                 <button
@@ -1157,5 +1179,13 @@ export default function SubscriptionPage() {
       )}
 
     </div>
+  );
+}
+
+export default function SubscriptionPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center p-10"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>}>
+      <SubscriptionPageContent />
+    </Suspense>
   );
 }

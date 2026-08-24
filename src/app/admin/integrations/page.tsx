@@ -1,13 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useSearchParams } from 'next/navigation';
 import {
   Plug, Settings, Check, CreditCard, X, Loader2, ToggleLeft, ToggleRight,
   Shield, Sparkles, Eye, EyeOff, ExternalLink, HelpCircle, Activity,
   CheckCircle2, AlertTriangle, ChevronRight, Plus, RefreshCw, AlertCircle,
   Play
 } from 'lucide-react';
+
+// ... (keep Gateway definitions unchanged) ...
+// We need to keep the declarations before the component.
+// Let's replace the export declaration specifically.
 
 interface Integration {
   id: string;
@@ -170,7 +175,9 @@ const AI_PROVIDERS: AIDef[] = [
   }
 ];
 
-export default function IntegrationsPage() {
+function IntegrationsPageContent() {
+  const searchParams = useSearchParams();
+  const step = searchParams.get('checklist_step');
   const [storeData, setStoreData] = useState<any>(null);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -602,6 +609,21 @@ export default function IntegrationsPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-12 text-slate-800">
+      {step === 'payments' && (
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50/60 border border-amber-250 rounded-2xl p-4 text-left shadow-sm space-y-2.5">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded font-black text-[10px] uppercase tracking-wider">
+              Step 4 of 7
+            </span>
+            <h4 className="font-extrabold text-xs text-slate-800 uppercase tracking-wide">
+              Configure Payment Gateways
+            </h4>
+          </div>
+          <p className="text-xs text-slate-650 leading-relaxed font-medium">
+            Please configure at least one online payment gateway integration below (e.g. Razorpay or Stripe). This unlocks storefront transactions and permits buyers to place catalog orders.
+          </p>
+        </div>
+      )}
       
       {/* HEADER SECTION */}
       <div className="text-left">
@@ -646,7 +668,11 @@ export default function IntegrationsPage() {
               <div
                 key={gw.type}
                 className={`bg-white border rounded-2xl p-5 flex flex-col justify-between min-h-[220px] transition-all hover:shadow-md hover:border-slate-300 ${gw.accentColor} ${
-                  isConnected ? 'ring-2 ring-emerald-500/10' : ''
+                  isConnected 
+                    ? 'ring-2 ring-emerald-500/10' 
+                    : step === 'payments'
+                      ? 'border-amber-500 ring-2 ring-amber-400/50 animate-pulse bg-amber-50/5'
+                      : ''
                 }`}
               >
                 <div className="space-y-4">
@@ -1181,5 +1207,13 @@ export default function IntegrationsPage() {
       </div>
 
     </div>
+  );
+}
+
+export default function IntegrationsPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center p-10"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>}>
+      <IntegrationsPageContent />
+    </Suspense>
   );
 }

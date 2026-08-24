@@ -1,10 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Globe, Save, Upload, Building, Phone, Mail, Palette, Check, X, ShieldAlert, ShieldCheck, Smartphone, ToggleLeft, ToggleRight, CreditCard, Coins, Lock } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { Loader2, Globe, Save, Upload, Building, Phone, Mail, Palette, Check, X, ShieldAlert, ShieldCheck, Smartphone, ToggleLeft, ToggleRight, CreditCard, Coins, Lock, AlertTriangle } from 'lucide-react';
 
-export default function SettingsPage() {
+function SettingsPageContent() {
+  const searchParams = useSearchParams();
+  const step = searchParams.get('checklist_step');
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -13,6 +16,7 @@ export default function SettingsPage() {
   // Form states
   const [formData, setFormData] = useState({
     store_name: '',
+    is_paused: false,
     description: '',
     contact_email: '',
     contact_phone: '',
@@ -151,6 +155,7 @@ export default function SettingsPage() {
 
       setFormData({
         store_name: storeData.store_name || '',
+        is_paused: storeData.is_paused || false,
         description: descText,
         contact_email: storeData.contact_email || '',
         contact_phone: storeData.contact_phone || '',
@@ -407,7 +412,8 @@ export default function SettingsPage() {
         // Update local store state description also
         setStore((prev: any) => ({
           ...prev,
-          description: finalDescription
+          description: finalDescription,
+          is_paused: formData.is_paused
         }));
       } catch (e) {
         console.error("Failed to construct merged description JSON:", e);
@@ -418,6 +424,7 @@ export default function SettingsPage() {
         .from('stores')
         .update({
           store_name: formData.store_name,
+          is_paused: formData.is_paused,
           description: finalDescription,
           contact_email: formData.contact_email,
           contact_phone: formData.contact_phone,
@@ -505,6 +512,30 @@ export default function SettingsPage() {
 
   return (
     <div className="w-full space-y-8 pb-12">
+      {step && ['business_info', 'contact_details', 'preferences', 'account_setup'].includes(step) && (
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50/60 border border-amber-250 rounded-2xl p-4 mb-6 text-left shadow-sm space-y-2.5">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded font-black text-[10px] uppercase tracking-wider">
+              {step === 'business_info' && 'Step 1 of 7'}
+              {step === 'contact_details' && 'Step 3 of 7'}
+              {step === 'preferences' && 'Step 5 of 7'}
+              {step === 'account_setup' && 'Step 7 of 7'}
+            </span>
+            <h4 className="font-extrabold text-xs text-slate-800 uppercase tracking-wide">
+              {step === 'business_info' && 'Complete Business Information'}
+              {step === 'contact_details' && 'Verify Contact Details'}
+              {step === 'preferences' && 'Setup Store Subdomain'}
+              {step === 'account_setup' && 'Activate Store Account'}
+            </h4>
+          </div>
+          <p className="text-xs text-slate-600 leading-relaxed font-medium">
+            {step === 'business_info' && 'Please specify a store name. This will represent your retail brand name on your storefront website.'}
+            {step === 'contact_details' && 'Please configure your contact phone number. Customers will use this phone number for direct order queries.'}
+            {step === 'preferences' && 'Please configure your custom domain or subdomain preferences details below.'}
+            {step === 'account_setup' && 'Activate your merchant store account. Ensure the store is set to active (not paused) so customers can view it online.'}
+          </p>
+        </div>
+      )}
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Store Settings</h2>
         <p className="text-muted-foreground">Manage your store's configuration and preferences.</p>
@@ -521,7 +552,11 @@ export default function SettingsPage() {
                 type="text"
                 value={formData.store_name}
                 onChange={e => setFormData({...formData, store_name: e.target.value})}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none"
+                className={`w-full h-10 px-3 rounded-md border bg-background focus:ring-2 focus:ring-primary outline-none transition-all ${
+                  step === 'business_info' && !formData.store_name 
+                    ? 'border-amber-500 ring-2 ring-amber-400/50 animate-pulse bg-amber-50/10' 
+                    : 'border-input'
+                }`}
               />
             </div>
             <div className="space-y-2">
@@ -567,6 +602,39 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Account Status / Setup Section */}
+        <div className={`p-6 border-b border-border space-y-6 transition-all ${
+          step === 'account_setup' 
+            ? 'bg-amber-50/20 border-amber-300 ring-2 ring-amber-400/35 animate-pulse' 
+            : 'bg-muted/5'
+        }`}>
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Lock className="w-5 h-5 text-primary" /> Account Status
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1">Activate or pause your merchant shop catalog. When paused, customers cannot access or browse your shop storefront website.</p>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => {
+                setFormData(prev => ({
+                  ...prev,
+                  is_paused: !formData.is_paused
+                }));
+              }}
+              className="flex items-center gap-2.5 cursor-pointer transition-all hover:scale-102"
+            >
+              {formData.is_paused ? (
+                <ToggleLeft className="w-10 h-10 text-muted-foreground" />
+              ) : (
+                <ToggleRight className="w-10 h-10 text-emerald-500" />
+              )}
+              <span className="font-extrabold text-xs uppercase tracking-wide">
+                {formData.is_paused ? 'Store Paused / Offline (Suspended)' : 'Store Active / Live (Online)'}
+              </span>
+            </button>
+          </div>
+        </div>
+
         {/* Contact Settings */}
         <div className="p-6 border-b border-border space-y-6 bg-muted/10">
           <h3 className="text-lg font-semibold flex items-center gap-2"><Phone className="w-5 h-5 text-primary" /> Contact Details</h3>
@@ -591,7 +659,11 @@ export default function SettingsPage() {
                   type="tel" 
                   value={formData.contact_phone} 
                   onChange={e => setFormData({...formData, contact_phone: e.target.value})}
-                  className="w-full h-10 pl-9 pr-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary outline-none"
+                  className={`w-full h-10 pl-9 pr-3 rounded-md border bg-background focus:ring-2 focus:ring-primary outline-none transition-all ${
+                    step === 'contact_details' && !formData.contact_phone 
+                      ? 'border-amber-500 ring-2 ring-amber-400/50 animate-pulse bg-amber-50/10' 
+                      : 'border-input'
+                  }`}
                 />
               </div>
             </div>
@@ -1522,5 +1594,13 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center p-10"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>}>
+      <SettingsPageContent />
+    </Suspense>
   );
 }
