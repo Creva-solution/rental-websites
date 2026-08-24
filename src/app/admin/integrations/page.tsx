@@ -541,6 +541,9 @@ export default function IntegrationsPage() {
 
       setActiveAIProvider(null);
       await fetchData();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('ai-integration-changed'));
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -559,6 +562,9 @@ export default function IntegrationsPage() {
         .update({ is_enabled: !existing.is_enabled })
         .eq('id', existing.id);
       await fetchData();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('ai-integration-changed'));
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -576,6 +582,9 @@ export default function IntegrationsPage() {
       }
       setActiveAIProvider(null);
       await fetchData();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('ai-integration-changed'));
+      }
     } catch (e) {
       console.error(e);
     } finally {

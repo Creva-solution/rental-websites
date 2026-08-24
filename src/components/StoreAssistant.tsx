@@ -114,9 +114,15 @@ export default function StoreAssistant() {
     }
   }, [messages, isTyping]);
 
-  // Fetch all live settings on mount
+  // Fetch all live settings on mount and listen to AI configuration changes
   useEffect(() => {
     fetchStoreStatus();
+
+    const handleAIChange = () => {
+      fetchStoreStatus();
+    };
+    window.addEventListener('ai-integration-changed', handleAIChange);
+    return () => window.removeEventListener('ai-integration-changed', handleAIChange);
   }, []);
 
   // Listen to global activity notifications broadcasted from other admin pages

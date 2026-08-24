@@ -22,7 +22,7 @@ export default function AIContentStudioPage() {
   
   // AI Integrations Status
   const [activeAI, setActiveAI] = useState<{
-    status: 'not_configured' | 'key_entered' | 'testing' | 'connected' | 'error' | 'disconnected';
+    status: 'not_configured' | 'key_entered' | 'testing' | 'connected' | 'error' | 'disconnected' | 'disabled';
     providerName: string;
     apiKey: string;
     integrationId: string;
@@ -78,6 +78,12 @@ export default function AIContentStudioPage() {
 
   useEffect(() => {
     fetchInitialData();
+
+    const handleSync = () => {
+      fetchInitialData();
+    };
+    window.addEventListener('ai-integration-changed', handleSync);
+    return () => window.removeEventListener('ai-integration-changed', handleSync);
   }, []);
 
   const fetchInitialData = async () => {
@@ -112,26 +118,45 @@ export default function AIContentStudioPage() {
         .from('integrations')
         .select('*')
         .eq('store_id', store.id)
-        .in('type', ['meta_ai', 'meta_llama', 'openai']);
+        .in('type', ['meta_ai', 'meta_llama', 'openai', 'anthropic_claude']);
 
-      const activeInt = ints?.find((i: any) => i.is_enabled);
+      const activeInt = ints?.find((i: any) => i.is_enabled && i.config?.verified === true);
+      const disabledInt = ints?.find((i: any) => !i.is_enabled && i.config?.verified === true);
+
       if (activeInt) {
         const apiKey = activeInt.config?.api_key || activeInt.config?.apiKey || '';
-        const isVerified = activeInt.config?.verified === true;
-        
         setActiveAI({
-          status: isVerified ? 'connected' : 'key_entered',
-          providerName: activeInt.type === 'openai' ? 'OpenAI' : 'Groq / Llama',
+          status: 'connected',
+          providerName: activeInt.type === 'openai' ? 'OpenAI' : activeInt.type === 'anthropic_claude' ? 'Anthropic Claude' : 'Meta Llama (Groq)',
           apiKey,
           integrationId: activeInt.id
         });
-      } else {
+      } else if (disabledInt) {
+        const apiKey = disabledInt.config?.api_key || disabledInt.config?.apiKey || '';
         setActiveAI({
-          status: 'not_configured',
-          providerName: '',
-          apiKey: '',
-          integrationId: ''
+          status: 'disabled',
+          providerName: disabledInt.type === 'openai' ? 'OpenAI' : disabledInt.type === 'anthropic_claude' ? 'Anthropic Claude' : 'Meta Llama (Groq)',
+          apiKey,
+          integrationId: disabledInt.id
         });
+      } else {
+        const unverifiedInt = ints?.find((i: any) => i.config?.api_key);
+        if (unverifiedInt) {
+          const apiKey = unverifiedInt.config?.api_key || unverifiedInt.config?.apiKey || '';
+          setActiveAI({
+            status: 'key_entered',
+            providerName: unverifiedInt.type === 'openai' ? 'OpenAI' : unverifiedInt.type === 'anthropic_claude' ? 'Anthropic Claude' : 'Meta Llama (Groq)',
+            apiKey,
+            integrationId: unverifiedInt.id
+          });
+        } else {
+          setActiveAI({
+            status: 'not_configured',
+            providerName: '',
+            apiKey: '',
+            integrationId: ''
+          });
+        }
       }
 
     } catch (e) {
@@ -270,28 +295,29 @@ export default function AIContentStudioPage() {
 
     try {
       const isOpenAI = activeAI.providerName === 'OpenAI';
+      const isClaude = activeAI.providerName === 'Anthropic Claude';
       const endpoint = isOpenAI 
         ? 'https://api.openai.com/v1/chat/completions' 
-        : 'https://api.groq.com/openai/v1/chat/completions';
+        : isClaude
+          ? 'https://api.anthropic.com/v1/messages'
+          : 'https://api.groq.com/openai/v1/chat/completions';
       
-      const modelName = isOpenAI ? 'gpt-4o-mini' : 'llama3-8b-8192';
+      const modelName = isOpenAI ? 'gpt-4o-mini' : isClaude ? 'claude-3-haiku-20240307' : 'llama3-8b-8192';
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${activeAI.apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: modelName,
-          messages: [
-            {
-              role: 'system',
-              content: `You are a professional e-commerce copywriter. Generate high-converting marketing copy in a ${tone} tone. Translate the output into ${language}.`
-            },
-            {
-              role: 'user',
-              content: `Task: Generate a ${activePreset} for this product:
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+
+      if (isClaude) {
+        headers['x-api-key'] = activeAI.apiKey;
+        headers['anthropic-version'] = '2023-06-01';
+        headers['anthropic-dangerous-direct-browser-access'] = 'true';
+      } else {
+        headers['Authorization'] = `Bearer ${activeAI.apiKey}`;
+      }
+
+      const promptSystem = `You are a professional e-commerce copywriter. Generate high-converting marketing copy in a ${tone} tone. Translate the output into ${language}.`;
+      const promptUser = `Task: Generate a ${activePreset} for this product:
 Name: ${name}
 Category: ${category}
 Subcategory: ${subcategory}
@@ -303,17 +329,39 @@ Style: ${activePreset === 'Product Description' ? descStyle : 'Standard'}
 
 Guidelines:
 - Output only the generated text block directly. Do not include any introductions, wrappers, or meta comments.
-- Must be written in ${language}.
-`
-            }
-          ],
-          temperature: 0.7
-        })
+- Must be written in ${language}.`;
+
+      const requestBody = isClaude ? {
+        model: modelName,
+        max_tokens: 1024,
+        system: promptSystem,
+        messages: [
+          { role: 'user', content: promptUser }
+        ]
+      } : {
+        model: modelName,
+        messages: [
+          {
+            role: 'system',
+            content: promptSystem
+          },
+          {
+            role: 'user',
+            content: promptUser
+          }
+        ],
+        temperature: 0.7
+      };
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody)
       });
 
       if (response.ok) {
         const json = await response.json();
-        const content = json.choices?.[0]?.message?.content;
+        const content = isClaude ? json.content?.[0]?.text : json.choices?.[0]?.message?.content;
         if (content) {
           setGeneratedText(content.trim());
           setGenerating(false);
@@ -666,24 +714,37 @@ Guidelines:
               {/* Connection Status panel */}
               <div className="text-xs">
                 {activeAI.status === 'not_configured' && (
-                  <div className="flex items-start gap-2 text-red-600 font-semibold bg-red-50/50 p-3 border border-red-100 rounded-xl">
+                  <div className="flex items-start gap-2 text-red-600 font-semibold bg-red-50/50 p-3.5 border border-red-100 rounded-xl">
                     <AlertCircle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
                     <div>
                       <span className="block font-bold">AI provider required</span>
-                      <span className="text-[10px] text-red-500 font-medium block mt-0.5">Connect an AI provider to generate content.</span>
+                      <span className="text-[10px] text-red-505 font-medium block mt-0.5">Connect an AI provider to unlock AI content generation.</span>
                       <Link href="/admin/integrations" className="text-[10px] font-black text-blue-600 hover:underline block mt-1">
-                        Go to AI Integrations →
+                        Go to AI Integrations
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
+                {activeAI.status === 'disabled' && (
+                  <div className="flex items-start gap-2 text-amber-600 font-semibold bg-amber-50/50 p-3.5 border border-amber-100 rounded-xl">
+                    <AlertTriangle className="w-4.5 h-4.5 shrink-0 mt-0.5 text-amber-500" />
+                    <div>
+                      <span className="block font-bold">AI Provider Disabled</span>
+                      <span className="text-[10px] text-amber-600 font-medium block mt-0.5">Your connected provider ({activeAI.providerName}) is disabled. Please toggle it ON in Integrations to enable content generation.</span>
+                      <Link href="/admin/integrations" className="text-[10px] font-black text-blue-600 hover:underline block mt-1">
+                        Go to AI Integrations
                       </Link>
                     </div>
                   </div>
                 )}
 
                 {activeAI.status === 'key_entered' && (
-                  <div className="flex items-start gap-2 text-amber-600 font-semibold bg-amber-50/50 p-3 border border-amber-100 rounded-xl">
-                    <AlertTriangle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
+                  <div className="flex items-start gap-2 text-amber-600 font-semibold bg-amber-50/50 p-3.5 border border-amber-100 rounded-xl">
+                    <AlertTriangle className="w-4.5 h-4.5 shrink-0 mt-0.5 text-amber-500" />
                     <div>
                       <span className="block font-bold">AI connection needs verification</span>
-                      <span className="text-[10px] text-amber-500 font-medium block mt-0.5">Your API key has been saved but the connection has not been verified.</span>
+                      <span className="text-[10px] text-amber-600 font-medium block mt-0.5">Your API key has been saved but the connection has not been verified.</span>
                       <button
                         onClick={handleTestConnection}
                         disabled={testingConnection}
@@ -696,10 +757,12 @@ Guidelines:
                 )}
 
                 {activeAI.status === 'connected' && (
-                  <div className="flex items-center gap-2 text-emerald-600 font-bold bg-emerald-50/50 p-3 border border-emerald-100 rounded-xl">
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <div className="flex items-start gap-2 text-emerald-600 font-bold bg-emerald-50/50 p-3.5 border border-emerald-100 rounded-xl">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
                     <div>
-                      <span>● Connected to {activeAI.providerName}</span>
+                      <span className="block font-extrabold text-xs">🟢 AI Connected</span>
+                      <span className="block text-[11px] text-slate-800 font-extrabold mt-0.5">{activeAI.providerName}</span>
+                      <span className="text-[10px] text-slate-500 font-medium block mt-0.5">Ready to generate content</span>
                     </div>
                   </div>
                 )}
