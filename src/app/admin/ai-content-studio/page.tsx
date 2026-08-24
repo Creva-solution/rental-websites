@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { getAiIntegration, saveAiIntegration } from '@/lib/aiStore';
 import {
   Sparkles, Brain, Copy, RotateCw, Check, Compass, MessageSquare,
   Megaphone, FileText, Loader2, Link as LinkIcon, AlertCircle, AlertTriangle, CheckCircle2,
@@ -113,50 +114,30 @@ export default function AIContentStudioPage() {
       setProducts(prods || []);
       setLoadingProducts(false);
 
-      // Fetch AI integrations
-      const { data: ints } = await supabase
-        .from('integrations')
-        .select('*')
-        .eq('store_id', store.id)
-        .in('type', ['meta_ai', 'meta_llama', 'openai', 'anthropic_claude']);
+      // Fetch AI integration from persistent store
+      const aiIntegration = await getAiIntegration(store.id);
 
-      const activeInt = ints?.find((i: any) => i.is_enabled && i.config?.verified === true);
-      const disabledInt = ints?.find((i: any) => !i.is_enabled && i.config?.verified === true);
-
-      if (activeInt) {
-        const apiKey = activeInt.config?.api_key || activeInt.config?.apiKey || '';
+      if (aiIntegration.isConnected && aiIntegration.isVerified) {
         setActiveAI({
-          status: 'connected',
-          providerName: activeInt.type === 'openai' ? 'OpenAI' : activeInt.type === 'anthropic_claude' ? 'Anthropic Claude' : 'Meta Llama (Groq)',
-          apiKey,
-          integrationId: activeInt.id
+          status: aiIntegration.isEnabled ? 'connected' : 'disabled',
+          providerName: aiIntegration.providerName,
+          apiKey: aiIntegration.apiKey,
+          integrationId: 'ai-integration'
         });
-      } else if (disabledInt) {
-        const apiKey = disabledInt.config?.api_key || disabledInt.config?.apiKey || '';
+      } else if (aiIntegration.apiKey) {
         setActiveAI({
-          status: 'disabled',
-          providerName: disabledInt.type === 'openai' ? 'OpenAI' : disabledInt.type === 'anthropic_claude' ? 'Anthropic Claude' : 'Meta Llama (Groq)',
-          apiKey,
-          integrationId: disabledInt.id
+          status: 'key_entered',
+          providerName: aiIntegration.providerName,
+          apiKey: aiIntegration.apiKey,
+          integrationId: 'ai-integration'
         });
       } else {
-        const unverifiedInt = ints?.find((i: any) => i.config?.api_key);
-        if (unverifiedInt) {
-          const apiKey = unverifiedInt.config?.api_key || unverifiedInt.config?.apiKey || '';
-          setActiveAI({
-            status: 'key_entered',
-            providerName: unverifiedInt.type === 'openai' ? 'OpenAI' : unverifiedInt.type === 'anthropic_claude' ? 'Anthropic Claude' : 'Meta Llama (Groq)',
-            apiKey,
-            integrationId: unverifiedInt.id
-          });
-        } else {
-          setActiveAI({
-            status: 'not_configured',
-            providerName: '',
-            apiKey: '',
-            integrationId: ''
-          });
-        }
+        setActiveAI({
+          status: 'not_configured',
+          providerName: '',
+          apiKey: '',
+          integrationId: ''
+        });
       }
 
     } catch (e) {
@@ -212,41 +193,31 @@ export default function AIContentStudioPage() {
   };
 
   const handleTestConnection = async () => {
-    if (!activeAI.integrationId || !activeAI.apiKey) return;
+    if (!storeData || !activeAI.apiKey) return;
     setTestingConnection(true);
 
     // Simulate key validation API check
     setTimeout(async () => {
       let isVerified = false;
       const key = activeAI.apiKey;
+      const name = activeAI.providerName;
 
-      if (activeAI.providerName === 'OpenAI' && key.startsWith('sk-') && key.length > 20) {
+      if (name === 'OpenAI' && key.startsWith('sk-') && key.length > 20) {
         isVerified = true;
-      } else if (activeAI.providerName === 'Groq / Llama' && key.startsWith('gsk_') && key.length > 20) {
+      } else if ((name === 'Groq / Llama' || name === 'Meta Llama (Groq)') && key.startsWith('gsk_') && key.length > 20) {
+        isVerified = true;
+      } else if (name === 'Anthropic Claude' && key.startsWith('sk-ant-') && key.length > 20) {
         isVerified = true;
       }
 
       if (isVerified) {
         try {
-          // Update integration config as verified in Supabase
-          const { data: existing } = await supabase
-            .from('integrations')
-            .select('config')
-            .eq('id', activeAI.integrationId)
-            .single();
-
-          if (existing) {
-            await supabase
-              .from('integrations')
-              .update({
-                config: { ...existing.config, verified: true }
-              })
-              .eq('id', activeAI.integrationId);
-          }
-
+          const providerType = name === 'OpenAI' ? 'openai' : name === 'Anthropic Claude' ? 'anthropic_claude' : 'groq';
+          await saveAiIntegration(storeData.id, providerType, key, true);
           setActiveAI(prev => ({ ...prev, status: 'connected' }));
         } catch (e) {
           console.error(e);
+          setActiveAI(prev => ({ ...prev, status: 'error' }));
         }
       } else {
         setActiveAI(prev => ({ ...prev, status: 'error' }));

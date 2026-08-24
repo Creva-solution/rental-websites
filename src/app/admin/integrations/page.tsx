@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
+import { saveAiIntegration, disconnectAiIntegration, maskApiKey } from '@/lib/aiStore';
 import { useSearchParams } from 'next/navigation';
 import {
   Plug, Settings, Check, CreditCard, X, Loader2, ToggleLeft, ToggleRight,
@@ -466,7 +467,8 @@ function IntegrationsPageContent() {
   // AI Provider config actions
   const openConfigureAI = (provider: AIDef) => {
     const existing = getIntegration(provider.type);
-    setAiKeyInput(existing?.config?.api_key ? '••••••••••••••••••••' : '');
+    const key = existing?.config?.api_key || '';
+    setAiKeyInput(key ? maskApiKey(key) : '');
     setAiVerified(existing?.config?.verified === true);
     setAiTestResult(null);
     setActiveAIProvider(provider);
@@ -482,7 +484,7 @@ function IntegrationsPageContent() {
       let isValid = true;
       let errMsg = '';
 
-      if (aiKeyInput === '••••••••••••••••••••') {
+      if (aiKeyInput.startsWith('••••')) {
         setAiVerified(true);
         setAiTestResult({ status: 'success', message: '✓ Connection successful' });
         return;
@@ -518,39 +520,15 @@ function IntegrationsPageContent() {
       const existing = getIntegration(activeAIProvider.type);
       let finalKey = aiKeyInput;
 
-      if (aiKeyInput === '••••••••••••••••••••' && existing?.config?.api_key) {
+      if (aiKeyInput.startsWith('••••') && existing?.config?.api_key) {
         finalKey = existing.config.api_key;
       }
 
-      const finalConfig = {
-        api_key: finalKey,
-        verified: true
-      };
-
-      if (existing) {
-        await supabase
-          .from('integrations')
-          .update({
-            is_enabled: true,
-            config: finalConfig
-          })
-          .eq('id', existing.id);
-      } else {
-        await supabase
-          .from('integrations')
-          .insert([{
-            store_id: storeData.id,
-            type: activeAIProvider.type,
-            is_enabled: true,
-            config: finalConfig
-          }]);
-      }
+      const providerType = activeAIProvider.type === 'meta_ai' ? 'groq' : activeAIProvider.type as any;
+      await saveAiIntegration(storeData.id, providerType, finalKey, true);
 
       setActiveAIProvider(null);
       await fetchData();
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('ai-integration-changed'));
-      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -560,18 +538,14 @@ function IntegrationsPageContent() {
 
   const handleToggleAI = async (type: string) => {
     const existing = getIntegration(type);
-    if (!existing || existing.config?.verified !== true) return;
+    if (!existing || existing.config?.verified !== true || !storeData) return;
     setTogglingType(type);
 
     try {
-      await supabase
-        .from('integrations')
-        .update({ is_enabled: !existing.is_enabled })
-        .eq('id', existing.id);
+      const providerType = type === 'meta_ai' ? 'groq' : type as any;
+      const newEnabled = !existing.is_enabled;
+      await saveAiIntegration(storeData.id, providerType, existing.config?.api_key || '', newEnabled);
       await fetchData();
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('ai-integration-changed'));
-      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -580,18 +554,12 @@ function IntegrationsPageContent() {
   };
 
   const handleDisconnectAI = async () => {
-    if (!activeAIProvider) return;
+    if (!activeAIProvider || !storeData) return;
     setSaving(true);
     try {
-      const existing = getIntegration(activeAIProvider.type);
-      if (existing) {
-        await supabase.from('integrations').delete().eq('id', existing.id);
-      }
+      await disconnectAiIntegration(storeData.id);
       setActiveAIProvider(null);
       await fetchData();
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('ai-integration-changed'));
-      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -1148,14 +1116,20 @@ function IntegrationsPageContent() {
 
               {/* Status display */}
               <div className="text-xs">
-                <span className="text-[10px] font-black uppercase text-slate-450 tracking-wider">Connection Status:</span>
-                <div className="mt-1 font-bold">
+                <span className="text-[10px] font-black uppercase text-slate-450 tracking-wider block">Connection Status:</span>
+                <div className="mt-1 font-bold space-y-1">
                   {aiTestResult ? (
-                    <span className={aiTestResult.status === 'success' ? 'text-emerald-600' : 'text-red-500'}>
+                    <span className={aiTestResult.status === 'success' ? 'text-emerald-600 block' : 'text-red-500 block'}>
                       {aiTestResult.message}
                     </span>
+                  ) : (getIntegration(activeAIProvider.type)?.is_enabled && getIntegration(activeAIProvider.type)?.config?.verified) ? (
+                    <div className="text-emerald-600 space-y-0.5">
+                      <div className="block font-bold">✓ Connection successful</div>
+                      <div className="block text-slate-800 text-[10px]">Status: Connected</div>
+                      <div className="block text-slate-500 text-[10px]">Provider: {activeAIProvider.name}</div>
+                    </div>
                   ) : (
-                    <span className="text-slate-500">Not verified</span>
+                    <span className="text-slate-500 block">Not verified</span>
                   )}
                 </div>
               </div>
