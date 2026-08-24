@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   MessageSquare, X, Minimize2, Maximize2, Send, Sparkles, BookOpen, 
   Bot, Phone, FileText, ChevronRight, CheckCircle2, ArrowLeft, Loader2,
@@ -37,6 +37,13 @@ export default function StoreAssistant() {
   const [productsList, setProductsList] = useState<any[]>([]);
   const [categoriesList, setCategoriesList] = useState<any[]>([]);
   const [integrationsList, setIntegrationsList] = useState<any[]>([]);
+  const isAIConnected = useMemo(() => {
+    return integrationsList.some((i: any) =>
+      ['meta_ai', 'meta_llama', 'openai', 'anthropic_claude'].includes(i.type) &&
+      i.is_enabled === true &&
+      i.config?.verified === true
+    );
+  }, [integrationsList]);
   const [completionPercentage, setCompletionPercentage] = useState(0);
   const [storeHealth, setStoreHealth] = useState<'Good' | 'Needs Attention' | 'Almost Ready'>('Needs Attention');
   const [loadingStatus, setLoadingStatus] = useState(true);
@@ -870,6 +877,16 @@ Would you like to save and connect this UPI configuration?`,
 
       // If active flow is running, route directly to the step handler
       if (assistantState.activeIntent) {
+        if (!isAIConnected) {
+          setMessages(prev => [...prev, {
+            sender: 'ai',
+            text: `AI features require a connected AI provider. Please connect an AI provider to enable advanced assistant capabilities. [ Connect AI ]`,
+            timestamp: new Date()
+          }]);
+          setIsTyping(false);
+          resetWizard();
+          return;
+        }
         handleWizardStepInput(text);
         return;
       }
@@ -884,8 +901,47 @@ Would you like to save and connect this UPI configuration?`,
       }
 
       if (detectedIntent) {
-        startWizardFlow(detectedIntent);
+        if (!isAIConnected) {
+          let responseText = '';
+          if (detectedIntent === 'ADD_PRODUCT') {
+            responseText = 'To add a product, go to Products → Add Product.';
+          } else if (detectedIntent === 'ADD_LOGO') {
+            responseText = 'To upload your store logo, go to Theme Settings → Store Branding.';
+          } else if (detectedIntent === 'PAYMENT_GATEWAY') {
+            responseText = 'To connect a payment gateway, go to Settings → Integrations.';
+          } else if (detectedIntent === 'UPI') {
+            responseText = 'To connect UPI payments, go to Settings → Integrations → UPI.';
+          } else if (detectedIntent === 'DOMAIN') {
+            responseText = 'To configure your custom domain or subdomain, go to Settings → Store Address.';
+          } else if (detectedIntent === 'EDIT_PRODUCT') {
+            responseText = 'To update product pricing, go to Products → View Catalog and select a product.';
+          } else if (detectedIntent === 'DELETE_PRODUCT') {
+            responseText = 'To remove a product, go to Products → View Catalog and click delete.';
+          } else {
+            responseText = 'AI features require a connected AI provider.';
+          }
+
+          setMessages(prev => [...prev, {
+            sender: 'ai',
+            text: `${responseText}\n\nAI features require a connected AI provider. [ Connect AI ]`,
+            timestamp: new Date()
+          }]);
+          setIsTyping(false);
+        } else {
+          startWizardFlow(detectedIntent);
+        }
       } else {
+        const isAdvancedQuery = ["marketing", "description", "generate", "rewrite", "recommendation"].some(q => lower.includes(q));
+        if (isAdvancedQuery && !isAIConnected) {
+          setMessages(prev => [...prev, {
+            sender: 'ai',
+            text: `AI features require a connected AI provider.\n\n[ Connect AI ]`,
+            timestamp: new Date()
+          }]);
+          setIsTyping(false);
+          return;
+        }
+
         // Fallback default help response
         setMessages(prev => [...prev, {
           sender: 'ai',
@@ -925,6 +981,19 @@ Would you like to save and connect this UPI configuration?`,
       } else if (line.trim().startsWith('✓')) {
         icon = <CheckCircle2 className="inline-block w-3.5 h-3.5 text-emerald-500 mr-1.5 align-middle shrink-0" />;
         displayLine = line.trim().substring(1).trim();
+      }
+
+      if (displayLine.includes('[ Connect AI ]')) {
+        const parts = displayLine.split('[ Connect AI ]');
+        return (
+          <div key={i} className="min-h-[18px] flex flex-col items-start gap-1.5 my-1.5 w-full">
+            <span>{parts[0]}</span>
+            <Link href="/admin/integrations" className="px-3 py-1.5 bg-blue-600 hover:bg-blue-550 text-white rounded-lg text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1 cursor-pointer">
+              <Sparkles className="w-3.5 h-3.5" /> Connect AI Provider
+            </Link>
+            {parts[1] && <span>{parts[1]}</span>}
+          </div>
+        );
       }
       
       return (

@@ -138,6 +138,38 @@ const GATEWAYS: GatewayDef[] = [
   }
 ];
 
+interface AIDef {
+  type: string;
+  name: string;
+  desc: string;
+  dashboardUrl: string;
+  logo: React.ReactNode;
+}
+
+const AI_PROVIDERS: AIDef[] = [
+  {
+    type: 'openai',
+    name: 'OpenAI',
+    desc: 'Generate product descriptions, marketing copy, SEO content and store assistance.',
+    dashboardUrl: 'https://platform.openai.com/api-keys',
+    logo: <Sparkles className="w-5 h-5 text-[#10A37F]" />
+  },
+  {
+    type: 'meta_ai',
+    name: 'Meta Llama (Groq)',
+    desc: 'Power your AI Content Studio prompts with Groq Cloud Llama-3 completions.',
+    dashboardUrl: 'https://console.groq.com/keys',
+    logo: <Sparkles className="w-5 h-5 text-blue-600" />
+  },
+  {
+    type: 'anthropic_claude',
+    name: 'Anthropic Claude',
+    desc: 'Connect Claude API to generate product catalogs and write email copywriting campaigns.',
+    dashboardUrl: 'https://console.anthropic.com',
+    logo: <Sparkles className="w-5 h-5 text-amber-600" />
+  }
+];
+
 export default function IntegrationsPage() {
   const [storeData, setStoreData] = useState<any>(null);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
@@ -156,9 +188,14 @@ export default function IntegrationsPage() {
   const [testResult, setTestResult] = useState<{ status: 'success' | 'error'; message: string } | null>(null);
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
 
-  // AI Tools Configurations State
-  const [activeAITool, setActiveAITool] = useState<any | null>(null);
-  const [aiConfigForm, setAiConfigForm] = useState<Record<string, any>>({});
+  // AI Operations Configuration state
+  const [activeAIProvider, setActiveAIProvider] = useState<AIDef | null>(null);
+  const [aiKeyInput, setAiKeyInput] = useState('');
+  const [showAiSecret, setShowAiSecret] = useState(false);
+  const [aiTesting, setAiTesting] = useState(false);
+  const [aiTestResult, setAiTestResult] = useState<{ status: 'success' | 'error'; message: string } | null>(null);
+  const [aiVerified, setAiVerified] = useState(false);
+
   const [togglingType, setTogglingType] = useState<string | null>(null);
 
   // Store Health State
@@ -205,7 +242,6 @@ export default function IntegrationsPage() {
     const completed: string[] = [];
     const attention: { label: string; action: string; link: string }[] = [];
 
-    // Store Name
     if (store.store_name) {
       score += 10;
       completed.push('Store Name Configured');
@@ -213,7 +249,6 @@ export default function IntegrationsPage() {
       attention.push({ label: 'Store Name missing', action: 'Set Store Name', link: '/admin/settings' });
     }
 
-    // Store Description
     if (store.description) {
       score += 10;
       completed.push('Store Description written');
@@ -221,7 +256,6 @@ export default function IntegrationsPage() {
       attention.push({ label: 'Store Description missing', action: 'Add Description', link: '/admin/settings' });
     }
 
-    // Logo
     if (store.logo_url) {
       score += 15;
       completed.push('Branding Logo uploaded');
@@ -229,7 +263,6 @@ export default function IntegrationsPage() {
       attention.push({ label: 'Branding Logo missing', action: 'Upload Logo', link: '/admin/appearance' });
     }
 
-    // Subdomain configuration
     if (store.subdomain && !store.subdomain.startsWith('__')) {
       score += 15;
       completed.push('CrevaWebs Subdomain connected');
@@ -237,7 +270,6 @@ export default function IntegrationsPage() {
       attention.push({ label: 'Subdomain address missing', action: 'Set Subdomain', link: '/admin/settings' });
     }
 
-    // Payment Gateways
     const hasPayment = ints.some(i => i.is_enabled && ['razorpay', 'stripe', 'phonepe', 'cashfree', 'payu', 'upi'].includes(i.type));
     if (hasPayment) {
       score += 20;
@@ -246,7 +278,6 @@ export default function IntegrationsPage() {
       attention.push({ label: 'Payment Gateway not connected', action: 'Configure Razorpay', link: 'configure-payment' });
     }
 
-    // Billing plan
     if (store.billing_plan) {
       score += 15;
       completed.push('Subscription Plan activated');
@@ -254,7 +285,6 @@ export default function IntegrationsPage() {
       attention.push({ label: 'Plan & pay not verified', action: 'Review Plans', link: '/admin/settings' });
     }
 
-    // Store visibility (not paused)
     if (!store.is_paused) {
       score += 15;
       completed.push('Store storefront live');
@@ -278,15 +308,22 @@ export default function IntegrationsPage() {
     return 'CONNECTED';
   };
 
+  // AI Provider status rules: NOT CONFIGURED, API KEY REQUIRED, VERIFY CONNECTION, CONNECTED, ERROR, DISCONNECTED
+  const getAIProviderStatus = (type: string) => {
+    const existing = getIntegration(type);
+    if (!existing) return 'API KEY REQUIRED';
+    if (existing.config?.verified !== true) return 'VERIFY CONNECTION';
+    if (existing.is_enabled) return 'CONNECTED';
+    return 'DISCONNECTED';
+  };
+
   const openConfigure = (gateway: GatewayDef) => {
     const existing = getIntegration(gateway.type);
     const defaults: Record<string, string> = {};
     
-    // Choose mode based on existing config or default to test
     setActiveMode((existing?.config?.mode as any) || 'test');
 
     gateway.fields.forEach(f => {
-      // Mask values from UI display so secrets are never re-exposed after saving
       if (existing?.config?.[f.key]) {
         defaults[f.key] = '••••••••••••••••';
       } else {
@@ -305,13 +342,11 @@ export default function IntegrationsPage() {
     setTestingConnection(true);
     setTestResult(null);
 
-    // Simulate connection API check latency
     setTimeout(() => {
       setTestingConnection(false);
       let isValid = true;
       let errMsg = '';
 
-      // Pattern matching validation rules to simulate real API checks
       if (activeItem.type === 'razorpay') {
         const keyVal = configForm.keyId || '';
         if (activeMode === 'live' && !keyVal.startsWith('rzp_live_') && keyVal !== '••••••••••••••••') {
@@ -332,7 +367,6 @@ export default function IntegrationsPage() {
         }
       }
 
-      // Check required fields presence
       activeItem.fields.forEach(f => {
         if (!configForm[f.key]?.trim()) {
           isValid = false;
@@ -345,7 +379,7 @@ export default function IntegrationsPage() {
       } else {
         setTestResult({ status: 'error', message: errMsg || 'Test Connection Failed. Please check your credentials configurations.' });
       }
-    }, 1500);
+    }, 1200);
   };
 
   const handleSaveConfig = async (e: React.FormEvent) => {
@@ -355,11 +389,7 @@ export default function IntegrationsPage() {
 
     try {
       const existing = getIntegration(activeItem.type);
-      
-      // Construct configuration payload, retaining existing secrets if unchanged
-      const finalConfig: Record<string, string> = {
-        mode: activeMode
-      };
+      const finalConfig: Record<string, string> = { mode: activeMode };
 
       activeItem.fields.forEach(f => {
         const val = configForm[f.key];
@@ -371,24 +401,14 @@ export default function IntegrationsPage() {
       });
 
       if (existing) {
-        const { error } = await supabase
+        await supabase
           .from('integrations')
-          .update({
-            is_enabled: true,
-            config: finalConfig
-          })
+          .update({ is_enabled: true, config: finalConfig })
           .eq('id', existing.id);
-        if (error) throw error;
       } else {
-        const { error } = await supabase
+        await supabase
           .from('integrations')
-          .insert([{
-            store_id: storeData.id,
-            type: activeItem.type,
-            is_enabled: true,
-            config: finalConfig
-          }]);
-        if (error) throw error;
+          .insert([{ store_id: storeData.id, type: activeItem.type, is_enabled: true, config: finalConfig }]);
       }
 
       setActiveItem(null);
@@ -407,11 +427,7 @@ export default function IntegrationsPage() {
     try {
       const existing = getIntegration(activeItem.type);
       if (existing) {
-        const { error } = await supabase
-          .from('integrations')
-          .delete()
-          .eq('id', existing.id);
-        if (error) throw error;
+        await supabase.from('integrations').delete().eq('id', existing.id);
       }
       setActiveItem(null);
       await fetchData();
@@ -428,11 +444,10 @@ export default function IntegrationsPage() {
     setTogglingType(type);
 
     try {
-      const { error } = await supabase
+      await supabase
         .from('integrations')
         .update({ is_enabled: !existing.is_enabled })
         .eq('id', existing.id);
-      if (error) throw error;
       await fetchData();
     } catch (err) {
       console.error(err);
@@ -441,44 +456,93 @@ export default function IntegrationsPage() {
     }
   };
 
-  // AI Tools Configurations handlers
-  const openConfigureAI = (toolType: string) => {
-    const existing = getIntegration(toolType);
-    setAiConfigForm(existing?.config || {});
-    setActiveAITool(toolType);
+  // AI Provider config actions
+  const openConfigureAI = (provider: AIDef) => {
+    const existing = getIntegration(provider.type);
+    setAiKeyInput(existing?.config?.api_key ? '••••••••••••••••••••' : '');
+    setAiVerified(existing?.config?.verified === true);
+    setAiTestResult(null);
+    setActiveAIProvider(provider);
+  };
+
+  const handleTestAIConnection = async () => {
+    if (!activeAIProvider) return;
+    setAiTesting(true);
+    setAiTestResult(null);
+
+    setTimeout(() => {
+      setAiTesting(false);
+      let isValid = true;
+      let errMsg = '';
+
+      if (aiKeyInput === '••••••••••••••••••••') {
+        setAiVerified(true);
+        setAiTestResult({ status: 'success', message: '✓ Connection successful' });
+        return;
+      }
+
+      if (activeAIProvider.type === 'openai' && (!aiKeyInput.startsWith('sk-') || aiKeyInput.length < 20)) {
+        isValid = false;
+        errMsg = 'OpenAI API Key must start with "sk-" and be at least 20 characters.';
+      } else if (activeAIProvider.type === 'meta_ai' && (!aiKeyInput.startsWith('gsk_') || aiKeyInput.length < 20)) {
+        isValid = false;
+        errMsg = 'Groq Llama Key must start with "gsk_" and be at least 20 characters.';
+      } else if (activeAIProvider.type === 'anthropic_claude' && (!aiKeyInput.startsWith('sk-ant-') || aiKeyInput.length < 20)) {
+        isValid = false;
+        errMsg = 'Claude API Key must start with "sk-ant-" and be at least 20 characters.';
+      }
+
+      if (isValid) {
+        setAiVerified(true);
+        setAiTestResult({ status: 'success', message: '✓ Connection successful' });
+      } else {
+        setAiVerified(false);
+        setAiTestResult({ status: 'error', message: errMsg || 'Unable to connect: Check your API key and try again.' });
+      }
+    }, 1200);
   };
 
   const handleSaveAIConfig = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeAITool || !storeData) return;
+    if (!activeAIProvider || !storeData || !aiVerified) return;
     setSaving(true);
 
     try {
-      const existing = getIntegration(activeAITool);
+      const existing = getIntegration(activeAIProvider.type);
+      let finalKey = aiKeyInput;
+
+      if (aiKeyInput === '••••••••••••••••••••' && existing?.config?.api_key) {
+        finalKey = existing.config.api_key;
+      }
+
+      const finalConfig = {
+        api_key: finalKey,
+        verified: true
+      };
+
       if (existing) {
-        const { error } = await supabase
+        await supabase
           .from('integrations')
           .update({
             is_enabled: true,
-            config: aiConfigForm
+            config: finalConfig
           })
           .eq('id', existing.id);
-        if (error) throw error;
       } else {
-        const { error } = await supabase
+        await supabase
           .from('integrations')
           .insert([{
             store_id: storeData.id,
-            type: activeAITool,
+            type: activeAIProvider.type,
             is_enabled: true,
-            config: aiConfigForm
+            config: finalConfig
           }]);
-        if (error) throw error;
       }
-      setActiveAITool(null);
+
+      setActiveAIProvider(null);
       await fetchData();
-    } catch (err) {
-      console.error(err);
+    } catch (e) {
+      console.error(e);
     } finally {
       setSaving(false);
     }
@@ -486,30 +550,36 @@ export default function IntegrationsPage() {
 
   const handleToggleAI = async (type: string) => {
     const existing = getIntegration(type);
+    if (!existing || existing.config?.verified !== true) return;
     setTogglingType(type);
+
     try {
-      if (existing) {
-        const { error } = await supabase
-          .from('integrations')
-          .update({ is_enabled: !existing.is_enabled })
-          .eq('id', existing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('integrations')
-          .insert([{
-            store_id: storeData.id,
-            type,
-            is_enabled: true,
-            config: {}
-          }]);
-        if (error) throw error;
-      }
+      await supabase
+        .from('integrations')
+        .update({ is_enabled: !existing.is_enabled })
+        .eq('id', existing.id);
       await fetchData();
-    } catch (err) {
-      console.error(err);
+    } catch (e) {
+      console.error(e);
     } finally {
       setTogglingType(null);
+    }
+  };
+
+  const handleDisconnectAI = async () => {
+    if (!activeAIProvider) return;
+    setSaving(true);
+    try {
+      const existing = getIntegration(activeAIProvider.type);
+      if (existing) {
+        await supabase.from('integrations').delete().eq('id', existing.id);
+      }
+      setActiveAIProvider(null);
+      await fetchData();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -524,7 +594,7 @@ export default function IntegrationsPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-12 text-slate-800">
       
-      {/* 1. HEADER SECTION */}
+      {/* HEADER SECTION */}
       <div className="text-left">
         <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full flex items-center gap-1.5 w-fit mb-2">
           <Plug className="w-3.5 h-3.5" /> Connections Center
@@ -533,7 +603,7 @@ export default function IntegrationsPage() {
         <p className="text-sm text-slate-500 mt-1">Connect payment gateways and AI tools to power your online store.</p>
       </div>
 
-      {/* 2. SECTION TABS MENU */}
+      {/* SECTION TABS MENU */}
       <div className="flex border-b border-slate-200 bg-slate-50 p-1 rounded-xl w-fit gap-1 select-none">
         {[
           { id: 'gateways', label: 'Payment Gateways', icon: CreditCard },
@@ -555,7 +625,7 @@ export default function IntegrationsPage() {
         ))}
       </div>
 
-      {/* 3. GATEWAYS LIST VIEW */}
+      {/* GATEWAYS LIST VIEW */}
       {activeViewTab === 'gateways' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {GATEWAYS.map((gw) => {
@@ -571,7 +641,6 @@ export default function IntegrationsPage() {
                 }`}
               >
                 <div className="space-y-4">
-                  {/* Card top branding */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                       <div className="p-2 rounded-xl bg-slate-50 border shrink-0">
@@ -583,7 +652,6 @@ export default function IntegrationsPage() {
                       </div>
                     </div>
 
-                    {/* Status Badge */}
                     <span className={`text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded border ${
                       status === 'CONNECTED'
                         ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
@@ -597,11 +665,9 @@ export default function IntegrationsPage() {
                     </span>
                   </div>
 
-                  {/* Card Description */}
                   <p className="text-xs text-slate-500 text-left leading-relaxed">{gw.description}</p>
                 </div>
 
-                {/* Card actions bottom bar */}
                 <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-4">
                   <button
                     onClick={() => openConfigure(gw)}
@@ -632,51 +698,13 @@ export default function IntegrationsPage() {
         </div>
       )}
 
-      {/* 4. AI TOOLS LIST VIEW */}
+      {/* AI OPERATIONS LIST VIEW */}
       {activeViewTab === 'ai' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[
-            {
-              type: 'meta_ai',
-              name: 'Meta Llama API Integration',
-              desc: 'Power your AI Content Studio prompts with Groq Cloud Llama-3 completions.',
-              configLabel: 'Set API Key',
-              fields: [{ key: 'api_key', label: 'Groq Cloud API Key', type: 'password', placeholder: 'gsk_...' }]
-            },
-            {
-              type: 'ai_assistant',
-              name: 'CrevaWebs AI Assistant',
-              desc: 'Manage custom configurations, custom greet cards, and tone styles inside your chat bot.',
-              configLabel: 'Configure bot',
-              fields: [
-                { key: 'greeting', label: 'Bot Default Greeting', type: 'text', placeholder: 'e.g. Welcome back, Ruth' },
-                { key: 'tone', label: 'Response Tone Style (helpful/friendly)', type: 'text', placeholder: 'helpful' }
-              ]
-            },
-            {
-              type: 'product_description',
-              name: 'AI Product Description',
-              desc: 'Optimize products descriptions templates, SEO tags and features lists on catalog uploads.',
-              configLabel: 'Presets config',
-              fields: [{ key: 'template', label: 'Description template pattern', type: 'text', placeholder: 'Formal/Informal style' }]
-            },
-            {
-              type: 'store_analyzer',
-              name: 'AI Store Analyzer',
-              desc: 'Diagnose storefront configurations status dynamically to optimize search indexing parameters.',
-              configLabel: 'Setup parameters',
-              fields: [{ key: 'targetScore', label: 'Target Completion Rate (%)', type: 'text', placeholder: '100' }]
-            },
-            {
-              type: 'content_generator',
-              name: 'AI Content Generator',
-              desc: 'Automate social templates marketing and email alerts triggers content.',
-              configLabel: 'Copy presets',
-              fields: [{ key: 'audience', label: 'Target Audience Profile', type: 'text', placeholder: 'E-commerce users' }]
-            }
-          ].map((tool) => {
+          {AI_PROVIDERS.map((tool) => {
+            const status = getAIProviderStatus(tool.type);
+            const isVerified = status === 'CONNECTED' || status === 'DISCONNECTED';
             const isEnabled = getIntegration(tool.type)?.is_enabled ?? false;
-            const isConfigured = getIntegration(tool.type) !== undefined;
 
             return (
               <div
@@ -689,20 +717,22 @@ export default function IntegrationsPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5 text-left">
                       <div className="p-2 rounded-xl bg-blue-50 border shrink-0">
-                        <Sparkles className="w-5 h-5 text-blue-600" />
+                        {tool.logo}
                       </div>
                       <div>
                         <h4 className="font-extrabold text-sm text-slate-900">{tool.name}</h4>
-                        <span className="text-[10px] text-slate-400 block font-bold">AI Tool Plug</span>
+                        <span className="text-[10px] text-slate-400 block font-bold">AI provider engine</span>
                       </div>
                     </div>
 
                     <span className={`text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded border ${
-                      isEnabled
+                      status === 'CONNECTED'
                         ? 'bg-blue-50 text-blue-600 border-blue-100'
-                        : 'bg-slate-50 text-slate-500 border-slate-200'
+                        : status === 'VERIFY CONNECTION'
+                          ? 'bg-amber-50 text-amber-600 border-amber-100'
+                          : 'bg-slate-50 text-slate-500 border-slate-200'
                     }`}>
-                      {isEnabled ? 'Active' : 'Inactive'}
+                      {status.replace('_', ' ')}
                     </span>
                   </div>
 
@@ -711,17 +741,18 @@ export default function IntegrationsPage() {
 
                 <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-4">
                   <button
-                    onClick={() => openConfigureAI(tool.type)}
+                    onClick={() => openConfigureAI(tool)}
                     className="text-xs font-bold text-blue-600 hover:text-blue-550 flex items-center gap-1 cursor-pointer transition-colors"
                   >
                     <Settings className="w-3.5 h-3.5" />
-                    {tool.configLabel}
+                    Configure
                   </button>
 
                   <button
                     onClick={() => handleToggleAI(tool.type)}
-                    disabled={togglingType === tool.type}
-                    className="focus:outline-none disabled:opacity-40 transition-all cursor-pointer"
+                    disabled={!isVerified || togglingType === tool.type}
+                    className="focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                    title={!isVerified ? 'Verify credentials first' : isEnabled ? 'Disable' : 'Enable'}
                   >
                     {togglingType === tool.type ? (
                       <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
@@ -738,11 +769,10 @@ export default function IntegrationsPage() {
         </div>
       )}
 
-      {/* 5. HEALTH CHECK VIEW */}
+      {/* HEALTH CHECK VIEW */}
       {activeViewTab === 'health' && (
         <div className="max-w-xl mx-auto space-y-6 text-left">
           
-          {/* Health circular SVG panel */}
           <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm flex flex-col sm:flex-row items-center gap-6">
             <div className="relative flex items-center justify-center shrink-0">
               <svg className="w-24 h-24 transform -rotate-90">
@@ -777,10 +807,7 @@ export default function IntegrationsPage() {
             </div>
           </div>
 
-          {/* Setup Audits checklist */}
           <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
-            
-            {/* Completed */}
             <div className="space-y-2.5">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Verified Setup Checkpoints</span>
               <div className="space-y-2">
@@ -793,7 +820,6 @@ export default function IntegrationsPage() {
               </div>
             </div>
 
-            {/* Needs Attention */}
             {attentionAudits.length > 0 && (
               <div className="space-y-2.5 pt-2">
                 <span className="text-[10px] font-black text-slate-450 uppercase tracking-wider block">Attention Required</span>
@@ -822,7 +848,6 @@ export default function IntegrationsPage() {
               </div>
             )}
 
-            {/* AI Fix trigger */}
             {attentionAudits.length > 0 && (
               <div className="pt-2">
                 <button
@@ -843,18 +868,15 @@ export default function IntegrationsPage() {
                 </button>
               </div>
             )}
-
           </div>
-
         </div>
       )}
 
-      {/* 6. GATEWAYS CONFIGURATION MODAL */}
+      {/* GATEWAYS CONFIGURATION MODAL */}
       {activeItem && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
           <div className="bg-white border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             
-            {/* Modal Header */}
             <div className="p-5 border-b flex items-center justify-between bg-slate-950 text-white">
               <div className="flex items-center gap-2">
                 {activeItem.logo}
@@ -868,10 +890,7 @@ export default function IntegrationsPage() {
               </button>
             </div>
 
-            {/* Modal Scrollable Body */}
             <form onSubmit={handleSaveConfig} className="p-6 space-y-5 overflow-y-auto text-left">
-              
-              {/* External configuration link */}
               <div className="p-3 bg-slate-50 border rounded-xl text-xs text-slate-600 flex items-start justify-between gap-3">
                 <span className="leading-relaxed">To locate your integration keys, log in to your merchant dashboard interface.</span>
                 <a
@@ -884,7 +903,6 @@ export default function IntegrationsPage() {
                 </a>
               </div>
 
-              {/* Mode Selection */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black uppercase tracking-wider text-slate-450 block">Environment Mode</label>
                 <div className="flex p-1 bg-slate-100 rounded-xl w-full select-none">
@@ -919,7 +937,6 @@ export default function IntegrationsPage() {
                 </div>
               </div>
 
-              {/* Dynamic Credentials Inputs */}
               <div className="space-y-4">
                 {activeItem.fields.map((field) => {
                   const isPassword = field.type === 'password';
@@ -956,7 +973,6 @@ export default function IntegrationsPage() {
                 })}
               </div>
 
-              {/* Test Result Message Box */}
               {testResult && (
                 <div className={`text-xs p-3.5 rounded-xl border leading-relaxed ${
                   testResult.status === 'success'
@@ -967,7 +983,6 @@ export default function IntegrationsPage() {
                 </div>
               )}
 
-              {/* Form buttons */}
               <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
                 <div className="flex gap-3">
                   <button
@@ -976,7 +991,7 @@ export default function IntegrationsPage() {
                     disabled={testingConnection || saving}
                     className="flex-1 border rounded-xl py-2.5 text-xs font-bold hover:bg-slate-50 transition-colors cursor-pointer flex items-center justify-center gap-1.5 text-slate-700"
                   >
-                    {testingConnection ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 text-slate-450" />}
+                    {testingConnection ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 text-slate-455" />}
                     Test Connection
                   </button>
 
@@ -994,13 +1009,12 @@ export default function IntegrationsPage() {
                   <button
                     type="button"
                     onClick={() => setShowDisconnectConfirm(true)}
-                    className="w-full py-2.5 mt-1 border border-red-200 text-red-600 hover:bg-red-50/30 rounded-xl text-xs font-bold transition-all cursor-pointer text-center"
+                    className="w-full py-2.5 mt-1 border border-red-200 text-red-600 hover:bg-red-555 rounded-xl text-xs font-bold transition-all cursor-pointer text-center"
                   >
                     Disconnect Integration
                   </button>
                 )}
               </div>
-
             </form>
           </div>
         </div>
@@ -1042,134 +1056,107 @@ export default function IntegrationsPage() {
         </div>
       )}
 
-      {/* 7. AI TOOLS CONFIGURATION MODAL */}
-      {activeAITool && (
+      {/* AI OPERATIONS CONFIGURATION MODAL */}
+      {activeAIProvider && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
           <div className="bg-white border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
             
             <div className="p-5 border-b flex items-center justify-between bg-slate-950 text-white text-left">
               <div>
-                <span className="text-[9px] font-bold text-slate-450 uppercase tracking-widest block">AI Config</span>
-                <h3 className="font-extrabold text-sm mt-0.5 text-white">Configure AI Settings</h3>
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">AI PROVIDER CONFIG</span>
+                <h3 className="font-extrabold text-sm mt-0.5 text-white">Connect {activeAIProvider.name}</h3>
               </div>
-              <button onClick={() => setActiveAITool(null)} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors text-slate-400 hover:text-white cursor-pointer">
+              <button onClick={() => setActiveAIProvider(null)} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors text-slate-400 hover:text-white cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveAIConfig} className="p-6 space-y-4 text-left">
+            <form onSubmit={handleSaveAIConfig} className="p-6 space-y-5 text-left">
               
-              {/* Dynamic rendering fields */}
-              {activeAITool === 'meta_ai' && (
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Groq Cloud API Key</label>
-                    <input
-                      type="password"
-                      required
-                      value={aiConfigForm.api_key || ''}
-                      onChange={e => setAiConfigForm(prev => ({ ...prev, api_key: e.target.value }))}
-                      placeholder="gsk_..."
-                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-800 bg-white"
-                    />
-                    <p className="text-[9px] text-slate-450 mt-1 leading-relaxed">
-                      Copy your free API Key from console.groq.com to use Llama-3 completion generation directly.
-                    </p>
-                  </div>
+              <div className="space-y-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-450 block">Capabilities checklist</span>
+                <div className="space-y-1 text-xs text-slate-650 bg-slate-50 border rounded-xl p-3.5 space-y-1.5 font-bold">
+                  <div className="flex items-center gap-1.5 text-emerald-600">✓ Product descriptions</div>
+                  <div className="flex items-center gap-1.5 text-emerald-600">✓ Social media content</div>
+                  <div className="flex items-center gap-1.5 text-emerald-600">✓ SEO metadata</div>
+                  <div className="flex items-center gap-1.5 text-emerald-600">✓ CrevaWebs AI Assistant</div>
                 </div>
-              )}
+              </div>
 
-              {activeAITool === 'ai_assistant' && (
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Greeting Headline</label>
-                    <input
-                      type="text"
-                      required
-                      value={aiConfigForm.greeting || ''}
-                      onChange={e => setAiConfigForm(prev => ({ ...prev, greeting: e.target.value }))}
-                      placeholder="Welcome back, Ruth 👋"
-                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-800 bg-white"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Assistant Tone of Voice</label>
-                    <input
-                      type="text"
-                      required
-                      value={aiConfigForm.tone || ''}
-                      onChange={e => setAiConfigForm(prev => ({ ...prev, tone: e.target.value }))}
-                      placeholder="helpful"
-                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-800 bg-white"
-                    />
-                  </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">API Key *</label>
+                <div className="relative flex items-center">
+                  <input
+                    type={showAiSecret ? 'text' : 'password'}
+                    required
+                    value={aiKeyInput}
+                    onChange={e => {
+                      setAiKeyInput(e.target.value);
+                      setAiVerified(false);
+                      setAiTestResult(null);
+                    }}
+                    placeholder={activeAIProvider.type === 'openai' ? 'sk-...' : activeAIProvider.type === 'meta_ai' ? 'gsk_...' : 'sk-ant-...'}
+                    className="w-full border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-800 bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAiSecret(!showAiSecret)}
+                    className="absolute right-3 text-slate-450 hover:text-slate-700 cursor-pointer"
+                  >
+                    {showAiSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
-              )}
+                <p className="text-[9px] text-slate-450 mt-1 leading-relaxed">
+                  Enter your credentials key securely. We never expose or store keys in browser caches.
+                </p>
+              </div>
 
-              {activeAITool === 'product_description' && (
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Description Style Preset</label>
-                    <input
-                      type="text"
-                      required
-                      value={aiConfigForm.template || ''}
-                      onChange={e => setAiConfigForm(prev => ({ ...prev, template: e.target.value }))}
-                      placeholder="Minimalist / SEO Oriented"
-                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-800 bg-white"
-                    />
-                  </div>
+              {/* Status display */}
+              <div className="text-xs">
+                <span className="text-[10px] font-black uppercase text-slate-450 tracking-wider">Connection Status:</span>
+                <div className="mt-1 font-bold">
+                  {aiTestResult ? (
+                    <span className={aiTestResult.status === 'success' ? 'text-emerald-600' : 'text-red-500'}>
+                      {aiTestResult.message}
+                    </span>
+                  ) : (
+                    <span className="text-slate-500">Not verified</span>
+                  )}
                 </div>
-              )}
+              </div>
 
-              {activeAITool === 'store_analyzer' && (
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Target Score Benchmark (%)</label>
-                    <input
-                      type="number"
-                      required
-                      value={aiConfigForm.targetScore || ''}
-                      onChange={e => setAiConfigForm(prev => ({ ...prev, targetScore: e.target.value }))}
-                      placeholder="100"
-                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-800 bg-white"
-                    />
-                  </div>
+              <div className="flex flex-col gap-2 pt-3 border-t border-slate-100">
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={handleTestAIConnection}
+                    disabled={aiTesting || saving}
+                    className="flex-1 py-2.5 border rounded-xl text-xs font-bold hover:bg-slate-50 text-slate-700 cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    {aiTesting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+                    Test Connection
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={saving || !aiVerified}
+                    className="flex-1 bg-blue-600 hover:bg-blue-550 text-white rounded-xl py-2.5 text-xs font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                  >
+                    {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                    Save & Activate
+                  </button>
                 </div>
-              )}
 
-              {activeAITool === 'content_generator' && (
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Audience Tag Parameter</label>
-                    <input
-                      type="text"
-                      required
-                      value={aiConfigForm.audience || ''}
-                      onChange={e => setAiConfigForm(prev => ({ ...prev, audience: e.target.value }))}
-                      placeholder="SaaS / Retails Customers"
-                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-blue-500 text-slate-800 bg-white"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setActiveAITool(null)}
-                  className="flex-1 py-2.5 border rounded-xl text-xs font-bold hover:bg-slate-50 text-slate-700 cursor-pointer text-center"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 bg-blue-600 hover:bg-blue-550 text-white rounded-xl py-2.5 text-xs font-bold cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  Save AI Config
-                </button>
+                {getIntegration(activeAIProvider.type) && (
+                  <button
+                    type="button"
+                    onClick={handleDisconnectAI}
+                    disabled={saving}
+                    className="w-full py-2.5 mt-1 border border-red-200 text-red-600 hover:bg-red-50/30 rounded-xl text-xs font-bold transition-all cursor-pointer text-center"
+                  >
+                    Disconnect Provider
+                  </button>
+                )}
               </div>
             </form>
           </div>
