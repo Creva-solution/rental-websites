@@ -44,6 +44,32 @@ export default function StoreAssistant() {
       i.config?.verified === true
     );
   }, [integrationsList]);
+
+  const connectedAIProviderName = useMemo(() => {
+    const active = integrationsList.find((i: any) =>
+      ['meta_ai', 'meta_llama', 'openai', 'anthropic_claude'].includes(i.type) &&
+      i.is_enabled === true &&
+      i.config?.verified === true
+    );
+    if (!active) return '';
+    if (active.type === 'openai') return 'OpenAI';
+    if (active.type === 'anthropic_claude') return 'Anthropic Claude';
+    return 'Groq / Llama';
+  }, [integrationsList]);
+
+  const activeAIConfig = useMemo(() => {
+    const active = integrationsList.find((i: any) =>
+      ['meta_ai', 'meta_llama', 'openai', 'anthropic_claude'].includes(i.type) &&
+      i.is_enabled === true &&
+      i.config?.verified === true
+    );
+    if (!active) return null;
+    return {
+      type: active.type,
+      apiKey: active.config?.api_key || active.config?.apiKey || '',
+      providerName: active.type === 'openai' ? 'OpenAI' : active.type === 'anthropic_claude' ? 'Anthropic Claude' : 'Groq / Llama'
+    };
+  }, [integrationsList]);
   const [completionPercentage, setCompletionPercentage] = useState(0);
   const [storeHealth, setStoreHealth] = useState<'Good' | 'Needs Attention' | 'Almost Ready'>('Needs Attention');
   const [loadingStatus, setLoadingStatus] = useState(true);
@@ -335,6 +361,160 @@ export default function StoreAssistant() {
       setActionLoading(false);
     }
   };
+
+  // Local knowledge base for Level 1 - Smart Help Assistant
+  const LOCAL_KNOWLEDGE_BASE = [
+    {
+      id: 'create_store',
+      keywords: ['create store', 'new store', 'build store', 'store eppadi', 'store create', 'கடை', 'दुकान'],
+      response: 'To create your store, follow our onboarding wizard step-by-step to enter your business name, branding details, and preferences.',
+      action: { label: 'Open Settings', route: '/admin/settings' }
+    },
+    {
+      id: 'change_store_name',
+      keywords: ['change store name', 'rename store', 'store name change', 'peyar', 'பெயர்', 'नाम'],
+      response: 'Go to Settings → Store Profile. Edit your Store Name field, then scroll down and click Save changes.',
+      action: { label: 'Open Settings', route: '/admin/settings' }
+    },
+    {
+      id: 'add_logo',
+      keywords: ['add logo', 'upload logo', 'logo add', 'logo epdi', 'logo ippati', 'branding logo', 'லோகோ', 'लोगो'],
+      response: 'Go to Store Setup → Branding Design → Logo. Upload your PNG or JPG logo, then click Save Changes.',
+      action: { label: 'Open Branding Design', route: '/admin/appearance' }
+    },
+    {
+      id: 'change_brand_color',
+      keywords: ['change brand color', 'color change', 'brand color', 'theme color', 'வண்ணம்', 'रंग'],
+      response: 'Go to Store Setup → Appearance → Theme Settings. Select your primary brand color or drag the color picker, then click Save.',
+      action: { label: 'Open Appearance Settings', route: '/admin/appearance' }
+    },
+    {
+      id: 'select_template',
+      keywords: ['select template', 'change theme', 'template select', 'theme select', 'வார்ப்புரு', 'टैम्पलेट'],
+      response: 'Go to Store Setup → Appearance → Choose Template. Select one of our premium templates and click Apply to update your storefront.',
+      action: { label: 'Open Templates Gallery', route: '/admin/appearance' }
+    },
+    {
+      id: 'change_domain',
+      keywords: ['change domain', 'custom domain', 'subdomain', 'domain set', 'டொமைன்', 'डोमेन'],
+      response: 'Go to Settings → Store Address. Enter your preferred subdomain slug or connect your custom domain pointing to Creva webs servers, then click Update.',
+      action: { label: 'Open Store Address', route: '/admin/settings' }
+    },
+    {
+      id: 'add_product',
+      keywords: ['add product', 'create product', 'new product', 'product add', 'பொருள்', 'उत्पाद'],
+      response: 'Go to Products → Add Product. Enter your product name, price, category, stock count, and upload an image.',
+      action: { label: 'Open Add Product', route: '/admin/products' }
+    },
+    {
+      id: 'edit_product',
+      keywords: ['edit product', 'update product', 'product edit', 'modify product'],
+      response: 'Go to Products → View Catalog. Click the edit edit icon on the product row to update descriptions, details, or categories.',
+      action: { label: 'Open Catalog', route: '/admin/products' }
+    },
+    {
+      id: 'delete_product',
+      keywords: ['delete product', 'remove product', 'product delete'],
+      response: 'Go to Products → View Catalog. Click the red trash delete icon next to the product you wish to delete and confirm.',
+      action: { label: 'Open Catalog', route: '/admin/products' }
+    },
+    {
+      id: 'add_product_image',
+      keywords: ['add product image', 'product photo', 'product image'],
+      response: 'Go to Products → View Catalog → Edit Product. Under the Product Media section, upload your images and click save.',
+      action: { label: 'Open Catalog', route: '/admin/products' }
+    },
+    {
+      id: 'manage_stock',
+      keywords: ['manage stock', 'update stock', 'inventory', 'stock manage', 'இருப்பு', 'स्टॉक'],
+      response: 'Go to Products → View Catalog. You can directly edit the inventory numbers in the Stock column of each item.',
+      action: { label: 'Open Catalog', route: '/admin/products' }
+    },
+    {
+      id: 'change_product_price',
+      keywords: ['change product price', 'update price', 'price update', 'விலை', 'कीमत'],
+      response: 'Go to Products → View Catalog. Click the price field on any product row, edit the value directly, and save.',
+      action: { label: 'Open Catalog', route: '/admin/products' }
+    },
+    {
+      id: 'see_orders',
+      keywords: ['see orders', 'view orders', 'order check', 'where order', 'ஆர்டர்', 'ऑर्डर'],
+      response: 'Go to Orders tab in your sidebar dashboard. You can view pending, shipped, paid, and completed order list logs.',
+      action: { label: 'Open Orders Dashboard', route: '/admin/orders' }
+    },
+    {
+      id: 'update_order_status',
+      keywords: ['update order status', 'order status', 'change status'],
+      response: 'Go to Orders, click the Inspect button on the order row, and use the status dropdown in the timeline drawer to select processing, shipped, or completed.',
+      action: { label: 'Open Orders', route: '/admin/orders' }
+    },
+    {
+      id: 'mark_order_delivered',
+      keywords: ['mark order delivered', 'delivered', 'complete order'],
+      response: 'Go to Orders, click Inspect on the order drawer, and select "completed" or "delivered" status from the timeline stepper to mark it done.',
+      action: { label: 'Open Orders', route: '/admin/orders' }
+    },
+    {
+      id: 'add_payment_gateway',
+      keywords: ['add payment gateway', 'payment gateway', 'connect gateway', 'வழிகள்', 'गेटवे'],
+      response: 'Go to Settings → Integrations. Here you can configure credentials for payment gateways like Razorpay, Stripe, PhonePe, and Cashfree.',
+      action: { label: 'Open Integrations', route: '/admin/integrations' }
+    },
+    {
+      id: 'configure_razorpay',
+      keywords: ['configure razorpay', 'razorpay setup', 'connect razorpay'],
+      response: 'Go to Settings → Integrations. Click Configure on Razorpay card, enter Key ID and Key Secret from Razorpay settings dashboard, test, and save.',
+      action: { label: 'Open Integrations', route: '/admin/integrations' }
+    },
+    {
+      id: 'configure_cashfree',
+      keywords: ['configure cashfree', 'cashfree setup', 'connect cashfree'],
+      response: 'Go to Settings → Integrations. Click Configure on Cashfree card, enter App ID and Secret Key from Cashfree merchant console, and click save.',
+      action: { label: 'Open Integrations', route: '/admin/integrations' }
+    },
+    {
+      id: 'configure_phonepe',
+      keywords: ['configure phonepe', 'phonepe setup', 'connect phonepe'],
+      response: 'Go to Settings → Integrations. Click Configure on PhonePe card, enter your Merchant ID and Salt Key details, and click connect.',
+      action: { label: 'Open Integrations', route: '/admin/integrations' }
+    },
+    {
+      id: 'create_coupons',
+      keywords: ['create coupons', 'add coupon', 'discount code', 'குப்பன்', 'कूपन'],
+      response: 'Go to Marketing Hub → Discount Coupons. Click Add Coupon, configure coupon code, percentage/flat rate discount rules, validity, and click save.',
+      action: { label: 'Open Discounts', route: '/admin/discounts' }
+    },
+    {
+      id: 'create_discount',
+      keywords: ['create discount', 'add discount', 'discount create', 'தள்ளுபடி', 'छूट'],
+      response: 'Go to Marketing Hub → Discount Coupons. Create flat rate discounts, percentage deductions, or free shipping rules and save.',
+      action: { label: 'Open Discounts', route: '/admin/discounts' }
+    },
+    {
+      id: 'share_store',
+      keywords: ['share store', 'share website', 'store link', 'பகிர்', 'शेयर'],
+      response: 'Copy your storefront subdomain link from the header banner or store address settings, and send it to your WhatsApp users or customers.',
+      action: { label: 'Open Settings', route: '/admin/settings' }
+    },
+    {
+      id: 'update_contact_details',
+      keywords: ['update contact details', 'change email', 'change phone', 'contact update', 'தொடர்பு', 'संपर्क'],
+      response: 'Go to Settings → Contact Details. Edit your store contact phone number, address, support email, and save.',
+      action: { label: 'Open Settings', route: '/admin/settings' }
+    },
+    {
+      id: 'change_currency',
+      keywords: ['change currency', 'currency update', 'rupee', 'நாணயம்', 'முद्रा'],
+      response: 'Go to Settings → Preferences. Select your shop currency symbol (INR ₹, USD $, etc.) from the dropdown and save.',
+      action: { label: 'Open Settings', route: '/admin/settings' }
+    },
+    {
+      id: 'configure_delivery',
+      keywords: ['configure delivery', 'shipping settings', 'delivery configure', 'விநியோகம்', 'वितरण'],
+      response: 'Go to Settings → Delivery / Shipping. Enter shipping costs, zone rules, or delivery guidelines details, and save changes.',
+      action: { label: 'Open Settings', route: '/admin/settings' }
+    }
+  ];
 
   // Intents Dictionary configuration supporting English, Tamil, Tanglish, Hindi, Malayalam, Telugu, Kannada
   const intents = {
@@ -872,7 +1052,7 @@ Would you like to save and connect this UPI configuration?`,
     setInput('');
     setIsTyping(true);
 
-    setTimeout(() => {
+    setTimeout(async () => {
       const lower = text.toLowerCase().trim();
 
       // If active flow is running, route directly to the step handler
@@ -891,7 +1071,7 @@ Would you like to save and connect this UPI configuration?`,
         return;
       }
 
-      // Check intent mapping match
+      // Check intent mapping match (for wizards)
       let detectedIntent: any = null;
       for (const [key, intentObj] of Object.entries(intents)) {
         if (intentObj.keywords.some(kw => lower.includes(kw))) {
@@ -930,26 +1110,102 @@ Would you like to save and connect this UPI configuration?`,
         } else {
           startWizardFlow(detectedIntent);
         }
-      } else {
-        const isAdvancedQuery = ["marketing", "description", "generate", "rewrite", "recommendation"].some(q => lower.includes(q));
-        if (isAdvancedQuery && !isAIConnected) {
-          setMessages(prev => [...prev, {
-            sender: 'ai',
-            text: `AI features require a connected AI provider.\n\n[ Connect AI ]`,
-            timestamp: new Date()
-          }]);
-          setIsTyping(false);
-          return;
-        }
+        return;
+      }
 
-        // Fallback default help response
+      // Check Local Knowledge Base for help navigation matches (Level 1)
+      const matchedHelp = LOCAL_KNOWLEDGE_BASE.find(item =>
+        item.keywords.some(kw => lower.includes(kw))
+      );
+
+      if (matchedHelp) {
+        const textResponse = matchedHelp.action 
+          ? `${matchedHelp.response}\n\n[ Route Action ]:${matchedHelp.action.label}:${matchedHelp.action.route}`
+          : matchedHelp.response;
+
         setMessages(prev => [...prev, {
           sender: 'ai',
-          text: `I’m not sure I understood that. You can ask me about products, payments, orders, branding, domains, or store setup.`,
+          text: textResponse,
           timestamp: new Date()
         }]);
         setIsTyping(false);
+        return;
       }
+
+      // Level 2: AI provider querying if connected
+      if (isAIConnected && activeAIConfig) {
+        try {
+          const isOpenAI = activeAIConfig.type === 'openai';
+          const isClaude = activeAIConfig.type === 'anthropic_claude';
+          const endpoint = isOpenAI 
+            ? 'https://api.openai.com/v1/chat/completions' 
+            : isClaude
+              ? 'https://api.anthropic.com/v1/messages'
+              : 'https://api.groq.com/openai/v1/chat/completions';
+          
+          const modelName = isOpenAI ? 'gpt-4o-mini' : isClaude ? 'claude-3-haiku-20240307' : 'llama3-8b-8192';
+
+          const requestBody = isClaude ? {
+            model: modelName,
+            max_tokens: 1024,
+            messages: [{ role: 'user', content: text }]
+          } : {
+            model: modelName,
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an intelligent AI e-commerce assistant. Help the merchant build and manage their online shop on CrevaWebs.'
+              },
+              {
+                role: 'user',
+                content: text
+              }
+            ]
+          };
+
+          const headers: Record<string, string> = {
+            'Content-Type': 'application/json'
+          };
+          if (isClaude) {
+            headers['x-api-key'] = activeAIConfig.apiKey;
+            headers['anthropic-version'] = '2023-06-01';
+            headers['anthropic-dangerous-direct-browser-access'] = 'true';
+          } else {
+            headers['Authorization'] = `Bearer ${activeAIConfig.apiKey}`;
+          }
+
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(requestBody)
+          });
+
+          if (response.ok) {
+            const json = await response.json();
+            const replyText = isClaude ? json.content?.[0]?.text : json.choices?.[0]?.message?.content;
+            if (replyText) {
+              setMessages(prev => [...prev, {
+                sender: 'ai',
+                text: replyText.trim(),
+                timestamp: new Date()
+              }]);
+              setIsTyping(false);
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn('AI provider API call failed, falling back to smart assistance:', err);
+        }
+      }
+
+      // Level 1 Fallback Response
+      setMessages(prev => [...prev, {
+        sender: 'ai',
+        text: `I can help you with your CrevaWebs store. Try asking about:\n• Adding products\n• Uploading logo\n• Managing orders\n• Payment setup\n• Store settings\n\n[ View Guides ]`,
+        timestamp: new Date()
+      }]);
+      setIsTyping(false);
+
     }, 600);
   };
 
@@ -991,6 +1247,36 @@ Would you like to save and connect this UPI configuration?`,
             <Link href="/admin/integrations" className="px-3 py-1.5 bg-blue-600 hover:bg-blue-550 text-white rounded-lg text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1 cursor-pointer">
               <Sparkles className="w-3.5 h-3.5" /> Connect AI Provider
             </Link>
+            {parts[1] && <span>{parts[1]}</span>}
+          </div>
+        );
+      }
+
+      if (displayLine.includes('[ Route Action ]:')) {
+        const parts = displayLine.split('[ Route Action ]:');
+        const [label, route] = parts[1].trim().split(':');
+        return (
+          <div key={i} className="min-h-[18px] flex flex-col items-start gap-1.5 my-1.5 w-full">
+            <span>{parts[0]}</span>
+            <Link href={route} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-550 text-white rounded-lg text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1 cursor-pointer">
+              {label}
+            </Link>
+          </div>
+        );
+      }
+
+      if (displayLine.includes('[ View Guides ]')) {
+        const parts = displayLine.split('[ View Guides ]');
+        return (
+          <div key={i} className="min-h-[18px] flex flex-col items-start gap-1.5 my-1.5 w-full">
+            <span>{parts[0]}</span>
+            <button
+              type="button"
+              onClick={() => setActiveTab('knowledge')}
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1 cursor-pointer"
+            >
+              <BookOpen className="w-3 h-3 text-white" /> View Guides
+            </button>
             {parts[1] && <span>{parts[1]}</span>}
           </div>
         );
@@ -1084,8 +1370,17 @@ Would you like to save and connect this UPI configuration?`,
                 <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full border border-slate-900 animate-pulse" />
               </div>
               <div className="text-left">
-                <h3 className="font-extrabold text-xs uppercase tracking-widest text-white">CrevaWebs Assistant</h3>
-                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Store Assistant • Online</span>
+                {isAIConnected ? (
+                  <>
+                    <h3 className="font-extrabold text-xs uppercase tracking-widest text-white">CrevaWebs AI Assistant</h3>
+                    <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider block">● AI POWERED • {connectedAIProviderName}</span>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="font-extrabold text-xs uppercase tracking-widest text-white">CrevaWebs Smart Help</h3>
+                    <span className="text-[9px] text-blue-400 font-bold uppercase tracking-wider block">● SMART HELP MODE</span>
+                  </>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -1135,6 +1430,29 @@ Would you like to save and connect this UPI configuration?`,
               <div className="flex-1 overflow-y-auto p-4 bg-slate-50/40 min-h-0">
                 {activeTab === 'chat' && (
                   <div className="space-y-4">
+                    {/* Connection Banner card */}
+                    {!isAIConnected && (
+                      <div className="bg-gradient-to-br from-blue-50 to-indigo-50/50 border border-blue-100 rounded-2xl p-3.5 space-y-2.5 text-left mb-4 shadow-sm shrink-0">
+                        <div className="flex items-center gap-1.5">
+                          <Sparkles className="w-4 h-4 text-blue-600" />
+                          <span className="font-extrabold text-[10px] uppercase tracking-wider text-slate-800">Smart Help Mode</span>
+                        </div>
+                        <p className="text-[10px] text-slate-505 leading-normal font-medium">
+                          CrevaWebs Assistant can help you navigate and manage your store. Connect an AI provider to unlock:
+                        </p>
+                        <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[9px] text-slate-600 font-bold">
+                          <div>✨ Content Generation</div>
+                          <div>✨ SEO Writing</div>
+                          <div>✨ Product Descriptions</div>
+                          <div>✨ Smart Recommendations</div>
+                        </div>
+                        <div className="pt-2 border-t border-slate-100">
+                          <Link href="/admin/integrations" className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-550 text-white rounded-lg text-[9px] font-black uppercase tracking-wider inline-flex items-center gap-1 cursor-pointer">
+                            Connect AI
+                          </Link>
+                        </div>
+                      </div>
+                    )}
                     {/* Message stream */}
                     {messages.map((m, idx) => (
                       <div 
