@@ -20,6 +20,13 @@ interface Product {
 export default function AIContentStudioPage() {
   const [loading, setLoading] = useState(true);
   const [storeData, setStoreData] = useState<any>(null);
+  const [aiStudioEnabled, setAiStudioEnabled] = useState(true);
+  const [aiCapabilities, setAiCapabilities] = useState({
+    productDescriptionAI: true,
+    socialAdCopyAI: true,
+    seoMetaAI: true,
+    whatsappContentAI: true
+  });
   
   // AI Integrations Status
   const [activeAI, setActiveAI] = useState<{
@@ -103,6 +110,50 @@ export default function AIContentStudioPage() {
 
       if (!store) return;
       setStoreData(store);
+
+      // Fetch global settings
+      const { data: globalSettings } = await supabase
+        .from('stores')
+        .select('description')
+        .eq('subdomain', '__creva_saas_global_settings__')
+        .maybeSingle();
+
+      let isStudioEnabled = false;
+      const caps = {
+        productDescriptionAI: true,
+        socialAdCopyAI: true,
+        seoMetaAI: true,
+        whatsappContentAI: true
+      };
+
+      if (globalSettings?.description) {
+        try {
+          const parsed = JSON.parse(globalSettings.description);
+          const gi = parsed.globalIntegrations || {};
+          isStudioEnabled = !!gi.aiContentStudio;
+          caps.productDescriptionAI = gi.productDescriptionAI !== false;
+          caps.socialAdCopyAI = gi.socialAdCopyAI !== false;
+          caps.seoMetaAI = gi.seoMetaAI !== false;
+          caps.whatsappContentAI = gi.whatsappContentAI !== false;
+        } catch (e) {
+          console.error("Failed to parse global settings:", e);
+        }
+      }
+
+      setAiStudioEnabled(isStudioEnabled);
+      setAiCapabilities(caps);
+
+      // Derive active preset based on what's enabled
+      const enabledCaps = [
+        { label: 'Product Description', enabled: caps.productDescriptionAI },
+        { label: 'Social Ad Copy', enabled: caps.socialAdCopyAI },
+        { label: 'SEO Meta Tags', enabled: caps.seoMetaAI },
+        { label: 'WhatsApp Broadcast', enabled: caps.whatsappContentAI }
+      ];
+      const firstEnabled = enabledCaps.find(c => c.enabled);
+      if (firstEnabled) {
+        setActivePreset(firstEnabled.label);
+      }
 
       // Fetch products
       const { data: prods } = await supabase
@@ -428,6 +479,24 @@ Guidelines:
     );
   }
 
+  if (!aiStudioEnabled) {
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center p-8 text-center space-y-4">
+        <div className="w-16 h-16 rounded-full bg-red-55/60 flex items-center justify-center text-red-500">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-800">This feature is currently unavailable.</h3>
+        <p className="text-sm text-slate-500 max-w-sm">AI Content Studio has been disabled by the platform administrator.</p>
+        <Link 
+          href="/admin" 
+          className="px-6 py-2.5 bg-blue-600 hover:bg-blue-550 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all cursor-pointer"
+        >
+          Back to Dashboard
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 w-full pb-12 text-slate-800 text-left">
       
@@ -593,11 +662,11 @@ Guidelines:
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
-                  { label: 'Product Description', icon: FileText },
-                  { label: 'Social Ad Copy', icon: Megaphone },
-                  { label: 'SEO Meta Tags', icon: Compass },
-                  { label: 'WhatsApp Broadcast', icon: MessageSquare }
-                ].map((p, idx) => (
+                  { label: 'Product Description', icon: FileText, key: 'productDescriptionAI' },
+                  { label: 'Social Ad Copy', icon: Megaphone, key: 'socialAdCopyAI' },
+                  { label: 'SEO Meta Tags', icon: Compass, key: 'seoMetaAI' },
+                  { label: 'WhatsApp Broadcast', icon: MessageSquare, key: 'whatsappContentAI' }
+                ].filter(p => aiCapabilities[p.key as keyof typeof aiCapabilities] !== false).map((p, idx) => (
                   <button
                     key={idx}
                     type="button"

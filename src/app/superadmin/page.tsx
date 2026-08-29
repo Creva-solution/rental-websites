@@ -198,7 +198,12 @@ export default function SuperAdminDashboard() {
   const [globalIntegrations, setGlobalIntegrations] = useState<Record<string, boolean>>({
     shiprocket: false,
     delhivery: false,
-    ga4: false
+    ga4: false,
+    aiContentStudio: false,
+    productDescriptionAI: true,
+    socialAdCopyAI: true,
+    seoMetaAI: true,
+    whatsappContentAI: true
   });
 
   // Custom storefront templates thumbnail state
@@ -583,7 +588,9 @@ export default function SuperAdminDashboard() {
         whatsappEnabledGlobal,
         whatsappPlansEnabled,
         whatsappPlansOrderUpdatesEnabled,
-        whatsappDefaultWelcome
+        whatsappDefaultWelcome,
+        globalPaymentGateways,
+        globalIntegrations
       };
 
       // Check if global settings row exists in Supabase
@@ -4779,6 +4786,71 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS marketing_hub_enabled BOOLEAN DEFAUL
                               </div>
                             );
                           })}
+                        </div>
+                      </div>
+
+                      {/* Section 3: AI Features Control */}
+                      <div className="border border-gray-850 p-5 rounded-xl bg-gray-950/40 space-y-5 text-left col-span-1 lg:col-span-2">
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider text-blue-400 border-b border-gray-850 pb-2">AI Features Control</h4>
+                        
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="text-xs font-bold text-white block">AI Content Studio</span>
+                              <span className="text-[10px] text-gray-500 block leading-tight mt-0.5">Globally activate or deactivate the AI Content Studio page and capabilities for all merchant stores.</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setGlobalIntegrations(prev => ({
+                                ...prev,
+                                aiContentStudio: !prev.aiContentStudio
+                              }))}
+                              className="focus:outline-none transition-all shrink-0"
+                            >
+                              {globalIntegrations.aiContentStudio ? (
+                                <ToggleRight className="w-9 h-9 text-blue-500" strokeWidth={1.5} />
+                              ) : (
+                                <ToggleLeft className="w-9 h-9 text-gray-600" strokeWidth={1.5} />
+                              )}
+                            </button>
+                          </div>
+
+                          {globalIntegrations.aiContentStudio && (
+                            <div className="mt-4 pl-4 border-l-2 border-gray-800 space-y-4">
+                              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Individual AI Capabilities</span>
+                              
+                              {[
+                                { id: 'productDescriptionAI', name: 'Product Description AI', desc: 'Allows merchants to generate product titles and copy.' },
+                                { id: 'socialAdCopyAI', name: 'Social Ad Copy AI', desc: 'Allows merchants to generate marketing and ad copies.' },
+                                { id: 'seoMetaAI', name: 'SEO Meta Tags AI', desc: 'Allows merchants to generate SEO titles and descriptions.' },
+                                { id: 'whatsappContentAI', name: 'WhatsApp Broadcast AI', desc: 'Allows merchants to generate broadcast templates.' }
+                              ].map((cap) => {
+                                const capEnabled = globalIntegrations[cap.id] !== false;
+                                return (
+                                  <div key={cap.id} className="flex items-center justify-between py-2 border-b border-gray-850/30 last:border-b-0">
+                                    <div>
+                                      <span className="text-xs font-bold text-white block">{cap.name}</span>
+                                      <span className="text-[10px] text-gray-500 block leading-tight mt-0.5">{cap.desc}</span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => setGlobalIntegrations(prev => ({
+                                        ...prev,
+                                        [cap.id]: !capEnabled
+                                      }))}
+                                      className="focus:outline-none transition-all shrink-0"
+                                    >
+                                      {capEnabled ? (
+                                        <ToggleRight className="w-8 h-8 text-blue-500" strokeWidth={1.5} />
+                                      ) : (
+                                        <ToggleLeft className="w-8 h-8 text-gray-600" strokeWidth={1.5} />
+                                      )}
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

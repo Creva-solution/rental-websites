@@ -18,6 +18,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [loading, setLoading] = useState(true);
   const [showLoader, setShowLoader] = useState(true);
   const [store, setStore] = useState<any>(null);
+  const [aiStudioEnabled, setAiStudioEnabled] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [storeUrl, setStoreUrl] = useState<string>('');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -152,6 +153,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           .maybeSingle();
           
         setStore(storeData || null);
+        
+        // Fetch global settings
+        const { data: globalSettings } = await supabase
+          .from('stores')
+          .select('description')
+          .eq('subdomain', '__creva_saas_global_settings__')
+          .maybeSingle();
+
+        if (globalSettings?.description) {
+          try {
+            const parsed = JSON.parse(globalSettings.description);
+            const gi = parsed.globalIntegrations || {};
+            setAiStudioEnabled(!!gi.aiContentStudio);
+          } catch (e) {
+            console.error("Failed to parse global settings:", e);
+          }
+        }
+
         if (!storeData) {
           setShowLoader(false);
         }
@@ -255,6 +274,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     items: group.items.filter(item => {
       if (item.href === "/admin/marketing-hub") {
         return store?.marketing_hub_enabled !== false;
+      }
+      if (item.href === "/admin/ai-content-studio") {
+        return aiStudioEnabled;
       }
       return true;
     })
