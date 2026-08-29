@@ -189,7 +189,8 @@ export default function SuperAdminDashboard() {
   const [whatsappDefaultWelcome, setWhatsappDefaultWelcome] = useState<string>('Hi, I would like to query about your products!');
 
   const [globalPaymentGateways, setGlobalPaymentGateways] = useState<Record<string, { enabled: boolean, plans: string[] }>>({
-    razorpay: { enabled: true, plans: ['30', '365', 'lifetime'] },
+    razorpay: { enabled: false, plans: ['30', '365', 'lifetime'] },
+    stripe: { enabled: false, plans: ['30', '365', 'lifetime'] },
     phonepe: { enabled: false, plans: ['365', 'lifetime'] },
     cashfree: { enabled: false, plans: ['365', 'lifetime'] },
     payu: { enabled: false, plans: ['365', 'lifetime'] }
@@ -4664,6 +4665,7 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS marketing_hub_enabled BOOLEAN DEFAUL
                         <div className="space-y-6">
                           {[
                             { id: 'razorpay', name: 'Razorpay Payment Gateway' },
+                            { id: 'stripe', name: 'Stripe PG' },
                             { id: 'phonepe', name: 'PhonePe PG' },
                             { id: 'cashfree', name: 'Cashfree' },
                             { id: 'payu', name: 'PayU' }
@@ -4851,6 +4853,43 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS marketing_hub_enabled BOOLEAN DEFAUL
                               })}
                             </div>
                           )}
+                        </div>
+                      </div>
+
+                      {/* Section 4: AI Providers Control */}
+                      <div className="border border-gray-850 p-5 rounded-xl bg-gray-950/40 space-y-5 text-left col-span-1 lg:col-span-2">
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider text-blue-400 border-b border-gray-850 pb-2">AI Providers Control</h4>
+                        
+                        <div className="space-y-4">
+                          {[
+                            { id: 'openai', name: 'OpenAI Connection API', desc: 'Allows merchants to configure and connect OpenAI models.' },
+                            { id: 'meta_ai', name: 'Meta Llama (Groq) API', desc: 'Allows merchants to configure and connect Meta Llama via Groq.' },
+                            { id: 'anthropic_claude', name: 'Anthropic Claude API', desc: 'Allows merchants to configure and connect Anthropic Claude models.' }
+                          ].map((prov) => {
+                            const isEnabled = !!globalIntegrations[prov.id];
+                            return (
+                              <div key={prov.id} className="flex items-center justify-between pb-4 border-b border-gray-850/60 last:border-b-0 last:pb-0">
+                                <div>
+                                  <span className="text-xs font-bold text-white block">{prov.name}</span>
+                                  <span className="text-[10px] text-gray-500 block leading-tight mt-0.5">{prov.desc}</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setGlobalIntegrations(prev => ({
+                                    ...prev,
+                                    [prov.id]: !prev[prov.id]
+                                  }))}
+                                  className="focus:outline-none transition-all shrink-0"
+                                >
+                                  {isEnabled ? (
+                                    <ToggleRight className="w-9 h-9 text-blue-500" strokeWidth={1.5} />
+                                  ) : (
+                                    <ToggleLeft className="w-9 h-9 text-gray-600" strokeWidth={1.5} />
+                                  )}
+                                </button>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     </div>

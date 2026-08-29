@@ -205,6 +205,8 @@ function IntegrationsPageContent() {
   const [aiVerified, setAiVerified] = useState(false);
 
   const [togglingType, setTogglingType] = useState<string | null>(null);
+  const [allowedGateways, setAllowedGateways] = useState<string[]>([]);
+  const [allowedAiProviders, setAllowedAiProviders] = useState<string[]>([]);
 
   // Store Health State
   const [runningHealth, setRunningHealth] = useState(false);
@@ -230,6 +232,43 @@ function IntegrationsPageContent() {
       if (!store) return;
       
       setStoreData(store);
+
+      // Load global configurations
+      const { data: globalSettings } = await supabase
+        .from('stores')
+        .select('description')
+        .eq('subdomain', '__creva_saas_global_settings__')
+        .maybeSingle();
+
+      const gates: string[] = [];
+      const ais: string[] = [];
+
+      if (globalSettings?.description) {
+        try {
+          const parsed = JSON.parse(globalSettings.description);
+          
+          // Gateways check
+          const gpg = parsed.globalPaymentGateways || {};
+          Object.keys(gpg).forEach(k => {
+            if (gpg[k]?.enabled) {
+              gates.push(k);
+            }
+          });
+
+          // AI Providers check
+          const gi = parsed.globalIntegrations || {};
+          ['openai', 'meta_ai', 'anthropic_claude'].forEach(k => {
+            if (gi[k]) {
+              ais.push(k);
+            }
+          });
+        } catch (e) {
+          console.error("Failed to parse global settings:", e);
+        }
+      }
+
+      setAllowedGateways(gates);
+      setAllowedAiProviders(ais);
       
       const { data: ints } = await supabase
         .from('integrations')
@@ -626,150 +665,162 @@ function IntegrationsPageContent() {
 
       {/* GATEWAYS LIST VIEW */}
       {activeViewTab === 'gateways' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {GATEWAYS.map((gw) => {
-            const status = getIntegrationStatus(gw.type);
-            const isConnected = status === 'CONNECTED' || status === 'TEST MODE';
-            const isEnabled = getIntegration(gw.type)?.is_enabled ?? false;
+        allowedGateways.length === 0 ? (
+          <div className="w-full text-center py-12 text-slate-400 font-bold text-xs bg-slate-50 border border-dashed rounded-2xl">
+            No payment gateways have been enabled by the system administrator.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {GATEWAYS.filter(gw => allowedGateways.includes(gw.type)).map((gw) => {
+              const status = getIntegrationStatus(gw.type);
+              const isConnected = status === 'CONNECTED' || status === 'TEST MODE';
+              const isEnabled = getIntegration(gw.type)?.is_enabled ?? false;
 
-            return (
-              <div
-                key={gw.type}
-                className={`bg-white border rounded-2xl p-5 flex flex-col justify-between min-h-[220px] transition-all hover:shadow-md hover:border-slate-300 ${gw.accentColor} ${
-                  isConnected 
-                    ? 'ring-2 ring-emerald-500/10' 
-                    : step === 'payments'
-                      ? 'border-amber-500 ring-2 ring-amber-400/50 animate-pulse bg-amber-50/5'
-                      : ''
-                }`}
-              >
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-slate-50 border shrink-0">
-                        {gw.logo}
+              return (
+                <div
+                  key={gw.type}
+                  className={`bg-white border rounded-2xl p-5 flex flex-col justify-between min-h-[220px] transition-all hover:shadow-md hover:border-slate-300 ${gw.accentColor} ${
+                    isConnected 
+                      ? 'ring-2 ring-emerald-500/10' 
+                      : step === 'payments'
+                        ? 'border-amber-500 ring-2 ring-amber-400/50 animate-pulse bg-amber-50/5'
+                        : ''
+                  }`}
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2 rounded-xl bg-slate-50 border shrink-0">
+                          {gw.logo}
+                        </div>
+                        <div className="text-left">
+                          <h4 className="font-extrabold text-sm text-slate-900">{gw.name}</h4>
+                          <span className="text-[10px] text-slate-400 block font-bold">Payments Provider</span>
+                        </div>
                       </div>
-                      <div className="text-left">
-                        <h4 className="font-extrabold text-sm text-slate-900">{gw.name}</h4>
-                        <span className="text-[10px] text-slate-400 block font-bold">Payments Provider</span>
-                      </div>
+
+                      <span className={`text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded border ${
+                        status === 'CONNECTED'
+                          ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                          : status === 'TEST MODE'
+                            ? 'bg-blue-50 text-blue-600 border-blue-150'
+                            : status === 'ERROR'
+                              ? 'bg-red-50 text-red-600 border-red-150'
+                              : 'bg-slate-50 text-slate-500 border-slate-200'
+                      }`}>
+                        {status.replace('_', ' ')}
+                      </span>
                     </div>
 
-                    <span className={`text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded border ${
-                      status === 'CONNECTED'
-                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                        : status === 'TEST MODE'
-                          ? 'bg-blue-50 text-blue-600 border-blue-150'
-                          : status === 'ERROR'
-                            ? 'bg-red-50 text-red-600 border-red-150'
-                            : 'bg-slate-50 text-slate-500 border-slate-200'
-                    }`}>
-                      {status.replace('_', ' ')}
-                    </span>
+                    <p className="text-xs text-slate-500 text-left leading-relaxed">{gw.description}</p>
                   </div>
 
-                  <p className="text-xs text-slate-500 text-left leading-relaxed">{gw.description}</p>
-                </div>
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-4">
+                    <button
+                      onClick={() => openConfigure(gw)}
+                      className="text-xs font-bold text-blue-600 hover:text-blue-550 flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      <Settings className="w-3.5 h-3.5" />
+                      {isConnected ? 'Update keys' : 'Configure'}
+                    </button>
 
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-4">
-                  <button
-                    onClick={() => openConfigure(gw)}
-                    className="text-xs font-bold text-blue-600 hover:text-blue-550 flex items-center gap-1 cursor-pointer transition-colors"
-                  >
-                    <Settings className="w-3.5 h-3.5" />
-                    {isConnected ? 'Update keys' : 'Configure'}
-                  </button>
-
-                  <button
-                    onClick={() => handleToggleGateway(gw.type)}
-                    disabled={!isConnected || togglingType === gw.type}
-                    className="focus:outline-none disabled:opacity-40 transition-all cursor-pointer"
-                    title={!isConnected ? 'Configure credentials first' : isEnabled ? 'Disable' : 'Enable'}
-                  >
-                    {togglingType === gw.type ? (
-                      <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-                    ) : isEnabled ? (
-                      <ToggleRight className="w-9 h-9 text-blue-600" strokeWidth={1.5} />
-                    ) : (
-                      <ToggleLeft className="w-9 h-9 text-slate-400" strokeWidth={1.5} />
-                    )}
-                  </button>
+                    <button
+                      onClick={() => handleToggleGateway(gw.type)}
+                      disabled={!isConnected || togglingType === gw.type}
+                      className="focus:outline-none disabled:opacity-40 transition-all cursor-pointer"
+                      title={!isConnected ? 'Configure credentials first' : isEnabled ? 'Disable' : 'Enable'}
+                    >
+                      {togglingType === gw.type ? (
+                        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                      ) : isEnabled ? (
+                        <ToggleRight className="w-9 h-9 text-blue-600" strokeWidth={1.5} />
+                      ) : (
+                        <ToggleLeft className="w-9 h-9 text-slate-400" strokeWidth={1.5} />
+                      )}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )
       )}
 
       {/* AI OPERATIONS LIST VIEW */}
       {activeViewTab === 'ai' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {AI_PROVIDERS.map((tool) => {
-            const status = getAIProviderStatus(tool.type);
-            const isVerified = status === 'CONNECTED' || status === 'DISCONNECTED';
-            const isEnabled = getIntegration(tool.type)?.is_enabled ?? false;
+        allowedAiProviders.length === 0 ? (
+          <div className="w-full text-center py-12 text-slate-400 font-bold text-xs bg-slate-50 border border-dashed rounded-2xl">
+            No AI provider engines have been enabled by the system administrator.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {AI_PROVIDERS.filter(tool => allowedAiProviders.includes(tool.type)).map((tool) => {
+              const status = getAIProviderStatus(tool.type);
+              const isVerified = status === 'CONNECTED' || status === 'DISCONNECTED';
+              const isEnabled = getIntegration(tool.type)?.is_enabled ?? false;
 
-            return (
-              <div
-                key={tool.type}
-                className={`bg-white border border-slate-200 rounded-2xl p-5 flex flex-col justify-between min-h-[220px] transition-all hover:shadow-md hover:border-slate-300 ${
-                  isEnabled ? 'ring-2 ring-blue-500/10 border-blue-500/20' : ''
-                }`}
-              >
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5 text-left">
-                      <div className="p-2 rounded-xl bg-blue-50 border shrink-0">
-                        {tool.logo}
+              return (
+                <div
+                  key={tool.type}
+                  className={`bg-white border border-slate-200 rounded-2xl p-5 flex flex-col justify-between min-h-[220px] transition-all hover:shadow-md hover:border-slate-300 ${
+                    isEnabled ? 'ring-2 ring-blue-500/10 border-blue-500/20' : ''
+                  }`}
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5 text-left">
+                        <div className="p-2 rounded-xl bg-blue-50 border shrink-0">
+                          {tool.logo}
+                        </div>
+                        <div>
+                          <h4 className="font-extrabold text-sm text-slate-900">{tool.name}</h4>
+                          <span className="text-[10px] text-slate-400 block font-bold">AI provider engine</span>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-extrabold text-sm text-slate-900">{tool.name}</h4>
-                        <span className="text-[10px] text-slate-400 block font-bold">AI provider engine</span>
-                      </div>
+
+                      <span className={`text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded border ${
+                        status === 'CONNECTED'
+                          ? 'bg-blue-50 text-blue-600 border-blue-100'
+                          : status === 'VERIFY CONNECTION'
+                            ? 'bg-amber-50 text-amber-600 border-amber-100'
+                            : 'bg-slate-50 text-slate-500 border-slate-200'
+                      }`}>
+                        {status.replace('_', ' ')}
+                      </span>
                     </div>
 
-                    <span className={`text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded border ${
-                      status === 'CONNECTED'
-                        ? 'bg-blue-50 text-blue-600 border-blue-100'
-                        : status === 'VERIFY CONNECTION'
-                          ? 'bg-amber-50 text-amber-600 border-amber-100'
-                          : 'bg-slate-50 text-slate-500 border-slate-200'
-                    }`}>
-                      {status.replace('_', ' ')}
-                    </span>
+                    <p className="text-xs text-slate-500 text-left leading-relaxed">{tool.desc}</p>
                   </div>
 
-                  <p className="text-xs text-slate-500 text-left leading-relaxed">{tool.desc}</p>
-                </div>
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-4">
+                    <button
+                      onClick={() => openConfigureAI(tool)}
+                      className="text-xs font-bold text-blue-600 hover:text-blue-550 flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      <Settings className="w-3.5 h-3.5" />
+                      Configure
+                    </button>
 
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-4">
-                  <button
-                    onClick={() => openConfigureAI(tool)}
-                    className="text-xs font-bold text-blue-600 hover:text-blue-550 flex items-center gap-1 cursor-pointer transition-colors"
-                  >
-                    <Settings className="w-3.5 h-3.5" />
-                    Configure
-                  </button>
-
-                  <button
-                    onClick={() => handleToggleAI(tool.type)}
-                    disabled={!isVerified || togglingType === tool.type}
-                    className="focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
-                    title={!isVerified ? 'Verify credentials first' : isEnabled ? 'Disable' : 'Enable'}
-                  >
-                    {togglingType === tool.type ? (
-                      <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-                    ) : isEnabled ? (
-                      <ToggleRight className="w-9 h-9 text-blue-600" strokeWidth={1.5} />
-                    ) : (
-                      <ToggleLeft className="w-9 h-9 text-slate-400" strokeWidth={1.5} />
-                    )}
-                  </button>
+                    <button
+                      onClick={() => handleToggleAI(tool.type)}
+                      disabled={!isVerified || togglingType === tool.type}
+                      className="focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                      title={!isVerified ? 'Verify credentials first' : isEnabled ? 'Disable' : 'Enable'}
+                    >
+                      {togglingType === tool.type ? (
+                        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                      ) : isEnabled ? (
+                        <ToggleRight className="w-9 h-9 text-blue-600" strokeWidth={1.5} />
+                      ) : (
+                        <ToggleLeft className="w-9 h-9 text-slate-400" strokeWidth={1.5} />
+                      )}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )
       )}
 
       {/* HEALTH CHECK VIEW */}
