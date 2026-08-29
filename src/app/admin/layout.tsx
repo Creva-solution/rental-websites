@@ -10,11 +10,13 @@ import {
   Maximize2, Minimize2, Bell, Globe, ChevronDown, User
 } from 'lucide-react';
 import StoreAssistant from '@/components/StoreAssistant';
+import CrevaWebzLoader from '@/components/CrevaWebzLoader';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [loading, setLoading] = useState(true);
+  const [showLoader, setShowLoader] = useState(true);
   const [store, setStore] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
   const [storeUrl, setStoreUrl] = useState<string>('');
@@ -150,6 +152,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           .maybeSingle();
           
         setStore(storeData || null);
+        if (!storeData) {
+          setShowLoader(false);
+        }
       } catch (err) {
         console.error("Auth check failed:", err);
       } finally {
@@ -211,23 +216,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.push('/login');
   };
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-muted/20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
-  }
-
-  if (!store) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/20 p-4 text-center">
-        <div className="max-w-md space-y-4">
-          <AlertCircle className="w-12 h-12 text-destructive mx-auto" />
-          <h2 className="text-xl font-bold">No store found</h2>
-          <p className="text-muted-foreground">You haven't set up a store yet. Let's get started!</p>
-          <Link href="/register" className="inline-block bg-primary text-primary-foreground px-6 py-2 rounded-md font-medium">Create Store</Link>
-        </div>
-      </div>
-    );
-  }
-
   const navigationGroups = [
     {
       title: "Catalog & Sales",
@@ -273,7 +261,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }));
 
   return (
-    <div className="h-screen bg-muted/20 flex w-full relative overflow-hidden">
+    <>
+      {showLoader && (
+        <CrevaWebzLoader
+          isAppReady={!loading && !!store}
+          onFadeOutComplete={() => setShowLoader(false)}
+        />
+      )}
+
+      {!loading && !store && (
+        <div className="min-h-screen flex items-center justify-center bg-muted/20 p-4 text-center">
+          <div className="max-w-md space-y-4">
+            <AlertCircle className="w-12 h-12 text-destructive mx-auto" />
+            <h2 className="text-xl font-bold">No store found</h2>
+            <p className="text-muted-foreground">You haven't set up a store yet. Let's get started!</p>
+            <Link href="/register" className="inline-block bg-primary text-primary-foreground px-6 py-2 rounded-md font-medium">Create Store</Link>
+          </div>
+        </div>
+      )}
+
+      {store && (
+        <div 
+          className={`h-screen bg-muted/20 flex w-full relative overflow-hidden transition-opacity duration-700 ease-out ${
+            loading ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}
+        >
       {/* Flash Screen Overlay Alert for New Orders */}
       {newOrderAlert && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
@@ -726,5 +738,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </main>
       <StoreAssistant />
     </div>
+  )}
+    </>
   );
 }
