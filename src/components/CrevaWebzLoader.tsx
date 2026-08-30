@@ -163,8 +163,32 @@ export default function CrevaWebzLoader({
 
 
 
+      {/* Loading Status Text */}
+      <div className="absolute bottom-20 flex flex-col items-center">
+        <div className="status-text text-[12px] font-bold tracking-[0.25em] text-[#1E293B] uppercase">
+          Preparing your store...
+        </div>
+      </div>
+
       {/* Premium SVG Tracing & GPU-friendly CSS Keyframe Animations */}
       <style dangerouslySetInnerHTML={{ __html: `
+        /* Status text quick fade-in */
+        .status-text {
+          opacity: 0;
+          animation: textFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation-delay: 1.5s;
+        }
+        @keyframes textFadeIn {
+          0% {
+            opacity: 0;
+            transform: translateY(4px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
         /* Background ambient glow pulse */
         @keyframes ambientGlow {
           0%, 100% {
