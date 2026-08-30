@@ -7,10 +7,9 @@ interface CrevaWebzLoaderProps {
 
 const LOADING_MESSAGES = [
   'Preparing your store...',
-  'Setting up your experience...',
-  'Loading your store...',
-  'Almost ready...',
-  'Welcome to CrevaWebz'
+  'Setting things up...',
+  'Loading CrevaWebz...',
+  'Almost ready...'
 ];
 
 export default function CrevaWebzLoader({
@@ -21,7 +20,7 @@ export default function CrevaWebzLoader({
   const [dots, setDots] = useState('');
   const [isExiting, setIsExiting] = useState(false);
 
-  // Cycle through dynamic loading messages
+  // Cycle through dynamic loading messages (no emojis)
   useEffect(() => {
     if (isAppReady) return;
     const interval = setInterval(() => {
@@ -35,14 +34,14 @@ export default function CrevaWebzLoader({
     if (isAppReady) return;
     const interval = setInterval(() => {
       setDots((prev) => {
-        if (prev === '•••') return '';
+        if (prev === '•••') return '•';
         return prev + '•';
       });
     }, 600);
     return () => clearInterval(interval);
   }, [isAppReady]);
 
-  // Handle completion fade-out logic
+  // Handle fade-out completion
   useEffect(() => {
     if (isAppReady) {
       setIsExiting(true);
@@ -50,77 +49,111 @@ export default function CrevaWebzLoader({
         if (onFadeOutComplete) {
           onFadeOutComplete();
         }
-      }, 800); // Wait for the transition to complete
+      }, 800);
       return () => clearTimeout(timer);
     }
   }, [isAppReady, onFadeOutComplete]);
 
-  const brandLetters = [
-    { char: 'C', color: 'text-[#3C77C3]' },
-    { char: 'R', color: 'text-[#3C77C3]' },
-    { char: 'E', color: 'text-[#3C77C3]' },
-    { char: 'V', color: 'text-[#3C77C3]' },
-    { char: 'A', color: 'text-[#3C77C3]' },
-    { char: ' ', color: '' },
-    { char: 'W', color: 'text-white' },
-    { char: 'E', color: 'text-white' },
-    { char: 'B', color: 'text-white' },
-    { char: 'Z', color: 'text-white' }
-  ];
-
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#070A13] transition-all duration-700 ease-in-out select-none ${
-        isExiting ? "opacity-0 scale-95 pointer-events-none" : "opacity-100 scale-100"
+      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center transition-all duration-700 ease-in-out select-none ${
+        isExiting ? 'opacity-0 scale-98 pointer-events-none' : 'opacity-100 scale-100'
       }`}
+      style={{
+        background: 'radial-gradient(circle at center, #1b222d 0%, #0d1117 100%)'
+      }}
     >
-      {/* Background ambient radial glow */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(60,119,195,0.08)_0%,transparent_70%)] pointer-events-none" />
+      {/* Subtle blue ambient glow behind the logo */}
+      <div className="absolute w-72 h-72 rounded-full bg-[#3B8EF3]/10 blur-[60px] transform -translate-y-10 animate-[ambientGlow_4s_infinite_ease-in-out] pointer-events-none" />
 
-      {/* Main Logo & Sweep Wrapper */}
-      <div className="relative flex flex-col items-center justify-center space-y-8 animate-[fadeInScale_1.2s_ease-out-back_forwards]">
+      {/* Main Logo Container */}
+      <div className="relative flex flex-col items-center justify-center w-full max-w-xl px-6">
         
-        {/* Isolated Symbol Container via precise aspect-ratio cropping */}
-        <div className="relative w-64 h-[110px] overflow-hidden rounded-xl">
-          {/* Main Logo Symbol */}
-          <img
-            src="/logo-crevawebz.png"
-            alt="CrevaWebz Logo"
-            className="absolute top-0 left-0 w-full h-auto object-cover object-top filter drop-shadow-[0_0_20px_rgba(60,119,195,0.35)]"
-          />
+        {/* SVG Drawing Logo Symbol */}
+        <div className="relative w-80 md:w-96 aspect-[790/481] transform scale-95 opacity-0 animate-[logoFadeInScale_0.8s_cubic-bezier(0.16,1,0.3,1)_0.1s_forwards]">
+          
+          <svg 
+            width="100%" 
+            height="100%" 
+            viewBox="0 0 790 481" 
+            fill="none" 
+            xmlns="http://www.w3.org/2000/svg"
+            className="filter drop-shadow-[0_0_25px_rgba(59,142,243,0.25)]"
+          >
+            {/* Stage 2: Blue C Tracing & Glow */}
+            <path 
+              className="logo-blue-c" 
+              d="M265.879 0.860242C213.39 6.44124 165.235 35.9002 136.475 80.0232C119.718 105.732 110.302 135.145 109.154 165.369C108.523 181.987 109.785 194.235 113.745 209.916C126.378 259.937 160.809 302.104 207.16 324.319C226.931 333.795 244.58 338.571 268.383 340.888C279.231 341.944 299.314 341.698 300.518 340.495C300.783 340.23 295.346 328.714 288.437 314.905L275.875 289.796H271.862C266.458 289.796 250.049 286.171 241.404 283.067C179.142 260.712 146.336 191.271 169.329 130.501C180.557 100.824 203.285 76.1272 231.144 63.3312C269.812 45.5693 312.716 48.3442 348.46 70.9192C351.837 73.0512 354.875 74.7962 355.213 74.7962C355.896 74.7962 394.883 42.7962 394.883 42.2352C394.883 41.4352 380.841 30.7563 374.146 26.4653C343.006 6.50425 302.62 -3.04676 265.879 0.860242Z" 
+            />
 
-          {/* Premium moving light sweep effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#3C77C3]/15 to-transparent -translate-x-full animate-[shimmerSweep_3s_infinite_ease-in-out]" />
-        </div>
+            {/* Stage 3: W/Cart Main Structure Drawing */}
+            <path 
+              className="logo-w-body" 
+              d="M404.578 142.634C409.878 141.302 418.377 141.664 423.798 143.479C424.862 143.834 425.553 144.246 426.194 144.883C426.805 145.49 427.448 146.378 428.26 147.823L428.62 148.478C430.092 151.222 436.913 164.042 443.779 176.969C450.646 189.897 461.854 210.887 468.688 223.615L481.11 246.753L483.308 250.847L485.513 246.756L488.821 240.618C490.649 237.229 499.387 220.731 508.238 203.963C519.005 183.56 524.064 173.918 526.931 169.14C528.381 166.723 529.124 165.811 529.604 165.384C529.901 165.119 530.069 165.038 530.632 164.807L531.347 164.512C531.649 164.386 532.484 164.174 534.557 163.988C536.556 163.81 539.476 163.671 543.77 163.567C552.348 163.36 566.215 163.296 588.739 163.296C613.353 163.296 627.079 163.337 634.753 163.556C638.57 163.664 640.773 163.815 642.045 164.002C641.948 164.31 641.813 164.69 641.627 165.15C640.887 166.985 639.537 169.686 637.417 173.575C635.821 176.505 634.143 179.37 632.734 181.617C632.028 182.742 631.401 183.695 630.892 184.416C630.637 184.777 630.423 185.064 630.251 185.278C630.088 185.483 630.005 185.567 629.993 185.58C629.753 185.797 629.416 186.27 624.767 186.591C620.229 186.904 612.235 187.066 597.429 187.297H597.428C588.575 187.435 580.35 187.648 574.229 187.879C571.171 187.994 568.622 188.116 566.778 188.235C565.859 188.295 565.09 188.356 564.51 188.418C564.224 188.449 563.952 188.483 563.717 188.523C563.612 188.542 563.126 188.616 562.68 188.845C562.182 189.1 561.848 189.478 561.753 189.583C561.59 189.765 561.432 189.968 561.288 190.163C560.995 190.559 560.653 191.073 560.278 191.665C559.522 192.857 558.549 194.501 557.43 196.463C556.503 200.395 552.315 205.694 549.345 211.415H549.344C533.472 242.002 524.014 260.162 518.381 270.765C515.562 276.071 513.716 279.457 512.509 281.555C511.931 282.56 511.519 283.232 511.231 283.666C510.83 283.704 510.291 283.746 509.612 283.785C508.003 283.877 505.733 283.962 502.957 284.033C497.41 284.176 489.918 284.264 481.821 284.264L453.821 284.263L434.027 247.163C426.433 232.929 421.218 223.364 417.795 217.461C416.092 214.524 414.793 212.423 413.844 211.095C413.39 210.458 412.917 209.856 412.446 209.431C412.237 209.242 411.813 208.885 411.219 208.69C410.891 208.583 410.408 208.491 409.845 208.601C409.246 208.717 408.747 209.025 408.387 209.419C408.136 209.694 407.866 210.109 407.678 210.4C407.439 210.772 407.136 211.263 406.776 211.857C406.054 213.05 406.369 214.715 405.161 217.552C402.742 221.715 399.382 227.595 395.292 234.818C387.111 249.265 376.005 269.091 363.666 291.311C351.319 313.542 345.028 324.851 341.672 330.417C340.835 331.806 340.188 332.824 339.682 333.558C339.285 334.134 338.992 334.505 338.779 334.739C338.774 334.731 338.768 334.723 338.763 334.714C338.659 334.541 338.522 334.304 338.351 334.003C338.01 333.401 337.545 332.56 336.962 331.491C335.798 329.355 334.173 326.326 332.15 322.526C328.104 314.928 322.474 304.256 315.778 291.497C302.386 265.98 284.733 232.124 266.971 197.836C259.563 183.536 249.905 164.941 245.507 156.514C243.315 152.312 241.401 148.421 240.084 145.541C239.425 144.098 238.922 142.923 238.609 142.095C238.56 141.965 238.518 141.846 238.48 141.738C238.778 141.702 239.148 141.663 239.587 141.627C240.856 141.524 242.632 141.43 244.765 141.349C249.027 141.185 254.671 141.07 260.43 141.016C266.189 140.962 272.055 140.969 276.759 141.048C279.112 141.088 281.169 141.146 282.774 141.223C284.41 141.301 285.5 141.396 285.973 141.495L289.364 142.207L314.515 191.161C321.491 204.74 327.867 217.118 332.518 226.121C334.844 230.623 336.738 234.282 338.062 236.825C338.724 238.097 339.244 239.091 339.604 239.773C339.784 240.114 339.925 240.379 340.024 240.562C340.073 240.654 340.114 240.729 340.146 240.785C340.161 240.812 340.178 240.841 340.194 240.867C340.201 240.88 340.214 240.899 340.228 240.921C340.235 240.932 340.247 240.949 340.262 240.97C340.272 240.983 340.307 241.028 340.358 241.079V241.08C340.615 241.337 340.941 241.398 341.187 241.37C341.392 241.347 341.539 241.268 341.602 241.23C341.733 241.153 341.826 241.06 341.862 241.022C341.952 240.93 342.04 240.816 342.116 240.713C342.277 240.495 342.49 240.176 342.747 239.776C343.263 238.97 343.999 237.763 344.931 236.197C346.798 233.062 349.473 228.45 352.804 222.631C359.467 210.99 368.761 194.501 379.473 175.283C383.993 167.175 388.302 159.594 391.602 153.914C393.253 151.074 394.649 148.713 395.693 147C396.215 146.143 396.645 145.453 396.973 144.949C397.137 144.697 397.272 144.497 397.377 144.349C397.43 144.275 397.473 144.217 397.505 144.175C397.534 144.138 397.549 144.12 397.552 144.117Z" 
+            />
+            <path 
+              className="logo-cart-bar" 
+              d="M529.976 307.296C549.728 307.296 567.682 307.365 580.695 307.476C587.203 307.531 592.468 307.596 596.102 307.669C596.856 307.684 597.537 307.7 598.143 307.716C597.587 307.72 596.9 308.772 596.159 311.237C595.233 312.791 594.245 314.348 593.366 315.629C592.556 316.809 591.935 317.609 591.574 317.996L591.435 318.137L589.669 319.796H460.795L459.129 317.859C458.123 316.689 457.423 314.751 457.302 312.695C457.179 310.603 457.684 309.04 458.309 308.327C458.42 308.281 458.719 308.181 459.399 308.075C460.844 307.85 463.424 307.677 468.253 307.557C477.85 307.318 495.791 307.296 529.976 307.296Z" 
+            />
 
-        {/* Letter-by-letter brand name reveal */}
-        <div className="flex items-center justify-center tracking-[0.25em] text-lg font-black uppercase pl-[0.25em]">
-          {brandLetters.map((item, idx) => (
-            <span
-              key={idx}
-              className={`inline-block transform opacity-0 translate-y-3 ${item.color} ${item.char === ' ' ? 'w-4' : ''}`}
-              style={{
-                animation: 'fadeUpLetter 0.5s cubic-bezier(0.19, 1, 0.22, 1) forwards',
-                animationDelay: `${0.3 + idx * 0.05}s`
-              }}
-            >
-              {item.char}
-            </span>
-          ))}
+            {/* Stage 3: Cart Wheels Pop-In & Rotation */}
+            <g className="logo-wheel-left">
+              <path 
+                fill="white" 
+                stroke="#3B8EF3" 
+                strokeWidth="2" 
+                d="M482.019 329.42C483.308 329.47 484.675 329.844 486.329 330.682L486.664 330.855C495.805 335.713 495.391 347.596 486.286 351.624C483.806 352.721 481.686 353.031 479.781 352.74C477.876 352.449 475.948 351.52 473.915 349.734C470.561 346.79 469.067 342.496 469.768 339.306V339.305C470.079 337.89 471.083 336.033 472.575 334.271C474.059 332.517 475.788 331.14 477.269 330.495C479.149 329.676 480.643 329.367 482.019 329.42Z" 
+              />
+            </g>
+            <g className="logo-wheel-right">
+              <path 
+                fill="white" 
+                stroke="#3B8EF3" 
+                strokeWidth="2" 
+                d="M548.017 329.42C549.303 329.469 550.673 329.844 552.329 330.682L552.664 330.855C561.805 335.713 561.39 347.595 552.286 351.623C549.762 352.739 547.611 353.042 545.685 352.723C543.758 352.403 541.808 351.422 539.759 349.544H539.76C533.631 343.925 535.279 334.073 543.336 330.492C545.172 329.676 546.648 329.368 548.017 329.42Z" 
+              />
+            </g>
+
+            {/* Stage 4: Speed Lines Slide In */}
+            <g className="logo-speed-line-1">
+              <path 
+                fill="white" 
+                stroke="#3B8EF3" 
+                strokeWidth="2" 
+                d="M621.638 137.691C641.16 138.107 651.925 138.422 657.87 138.989C660.897 139.278 662.375 139.611 663.079 139.91C663.104 139.921 663.126 139.933 663.147 139.942C663.14 140.076 663.116 140.242 663.06 140.415C663.055 140.429 663.048 140.456 663.043 140.456C662.754 140.515 662.363 140.583 661.864 140.655C660.781 140.837 658.982 141.027 656.664 141.218C652.319 141.598 646.466 141.971 640.057 142.287C627.229 142.919 612.314 143.317 602.913 143.112C595.546 142.951 592.218 142.869 590.479 142.547C590.089 142.475 589.869 142.405 589.75 142.355C589.693 142.332 589.662 142.315 589.649 142.307C589.637 142.3 589.633 142.296 589.631 142.295C589.591 142.26 589.517 142.186 589.097 141.438C588.771 140.856 588.518 140.287 588.518 140.287ZM628.562 112.296C638.168 112.296 651.25 112.793 662.214 113.447C667.561 113.774 672.42 114.139 676.001 114.498C677.797 114.678 679.238 114.853 680.257 115.017C680.586 115.069 680.852 115.121 681.061 115.164C681.062 115.167 681.064 115.174 681.065 115.174C681.115 115.333 681.139 115.489 681.147 115.62C680.547 115.885 679.259 116.207 676.573 116.51C671.217 117.113 661.481 117.546 643.73 118.193C631.855 118.626 624.999 118.822 620.823 118.757C616.5 118.689 615.717 118.312 615.439 118.13C614.277 117.37 613.763 115.034 615.33 113.303C615.497 113.118 615.606 113.037 615.792 112.956C616.04 112.848 616.51 112.708 617.459 112.593C619.4 112.358 622.64 112.296 628.562 112.296Z" 
+              />
+            </g>
+
+            {/* Stage 5: Light Flare Circle Overlay */}
+            <circle cx="340" cy="240" r="10" className="logo-light-flare" />
+
+            {/* Stage 6: Brand CREVAWEBZ Typography Reveal */}
+            <g className="logo-brand-text">
+              {/* CREVA path in primary brand blue */}
+              <path 
+                fill="#3B8EF3" 
+                d="M28.0507 407.935C20.5947 410.033 17.1727 412.003 11.2527 417.602C-4.1403 432.16 -3.68031 456.651 12.2607 471.22C20.1007 478.385 26.7607 480.808 38.8417 480.887C47.6487 480.944 48.8487 480.706 54.8417 477.701C58.4047 475.915 62.8377 473.06 64.6927 471.356L68.0647 468.259L62.8237 462.952L57.5817 457.644L53.3497 460.875C47.3197 465.477 40.9047 467.089 34.2077 465.685C27.6227 464.303 23.4037 461.27 19.9727 455.449C17.7847 451.736 17.3207 449.725 17.3207 443.949C17.3207 438.08 17.7737 436.178 20.1257 432.177C23.8177 425.897 29.0787 422.484 36.2037 421.749C42.6297 421.086 48.9937 423.041 53.9297 427.194L56.9597 429.744L62.4537 424.346L67.9487 418.949L63.8027 415.24C55.6767 407.971 39.5957 404.685 28.0507 407.935ZM93.5707 408.014C93.1577 408.437 92.8207 424.701 92.8207 444.156V479.53L101.071 479.239L109.321 478.949L108.974 470.153C108.451 456.891 108.667 456.449 115.657 456.449H121.455L129.388 467.863C133.751 474.141 137.996 479.433 138.821 479.623C139.646 479.812 144.004 479.818 148.505 479.634L156.689 479.301L147.735 466.663L138.781 454.026L141.551 452.619C149.454 448.604 153.777 441.295 153.777 431.949C153.777 424.828 151.509 419.32 146.689 414.742C140.775 409.122 136.593 408.213 114.321 407.704C103.321 407.452 93.9837 407.592 93.5707 408.014ZM180.821 443.433V479.449H208.957H237.093L236.457 474.809C236.107 472.258 235.821 469.108 235.821 467.809V465.449H216.321H196.821V457.949V450.449H213.821H230.821V443.449V436.449H213.821H196.821L196.82 429.199V421.949H216.07H235.321V414.949V407.949L208.071 407.683L180.821 407.417V443.433ZM256.399 408.336C256.195 408.673 259.038 416.149 262.716 424.949C266.395 433.749 272.986 449.836 277.363 460.697L285.321 480.445L292.821 480.427L300.321 480.41L306.821 464.353C310.396 455.522 316.972 439.443 321.435 428.623C325.898 417.802 329.359 408.612 329.126 408.199C328.893 407.786 325.114 407.449 320.726 407.449H312.75L310.713 412.199C309.593 414.811 305.267 426.085 301.101 437.251C296.934 448.417 293.205 457.192 292.815 456.751C292.425 456.31 287.893 445.016 282.743 431.652L273.38 407.356L265.075 407.539C260.507 407.64 256.603 407.998 256.399 408.336ZM365.184 411.156C364.321 413.242 357.321 429.272 349.63 446.779C341.94 464.285 335.799 478.758 335.984 478.94C336.379 479.33 343.778 479.675 348.889 479.542C352.385 479.451 352.523 479.289 355.76 471.449L359.063 463.449H374.329H389.596L392.792 471.378L395.988 479.307L404.493 479.628C409.17 479.805 413.125 479.818 413.283 479.658C413.529 479.409 408.062 466.56 394.534 435.593C392.767 431.548 389.265 423.673 386.753 418.093L382.184 407.949L374.47 407.656L366.755 407.364L365.184 411.156ZM109.035 432.439L109.321 442.429L119.994 442.439C129.924 442.448 130.874 442.275 133.635 439.952C137.211 436.943 138.274 433.35 136.857 429.059C135.12 423.794 131.563 422.449 119.381 422.449H108.75L109.035 432.439ZM373.066 430C372.466 431.622 370.381 436.661 368.432 441.199L364.888 449.449H374.31H383.732L382.372 445.699C381.623 443.637 379.468 438.597 377.583 434.5L374.155 427.051L373.066 430Z" 
+              />
+              {/* WEBZ path in white */}
+              <path 
+                fill="white" 
+                d="M762.117 409.789H786.95V413.991C786.95 417.06 786.857 418.446 786.581 419.389C786.357 420.151 785.982 420.735 784.767 422.03L784.766 422.031C783.11 423.798 774.879 433.819 766.524 444.224L751.265 463.224L748.062 467.212L753.177 467.289L771.294 467.562H771.295L786.95 467.797V476.789H734.95V468.451L752.865 446.249L771.336 423.359L774.556 419.367L769.427 419.289L751.458 419.017L735.95 418.781V414.934C735.95 413.261 736.022 411.689 736.134 410.519C736.144 410.416 736.157 410.317 736.168 410.224C736.323 410.214 736.489 410.203 736.668 410.193C738.098 410.116 740.147 410.045 742.675 409.984C747.725 409.864 754.614 409.789 762.117 409.789ZM589.019 410.034C593.658 409.959 599.979 409.949 606.856 410.022L629.555 410.264L629.748 414.648L629.928 418.789H592.95V438.697L595.408 438.739L611.657 439.014L625.554 439.249L625.748 443.648L625.928 447.789H592.95V467.789H629.95V476.789H582.95V443.956C582.95 434.25 583.026 425.357 583.15 418.849C583.212 415.592 583.285 412.947 583.365 411.102C583.379 410.771 583.395 410.469 583.41 410.196C583.44 410.195 583.471 410.193 583.502 410.191C584.814 410.125 586.696 410.072 589.019 410.034ZM672.199 409.795C691.243 409.802 697.805 410.933 702.31 413.914C710.207 419.141 711.076 431.227 704.292 437.333L703.963 437.619L700.813 440.27L697.837 442.772L701.35 444.44L704.883 446.117L704.884 446.118C707.339 447.283 708.875 448.658 709.896 450.488C710.889 452.27 711.509 454.688 711.74 458.191L711.781 458.907C711.93 461.956 711.911 463.54 711.689 464.694C711.518 465.581 711.213 466.292 710.516 467.374L710.193 467.861C707.725 471.498 703.32 474.635 698.898 475.864C698.665 475.929 697.871 476.049 696.395 476.173C695.006 476.289 693.202 476.396 691.168 476.486C686.908 476.668 681.599 476.782 676.199 476.783L658.95 476.788V409.789L672.199 409.795ZM668.95 468.789H681.384C686.61 468.789 690.483 468.559 693.378 467.902C696.361 467.226 698.533 466.044 700.077 464.013H700.078C703.039 460.114 702.21 454.423 698.762 450.977H698.763C698.165 450.378 697.497 449.743 696.645 449.234C695.755 448.703 694.796 448.384 693.653 448.184C691.54 447.813 688.348 447.789 682.995 447.789H668.95V468.789ZM668.95 438.789H681.338C685.306 438.789 688.051 438.707 690.042 438.416C692.126 438.111 693.613 437.545 694.911 436.448L694.912 436.447C696.973 434.703 698.331 432.503 698.538 429.993C698.745 427.481 697.762 425.093 696.004 423.05C695.42 422.37 694.789 421.645 694.03 421.061C693.197 420.419 692.291 420 691.182 419.73C689.222 419.253 686.319 419.2 681.579 419.12L671.491 418.952L668.95 418.91V438.789Z" 
+              />
+            </g>
+          </svg>
         </div>
       </div>
 
       {/* Loading Status & Animated Dots */}
       <div className="absolute bottom-16 flex flex-col items-center space-y-2.5 min-h-[44px]">
-        {/* Dynamic dynamic loading messages */}
         <div className="relative overflow-hidden w-64 h-5 flex items-center justify-center">
           {LOADING_MESSAGES.map((msg, idx) => (
             <span
               key={idx}
               className={`absolute text-[11px] font-bold tracking-widest text-slate-400 uppercase transition-all duration-500 ease-in-out transform ${
                 msgIndex === idx
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 -translate-y-2 pointer-events-none"
+                  ? 'opacity-100 translate-y-0'
+                  : 'opacity-0 -translate-y-2 pointer-events-none'
               }`}
             >
               {msg}
@@ -130,15 +163,28 @@ export default function CrevaWebzLoader({
 
         {/* Dots sequence (• -> •• -> •••) */}
         <div className="h-2 flex items-center justify-center">
-          <span className="text-[10px] tracking-widest text-[#3C77C3] font-bold font-mono">
+          <span className="text-[10px] tracking-widest text-[#3B8EF3] font-bold font-mono">
             {dots || '\u00A0'}
           </span>
         </div>
       </div>
 
-      {/* Embed CSS keyframe styles inside style tag to avoid CSS file creation issues */}
+      {/* Premium SVG Tracing & GPU-friendly CSS Keyframe Animations */}
       <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes fadeInScale {
+        /* Background ambient glow pulse */
+        @keyframes ambientGlow {
+          0%, 100% {
+            transform: translateY(-40px) scale(1);
+            opacity: 0.8;
+          }
+          50% {
+            transform: translateY(-30px) scale(1.1);
+            opacity: 1;
+          }
+        }
+
+        /* Initial logo fade in and scale */
+        @keyframes logoFadeInScale {
           0% {
             opacity: 0;
             transform: scale(0.92);
@@ -148,40 +194,193 @@ export default function CrevaWebzLoader({
             transform: scale(1);
           }
         }
-        @keyframes fadeUpLetter {
+
+        /* Blue C Tracing - Stroke draw and neon glow */
+        .logo-blue-c {
+          stroke-dasharray: 1200;
+          stroke-dashoffset: 1200;
+          stroke: #3B8EF3;
+          stroke-width: 4px;
+          stroke-linecap: round;
+          fill: none;
+          opacity: 0;
+          animation: drawC 1.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+        @keyframes drawC {
           0% {
             opacity: 0;
-            transform: translateY(12px);
+            stroke-dashoffset: 1200;
+            fill: rgba(59, 142, 243, 0);
+          }
+          30% {
+            opacity: 1;
+          }
+          75% {
+            stroke-dashoffset: 0;
+            fill: rgba(59, 142, 243, 0);
+          }
+          100% {
+            stroke-dashoffset: 0;
+            fill: #3B8EF3;
+            opacity: 1;
+          }
+        }
+
+        /* W/Cart Main Structure Drawing */
+        .logo-w-body, .logo-cart-bar {
+          stroke-dasharray: 1500;
+          stroke-dashoffset: 1500;
+          stroke: #FFFFFF;
+          stroke-width: 4px;
+          stroke-linecap: round;
+          fill: none;
+          opacity: 0;
+          animation: drawW 1.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+          animation-delay: 0.6s;
+        }
+        @keyframes drawW {
+          0% {
+            opacity: 0;
+            stroke-dashoffset: 1500;
+            fill: rgba(255, 255, 255, 0);
+            stroke: #FFFFFF;
+            stroke-width: 4px;
+          }
+          30% {
+            opacity: 1;
+          }
+          75% {
+            stroke-dashoffset: 0;
+            fill: rgba(255, 255, 255, 0);
+            stroke: #FFFFFF;
+            stroke-width: 4px;
+          }
+          100% {
+            stroke-dashoffset: 0;
+            fill: #FFFFFF;
+            stroke: #3B8EF3;
+            stroke-width: 2px;
+            opacity: 1;
+          }
+        }
+
+        /* Left wheel pop-in & rotate */
+        .logo-wheel-left {
+          transform-origin: 482.5px 341px;
+          transform: scale(0);
+          opacity: 0;
+          animation: wheelPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+          animation-delay: 1.4s;
+        }
+        /* Right wheel pop-in & rotate */
+        .logo-wheel-right {
+          transform-origin: 548px 341px;
+          transform: scale(0);
+          opacity: 0;
+          animation: wheelPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+          animation-delay: 1.6s;
+        }
+        @keyframes wheelPop {
+          0% {
+            opacity: 0;
+            transform: scale(0) rotate(-180deg);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1) rotate(0deg);
+          }
+        }
+
+        /* Speed lines staggered slide */
+        .logo-speed-line-1 {
+          opacity: 0;
+          animation: speedSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation-delay: 1.5s;
+        }
+        .logo-speed-line-2 {
+          opacity: 0;
+          animation: speedSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation-delay: 1.7s;
+        }
+        @keyframes speedSlide {
+          0% {
+            opacity: 0;
+            transform: translateX(-35px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        /* Center Flare activation overlay */
+        .logo-light-flare {
+          transform-origin: 340px 240px;
+          transform: scale(0);
+          fill: radial-gradient(circle, #FFFFFF 0%, rgba(59, 142, 243, 0.8) 50%, transparent 100%);
+          opacity: 0;
+          animation: flareTrigger 0.7s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+          animation-delay: 1.9s;
+        }
+        @keyframes flareTrigger {
+          0% {
+            opacity: 0;
+            transform: scale(0);
+          }
+          40% {
+            opacity: 0.95;
+            transform: scale(14);
+            fill: #FFFFFF;
+          }
+          100% {
+            opacity: 0;
+            transform: scale(0);
+          }
+        }
+
+        /* CrevaWebz brand text typography reveal */
+        .logo-brand-text {
+          opacity: 0;
+          transform: translateY(8px);
+          filter: drop-shadow(0 0 8px rgba(59, 142, 243, 0));
+          animation: textReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation-delay: 2.3s;
+        }
+        @keyframes textReveal {
+          0% {
+            opacity: 0;
+            transform: translateY(8px);
+            filter: drop-shadow(0 0 8px rgba(59, 142, 243, 0));
           }
           100% {
             opacity: 1;
             transform: translateY(0);
+            filter: drop-shadow(0 0 10px rgba(59, 142, 243, 0.4));
           }
         }
-        @keyframes shimmerSweep {
-          0% {
-            transform: translateX(-120%) skewX(-15deg);
-          }
-          40% {
-            transform: translateX(120%) skewX(-15deg);
-          }
-          100% {
-            transform: translateX(120%) skewX(-15deg);
-          }
-        }
+
+        /* Accessibility reduced motion support */
         @media (prefers-reduced-motion: reduce) {
-          .animate-\\[shimmerSweep_3s_infinite_ease-in-out\\] {
+          .logo-blue-c, .logo-w-body, .logo-cart-bar {
             animation: none !important;
+            stroke-dashoffset: 0 !important;
+            opacity: 1 !important;
+            fill: #3B8EF3 !important;
           }
-          .animate-\\[fadeInScale_1.2s_ease-out-back_forwards\\] {
+          .logo-w-body, .logo-cart-bar {
+            fill: #FFFFFF !important;
+            stroke: #3B8EF3 !important;
+          }
+          .logo-wheel-left, .logo-wheel-right, .logo-speed-line-1, .logo-speed-line-2, .logo-brand-text {
             animation: none !important;
             opacity: 1 !important;
             transform: none !important;
           }
-          span[style*="animation"] {
+          .logo-light-flare {
+            display: none !important;
+          }
+          .animate-\\[ambientGlow_4s_infinite_ease-in-out\\] {
             animation: none !important;
-            opacity: 1 !important;
-            transform: none !important;
           }
         }
       ` }} />

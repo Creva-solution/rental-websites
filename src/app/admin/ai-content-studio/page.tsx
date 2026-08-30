@@ -280,6 +280,10 @@ export default function AIContentStudioPage() {
   const handleGenerate = async () => {
     if (activeAI.status !== 'connected') return;
 
+    if (typeof window !== 'undefined' && (window as any).showGlobalLoader) {
+      (window as any).showGlobalLoader();
+    }
+
     setGenerating(true);
     setGeneratedText('');
 
@@ -387,6 +391,9 @@ Guidelines:
         if (content) {
           setGeneratedText(content.trim());
           setGenerating(false);
+          if (typeof window !== 'undefined' && (window as any).hideGlobalLoader) {
+            (window as any).hideGlobalLoader();
+          }
           return;
         }
       }
@@ -411,6 +418,9 @@ Guidelines:
         }
         setGeneratedText(result);
         setGenerating(false);
+        if (typeof window !== 'undefined' && (window as any).hideGlobalLoader) {
+          (window as any).hideGlobalLoader();
+        }
       }, 1000);
     }
   };

@@ -12,7 +12,7 @@ import {
 import StoreAssistant from '@/components/StoreAssistant';
 import CrevaWebzLoader from '@/components/CrevaWebzLoader';
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [loading, setLoading] = useState(true);
@@ -762,5 +762,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </div>
   )}
     </>
+  );
+}
+
+import { LoadingProvider } from '@/context/LoadingContext';
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <LoadingProvider>
+      <AdminLayoutContent>{children}</AdminLayoutContent>
+    </LoadingProvider>
   );
 }

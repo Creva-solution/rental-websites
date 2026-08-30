@@ -507,6 +507,9 @@ function SubscriptionPageContent() {
       return;
     }
 
+    if (typeof window !== 'undefined' && (window as any).showGlobalLoader) {
+      (window as any).showGlobalLoader();
+    }
     setUploading(true);
     try {
       let uploadedUrl = '';
@@ -548,6 +551,9 @@ function SubscriptionPageContent() {
       console.error(err);
       alert(`⚠️ Failed to upload file: ${err.message}`);
       setUploading(false);
+      if (typeof window !== 'undefined' && (window as any).hideGlobalLoader) {
+        (window as any).hideGlobalLoader();
+      }
     }
   };
 
@@ -660,6 +666,9 @@ function SubscriptionPageContent() {
       alert(`Failed to update store payment info: ${err.message}`);
     } finally {
       setUploading(false);
+      if (typeof window !== 'undefined' && (window as any).hideGlobalLoader) {
+        (window as any).hideGlobalLoader();
+      }
     }
   };
 

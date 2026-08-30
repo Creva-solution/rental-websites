@@ -386,10 +386,16 @@ function IntegrationsPageContent() {
 
   const handleTestConnection = async () => {
     if (!activeItem) return;
+    if (typeof window !== 'undefined' && (window as any).showGlobalLoader) {
+      (window as any).showGlobalLoader();
+    }
     setTestingConnection(true);
     setTestResult(null);
 
     setTimeout(() => {
+      if (typeof window !== 'undefined' && (window as any).hideGlobalLoader) {
+        (window as any).hideGlobalLoader();
+      }
       setTestingConnection(false);
       let isValid = true;
       let errMsg = '';
@@ -432,6 +438,9 @@ function IntegrationsPageContent() {
   const handleSaveConfig = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeItem || !storeData) return;
+    if (typeof window !== 'undefined' && (window as any).showGlobalLoader) {
+      (window as any).showGlobalLoader();
+    }
     setSaving(true);
 
     try {
@@ -465,6 +474,9 @@ function IntegrationsPageContent() {
       setTestResult({ status: 'error', message: 'Failed to save configuration: ' + err.message });
     } finally {
       setSaving(false);
+      if (typeof window !== 'undefined' && (window as any).hideGlobalLoader) {
+        (window as any).hideGlobalLoader();
+      }
     }
   };
 
@@ -515,10 +527,16 @@ function IntegrationsPageContent() {
 
   const handleTestAIConnection = async () => {
     if (!activeAIProvider) return;
+    if (typeof window !== 'undefined' && (window as any).showGlobalLoader) {
+      (window as any).showGlobalLoader();
+    }
     setAiTesting(true);
     setAiTestResult(null);
 
     setTimeout(() => {
+      if (typeof window !== 'undefined' && (window as any).hideGlobalLoader) {
+        (window as any).hideGlobalLoader();
+      }
       setAiTesting(false);
       let isValid = true;
       let errMsg = '';
@@ -553,6 +571,9 @@ function IntegrationsPageContent() {
   const handleSaveAIConfig = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeAIProvider || !storeData || !aiVerified) return;
+    if (typeof window !== 'undefined' && (window as any).showGlobalLoader) {
+      (window as any).showGlobalLoader();
+    }
     setSaving(true);
 
     try {
@@ -572,6 +593,9 @@ function IntegrationsPageContent() {
       console.error(e);
     } finally {
       setSaving(false);
+      if (typeof window !== 'undefined' && (window as any).hideGlobalLoader) {
+        (window as any).hideGlobalLoader();
+      }
     }
   };
 
