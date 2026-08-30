@@ -546,7 +546,17 @@ export default function BusinessSetupWizard() {
         contractSignature: signature,
         contractSignedAt: new Date().toISOString(),
         selectedLanguage: selectedAgreementLang,
-        signedAgreementTerms: agreementTemplates[selectedAgreementLang]
+        signedAgreementTerms: agreementTemplates[selectedAgreementLang],
+        merchantId: authData.user.id,
+        planId: selectedPlan,
+        planName: selectedPlan === '30' ? '1 Month Plan' : selectedPlan === '365' ? '1 Year Plan' : 'Lifetime Plan',
+        planPrice: selectedPlan === '30' ? '499' : selectedPlan === '365' ? '3999' : '9999',
+        paymentScreenshot: paymentScreenshotUrl,
+        agreementAccepted: true,
+        agreementSigned: true,
+        signatureData: signature,
+        signedAt: new Date().toISOString(),
+        agreementVersion: '1.0'
       };
 
       const now = new Date();

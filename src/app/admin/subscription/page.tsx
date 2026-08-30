@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useSearchParams } from 'next/navigation';
 import { 
   CreditCard, Loader2, Phone, Calendar, Clock, Infinity, ShieldCheck, FileText, Printer, ShieldAlert, Upload, Trash2, Lock, X, AlertTriangle,
-  BadgeCheck, CircleCheck, Eye, Download, Image, PenTool, RefreshCw, ArrowUpRight, PhoneCall, MessageSquare
+  BadgeCheck, CircleCheck, Eye, Download, Image, PenTool, RefreshCw, ArrowUpRight, PhoneCall, MessageSquare, ReceiptText
 } from 'lucide-react';
 
 function SubscriptionPageContent() {
@@ -337,11 +337,23 @@ function SubscriptionPageContent() {
     }
   } catch (e) {}
 
-  const isAgreementSigned = contract?.contractSigned === true || !!contract?.signatureUrl || !!contract?.contractSignature;
-  const sigDataUrl = contract?.contractSignature || contract?.signatureUrl || null;
+  const isAgreementSigned = contract?.contractSigned === true || contract?.agreementSigned === true || !!contract?.signatureUrl || !!contract?.contractSignature || !!contract?.signatureData;
+  const sigDataUrl = contract?.contractSignature || contract?.signatureUrl || contract?.signatureData || null;
   const signedDateLabel = contract?.contractSignedAt 
     ? new Date(contract.contractSignedAt).toLocaleDateString('en-IN') 
-    : contract?.signedDate || 'N/A';
+    : contract?.signedAt
+      ? new Date(contract.signedAt).toLocaleDateString('en-IN')
+      : contract?.signedDate || 'N/A';
+
+  const planSelected = !!contract?.selectedPlan || !!contract?.planId;
+  const paymentVerified = contract?.paymentStatus === 'verified';
+  const agreementAccepted = !!contract?.agreementAcceptedAt || contract?.contractSigned === true || contract?.agreementAccepted === true || isAgreementSigned;
+  const agreementSigned = isAgreementSigned;
+  const signatureDataExists = !!sigDataUrl;
+
+  const onboardingStep5Completed = planSelected && paymentVerified && agreementAccepted && agreementSigned && signatureDataExists;
+
+  const paymentScreenshotUrl = contract?.paymentScreenshotUrl || contract?.paymentScreenshot || null;
 
   const activePlanLabel = expiryDate === null 
     ? 'Lifetime Subscription' 
@@ -642,10 +654,10 @@ function SubscriptionPageContent() {
 
       setReuploadSuccess(true);
       setTimeout(() => setReuploadSuccess(false), 3000);
-      alert("🎉 Success: Payment screenshot successfully re-uploaded! Your store is now awaiting superadmin re-verification.");
+      alert("Success: Payment screenshot successfully re-uploaded! Your store is now awaiting superadmin re-verification.");
     } catch (err: any) {
       console.error(err);
-      alert(`⚠️ Failed to update store payment info: ${err.message}`);
+      alert(`Failed to update store payment info: ${err.message}`);
     } finally {
       setUploading(false);
     }
@@ -653,22 +665,126 @@ function SubscriptionPageContent() {
 
   return (
     <div className="space-y-8 w-full pb-12">
-      {step === 'plan_contract' && (
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50/60 border border-amber-200 rounded-2xl p-5 text-left shadow-sm space-y-2.5">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded font-black text-[10px] uppercase tracking-wider">
-              Step 5 of 6
-            </span>
-            <h4 className="font-extrabold text-xs text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
-              <CreditCard className="w-4 h-4 text-amber-600" strokeWidth={2} />
-              Select Subscription Plan & Sign Contract
-            </h4>
-          </div>
-          <p className="text-xs text-slate-600 leading-relaxed font-medium">
-            Your Plan & Contract setup is incomplete. Please select a plan, review the license agreement, accept the terms, and complete the required payment to continue.
-          </p>
-        </div>
-      )}
+      {/* Onboarding Step 5 Status Block */}
+      {(() => {
+        if (onboardingStep5Completed) {
+          return (
+            <div className="bg-emerald-50 border border-emerald-250 rounded-2xl p-5 text-left shadow-sm space-y-3">
+              <div className="flex items-center gap-2 justify-between flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded font-black text-[10px] uppercase tracking-wider">
+                    Step 5 of 6
+                  </span>
+                  <h4 className="font-extrabold text-sm text-emerald-900 uppercase tracking-wide flex items-center gap-1.5">
+                    <CircleCheck className="w-5 h-5 text-emerald-600" strokeWidth={2} />
+                    Plan & Contract Completed
+                  </h4>
+                </div>
+                <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded font-black text-[9px] uppercase tracking-wider">
+                  Completed
+                </span>
+              </div>
+              <p className="text-xs text-emerald-700 leading-relaxed font-medium">
+                Your subscription plan, payment, and merchant agreement have been successfully completed.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 text-[11px] font-medium text-emerald-950">
+                <div className="flex items-center gap-1.5 bg-white/50 px-3 py-2 rounded-lg border border-emerald-100">
+                  <CreditCard className="w-4 h-4 text-emerald-600" strokeWidth={2} />
+                  <span><strong>Plan:</strong> {activePlanLabel}</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-white/50 px-3 py-2 rounded-lg border border-emerald-100">
+                  <ReceiptText className="w-4 h-4 text-emerald-600" strokeWidth={2} />
+                  <span><strong>Payment:</strong> Verified</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-white/50 px-3 py-2 rounded-lg border border-emerald-100">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" strokeWidth={2} />
+                  <span><strong>Agreement:</strong> Signed</span>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        // CASE 2: Plan selected + Payment verified + Agreement NOT signed
+        if (planSelected && paymentVerified && !agreementSigned) {
+          return (
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl p-5 text-left shadow-sm space-y-3">
+              <div className="flex items-center gap-2 justify-between flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded font-black text-[10px] uppercase tracking-wider">
+                    Step 5 of 6
+                  </span>
+                  <h4 className="font-extrabold text-sm text-amber-900 uppercase tracking-wide flex items-center gap-1.5">
+                    <AlertTriangle className="w-5 h-5 text-amber-600" strokeWidth={2} />
+                    Action Required
+                  </h4>
+                </div>
+                <span className="px-2.5 py-1 bg-amber-100 text-amber-850 rounded font-black text-[9px] uppercase tracking-wider animate-pulse">
+                  Pending Signature
+                </span>
+              </div>
+              <p className="text-xs text-amber-700 leading-relaxed font-medium">
+                Your subscription plan and payment are complete. Please review and sign the Merchant Licensing Agreement to complete this step.
+              </p>
+              <button
+                type="button"
+                onClick={() => setIsSignModalOpen(true)}
+                className="mt-1 flex items-center gap-1.5 bg-amber-650 hover:bg-amber-600 text-white text-[10px] font-black px-4 py-2.5 rounded-xl transition-all shadow-md cursor-pointer uppercase tracking-wider"
+              >
+                <PenTool className="w-3.5 h-3.5" strokeWidth={2} />
+                Review & Sign Agreement
+              </button>
+            </div>
+          );
+        }
+
+        // CASE 3: Plan selected + Agreement signed + Payment pending
+        if (planSelected && agreementSigned && !paymentVerified) {
+          return (
+            <div className="bg-blue-50 border border-blue-200 text-blue-850 rounded-2xl p-5 text-left shadow-sm space-y-3">
+              <div className="flex items-center gap-2 justify-between flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-1 bg-blue-100 text-blue-800 rounded font-black text-[10px] uppercase tracking-wider">
+                    Step 5 of 6
+                  </span>
+                  <h4 className="font-extrabold text-sm text-blue-900 uppercase tracking-wide flex items-center gap-1.5">
+                    <Clock className="w-5 h-5 text-blue-600" strokeWidth={2} />
+                    Payment Verification Pending
+                  </h4>
+                </div>
+                <span className="px-2.5 py-1 bg-blue-100 text-blue-800 rounded font-black text-[9px] uppercase tracking-wider animate-pulse">
+                  Under Review
+                </span>
+              </div>
+              <p className="text-xs text-blue-700 leading-relaxed font-medium font-sans">
+                Payment verification pending. Do not ask the merchant to sign again.
+              </p>
+            </div>
+          );
+        }
+
+        // Default Case: Plan or Payment incomplete
+        if (step === 'plan_contract') {
+          return (
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50/60 border border-amber-205 rounded-2xl p-5 text-left shadow-sm space-y-2.5">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded font-black text-[10px] uppercase tracking-wider">
+                  Step 5 of 6
+                </span>
+                <h4 className="font-extrabold text-xs text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+                  <CreditCard className="w-4 h-4 text-amber-600" strokeWidth={2} />
+                  Select Subscription Plan & Sign Contract
+                </h4>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed font-medium font-sans">
+                Your Plan & Contract setup is incomplete. Please select a plan, review the license agreement, accept the terms, and complete the required payment to continue.
+              </p>
+            </div>
+          );
+        }
+
+        return null;
+      })()}
       
       {/* Expiry Header Banner */}
       {isExpired ? (
@@ -752,12 +868,12 @@ function SubscriptionPageContent() {
                 <span className="text-[10px] text-slate-500 uppercase font-black block tracking-wider">Payment Screenshot</span>
               </div>
               
-              {contract.paymentScreenshotUrl ? (
+              {paymentScreenshotUrl ? (
                 <div className="space-y-3">
                   <div className="relative group max-w-xs border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-slate-50">
                     {!screenshotError ? (
                       <img 
-                        src={contract.paymentScreenshotUrl} 
+                        src={paymentScreenshotUrl} 
                         alt="Payment screenshot proof" 
                         className="max-h-[180px] w-full object-contain mx-auto p-2"
                         onError={() => setScreenshotError(true)}
@@ -772,7 +888,7 @@ function SubscriptionPageContent() {
 
                   <div className="flex flex-wrap items-center gap-2">
                     <a 
-                      href={contract.paymentScreenshotUrl} 
+                      href={paymentScreenshotUrl} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 border border-slate-200"
@@ -782,7 +898,7 @@ function SubscriptionPageContent() {
                     </a>
 
                     <a 
-                      href={contract.paymentScreenshotUrl} 
+                      href={paymentScreenshotUrl} 
                       download="payment_screenshot"
                       target="_blank"
                       rel="noopener noreferrer"
