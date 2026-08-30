@@ -19,6 +19,17 @@ export default function CrevaWebzLoader({
   const [msgIndex, setMsgIndex] = useState(0);
   const [dots, setDots] = useState('');
   const [isExiting, setIsExiting] = useState(false);
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+
+  // Minimum display timer to let the premium animation complete cleanly
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMinTimeElapsed(true);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const shouldExit = isAppReady && minTimeElapsed;
 
   // Cycle through dynamic loading messages (no emojis)
   useEffect(() => {
@@ -43,20 +54,20 @@ export default function CrevaWebzLoader({
 
   // Handle fade-out completion
   useEffect(() => {
-    if (isAppReady) {
+    if (shouldExit) {
       setIsExiting(true);
       const timer = setTimeout(() => {
         if (onFadeOutComplete) {
           onFadeOutComplete();
         }
-      }, 800);
+      }, 300); // Fast 300ms fadeout transition
       return () => clearTimeout(timer);
     }
-  }, [isAppReady, onFadeOutComplete]);
+  }, [shouldExit, onFadeOutComplete]);
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center transition-all duration-700 ease-in-out select-none ${
+      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center transition-all duration-300 ease-out select-none ${
         isExiting ? 'opacity-0 scale-98 pointer-events-none' : 'opacity-100 scale-100'
       }`}
       style={{
@@ -134,7 +145,7 @@ export default function CrevaWebzLoader({
                 fill="#3B8EF3" 
                 fillRule="evenodd"
                 clipRule="evenodd"
-                d="M28.0507 407.935C20.5947 410.033 17.1727 412.003 11.2527 417.602C-4.1403 432.16 -3.68031 456.651 12.2607 471.22C20.1007 478.385 26.7607 480.808 38.8417 480.887C47.6487 480.944 48.8487 480.706 54.8417 477.701C58.4047 475.915 62.8377 473.06 64.6927 471.356L68.0647 468.259L62.8237 462.952L57.5817 457.644L53.3497 460.875C47.3197 465.477 40.9047 467.089 34.2077 465.685C27.6227 464.303 23.4037 461.27 19.9727 455.449C17.7847 451.736 17.3207 449.725 17.3207 443.949C17.3207 438.08 17.7737 436.178 20.1257 432.177C23.8177 425.897 29.0787 422.484 36.2037 421.749C42.6297 421.086 48.9937 423.041 53.9297 427.194L56.9597 429.744L62.4537 424.346L67.9487 418.949L63.8027 415.24C55.6767 407.971 39.5957 404.685 28.0507 407.935ZM93.5707 408.014C93.1577 408.437 92.8207 424.701 92.8207 444.156V479.53L101.071 479.239L109.321 478.949L108.974 470.153C108.451 456.891 108.667 456.449 115.657 456.449H121.455L129.388 467.863C133.751 474.141 137.996 479.433 138.821 479.623C139.646 479.812 144.004 479.818 148.505 479.634L156.689 479.301L147.735 466.663L138.781 454.026L141.551 452.619C149.454 448.604 153.777 441.295 153.777 431.949C153.777 424.828 151.509 419.32 146.689 414.742C140.775 409.122 136.593 408.213 114.321 407.704C103.321 407.452 93.9837 407.592 93.5707 408.014ZM180.821 443.433V479.449H208.957H237.093L236.457 474.809C236.107 472.258 235.821 469.108 235.821 467.809V465.449H216.321H196.821V457.949V450.449H213.821H230.821V443.449V436.449H213.821H196.821L196.82 429.199V421.949H216.07H235.321V414.949V407.949L208.071 407.683L180.821 407.417V443.433ZM256.399 408.336C256.195 408.673 259.038 416.149 262.716 424.949C266.395 433.749 272.986 449.836 277.363 460.697L285.321 480.445L292.821 480.427L300.321 480.41L306.821 464.353C310.396 455.522 316.972 439.443 321.435 428.623C325.898 417.802 329.359 408.612 329.126 408.199C328.893 407.786 325.114 407.449 320.726 407.449H312.75L310.713 412.199C309.593 414.811 305.267 426.085 301.101 437.251C296.934 448.417 293.205 457.192 292.815 456.751C292.425 456.31 287.893 445.016 282.743 431.652L273.38 407.356L265.075 407.539C260.507 407.64 256.603 407.998 256.399 408.336ZM365.184 411.156C364.321 413.242 357.321 429.272 349.63 446.779C341.94 464.285 335.799 478.758 335.984 478.94C336.379 479.33 343.778 479.542C352.385 479.451 352.523 479.289 355.76 471.449L359.063 463.449H374.329H389.596L392.792 471.378L395.988 479.307L404.493 479.628C409.17 479.805 413.125 479.818 413.283 479.658C413.529 479.409 408.062 466.56 394.534 435.593C392.767 431.548 389.265 423.673 386.753 418.093L382.184 407.949L374.47 407.656L366.755 407.364L365.184 411.156ZM109.035 432.439L109.321 442.429L119.994 442.439C129.924 442.448 130.874 442.275 133.635 439.952C137.211 436.943 138.274 433.35 136.857 429.059C135.12 423.794 131.563 422.449 119.381 422.449H108.75L109.035 432.439ZM373.066 430C372.466 431.622 370.381 436.661 368.432 441.199L364.888 449.449H374.31H383.732L382.372 445.699C381.623 443.637 379.468 438.597 377.583 434.5L374.155 427.051L373.066 430Z" 
+                d="M28.0507 407.935C20.5947 410.033 17.1727 412.003 11.2527 417.602C-4.1403 432.16 -3.68031 456.651 12.2607 471.22C20.1007 478.385 26.7607 480.808 38.8417 480.887C47.6487 480.944 48.8487 480.706 54.8417 477.701C58.4047 475.915 62.8377 473.06 64.6927 471.356L68.0647 468.259L62.8237 462.952L57.5817 457.644L53.3497 460.875C47.3197 465.477 40.9047 467.089 34.2077 465.685C27.6227 464.303 23.4037 461.27 19.9727 455.449C17.7847 451.736 17.3207 449.725 17.3207 443.949C17.3207 438.08 17.7737 436.178 20.1257 432.177C23.8177 425.897 29.0787 422.484 36.2037 421.749C42.6297 421.086 48.9937 423.041 53.9297 427.194L56.9597 429.744L62.4537 424.346L67.9487 418.949L63.8027 415.24C55.6767 407.971 39.5957 404.685 28.0507 407.935ZM93.5707 408.014C93.1577 408.437 92.8207 424.701 92.8207 444.156V479.53L101.071 479.239L109.321 478.949L108.974 470.153C108.451 456.891 108.667 456.449 115.657 456.449H121.455L129.388 467.863C133.751 474.141 137.996 479.433 138.821 479.623C139.646 479.812 144.004 479.818 148.505 479.634L156.689 479.301L147.735 466.663L138.781 454.026L141.551 452.619C149.454 448.604 153.777 441.295 153.777 431.949C153.777 424.828 151.509 419.32 146.689 414.742C140.775 409.122 136.593 408.213 114.321 407.704C103.321 407.452 93.9837 407.592 93.5707 408.014ZM180.821 443.433V479.449H208.957H237.093L236.457 474.809C236.107 472.258 235.821 469.108 235.821 467.809V465.449H216.321H196.821V457.949V450.449H213.821H230.821V443.449V436.449H213.821H196.821L196.82 429.199V421.949H216.07H235.321V414.949V407.949L208.071 407.683L180.821 407.417V443.433ZM256.399 408.336C256.195 408.673 259.038 416.149 262.716 424.949C266.395 433.749 272.986 449.836 277.363 460.697L285.321 480.445L292.821 480.427L300.321 480.41L306.821 464.353C310.396 455.522 316.972 439.443 321.435 428.623C325.898 417.802 329.359 408.612 329.126 408.199C328.893 407.786 325.114 407.449 320.726 407.449H312.75L310.713 412.199C309.593 414.811 305.267 426.085 301.101 437.251C296.934 448.417 293.205 457.192 292.815 456.751C292.425 456.31 287.893 445.016 282.743 431.652L273.38 407.356L265.075 407.539C260.507 407.64 256.603 407.998 256.399 408.336ZM365.184 411.156C364.321 413.242 357.321 429.272 349.63 446.779C341.94 464.285 335.799 478.758 335.984 478.94C336.379 479.33 343.778 479.675 348.889 479.542C352.385 479.451 352.523 479.289 355.76 471.449L359.063 463.449H374.329H389.596L392.792 471.378L395.988 479.307L404.493 479.628C409.17 479.805 413.125 479.818 413.283 479.658C413.529 479.409 408.062 466.56 394.534 435.593C392.767 431.548 389.265 423.673 386.753 418.093L382.184 407.949L374.47 407.656L366.755 407.364L365.184 411.156ZM109.035 432.439L109.321 442.429L119.994 442.439C129.924 442.448 130.874 442.275 133.635 439.952C137.211 436.943 138.274 433.35 136.857 429.059C135.12 423.794 131.563 422.449 119.381 422.449H108.75L109.035 432.439ZM373.066 430C372.466 431.622 370.381 436.661 368.432 441.199L364.888 449.449H374.31H383.732L382.372 445.699C381.623 443.637 379.468 438.597 377.583 434.5L374.155 427.051L373.066 430Z" 
               />
               {/* WEBZ path in white with custom stroke border outline */}
               <path 
@@ -171,8 +182,8 @@ export default function CrevaWebzLoader({
             opacity: 0.6;
           }
           50% {
-            transform: translateY(-30px) scale(1.05);
-            opacity: 0.9;
+            transform: translateY(-30px) scale(1.03);
+            opacity: 0.8;
           }
         }
 
@@ -180,7 +191,7 @@ export default function CrevaWebzLoader({
         @keyframes logoFadeInScale {
           0% {
             opacity: 0;
-            transform: scale(0.95);
+            transform: scale(0.96);
           }
           100% {
             opacity: 1;
@@ -197,7 +208,7 @@ export default function CrevaWebzLoader({
           stroke-linecap: round;
           fill: none;
           opacity: 0;
-          animation: drawC 1.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+          animation: drawC 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         }
         @keyframes drawC {
           0% {
@@ -228,8 +239,8 @@ export default function CrevaWebzLoader({
           stroke-linecap: round;
           fill: none;
           opacity: 0;
-          animation: drawW 1.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-          animation-delay: 0.6s;
+          animation: drawW 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+          animation-delay: 0.2s;
         }
         @keyframes drawW {
           0% {
@@ -262,16 +273,16 @@ export default function CrevaWebzLoader({
           transform-origin: 482.5px 341px;
           transform: scale(0);
           opacity: 0;
-          animation: wheelPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-          animation-delay: 1.4s;
+          animation: wheelPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+          animation-delay: 0.5s;
         }
         /* Right wheel pop-in & rotate */
         .logo-wheel-right {
           transform-origin: 548px 341px;
           transform: scale(0);
           opacity: 0;
-          animation: wheelPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-          animation-delay: 1.6s;
+          animation: wheelPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+          animation-delay: 0.6s;
         }
         @keyframes wheelPop {
           0% {
@@ -287,13 +298,13 @@ export default function CrevaWebzLoader({
         /* Speed lines staggered slide */
         .logo-speed-line-1 {
           opacity: 0;
-          animation: speedSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          animation-delay: 1.5s;
+          animation: speedSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation-delay: 0.55s;
         }
         .logo-speed-line-2 {
           opacity: 0;
-          animation: speedSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          animation-delay: 1.7s;
+          animation: speedSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation-delay: 0.65s;
         }
         @keyframes speedSlide {
           0% {
@@ -312,8 +323,8 @@ export default function CrevaWebzLoader({
           transform: scale(0);
           fill: radial-gradient(circle, #FFFFFF 0%, rgba(59, 142, 243, 0.6) 50%, transparent 100%);
           opacity: 0;
-          animation: flareTrigger 0.7s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-          animation-delay: 1.9s;
+          animation: flareTrigger 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+          animation-delay: 0.7s;
         }
         @keyframes flareTrigger {
           0% {
@@ -336,8 +347,8 @@ export default function CrevaWebzLoader({
           opacity: 0;
           transform: translateY(8px);
           filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.1));
-          animation: textReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          animation-delay: 2.3s;
+          animation: textReveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation-delay: 0.8s;
         }
         @keyframes textReveal {
           0% {
