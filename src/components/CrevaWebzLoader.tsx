@@ -60,11 +60,11 @@ export default function CrevaWebzLoader({
         isExiting ? 'opacity-0 scale-98 pointer-events-none' : 'opacity-100 scale-100'
       }`}
       style={{
-        background: 'radial-gradient(circle at center, #1b222d 0%, #0d1117 100%)'
+        background: 'radial-gradient(circle at center, #FFFFFF 0%, #F8FAFC 100%)'
       }}
     >
       {/* Subtle blue ambient glow behind the logo */}
-      <div className="absolute w-72 h-72 rounded-full bg-[#3B8EF3]/10 blur-[60px] transform -translate-y-10 animate-[ambientGlow_4s_infinite_ease-in-out] pointer-events-none" />
+      <div className="absolute w-80 h-80 rounded-full bg-[#3B8EF3]/4 blur-[80px] transform -translate-y-10 animate-[ambientGlow_4s_infinite_ease-in-out] pointer-events-none" />
 
       {/* Main Logo Container */}
       <div className="relative flex flex-col items-center justify-center w-full max-w-xl px-6">
@@ -78,7 +78,7 @@ export default function CrevaWebzLoader({
             viewBox="0 0 790 481" 
             fill="none" 
             xmlns="http://www.w3.org/2000/svg"
-            className="filter drop-shadow-[0_0_25px_rgba(59,142,243,0.25)]"
+            className="filter drop-shadow-[0_8px_30px_rgba(59,142,243,0.08)] drop-shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
           >
             {/* Stage 2: Blue C Tracing & Glow */}
             <path 
@@ -150,28 +150,15 @@ export default function CrevaWebzLoader({
         </div>
       </div>
 
-      {/* Loading Status & Animated Dots */}
-      <div className="absolute bottom-16 flex flex-col items-center space-y-2.5 min-h-[44px]">
-        <div className="relative overflow-hidden w-64 h-5 flex items-center justify-center">
-          {LOADING_MESSAGES.map((msg, idx) => (
-            <span
-              key={idx}
-              className={`absolute text-[11px] font-bold tracking-widest text-slate-400 uppercase transition-all duration-500 ease-in-out transform ${
-                msgIndex === idx
-                  ? 'opacity-100 translate-y-0'
-                  : 'opacity-0 -translate-y-2 pointer-events-none'
-              }`}
-            >
-              {msg}
-            </span>
-          ))}
+      {/* Loading Status & Animated Progress Indicator */}
+      <div className="absolute bottom-20 flex flex-col items-center space-y-3.5 min-h-[50px]">
+        <div className="text-[12px] font-bold tracking-[0.25em] text-[#1E293B] uppercase">
+          Preparing your store...
         </div>
-
-        {/* Dots sequence (• -> •• -> •••) */}
-        <div className="h-2 flex items-center justify-center">
-          <span className="text-[10px] tracking-widest text-[#3B8EF3] font-bold font-mono">
-            {dots || '\u00A0'}
-          </span>
+        
+        {/* Minimal thin progress line with animated indicator */}
+        <div className="relative w-40 h-[3px] bg-slate-100 rounded-full overflow-hidden">
+          <div className="absolute top-0 bottom-0 left-0 bg-[#3B8EF3] rounded-full logo-progress-indicator" />
         </div>
       </div>
 
@@ -181,11 +168,11 @@ export default function CrevaWebzLoader({
         @keyframes ambientGlow {
           0%, 100% {
             transform: translateY(-40px) scale(1);
-            opacity: 0.8;
+            opacity: 0.6;
           }
           50% {
-            transform: translateY(-30px) scale(1.1);
-            opacity: 1;
+            transform: translateY(-30px) scale(1.05);
+            opacity: 0.9;
           }
         }
 
@@ -193,7 +180,7 @@ export default function CrevaWebzLoader({
         @keyframes logoFadeInScale {
           0% {
             opacity: 0;
-            transform: scale(0.92);
+            transform: scale(0.95);
           }
           100% {
             opacity: 1;
@@ -236,7 +223,7 @@ export default function CrevaWebzLoader({
         .logo-w-body, .logo-cart-bar {
           stroke-dasharray: 1500;
           stroke-dashoffset: 1500;
-          stroke: #FFFFFF;
+          stroke: #F8FAFC;
           stroke-width: 4px;
           stroke-linecap: round;
           fill: none;
@@ -249,7 +236,7 @@ export default function CrevaWebzLoader({
             opacity: 0;
             stroke-dashoffset: 1500;
             fill: rgba(255, 255, 255, 0);
-            stroke: #FFFFFF;
+            stroke: #F8FAFC;
             stroke-width: 4px;
           }
           30% {
@@ -258,7 +245,7 @@ export default function CrevaWebzLoader({
           75% {
             stroke-dashoffset: 0;
             fill: rgba(255, 255, 255, 0);
-            stroke: #FFFFFF;
+            stroke: #F8FAFC;
             stroke-width: 4px;
           }
           100% {
@@ -323,7 +310,7 @@ export default function CrevaWebzLoader({
         .logo-light-flare {
           transform-origin: 340px 240px;
           transform: scale(0);
-          fill: radial-gradient(circle, #FFFFFF 0%, rgba(59, 142, 243, 0.8) 50%, transparent 100%);
+          fill: radial-gradient(circle, #FFFFFF 0%, rgba(59, 142, 243, 0.6) 50%, transparent 100%);
           opacity: 0;
           animation: flareTrigger 0.7s cubic-bezier(0.25, 1, 0.5, 1) forwards;
           animation-delay: 1.9s;
@@ -334,7 +321,7 @@ export default function CrevaWebzLoader({
             transform: scale(0);
           }
           40% {
-            opacity: 0.95;
+            opacity: 0.85;
             transform: scale(14);
             fill: #FFFFFF;
           }
@@ -348,7 +335,7 @@ export default function CrevaWebzLoader({
         .logo-brand-text {
           opacity: 0;
           transform: translateY(8px);
-          filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.25));
+          filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.1));
           animation: textReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
           animation-delay: 2.3s;
         }
@@ -356,12 +343,31 @@ export default function CrevaWebzLoader({
           0% {
             opacity: 0;
             transform: translateY(8px);
-            filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.25));
+            filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.1));
           }
           100% {
             opacity: 1;
             transform: translateY(0);
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25)) drop-shadow(0 0 4px rgba(59, 142, 243, 0.25));
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.05)) drop-shadow(0 0 3px rgba(59, 142, 243, 0.2));
+          }
+        }
+
+        /* Minimal Progress Line animated indicator */
+        .logo-progress-indicator {
+          width: 30%;
+          animation: progressIndeterminate 1.6s infinite ease-in-out;
+        }
+        @keyframes progressIndeterminate {
+          0% {
+            left: -35%;
+            width: 30%;
+          }
+          50% {
+            width: 45%;
+          }
+          100% {
+            left: 100%;
+            width: 30%;
           }
         }
 
@@ -385,7 +391,7 @@ export default function CrevaWebzLoader({
           .logo-light-flare {
             display: none !important;
           }
-          .animate-\\[ambientGlow_4s_infinite_ease-in-out\\] {
+          .animate-\[ambientGlow_4s_infinite_ease-in-out\] {
             animation: none !important;
           }
         }
