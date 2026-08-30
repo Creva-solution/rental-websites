@@ -541,7 +541,12 @@ export default function BusinessSetupWizard() {
         paymentScreenshotUrl,
         paymentStatus: 'pending',
         selectedTemplate,
-        agreementAcceptedAt: acceptedTimestamp
+        agreementAcceptedAt: acceptedTimestamp,
+        contractSigned: true,
+        contractSignature: signature,
+        contractSignedAt: new Date().toISOString(),
+        selectedLanguage: selectedAgreementLang,
+        signedAgreementTerms: agreementTemplates[selectedAgreementLang]
       };
 
       const now = new Date();

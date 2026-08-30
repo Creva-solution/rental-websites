@@ -4,7 +4,8 @@ import { useEffect, useState, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useSearchParams } from 'next/navigation';
 import { 
-  CreditCard, Loader2, Phone, Calendar, Clock, Infinity, ShieldCheck, FileText, Printer, ShieldAlert, Upload, Trash2, Lock, X, AlertTriangle
+  CreditCard, Loader2, Phone, Calendar, Clock, Infinity, ShieldCheck, FileText, Printer, ShieldAlert, Upload, Trash2, Lock, X, AlertTriangle,
+  BadgeCheck, CircleCheck, Eye, Download, Image, PenTool, RefreshCw, ArrowUpRight, PhoneCall, MessageSquare
 } from 'lucide-react';
 
 function SubscriptionPageContent() {
@@ -22,6 +23,7 @@ function SubscriptionPageContent() {
   const [isDrawingSig, setIsDrawingSig] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
   const [isSignatureConfirmed, setIsSignatureConfirmed] = useState(false);
+  const [screenshotError, setScreenshotError] = useState(false);
 
   const defaultTemplates: Record<string, string> = {
     en: `1. PROVISIONS OF SERVICE: The Creva E-Commerce SaaS platform grants the undersigned Merchant the license to operate an automated retail storefront website using our cloud architecture. Custom domain mappings are active permissions subject to the subscription plan level.
@@ -213,7 +215,9 @@ function SubscriptionPageContent() {
         contractSignature: signature,
         selectedLanguage: selectedAgreementLang,
         signedAgreementTerms: agreementTemplates[selectedAgreementLang] || defaultTemplates[selectedAgreementLang],
-        selectedPlan: '30',
+        selectedPlan: store.description && store.description.trim().startsWith('{')
+          ? (JSON.parse(store.description).selectedPlan || '30')
+          : '30',
         assignedOfficer: chosenOfficer,
         paymentScreenshotUrl: currentScreenshotUrl,
         paymentStatus: currentPaymentStatus,
@@ -235,10 +239,10 @@ function SubscriptionPageContent() {
       });
 
       setIsSignModalOpen(false);
-      alert("🎉 Success: Your merchant storefront licensing agreement has been digitally signed and registered successfully!");
+      alert("Success: Your merchant storefront licensing agreement has been digitally signed and registered successfully!");
     } catch (err: any) {
       console.error(err);
-      alert(`⚠️ Failed to submit signature: ${err.message}`);
+      alert(`Failed to submit signature: ${err.message}`);
     } finally {
       setUploading(false);
     }
@@ -326,12 +330,18 @@ function SubscriptionPageContent() {
   const isExpired = expiryDate ? expiryDate < new Date() : false;
 
   // Parse contract details from description if JSON
-  let contract = null;
+  let contract: any = null;
   try {
     if (store.description && store.description.trim().startsWith('{')) {
       contract = JSON.parse(store.description);
     }
   } catch (e) {}
+
+  const isAgreementSigned = contract?.contractSigned === true || !!contract?.signatureUrl || !!contract?.contractSignature;
+  const sigDataUrl = contract?.contractSignature || contract?.signatureUrl || null;
+  const signedDateLabel = contract?.contractSignedAt 
+    ? new Date(contract.contractSignedAt).toLocaleDateString('en-IN') 
+    : contract?.signedDate || 'N/A';
 
   const activePlanLabel = expiryDate === null 
     ? 'Lifetime Subscription' 
@@ -642,43 +652,45 @@ function SubscriptionPageContent() {
   };
 
   return (
-    <div className="space-y-8 w-full">
+    <div className="space-y-8 w-full pb-12">
       {step === 'plan_contract' && (
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50/60 border border-amber-250 rounded-2xl p-4.5 text-left shadow-sm space-y-2.5">
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50/60 border border-amber-200 rounded-2xl p-5 text-left shadow-sm space-y-2.5">
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded font-black text-[10px] uppercase tracking-wider">
-              Step 6 of 7
+              Step 5 of 6
             </span>
-            <h4 className="font-extrabold text-xs text-slate-800 uppercase tracking-wide">
+            <h4 className="font-extrabold text-xs text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+              <CreditCard className="w-4 h-4 text-amber-600" strokeWidth={2} />
               Select Subscription Plan & Sign Contract
             </h4>
           </div>
-          <p className="text-xs text-slate-650 leading-relaxed font-medium">
+          <p className="text-xs text-slate-600 leading-relaxed font-medium">
             Your Plan & Contract setup is incomplete. Please select a plan, review the license agreement, accept the terms, and complete the required payment to continue.
           </p>
         </div>
       )}
+      
       {/* Expiry Header Banner */}
       {isExpired ? (
-        <div className="bg-destructive/10 border border-destructive/20 text-destructive rounded-xl p-5 flex items-start gap-4">
-          <ShieldAlert className="w-6 h-6 shrink-0 mt-0.5" />
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-5 flex items-start gap-4 text-left">
+          <ShieldAlert className="w-6 h-6 shrink-0 mt-0.5 text-red-500" strokeWidth={2} />
           <div className="space-y-1">
             <h3 className="font-bold text-sm">Your Subscription Has Expired!</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
+            <p className="text-xs text-slate-500 leading-relaxed font-medium">
               Your store domain permissions and automated e-commerce storefront features may be restricted. Please renew immediately to avoid interruptions.
             </p>
           </div>
         </div>
       ) : (
-        <div className="bg-card text-card-foreground border border-border/50 rounded-xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-4">
-            <div className="p-3 rounded-lg bg-primary/10 text-primary">
-              <CreditCard className="w-6 h-6" />
+            <div className="p-3 rounded-lg bg-blue-50 text-blue-600">
+              <CreditCard className="w-6 h-6" strokeWidth={2} />
             </div>
             <div className="space-y-1 text-left">
-              <span className="text-[10px] text-muted-foreground font-black uppercase tracking-wider">Current SaaS License status</span>
-              <h2 className="text-xl font-bold">{activePlanLabel}</h2>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono mt-0.5">
+              <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Current Plan</span>
+              <h2 className="text-xl font-bold text-slate-800">{activePlanLabel}</h2>
+              <div className="flex items-center gap-1.5 text-xs text-slate-500 font-mono mt-0.5">
                 {expiryDate === null ? (
                   <>
                     <Infinity className="w-3.5 h-3.5 text-yellow-500" />
@@ -686,7 +698,7 @@ function SubscriptionPageContent() {
                   </>
                 ) : (
                   <>
-                    <Calendar className="w-3.5 h-3.5" />
+                    <Calendar className="w-3.5 h-3.5" strokeWidth={2} />
                     Expires on: {expiryDate.toLocaleDateString()} {expiryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </>
                 )}
@@ -694,101 +706,112 @@ function SubscriptionPageContent() {
             </div>
           </div>
           <div className="flex items-center">
-            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+            <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${
               expiryDate === null 
-                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/10 dark:text-yellow-400' 
-                : 'bg-emerald-100 text-emerald-850 dark:bg-emerald-500/10 dark:text-emerald-400'
+                ? 'bg-yellow-50 text-yellow-800 border border-yellow-100' 
+                : 'bg-emerald-50 text-emerald-800 border border-emerald-100'
             }`}>
-              {expiryDate === null ? 'ACTIVE (LIFETIME)' : 'ACTIVE (PAID)'}
+              <BadgeCheck className="w-4 h-4" strokeWidth={2} />
+              {expiryDate === null ? 'Active (Lifetime)' : 'Active'}
             </span>
           </div>
         </div>
       )}
 
       {contract && (
-        <div className="bg-card text-card-foreground rounded-xl border border-border/50 p-6 shadow-sm space-y-6">
-          <div className="flex items-center justify-between border-b pb-4 border-border/40">
+        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
+          <div className="flex items-center justify-between border-b pb-4 border-slate-100">
             <div className="text-left">
-              <h3 className="font-bold text-base">Payment & Onboarding Status</h3>
-              <p className="text-xs text-muted-foreground mt-0.5 font-sans">Verify your payment verification timeline and uploaded screenshot.</p>
+              <h3 className="font-bold text-base text-slate-800">Payment & Onboarding</h3>
+              <p className="text-xs text-slate-400 mt-0.5 font-sans">Verify your payment verification timeline and uploaded screenshot.</p>
             </div>
             
-            <span className={`px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider ${
+            <span className={`px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider flex items-center gap-1 border ${
               contract.paymentStatus === 'verified'
-                ? 'bg-emerald-100 text-emerald-850 dark:bg-emerald-500/10 dark:text-emerald-400'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
                 : contract.paymentStatus === 'rejected'
-                  ? 'bg-red-100 text-red-850 dark:bg-red-500/10 dark:text-red-400'
-                  : 'bg-amber-100 text-amber-850 dark:bg-amber-500/10 dark:text-amber-400'
+                  ? 'bg-red-50 text-red-700 border-red-100'
+                  : 'bg-amber-50 text-amber-700 border-amber-100'
             }`}>
-              STATUS: {contract.paymentStatus?.toUpperCase() || 'PENDING'}
+              {contract.paymentStatus === 'verified' ? (
+                <BadgeCheck className="w-4 h-4" strokeWidth={2} />
+              ) : contract.paymentStatus === 'rejected' ? (
+                <ShieldAlert className="w-4 h-4" strokeWidth={2} />
+              ) : (
+                <Clock className="w-4 h-4" strokeWidth={2} />
+              )}
+              Status: {contract.paymentStatus?.toUpperCase() || 'PENDING'}
             </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Left side: Upload Screenshot display */}
             <div className="space-y-4 text-left">
-              <span className="text-[10px] text-muted-foreground uppercase font-black block tracking-wider">Uploaded Screenshot proof</span>
+              <div className="flex items-center gap-2 text-slate-805 font-medium">
+                <Image className="w-4 h-4 text-slate-400" strokeWidth={2} />
+                <span className="text-[10px] text-slate-500 uppercase font-black block tracking-wider">Payment Screenshot</span>
+              </div>
+              
               {contract.paymentScreenshotUrl ? (
                 <div className="space-y-3">
-                  <div className="relative group max-w-xs border border-border rounded-xl overflow-hidden shadow-md bg-muted/20">
-                    <img 
-                      src={contract.paymentScreenshotUrl} 
-                      alt="Payment screenshot proof" 
-                      className="max-h-[180px] w-full object-contain mx-auto p-2"
-                    />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <a 
-                        href={contract.paymentScreenshotUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="bg-primary text-primary-foreground text-[10px] font-black px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors"
-                      >
-                        View Fullsize 🌐
-                      </a>
-                    </div>
+                  <div className="relative group max-w-xs border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-slate-50">
+                    {!screenshotError ? (
+                      <img 
+                        src={contract.paymentScreenshotUrl} 
+                        alt="Payment screenshot proof" 
+                        className="max-h-[180px] w-full object-contain mx-auto p-2"
+                        onError={() => setScreenshotError(true)}
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-8 px-4 text-slate-400">
+                        <AlertTriangle className="w-6 h-6 text-amber-500 mb-2" strokeWidth={2} />
+                        <span className="text-[10px] font-bold text-slate-500">Failed to load screenshot</span>
+                      </div>
+                    )}
                   </div>
 
-                  <button
-                    onClick={handleDeleteScreenshot}
-                    disabled={uploading}
-                    className="bg-red-600 hover:bg-red-700 text-white text-[11px] font-black px-4 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 border border-red-800/35"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    Delete Screenshot
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <a 
+                      href={contract.paymentScreenshotUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 border border-slate-200"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-slate-400" strokeWidth={2} />
+                      View Screenshot
+                    </a>
+
+                    <a 
+                      href={contract.paymentScreenshotUrl} 
+                      download="payment_screenshot"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 border border-slate-200"
+                    >
+                      <Download className="w-3.5 h-3.5 text-slate-400" strokeWidth={2} />
+                      Download
+                    </a>
+
+                    <button
+                      onClick={handleDeleteScreenshot}
+                      disabled={uploading}
+                      className="bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold px-3 py-2 rounded-lg transition-all flex items-center gap-1.5 border border-red-100 disabled:opacity-50 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
+                      Delete Screenshot
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <div className="border border-dashed border-border rounded-xl p-8 text-center text-muted-foreground bg-muted/10">
-                  <ShieldAlert className="w-8 h-8 text-amber-500 mx-auto mb-2" />
-                  <p className="text-xs font-semibold">No screenshot found on file</p>
-                </div>
-              )}
-            </div>
-
-            {/* Right side: Reupload dropzone if pending or rejected */}
-            <div className="space-y-4 flex flex-col justify-center text-left">
-              <span className="text-[10px] text-muted-foreground uppercase font-black block tracking-wider">Submit/Re-upload payment receipt</span>
-              
-              {contract.paymentStatus === 'verified' ? (
-                <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-4 text-emerald-800 dark:text-emerald-350 text-xs leading-relaxed space-y-1">
-                  <span className="font-bold block">✨ Payment Verification Confirmed!</span>
-                  Your payment has been manually approved by the super administration. Your e-commerce storefront is active and open to customers.
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {contract.paymentStatus === 'rejected' && (
-                    <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-4 text-red-800 dark:text-red-350 text-xs leading-relaxed">
-                      <strong className="block font-bold">🚨 Verification Compliance Notice:</strong>
-                      Your previous payment proof was rejected. Please transfer the setup fee and upload a clear screenshot of the UPI transaction receipt below.
-                    </div>
-                  )}
-
-                  <label className="relative border border-dashed border-border hover:border-primary/50 transition-colors rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer bg-muted/20 hover:bg-muted/30">
-                    <Upload className="w-6 h-6 text-muted-foreground mb-2 animate-bounce" />
-                    <span className="text-xs font-bold text-foreground">
-                      {uploading ? 'Uploading Transaction Screenshot...' : 'Click to Upload Receipt'}
+                <div className="border border-dashed border-slate-200 rounded-xl p-8 text-center text-slate-400 bg-slate-50/50">
+                  <ShieldAlert className="w-8 h-8 text-slate-300 mx-auto mb-2" strokeWidth={2} />
+                  <p className="text-xs font-semibold">No payment proof uploaded</p>
+                  
+                  <label className="mt-4 mx-auto max-w-[200px] border border-dashed border-slate-300 hover:border-blue-500/50 transition-colors rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer bg-white hover:bg-slate-50 shadow-sm">
+                    <Upload className="w-4 h-4 text-slate-400 mb-1" strokeWidth={2} />
+                    <span className="text-[10px] font-bold text-slate-750">
+                      Upload Payment Proof
                     </span>
-                    <span className="text-[10px] text-muted-foreground mt-1 block">Supports PNG, JPG (Max 5MB)</span>
                     <input 
                       type="file" 
                       accept="image/*" 
@@ -800,6 +823,70 @@ function SubscriptionPageContent() {
                 </div>
               )}
             </div>
+
+            {/* Right side: Reupload dropzone / info alerts */}
+            <div className="space-y-4 flex flex-col justify-center text-left">
+              <span className="text-[10px] text-slate-400 uppercase font-black block tracking-wider">Verification status info</span>
+              
+              {contract.paymentStatus === 'verified' ? (
+                <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 text-emerald-800 text-xs leading-relaxed space-y-1">
+                  <span className="font-bold flex items-center gap-1">
+                    <CircleCheck className="w-4 h-4 text-emerald-600" strokeWidth={2} />
+                    Payment Verified
+                  </span>
+                  Your payment has been manually approved by the super administration. Your e-commerce storefront is active and open to customers.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {contract.paymentStatus === 'rejected' && (
+                    <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-red-800 text-xs leading-relaxed space-y-1">
+                      <span className="font-bold flex items-center gap-1">
+                        <ShieldAlert className="w-4 h-4 text-red-500" strokeWidth={2} />
+                        Payment Rejected
+                      </span>
+                      Your previous payment proof was rejected. Please transfer the setup fee and upload a clear screenshot of the UPI transaction receipt below.
+                    </div>
+                  )}
+
+                  {contract.paymentScreenshotUrl && (
+                    <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-amber-800 text-xs leading-relaxed space-y-1">
+                      <span className="font-bold flex items-center gap-1">
+                        <Clock className="w-4 h-4 text-amber-600" strokeWidth={2} />
+                        Awaiting Verification
+                      </span>
+                      Your payment proof is currently under review by our billing department. Storefront review will be completed shortly.
+                    </div>
+                  )}
+
+                  {!contract.paymentScreenshotUrl && (
+                    <div className="bg-slate-50 border border-slate-105 rounded-xl p-4 text-slate-600 text-xs leading-relaxed space-y-1">
+                      <span className="font-bold flex items-center gap-1">
+                        <AlertTriangle className="w-4 h-4 text-amber-500" strokeWidth={2} />
+                        Action Required
+                      </span>
+                      Please upload your payment screenshot/transaction receipt to activate your storefront.
+                    </div>
+                  )}
+
+                  {contract.paymentStatus !== 'verified' && (
+                    <label className="relative border border-dashed border-slate-200 hover:border-blue-500/50 transition-colors rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer bg-slate-50/50 hover:bg-slate-50">
+                      <Upload className="w-6 h-6 text-slate-400 mb-2" strokeWidth={2} />
+                      <span className="text-xs font-bold text-slate-700">
+                        {uploading ? 'Uploading Transaction Screenshot...' : 'Click to Upload Receipt'}
+                      </span>
+                      <span className="text-[10px] text-slate-400 mt-1 block">Supports PNG, JPG (Max 5MB)</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handleScreenshotReupload}
+                        disabled={uploading}
+                        className="hidden" 
+                      />
+                    </label>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -808,10 +895,10 @@ function SubscriptionPageContent() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* Card 1: Subscription Renewal Inquiries */}
-        <div className="bg-card text-card-foreground rounded-xl border border-border/50 p-6 space-y-6 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-6 shadow-sm text-left">
           <div>
-            <h3 className="font-bold text-base">Renew / Upgrade Plan</h3>
-            <p className="text-xs text-muted-foreground mt-1">Select an upgrade plan below to connect directly with our support team.</p>
+            <h3 className="font-bold text-base text-slate-800">Renew Plan</h3>
+            <p className="text-xs text-slate-400 mt-1">Select an upgrade plan below to connect directly with our support team.</p>
           </div>
 
           <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
@@ -832,57 +919,63 @@ function SubscriptionPageContent() {
               return [...defaultPlans, ...customPlans].map((plan) => (
                 <div 
                   key={plan.id} 
-                  className="flex items-center justify-between p-3 bg-muted/30 border border-border rounded-xl hover:bg-muted/50 transition-colors"
+                  className="flex items-center justify-between p-3 bg-slate-50/50 border border-slate-200 rounded-xl hover:bg-slate-55 transition-colors"
                 >
-                  <div>
-                    <h4 className="text-xs font-bold">{plan.name}</h4>
-                    <span className="text-[10px] text-primary font-bold block mt-0.5">{plan.price}</span>
-                    <span className="text-[9px] text-muted-foreground block mt-0.5">{plan.desc}</span>
+                  <div className="space-y-0.5 text-left">
+                    <h4 className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
+                      <CreditCard className="w-3.5 h-3.5 text-slate-400" strokeWidth={2} />
+                      {plan.name}
+                    </h4>
+                    <span className="text-[10px] text-blue-600 font-bold block">{plan.price}</span>
+                    <span className="text-[9px] text-slate-400 block">{plan.desc}</span>
                   </div>
                   <button
                     onClick={() => handleWhatsAppInquiry(plan.name)}
-                    className="flex items-center gap-1 bg-success hover:bg-success/90 text-primary-foreground text-[10px] font-black px-3 py-2 rounded-lg transition-colors shadow-sm"
+                    className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-550 text-white text-[10px] font-black px-3.5 py-2 rounded-lg transition-colors shadow-sm cursor-pointer border border-emerald-700/20"
                   >
-                    <Phone className="w-3 h-3" />
-                    ENQUIRE NOW
+                    <MessageSquare className="w-3 h-3" strokeWidth={2} />
+                    Enquire
                   </button>
                 </div>
               ));
             })()}
           </div>
 
-          <div className="bg-muted/40 p-4 rounded-xl text-[11px] text-muted-foreground border leading-relaxed">
-            💡 <strong>How does it work?</strong> Our platform supports off-platform payments for maximum safety. Once you click <strong>Enquire</strong>, our team will receive your message and call you to process payment off-site.
+          <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-[11px] text-slate-500 leading-relaxed text-left flex gap-2">
+            <RefreshCw className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" strokeWidth={2} />
+            <div>
+              <strong>How does it work?</strong> Our platform supports off-platform payments for maximum safety. Once you click <strong>Enquire</strong>, our team will receive your message and call you to process payment off-site.
+            </div>
           </div>
         </div>
 
         {/* Card 2: Merchant Contract & Signed Copy */}
-        <div className="bg-card text-card-foreground rounded-xl border border-border/50 p-6 space-y-6 shadow-sm flex flex-col justify-between">
+        <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-6 shadow-sm flex flex-col justify-between text-left">
           <div className="space-y-4">
             <div>
-              <h3 className="font-bold text-base">Your Merchant Agreement</h3>
-              <p className="text-xs text-muted-foreground mt-1">View or print your digitally signed storefront licensing contract.</p>
+              <h3 className="font-bold text-base text-slate-800">Merchant Agreement</h3>
+              <p className="text-xs text-slate-400 mt-1">View or print your digitally signed storefront licensing contract.</p>
             </div>
 
-            {contract && contract.contractSigned ? (
-              <div className="space-y-4 bg-muted/30 p-4 rounded-xl border border-border">
-                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
-                  <ShieldCheck className="w-5 h-5" />
-                  <span className="text-xs font-bold">Verified Signed Contract</span>
+            {isAgreementSigned ? (
+              <div className="space-y-4 bg-slate-50/50 p-4 rounded-xl border border-slate-200 text-left">
+                <div className="flex items-center gap-2 text-emerald-750">
+                  <ShieldCheck className="w-5 h-5" strokeWidth={2} />
+                  <span className="text-xs font-extrabold uppercase tracking-wide">Agreement Verified</span>
                 </div>
-                <div className="text-[11px] text-muted-foreground space-y-2 text-left">
+                <div className="text-[11px] text-slate-650 space-y-2 font-medium">
                   <p>
-                    <strong>Signed on:</strong> {new Date(contract.contractSignedAt).toLocaleDateString()}
+                    <strong>Signed on:</strong> {signedDateLabel}
                   </p>
                   <p>
-                    <strong>Registered Subdomain:</strong> {store.subdomain}.crevasolution.in
+                    <strong>Plan:</strong> {planLabel}
                   </p>
-                  {contract.contractSignature && (
+                  {sigDataUrl && (
                     <div className="pt-2">
-                      <span className="text-[9px] uppercase font-bold block mb-1.5 text-muted-foreground">Captured Signature:</span>
-                      <div className="bg-white p-2 border rounded inline-block">
+                      <span className="text-[9px] uppercase font-bold block mb-1.5 text-slate-400">Captured Signature:</span>
+                      <div className="bg-white p-2 border border-slate-200 rounded inline-block">
                         <img 
-                          src={contract.contractSignature} 
+                          src={sigDataUrl} 
                           alt="Merchant signature" 
                           className="max-h-[50px] object-contain"
                         />
@@ -892,31 +985,28 @@ function SubscriptionPageContent() {
                 </div>
               </div>
             ) : (
-              <div className={`p-4 rounded-xl border text-center space-y-3 transition-all duration-300 ${
-                step === 'plan_contract' 
-                  ? 'border-amber-500 ring-2 ring-amber-400/50 animate-pulse bg-amber-50/10' 
-                  : 'bg-muted/30 border-border'
-              }`}>
-                <FileText className="w-8 h-8 text-muted-foreground mx-auto animate-pulse" />
-                <p className="text-xs text-muted-foreground font-medium">No signed agreement found on your storefront record.</p>
+              <div className="p-4 rounded-xl border border-slate-200 text-center space-y-3 bg-slate-50/50">
+                <FileText className="w-8 h-8 text-slate-350 mx-auto animate-pulse" strokeWidth={2} />
+                <p className="text-xs text-slate-500 font-semibold">Agreement Pending</p>
                 <button
                   type="button"
                   onClick={() => setIsSignModalOpen(true)}
-                  className="mx-auto mt-1 flex items-center gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-black px-4 py-2.5 rounded-xl transition-all shadow-md cursor-pointer uppercase tracking-widest"
+                  className="mx-auto mt-1 flex items-center gap-1.5 bg-blue-600 hover:bg-blue-550 text-white text-[10px] font-black px-4 py-2.5 rounded-xl transition-all shadow-md cursor-pointer uppercase tracking-widest font-sans"
                 >
-                  ✍️ Sign Licensing Agreement Now
+                  <PenTool className="w-3.5 h-3.5" strokeWidth={2} />
+                  Complete Agreement
                 </button>
               </div>
             )}
           </div>
 
-          {contract && contract.contractSigned && (
+          {isAgreementSigned && (
             <button
               onClick={handlePrintContract}
-              className="w-full mt-4 bg-primary text-primary-foreground hover:bg-primary/90 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-colors"
+              className="w-full mt-4 bg-blue-600 text-white hover:bg-blue-550 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
             >
-              <Printer className="w-4 h-4" />
-              DOWNLOAD / PRINT SIGNED CONTRACT
+              <Printer className="w-4 h-4" strokeWidth={2} />
+              Download Signed Agreement
             </button>
           )}
         </div>
@@ -924,14 +1014,14 @@ function SubscriptionPageContent() {
       </div>
 
       {/* Visual Live Document Agreement Section */}
-      {contract && contract.contractSigned && (
-        <div className="bg-card text-card-foreground rounded-xl border border-border/50 p-6 shadow-sm space-y-6">
-          <div className="text-left border-b pb-4 border-border/40">
-            <h3 className="font-bold text-base flex items-center gap-2">
-              <FileText className="w-5 h-5 text-primary" />
-              Live Merchant Licensing Agreement Document
+      {isAgreementSigned && (
+        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6 text-left">
+          <div className="text-left border-b pb-4 border-slate-100">
+            <h3 className="font-bold text-base flex items-center gap-2 text-slate-805">
+              <FileText className="w-5 h-5 text-blue-600" strokeWidth={2} />
+              Merchant Licensing Agreement
             </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-slate-400 mt-0.5">
               Review your digitally signed contract, licensing terms, and regulatory stamps in real-time below.
             </p>
           </div>
@@ -943,51 +1033,51 @@ function SubscriptionPageContent() {
             </div>
 
             {/* Document Header */}
-            <div className="relative border-b-2 border-slate-350 pb-6 mb-8 text-center">
+            <div className="relative border-b-2 border-slate-200 pb-6 mb-8 text-center">
               {(() => {
                 const logoUrl = localStorage.getItem('saas_brand_logo') || '';
                 return logoUrl ? (
                   <img src={logoUrl} alt="Platform Logo" className="max-h-[50px] max-w-[170px] mx-auto mb-4 block" />
                 ) : (
-                  <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-3">
-                    <ShieldCheck className="w-6 h-6" />
+                  <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <ShieldCheck className="w-6 h-6" strokeWidth={2} />
                   </div>
                 );
               })()}
               <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide text-slate-900 flex items-center justify-center gap-2 flex-wrap">
                 Creva SaaS Storefront Agreement
-                {contract.selectedLanguage && (
+                {contract?.selectedLanguage && (
                   <span className="text-[10px] font-mono uppercase bg-slate-100 text-slate-500 border border-slate-200 px-2 py-0.5 rounded">
                     {contract.selectedLanguage}
                   </span>
                 )}
               </h2>
-              <span className="text-[10px] md:text-xs text-slate-500 uppercase tracking-widest font-black block mt-1">Official Licensing & Merchant Operations Contract</span>
+              <span className="text-[10px] md:text-xs text-slate-400 uppercase tracking-widest font-black block mt-1">Official Licensing & Merchant Operations Contract</span>
             </div>
 
             {/* Document Meta Section */}
             <div className="space-y-4 mb-8">
-              <h4 className="text-xs font-bold text-slate-900 border-l-4 border-primary pl-2 uppercase tracking-wide">1. Merchant & Subdomain Details</h4>
+              <h4 className="text-xs font-bold text-slate-950 border-l-4 border-blue-600 pl-2 uppercase tracking-wide">1. Merchant & Subdomain Details</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border border-slate-200 rounded-lg p-4 bg-slate-50/50">
-                <div className="space-y-2">
-                  <div className="text-[11px]"><strong className="text-slate-500">Merchant Store:</strong> <span className="font-bold text-slate-800">{store.store_name}</span></div>
-                  <div className="text-[11px]"><strong className="text-slate-500">Registered Subdomain:</strong> <span className="font-mono font-bold text-primary select-all">{store.subdomain}.crevasolution.in</span></div>
-                  <div className="text-[11px]"><strong className="text-slate-500">Licensing Tier:</strong> <span className="px-2 py-0.5 bg-blue-100 text-blue-800 font-mono text-[9px] font-black rounded-full uppercase tracking-wider">{planLabel}</span></div>
+                <div className="space-y-2 text-left">
+                  <div className="text-[11px]"><strong className="text-slate-400 font-bold">Merchant Store:</strong> <span className="font-bold text-slate-800">{store.store_name}</span></div>
+                  <div className="text-[11px]"><strong className="text-slate-400 font-bold">Registered Subdomain:</strong> <span className="font-mono font-bold text-blue-600 select-all">{store.subdomain}.crevasolution.in</span></div>
+                  <div className="text-[11px]"><strong className="text-slate-400 font-bold">Licensing Tier:</strong> <span className="px-2 py-0.5 bg-blue-105 text-blue-850 font-mono text-[9px] font-black rounded-full uppercase tracking-wider">{planLabel}</span></div>
                 </div>
-                <div className="space-y-2">
-                  <div className="text-[11px]"><strong className="text-slate-500">Contact Email:</strong> <span className="text-slate-700">{store.contact_email || 'N/A'}</span></div>
-                  <div className="text-[11px]"><strong className="text-slate-500">Contact Phone:</strong> <span className="text-slate-700 font-mono">{store.contact_phone || 'N/A'}</span></div>
-                  <div className="text-[11px]"><strong className="text-slate-500">Date Signed:</strong> <span className="text-slate-700">{contract.contractSignedAt ? new Date(contract.contractSignedAt).toLocaleDateString('en-IN') : 'N/A'}</span></div>
+                <div className="space-y-2 text-left">
+                  <div className="text-[11px]"><strong className="text-slate-400 font-bold">Contact Email:</strong> <span className="text-slate-750 font-medium">{store.contact_email || 'N/A'}</span></div>
+                  <div className="text-[11px]"><strong className="text-slate-400 font-bold">Contact Phone:</strong> <span className="text-slate-750 font-mono font-medium">{store.contact_phone || 'N/A'}</span></div>
+                  <div className="text-[11px]"><strong className="text-slate-400 font-bold">Date Signed:</strong> <span className="text-slate-750 font-medium">{signedDateLabel}</span></div>
                 </div>
               </div>
             </div>
 
             {/* Document Terms Section */}
             <div className="space-y-3 mb-8">
-              <h4 className="text-xs font-bold text-slate-900 border-l-4 border-primary pl-2 uppercase tracking-wide">2. Provisions & Licensing Terms</h4>
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-5 text-[11px] text-slate-650 leading-relaxed text-justify max-h-[220px] overflow-y-auto font-sans shadow-inner scrollbar-thin">
+              <h4 className="text-xs font-bold text-slate-950 border-l-4 border-blue-600 pl-2 uppercase tracking-wide">2. Provisions & Licensing Terms</h4>
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-5 text-[11px] text-slate-600 leading-relaxed text-justify max-h-[220px] overflow-y-auto font-sans shadow-inner scrollbar-thin">
                 {(() => {
-                  const savedTemplate = contract.signedAgreementTerms || 
+                  const savedTemplate = contract?.signedAgreementTerms || 
                                         localStorage.getItem('saas_agreement_template') || 
                                         '1. PROVISIONS OF SERVICE: The Creva E-Commerce SaaS platform grants the undersigned Merchant the license to operate an automated retail storefront website using our cloud architecture.';
                   return savedTemplate.split('\n').filter((l: string) => l.trim()).map((para: string, i: number) => (
@@ -1001,14 +1091,14 @@ function SubscriptionPageContent() {
             <div className="flex flex-col sm:flex-row gap-6 justify-between items-stretch mt-10 relative pt-6 border-t border-slate-200">
               {/* Officer stamp block */}
               <div className="flex-1 border border-slate-200 rounded-lg p-4 bg-slate-50/50 flex flex-col justify-between items-center text-center">
-                <div className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-2">{contract.assignedOfficer?.title || 'Licensing Authority'}</div>
+                <div className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-2">{contract?.assignedOfficer?.title || 'Licensing Authority'}</div>
                 <img 
-                  src={getOfficerSignatureUrl(contract.assignedOfficer)} 
+                  src={getOfficerSignatureUrl(contract?.assignedOfficer)} 
                   alt="Officer stamp" 
                   className="max-h-[60px] object-contain block mix-blend-multiply mb-2" 
                 />
-                <div className="border-t border-slate-300 pt-1.5 w-full">
-                  <span className="text-xs font-bold text-slate-800 block">{contract.assignedOfficer?.name || 'Creva Representative'}</span>
+                <div className="border-t border-slate-350 pt-1.5 w-full">
+                  <span className="text-xs font-bold text-slate-800 block">{contract?.assignedOfficer?.name || 'Creva Representative'}</span>
                   <span className="text-[9px] text-slate-400 font-bold block uppercase tracking-widest mt-0.5">Authorized Signatory</span>
                 </div>
               </div>
@@ -1016,14 +1106,14 @@ function SubscriptionPageContent() {
               {/* Merchant stamp block */}
               <div className="flex-1 border border-slate-200 rounded-lg p-4 bg-slate-50/50 flex flex-col justify-between items-center text-center">
                 <div className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-2">Registered Store Owner</div>
-                {contract.contractSignature ? (
-                  <img src={contract.contractSignature} alt="Merchant signature" className="max-h-[60px] object-contain block mix-blend-multiply mb-2" />
+                {sigDataUrl ? (
+                  <img src={sigDataUrl} alt="Merchant signature" className="max-h-[60px] object-contain block mix-blend-multiply mb-2" />
                 ) : (
                   <div className="h-[60px] flex items-center justify-center text-[10px] text-slate-400 font-mono italic">
                     [MISSING DIGITIZED SIGNATURE]
                   </div>
                 )}
-                <div className="border-t border-slate-300 pt-1.5 w-full">
+                <div className="border-t border-slate-355 pt-1.5 w-full">
                   <span className="text-xs font-bold text-slate-800 block">{store.store_name} Representative</span>
                   <span className="text-[9px] text-slate-400 font-bold block uppercase tracking-widest mt-0.5">Digital Signatory</span>
                 </div>
@@ -1031,7 +1121,7 @@ function SubscriptionPageContent() {
             </div>
 
             {/* Document Footer Verification Seal */}
-            <div className="mt-8 text-center text-[9px] text-slate-400 font-mono border-t border-slate-100 pt-4 flex items-center justify-center gap-1.5">
+            <div className="mt-8 text-center text-[9px] text-slate-400 font-mono border-t border-slate-200 pt-4 flex items-center justify-center gap-1.5">
               <span className="flex items-center gap-1">
                 <Lock className="w-2.5 h-2.5 text-slate-400" />
                 Cryptographically Signed & Secured via Creva SaaS Engine
@@ -1052,7 +1142,7 @@ function SubscriptionPageContent() {
             <div className="flex items-center justify-between border-b pb-4 border-border/40">
               <div>
                 <h3 className="font-bold text-lg flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-primary" />
+                  <FileText className="w-5 h-5 text-primary" strokeWidth={2} />
                   Sign Merchant Licensing Contract
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">Please review terms and sign digitally inside the canvas.</p>
@@ -1129,8 +1219,8 @@ function SubscriptionPageContent() {
                     </div>
                   )}
                 </div>
-                <p className="text-[10px] text-muted-foreground text-left">
-                  👉 Use your finger (on mobile) or mouse drag to sign in the white box above, then click <strong>Confirm & Lock Signature</strong>.
+                <p className="text-[10px] text-muted-foreground text-left font-medium">
+                  Use your finger (on mobile) or mouse drag to sign in the white box above, then click Confirm & Lock Signature.
                 </p>
               </div>
 
