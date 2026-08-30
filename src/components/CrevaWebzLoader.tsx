@@ -20,6 +20,21 @@ export default function CrevaWebzLoader({
   const [dots, setDots] = useState('');
   const [isExiting, setIsExiting] = useState(false);
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  // Dynamic progress counter (0% -> 100% over ~3.5 seconds)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(timer);
+          return 100;
+        }
+        return prev + 1;
+      });
+    }, 35);
+    return () => clearInterval(timer);
+  }, []);
 
   // Minimum display timer to let the premium animation complete cleanly
   useEffect(() => {
@@ -163,10 +178,13 @@ export default function CrevaWebzLoader({
 
 
 
-      {/* Loading Status Text */}
-      <div className="absolute bottom-20 flex flex-col items-center">
+      {/* Loading Status Text & Dynamic Percentage */}
+      <div className="absolute bottom-20 flex flex-col items-center space-y-2 min-h-[52px]">
         <div className="status-text text-[12px] font-bold tracking-[0.25em] text-[#1E293B] uppercase">
           Preparing your store...
+        </div>
+        <div className="status-text text-[11px] font-bold tracking-[0.15em] text-[#3B8EF3] font-mono">
+          LOADING {progress}% COMPLETE
         </div>
       </div>
 
