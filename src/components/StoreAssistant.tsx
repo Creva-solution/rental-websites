@@ -70,6 +70,24 @@ export default function StoreAssistant() {
       providerName: active.type === 'openai' ? 'OpenAI' : active.type === 'anthropic_claude' ? 'Anthropic Claude' : 'Groq / Llama'
     };
   }, [integrationsList]);
+
+  const isPlanAndContractComplete = useMemo(() => {
+    if (!storeData?.description) return false;
+    try {
+      const contract = JSON.parse(storeData.description);
+      const planSelected = !!contract?.selectedPlan || !!contract?.planId;
+      const paymentVerified = contract?.paymentStatus === 'verified';
+      const isAgreementSigned = contract?.contractSigned === true || contract?.agreementSigned === true || !!contract?.signatureUrl || !!contract?.contractSignature || !!contract?.signatureData;
+      const agreementAccepted = !!contract?.agreementAcceptedAt || contract?.contractSigned === true || contract?.agreementAccepted === true || isAgreementSigned;
+      const agreementSigned = isAgreementSigned;
+      const signatureDataExists = !!(contract?.contractSignature || contract?.signatureUrl || contract?.signatureData);
+
+      return planSelected && paymentVerified && agreementAccepted && agreementSigned && signatureDataExists;
+    } catch (e) {
+      return false;
+    }
+  }, [storeData]);
+
   const [completionPercentage, setCompletionPercentage] = useState(0);
   const [storeHealth, setStoreHealth] = useState<'Good' | 'Needs Attention' | 'Almost Ready'>('Needs Attention');
   const [loadingStatus, setLoadingStatus] = useState(true);
@@ -202,31 +220,45 @@ export default function StoreAssistant() {
         const ints = integrations || [];
         setIntegrationsList(ints);
 
-        // Calculate progress percentage
-        let score = 0;
-        if (store.store_name) score += 10;
-        if (store.logo_url) score += 10;
-        if (store.description) score += 10;
-        if (store.contact_phone || store.contact_email) score += 10;
-        if (store.primary_color) score += 10;
-        if (prods.length > 0) score += 15;
-        
-        // Product image checklist score
-        const hasProductImage = prods.some((p: any) => {
+        // Calculate progress percentage based on 7 checklist steps
+        const businessInformationComplete = !!store.store_name;
+        const brandingComplete = !!store.logo_url;
+        const contactDetailsComplete = !!(store.contact_phone || store.contact_email);
+        const paymentSetupConnected = ints.length > 0;
+        const preferencesComplete = !!(store.subdomain && !store.subdomain.startsWith('__'));
+
+        let isPlanAndContractComplete = false;
+        if (store.description) {
           try {
-            const desc = JSON.parse(p.description);
-            return desc.image_url !== '';
-          } catch(e) {
-            return false;
-          }
-        });
-        if (hasProductImage) score += 10;
+            const contract = JSON.parse(store.description);
+            const planSelected = !!contract?.selectedPlan || !!contract?.planId;
+            const paymentVerified = contract?.paymentStatus === 'verified';
+            const isAgreementSigned = contract?.contractSigned === true || contract?.agreementSigned === true || !!contract?.signatureUrl || !!contract?.contractSignature || !!contract?.signatureData;
+            const agreementAccepted = !!contract?.agreementAcceptedAt || contract?.contractSigned === true || contract?.agreementAccepted === true || isAgreementSigned;
+            const agreementSigned = isAgreementSigned;
+            const signatureDataExists = !!(contract?.contractSignature || contract?.signatureUrl || contract?.signatureData);
 
-        if (categories && categories.length > 0) score += 5;
-        if (ints.length > 0) score += 10;
-        if (!store.is_paused) score += 10;
+            isPlanAndContractComplete = planSelected && paymentVerified && agreementAccepted && agreementSigned && signatureDataExists;
+          } catch (e) {}
+        }
 
-        setCompletionPercentage(score);
+        const accountSetupComplete = !store.is_paused;
+
+        const completedStepsList = [
+          businessInformationComplete,
+          brandingComplete,
+          contactDetailsComplete,
+          paymentSetupConnected,
+          preferencesComplete,
+          isPlanAndContractComplete,
+          accountSetupComplete
+        ];
+
+        const completedCount = completedStepsList.filter(Boolean).length;
+        const totalSteps = completedStepsList.length;
+        const pct = Math.round((completedCount / totalSteps) * 100);
+
+        setCompletionPercentage(pct);
 
         // Set store health status
         if (!store.is_paused && prods.length > 0 && ints.length > 0) {
@@ -251,7 +283,7 @@ export default function StoreAssistant() {
           setMessages([
             {
               sender: 'ai',
-              text: `Welcome back, ${ownerName} 👋\n\nI have analyzed your store setup.\nYour storefront configuration is currently ${score}% complete.\n\n${
+              text: `Welcome back, ${ownerName} 👋\n\nI have analyzed your store setup.\nYour storefront configuration is currently ${pct}% complete.\n\n${
                 !store.logo_url 
                   ? "⚠ Store logo is missing.\nAdding a logo will make your storefront feel more complete and professional." 
                   : "✓ Your logo and branding properties are all set."
@@ -2059,7 +2091,7 @@ Would you like to save and connect this UPI configuration?`,
                       </div>
                       <div className="space-y-1">
                         <h4 className="font-extrabold text-xs text-slate-900 uppercase tracking-wide">Store Setup Progress</h4>
-                        <span className="text-[10px] text-slate-500 block">Overall Setup Complete</span>
+                        <span className="text-[10px] text-slate-500 block">{completionPercentage === 100 ? 'Setup Complete' : 'Overall Setup Complete'}</span>
                           <div className="text-[10px] text-slate-650 flex items-center gap-1.5 mt-1 font-bold">
                           <span>Health Status:</span>
                           <span className={`px-2 py-0.5 rounded ${
@@ -2166,21 +2198,32 @@ Would you like to save and connect this UPI configuration?`,
                         </Link>
 
                         {/* 6. Plan & Contract */}
-                        <Link 
-                          href="/admin/subscription?checklist_step=plan_contract"
-                          className="py-3.5 px-4 flex items-center justify-between text-xs cursor-pointer hover:bg-slate-50 transition-colors group"
-                        >
-                          <span className="flex items-center gap-2.5">
-                            {storeData?.billing_plan 
-                              ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                              : <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-                            }
-                            <span className="font-semibold text-slate-700">Plan & Contract</span>
-                          </span>
-                          <span className="text-[10px] font-bold text-slate-450 group-hover:text-blue-600 transition-colors">
-                            {storeData?.billing_plan ? 'Completed ✓' : 'Click to complete →'}
-                          </span>
-                        </Link>
+                        {isPlanAndContractComplete ? (
+                          <div
+                            className="py-3.5 px-4 flex items-center justify-between text-xs transition-colors"
+                          >
+                            <span className="flex items-center gap-2.5">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                              <span className="font-semibold text-slate-700">Plan & Contract</span>
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-450">
+                              Completed ✓
+                            </span>
+                          </div>
+                        ) : (
+                          <Link 
+                            href="/admin/subscription?checklist_step=plan_contract"
+                            className="py-3.5 px-4 flex items-center justify-between text-xs cursor-pointer hover:bg-slate-50 transition-colors group"
+                          >
+                            <span className="flex items-center gap-2.5">
+                              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                              <span className="font-semibold text-slate-700">Plan & Contract</span>
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-450 group-hover:text-blue-600 transition-colors">
+                              Click to complete →
+                            </span>
+                          </Link>
+                        )}
 
                         {/* 7. Account Setup */}
                         <Link 
