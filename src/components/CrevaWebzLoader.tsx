@@ -25,7 +25,7 @@ export default function CrevaWebzLoader({
   useEffect(() => {
     const timer = setTimeout(() => {
       setMinTimeElapsed(true);
-    }, 2000);
+    }, 3700); // 3.2s animation build + 0.5s pause
     return () => clearTimeout(timer);
   }, []);
 
@@ -36,7 +36,7 @@ export default function CrevaWebzLoader({
     if (isAppReady) return;
     const interval = setInterval(() => {
       setMsgIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
-    }, 2000);
+    }, 3700); // 3.2s animation build + 0.5s pause
     return () => clearInterval(interval);
   }, [isAppReady]);
 
@@ -161,17 +161,7 @@ export default function CrevaWebzLoader({
         </div>
       </div>
 
-      {/* Loading Status & Animated Progress Indicator */}
-      <div className="absolute bottom-20 flex flex-col items-center space-y-3.5 min-h-[50px]">
-        <div className="text-[12px] font-bold tracking-[0.25em] text-[#1E293B] uppercase">
-          Preparing your store...
-        </div>
-        
-        {/* Minimal thin progress line with animated indicator */}
-        <div className="relative w-40 h-[3px] bg-slate-100 rounded-full overflow-hidden">
-          <div className="absolute top-0 bottom-0 left-0 bg-[#3B8EF3] rounded-full logo-progress-indicator" />
-        </div>
-      </div>
+
 
       {/* Premium SVG Tracing & GPU-friendly CSS Keyframe Animations */}
       <style dangerouslySetInnerHTML={{ __html: `
@@ -182,8 +172,8 @@ export default function CrevaWebzLoader({
             opacity: 0.6;
           }
           50% {
-            transform: translateY(-30px) scale(1.03);
-            opacity: 0.8;
+            transform: translateY(-30px) scale(1.05);
+            opacity: 0.9;
           }
         }
 
@@ -191,7 +181,7 @@ export default function CrevaWebzLoader({
         @keyframes logoFadeInScale {
           0% {
             opacity: 0;
-            transform: scale(0.96);
+            transform: scale(0.92);
           }
           100% {
             opacity: 1;
@@ -208,7 +198,7 @@ export default function CrevaWebzLoader({
           stroke-linecap: round;
           fill: none;
           opacity: 0;
-          animation: drawC 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+          animation: drawC 1.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         }
         @keyframes drawC {
           0% {
@@ -239,8 +229,8 @@ export default function CrevaWebzLoader({
           stroke-linecap: round;
           fill: none;
           opacity: 0;
-          animation: drawW 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-          animation-delay: 0.2s;
+          animation: drawW 1.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+          animation-delay: 0.6s;
         }
         @keyframes drawW {
           0% {
@@ -273,16 +263,16 @@ export default function CrevaWebzLoader({
           transform-origin: 482.5px 341px;
           transform: scale(0);
           opacity: 0;
-          animation: wheelPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-          animation-delay: 0.5s;
+          animation: wheelPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+          animation-delay: 1.4s;
         }
         /* Right wheel pop-in & rotate */
         .logo-wheel-right {
           transform-origin: 548px 341px;
           transform: scale(0);
           opacity: 0;
-          animation: wheelPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-          animation-delay: 0.6s;
+          animation: wheelPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+          animation-delay: 1.6s;
         }
         @keyframes wheelPop {
           0% {
@@ -298,13 +288,13 @@ export default function CrevaWebzLoader({
         /* Speed lines staggered slide */
         .logo-speed-line-1 {
           opacity: 0;
-          animation: speedSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          animation-delay: 0.55s;
+          animation: speedSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation-delay: 1.5s;
         }
         .logo-speed-line-2 {
           opacity: 0;
-          animation: speedSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          animation-delay: 0.65s;
+          animation: speedSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation-delay: 1.7s;
         }
         @keyframes speedSlide {
           0% {
@@ -323,8 +313,8 @@ export default function CrevaWebzLoader({
           transform: scale(0);
           fill: radial-gradient(circle, #FFFFFF 0%, rgba(59, 142, 243, 0.6) 50%, transparent 100%);
           opacity: 0;
-          animation: flareTrigger 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-          animation-delay: 0.7s;
+          animation: flareTrigger 0.7s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+          animation-delay: 1.9s;
         }
         @keyframes flareTrigger {
           0% {
@@ -347,8 +337,8 @@ export default function CrevaWebzLoader({
           opacity: 0;
           transform: translateY(8px);
           filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.1));
-          animation: textReveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          animation-delay: 0.8s;
+          animation: textReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation-delay: 2.3s;
         }
         @keyframes textReveal {
           0% {
@@ -363,24 +353,7 @@ export default function CrevaWebzLoader({
           }
         }
 
-        /* Minimal Progress Line animated indicator */
-        .logo-progress-indicator {
-          width: 30%;
-          animation: progressIndeterminate 1.6s infinite ease-in-out;
-        }
-        @keyframes progressIndeterminate {
-          0% {
-            left: -35%;
-            width: 30%;
-          }
-          50% {
-            width: 45%;
-          }
-          100% {
-            left: 100%;
-            width: 30%;
-          }
-        }
+
 
         /* Accessibility reduced motion support */
         @media (prefers-reduced-motion: reduce) {
